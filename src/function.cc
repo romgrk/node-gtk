@@ -55,7 +55,7 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
     return scope.Close (GIArgumentToV8 (&return_value_type, &return_value));
 }
 
-static void FunctionDestroyed (Persistent<Value> object, void *data) {
+static void FunctionDestroyed(Persistent<Value> object, void *data) {
     GIBaseInfo *info = (GIBaseInfo *) data;
     g_base_info_unref (info);
 }
