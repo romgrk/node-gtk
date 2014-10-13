@@ -61,7 +61,7 @@ static void FunctionDestroyed(Persistent<Value> object, void *data) {
 }
 
 Handle<Function> MakeFunction(GIBaseInfo *info) {
-    Persistent<FunctionTemplate> tpl = Persistent<FunctionTemplate>::New (FunctionTemplate::New (FunctionInvoker, External::New (info)));
+    Persistent<FunctionTemplate> tpl = Persistent<FunctionTemplate>::New (FunctionTemplate::New (FunctionInvoker, External::Wrap (info)));
     tpl.MakeWeak (g_base_info_ref (info), FunctionDestroyed);
     Local<Function> fn = tpl->GetFunction ();
 
