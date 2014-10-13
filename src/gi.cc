@@ -3,6 +3,7 @@
 #include <girepository.h>
 
 #include "value.h"
+#include "function.h"
 
 using namespace v8;
 
@@ -36,6 +37,11 @@ static void DefineConstant(Handle<Object> module_obj, GIBaseInfo *info) {
     module_obj->Set (String::NewSymbol (constant_name), value);
 }
 
+static void DefineFunction(Handle<Object> module_obj, GIBaseInfo *info) {
+    const char *function_name = g_base_info_get_name ((GIBaseInfo *) info);
+    module_obj->Set (String::NewSymbol (function_name), GINode::MakeFunction (info));
+}
+
 static void DefineInfo(Handle<Object> module_obj, GIBaseInfo *info) {
     GIInfoType type = g_base_info_get_type (info);
 
@@ -46,6 +52,9 @@ static void DefineInfo(Handle<Object> module_obj, GIBaseInfo *info) {
         break;
     case GI_INFO_TYPE_CONSTANT:
         DefineConstant (module_obj, info);
+        break;
+    case GI_INFO_TYPE_FUNCTION:
+        DefineFunction (module_obj, info);
         break;
     default:
         break;

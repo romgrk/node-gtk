@@ -58,4 +58,58 @@ v8::Handle<v8::Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     }
 }
 
+void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, v8::Handle<v8::Value> value) {
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    switch (type_tag) {
+    case GI_TYPE_TAG_VOID:
+        arg->v_pointer = NULL;
+        break;
+    case GI_TYPE_TAG_BOOLEAN:
+        arg->v_boolean = value->BooleanValue ();
+        break;
+    case GI_TYPE_TAG_INT32:
+        arg->v_int = value->Int32Value ();
+        break;
+    case GI_TYPE_TAG_UINT32:
+        arg->v_uint = value->Uint32Value ();
+        break;
+    case GI_TYPE_TAG_INT64:
+        arg->v_int64 = value->NumberValue ();
+        break;
+    case GI_TYPE_TAG_UINT64:
+        arg->v_uint64 = value->NumberValue ();
+        break;
+    case GI_TYPE_TAG_FLOAT:
+        arg->v_float = value->NumberValue ();
+        break;
+    case GI_TYPE_TAG_DOUBLE:
+        arg->v_double = value->NumberValue ();
+        break;
+
+    case GI_TYPE_TAG_UTF8:
+        {
+            v8::String::Utf8Value str (value);
+            const char *data = *str;
+            arg->v_pointer = g_strdup (data);
+        }
+        break;
+
+    default:
+        g_assert_not_reached ();
+    }
+}
+
+void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    switch (type_tag) {
+    case GI_TYPE_TAG_UTF8:
+        g_free (arg->v_pointer);
+        break;
+    default:
+        break;
+    }
+}
+
 };
