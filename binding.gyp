@@ -6,6 +6,7 @@
                 "src/gi.cc",
                 "src/value.cc",
                 "src/function.cc",
+                "src/object.cc",
             ],
             "cflags": [
                 "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -Werror",

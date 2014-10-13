@@ -112,4 +112,24 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
     }
 }
 
+void V8ToGValue(GValue *gvalue, v8::Handle<v8::Value> value) {
+    if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
+        g_value_set_boolean (gvalue, value->BooleanValue ());
+    } else if (G_VALUE_HOLDS_INT (gvalue)) {
+        g_value_set_int (gvalue, value->Int32Value ());
+    } else if (G_VALUE_HOLDS_UINT (gvalue)) {
+        g_value_set_uint (gvalue, value->Uint32Value ());
+    } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
+        g_value_set_float (gvalue, value->NumberValue ());
+    } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
+        g_value_set_double (gvalue, value->NumberValue ());
+    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+        v8::String::Utf8Value str (value);
+        const char *data = *str;
+        g_value_set_string (gvalue, data);
+    } else {
+        g_assert_not_reached ();
+    }
+}
+
 };

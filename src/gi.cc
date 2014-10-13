@@ -4,6 +4,7 @@
 
 #include "value.h"
 #include "function.h"
+#include "object.h"
 
 using namespace v8;
 
@@ -42,6 +43,11 @@ static void DefineFunction(Handle<Object> module_obj, GIBaseInfo *info) {
     module_obj->Set (String::NewSymbol (function_name), GINode::MakeFunction (info));
 }
 
+static void DefineObject(Handle<Object> module_obj, GIBaseInfo *info) {
+    const char *class_name = g_base_info_get_name ((GIBaseInfo *) info);
+    module_obj->Set (String::NewSymbol (class_name), GINode::MakeClass (info));
+}
+
 static void DefineInfo(Handle<Object> module_obj, GIBaseInfo *info) {
     GIInfoType type = g_base_info_get_type (info);
 
@@ -55,6 +61,9 @@ static void DefineInfo(Handle<Object> module_obj, GIBaseInfo *info) {
         break;
     case GI_INFO_TYPE_FUNCTION:
         DefineFunction (module_obj, info);
+        break;
+    case GI_INFO_TYPE_OBJECT:
+        DefineObject (module_obj, info);
         break;
     default:
         break;
