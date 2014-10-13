@@ -61,8 +61,6 @@ static void FunctionDestroyed(Persistent<Value> object, void *data) {
 }
 
 Handle<Function> MakeFunction(GIBaseInfo *info) {
-    HandleScope scope;
-
     Persistent<FunctionTemplate> tpl = Persistent<FunctionTemplate>::New (FunctionTemplate::New (FunctionInvoker, External::New (info)));
     tpl.MakeWeak (g_base_info_ref (info), FunctionDestroyed);
     Local<Function> fn = tpl->GetFunction ();
@@ -70,7 +68,7 @@ Handle<Function> MakeFunction(GIBaseInfo *info) {
     const char *function_name = g_base_info_get_name (info);
     fn->SetName (String::NewSymbol (function_name));
 
-    return scope.Close (fn);
+    return fn;
 }
 
 };
