@@ -4,6 +4,7 @@
             "target_name": "gi",
             "sources": [
                 "src/gi.cc",
+                "src/value.cc",
             ],
             "cflags": [
                 "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -Werror",

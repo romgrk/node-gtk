@@ -1,7 +1,8 @@
 
 #include <node.h>
-
 #include <girepository.h>
+
+#include "value.h"
 
 using namespace v8;
 
@@ -24,6 +25,17 @@ static void DefineEnumeration(Handle<Object> module_obj, GIBaseInfo *info) {
     module_obj->Set (String::NewSymbol (enum_name), enum_obj);
 }
 
+static void DefineConstant(Handle<Object> module_obj, GIBaseInfo *info) {
+    GITypeInfo *type_info = g_constant_info_get_type ((GIConstantInfo *) info);
+    GIArgument garg;
+    g_constant_info_get_value ((GIConstantInfo *) info, &garg);
+    Handle<Value> value = GINode::GIArgumentToV8 (type_info, &garg);
+    g_base_info_unref ((GIBaseInfo *) type_info);
+
+    const char *constant_name = g_base_info_get_name ((GIBaseInfo *) info);
+    module_obj->Set (String::NewSymbol (constant_name), value);
+}
+
 static void DefineInfo(Handle<Object> module_obj, GIBaseInfo *info) {
     GIInfoType type = g_base_info_get_type (info);
 
@@ -31,6 +43,9 @@ static void DefineInfo(Handle<Object> module_obj, GIBaseInfo *info) {
     case GI_INFO_TYPE_ENUM:
     case GI_INFO_TYPE_FLAGS:
         DefineEnumeration (module_obj, info);
+        break;
+    case GI_INFO_TYPE_CONSTANT:
+        DefineConstant (module_obj, info);
         break;
     default:
         break;
