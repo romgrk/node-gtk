@@ -109,7 +109,7 @@ static GArray * V8ToGArray(GITypeInfo *type_info, v8::Handle<v8::Value> value) {
         v8::Local<v8::Value> value = array->Get (i);
         GIArgument arg;
 
-        V8ToGIArgument (elem_info, &arg, value);
+        V8ToGIArgument (elem_info, &arg, value, false);
         g_array_append_val (garray, arg);
     }
 
@@ -117,8 +117,17 @@ static GArray * V8ToGArray(GITypeInfo *type_info, v8::Handle<v8::Value> value) {
     return garray;
 }
 
-void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, v8::Handle<v8::Value> value) {
+void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, v8::Handle<v8::Value> value, bool may_be_null) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    if (value->IsNull ()) {
+        if (may_be_null)
+            arg->v_pointer = NULL;
+        else
+            ThrowException (v8::Exception::TypeError (v8::String::New ("Argument may not be null.")));
+
+        return;
+    }
 
     switch (type_tag) {
     case GI_TYPE_TAG_VOID:

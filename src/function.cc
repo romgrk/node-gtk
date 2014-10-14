@@ -62,8 +62,9 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
     for (int i = 0; i < n_in_args; i++) {
         GIArgInfo *arg_info = g_callable_info_get_arg ((GICallableInfo *) info, i);
         GITypeInfo type_info;
+        bool may_be_null = g_arg_info_may_be_null (arg_info);
         g_arg_info_load_type (arg_info, &type_info);
-        V8ToGIArgument (&type_info, &in_args[i], args[i]);
+        V8ToGIArgument (&type_info, &in_args[i], args[i], may_be_null);
         g_base_info_unref ((GIBaseInfo *) arg_info);
     }
 
