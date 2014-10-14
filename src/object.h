@@ -1,4 +1,6 @@
 
+#pragma once
+
 #include <node.h>
 #include <girepository.h>
 #include <glib-object.h>
