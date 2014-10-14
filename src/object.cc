@@ -73,8 +73,24 @@ G_DEFINE_QUARK(gnode_js_object, gnode_js_object);
 static Handle<Value> GObjectConstructor(const Arguments &args) {
     HandleScope scope;
 
-    /* Special case: we're passed one argument as an external. */
-    if (args.Length () == 1 && args[0]->IsExternal ()) {
+    /* The flow of this function is a bit twisty.
+
+     * There's two cases for when this code is called:
+     * user code doing `new Gtk.Widget({ ... })`, and
+     * internal code as part of WrapperFromGObject, where
+     * the constructor is called with one external. This
+     * is even sillier as the normal user code case actually
+     * calls WrapperFromGObject, meaning this function is
+     * re-entrant in that case. */
+
+    if (!args.IsConstructCall ()) {
+        ThrowException (Exception::TypeError (String::New ("Not a construct call.")));
+        return scope.Close (Undefined ());
+    }
+
+    if (args[0]->IsExternal ()) {
+        /* The External case. This is how WrapperFromGObject is called. */
+
         Handle<Object> self = args.This ();
 
         void *data = External::Unwrap (args[0]);
@@ -88,40 +104,37 @@ static Handle<Value> GObjectConstructor(const Arguments &args) {
         g_object_set_qdata (gobject, gnode_js_object_quark (), self_p);
 
         return self;
-    }
+    } else {
+        /* User code calling `new Gtk.Widget({ ... })` */
 
-    if (!args.IsConstructCall ()) {
-        ThrowException (Exception::TypeError (String::New ("Not a construct call.")));
-        return scope.Close (Undefined ());
-    }
+        GObject *obj = NULL;
+        GIBaseInfo *info = (GIBaseInfo *) External::Unwrap(args.Data ());
+        GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
+        void *klass = g_type_class_ref (gtype);
 
-    GObject *obj = NULL;
-    GIBaseInfo *info = (GIBaseInfo *) External::Unwrap(args.Data ());
-    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
-    void *klass = g_type_class_ref (gtype);
+        GParameter *parameters = NULL;
+        int n_parameters = 0;
 
-    GParameter *parameters = NULL;
-    int n_parameters = 0;
+        if (args[0]->IsObject ()) {
+            Local<Object> property_hash = args[0]->ToObject ();
 
-    if (args[0]->IsObject ()) {
-        Local<Object> property_hash = args[0]->ToObject ();
-
-        if (!InitGParametersFromProperty (&parameters, &n_parameters, klass, property_hash)) {
-            ThrowException (Exception::TypeError (String::New ("Unable to make GParameters.")));
-            goto out;
+            if (!InitGParametersFromProperty (&parameters, &n_parameters, klass, property_hash)) {
+                ThrowException (Exception::TypeError (String::New ("Unable to make GParameters.")));
+                goto out;
+            }
         }
+
+        obj = (GObject *) g_object_newv (gtype, n_parameters, parameters);
+
+    out:
+        g_free (parameters);
+        g_type_class_unref (klass);
+
+        if (obj)
+            return scope.Close (WrapperFromGObject (obj));
+        else
+            return scope.Close (Null ());
     }
-
-    obj = (GObject *) g_object_newv (gtype, n_parameters, parameters);
-
- out:
-    g_free (parameters);
-    g_type_class_unref (klass);
-
-    if (obj)
-        return scope.Close (WrapperFromGObject (obj));
-    else
-        return scope.Close (Null ());
 }
 
 G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
