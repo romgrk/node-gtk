@@ -73,7 +73,7 @@ G_DEFINE_QUARK(gnode_js_object, gnode_js_object);
 static Handle<Value> GObjectConstructor(const Arguments &args) {
     HandleScope scope;
 
-    // Special case: we're passed one argument as an external.
+    /* Special case: we're passed one argument as an external. */
     if (args.Length () == 1 && args[0]->IsExternal ()) {
         Handle<Object> self = args.This ();
 
@@ -218,8 +218,8 @@ Handle<Function> MakeClass(GIBaseInfo *info) {
 static void ObjectDestroyed(Persistent<Value> object, void *data) {
     GObject *gobject = G_OBJECT (data);
 
-    // We're destroying the wrapper object, so make sure to clear out
-    // the qdata that points back to us.
+    /* We're destroying the wrapper object, so make sure to clear out
+     * the qdata that points back to us. */
     g_object_set_qdata (gobject, gnode_js_object_quark (), NULL);
 
     g_object_unref (gobject);
@@ -232,19 +232,20 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
     Persistent<Object> obj(obj_p);
 
     if (toggle_down) {
-        // We're dropping from 2 refs to 1 ref. We are the last holder. Make
-        // sure that that our weak ref is installed.
+        /* We're dropping from 2 refs to 1 ref. We are the last holder. Make
+         * sure that that our weak ref is installed. */
         obj.MakeWeak (gobject, ObjectDestroyed);
     } else {
-        // We're going from 1 ref to 2 refs. We can't let our wrapper be
-        // collected, so make sure that our reference is persistent.
+        /* We're going from 1 ref to 2 refs. We can't let our wrapper be
+         * collected, so make sure that our reference is persistent */
         obj.ClearWeak ();
     }
 }
 
 Handle<Value> WrapperFromGObject(GObject *gobject) {
     void *data = g_object_get_qdata (gobject, gnode_js_object_quark ());
-    // Easy case: we already have a wrapper.
+
+    /* Easy case: we already have a wrapper. */
     if (data) {
         Object *obj_p = (Object *) data;
         Persistent<Object> obj(obj_p);
