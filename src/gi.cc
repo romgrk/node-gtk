@@ -104,7 +104,7 @@ static Handle<Value> ImportRepo(const Arguments& args) {
     const char *ns = *ns_str;
 
     const char *version = NULL;
-    if (args.Length() > 1) {
+    if (args[1]->IsString ()) {
         String::Utf8Value version_str (args[1]->ToString());
         version = *version_str;
     }
