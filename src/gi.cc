@@ -105,7 +105,7 @@ static Handle<Value> ImportNS(const Arguments& args) {
 
     const char *version = NULL;
     if (args[1]->IsString ()) {
-        String::Utf8Value version_str (args[1]->ToString());
+        String::Utf8Value version_str (args[1]->ToString ());
         version = *version_str;
     }
 
