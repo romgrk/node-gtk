@@ -1,6 +1,7 @@
 
 #include "function.h"
 #include "value.h"
+#include "object.h"
 
 using namespace v8;
 
@@ -15,11 +16,26 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
     /* XXX: For now, only work on functions without any OUT args at all.
      * Just assume everything is an in arg. */
     int n_in_args = g_callable_info_get_n_args ((GICallableInfo *) info);
-    GIArgument in_args[n_in_args];
+    int n_total_args = n_in_args;
 
     if (args.Length() < n_in_args) {
         ThrowException (Exception::TypeError (String::New ("Not enough arguments.")));
         return scope.Close (Undefined ());
+    }
+
+    gboolean is_method = ((g_function_info_get_flags (info) & GI_FUNCTION_IS_METHOD) != 0 &&
+                          (g_function_info_get_flags (info) & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
+    if (is_method)
+        n_total_args++;
+
+    GIArgument total_args[n_total_args];
+    GIArgument *in_args;
+
+    if (is_method) {
+        total_args[0].v_pointer = GObjectFromWrapper (args.This ());
+        in_args = &total_args[1];
+    } else {
+        in_args = &total_args[0];
     }
 
     for (int i = 0; i < n_in_args; i++) {
@@ -32,7 +48,7 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
 
     GIArgument return_value;
     g_function_info_invoke (function_info,
-                            in_args, n_in_args,
+                            total_args, n_total_args,
                             NULL, 0,
                             &return_value,
                             &error);
