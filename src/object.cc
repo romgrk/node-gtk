@@ -70,6 +70,16 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
 
 G_DEFINE_QUARK(gnode_js_object, gnode_js_object);
 
+static void AssociateGObject(Handle<Object> object, GObject *gobject) {
+    object->SetPointerInInternalField (0, gobject);
+
+    g_object_ref_sink (gobject);
+    g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
+
+    Object *object_p = *object;
+    g_object_set_qdata (gobject, gnode_js_object_quark (), object_p);
+}
+
 static Handle<Value> GObjectConstructor(const Arguments &args) {
     HandleScope scope;
 
@@ -78,36 +88,26 @@ static Handle<Value> GObjectConstructor(const Arguments &args) {
      * There's two cases for when this code is called:
      * user code doing `new Gtk.Widget({ ... })`, and
      * internal code as part of WrapperFromGObject, where
-     * the constructor is called with one external. This
-     * is even sillier as the normal user code case actually
-     * calls WrapperFromGObject, meaning this function is
-     * re-entrant in that case. */
+     * the constructor is called with one external. */
 
     if (!args.IsConstructCall ()) {
         ThrowException (Exception::TypeError (String::New ("Not a construct call.")));
         return scope.Close (Undefined ());
     }
 
+    Handle<Object> self = args.This ();
+
     if (args[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromGObject is called. */
 
-        Handle<Object> self = args.This ();
-
         void *data = External::Unwrap (args[0]);
         GObject *gobject = G_OBJECT (data);
-        self->SetPointerInInternalField (0, gobject);
 
-        g_object_ref_sink (gobject);
-        g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
-
-        Object *self_p = *self;
-        g_object_set_qdata (gobject, gnode_js_object_quark (), self_p);
-
-        return self;
+        AssociateGObject (self, gobject);
     } else {
         /* User code calling `new Gtk.Widget({ ... })` */
 
-        GObject *obj = NULL;
+        GObject *gobject;
         GIBaseInfo *info = (GIBaseInfo *) External::Unwrap(args.Data ());
         GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
         void *klass = g_type_class_ref (gtype);
@@ -124,17 +124,15 @@ static Handle<Value> GObjectConstructor(const Arguments &args) {
             }
         }
 
-        obj = (GObject *) g_object_newv (gtype, n_parameters, parameters);
+        gobject = (GObject *) g_object_newv (gtype, n_parameters, parameters);
+        AssociateGObject (self, gobject);
 
     out:
         g_free (parameters);
         g_type_class_unref (klass);
-
-        if (obj)
-            return scope.Close (WrapperFromGObject (obj));
-        else
-            return scope.Close (Null ());
     }
+
+    return self;
 }
 
 G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
