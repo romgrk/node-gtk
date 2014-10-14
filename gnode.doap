@@ -9,7 +9,7 @@
   <shortname>gnode</shortname>
   <category rdf:resource="http://api.gnome.org/doap-extensions#core" />
 
-  <shortdesc xml:lang="en">GNOME + node.js</shortdesc>
+  <description xml:lang="en">GNOME + node.js</description>
 
   <programming-language>C++, JS</programming-language>
 
