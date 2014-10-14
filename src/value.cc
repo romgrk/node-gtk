@@ -94,6 +94,29 @@ v8::Handle<v8::Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     }
 }
 
+static GArray * V8ToGArray(GITypeInfo *type_info, v8::Handle<v8::Value> value) {
+    if (!value->IsArray ()) {
+        ThrowException (v8::Exception::TypeError (v8::String::New ("Not an array.")));
+        return NULL;
+    }
+
+    v8::Local<v8::Array> array = v8::Local<v8::Array>::Cast (value->ToObject ());
+    GITypeInfo *elem_info = g_type_info_get_param_type (type_info, 0);
+
+    int length = array->Length ();
+    GArray *garray = g_array_sized_new (TRUE, FALSE, sizeof (GIArgument), length);
+    for (int i = 0; i < length; i++) {
+        v8::Local<v8::Value> value = array->Get (i);
+        GIArgument arg;
+
+        V8ToGIArgument (elem_info, &arg, value);
+        g_array_append_val (garray, arg);
+    }
+
+    g_base_info_unref ((GIBaseInfo *) elem_info);
+    return garray;
+}
+
 void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, v8::Handle<v8::Value> value) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
@@ -148,6 +171,24 @@ void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, v8::Handle<v8::Value
         }
         break;
 
+    case GI_TYPE_TAG_ARRAY:
+        {
+            GIArrayType array_type = g_type_info_get_array_type (type_info);
+            GArray *garray = V8ToGArray (type_info, value);
+
+            switch (array_type) {
+            case GI_ARRAY_TYPE_C:
+                arg->v_pointer = g_array_free (garray, FALSE);
+                break;
+            case GI_ARRAY_TYPE_ARRAY:
+                arg->v_pointer = garray;
+                break;
+            default:
+                g_assert_not_reached ();
+            }
+        }
+        break;
+
     default:
         g_assert_not_reached ();
     }
@@ -159,6 +200,23 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
     switch (type_tag) {
     case GI_TYPE_TAG_UTF8:
         g_free (arg->v_pointer);
+        break;
+
+    case GI_TYPE_TAG_ARRAY:
+        {
+            GIArrayType array_type = g_type_info_get_array_type (type_info);
+
+            switch (array_type) {
+            case GI_ARRAY_TYPE_C:
+                g_free (arg->v_pointer);
+                break;
+            case GI_ARRAY_TYPE_ARRAY:
+                g_array_free ((GArray *) arg->v_pointer, TRUE);
+                break;
+            default:
+                g_assert_not_reached ();
+            }
+        }
         break;
     default:
         break;
