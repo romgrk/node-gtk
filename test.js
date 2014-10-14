@@ -8,3 +8,5 @@ const GUdev = GNode.importRepo("GUdev");
 var client = new GUdev.Client();
 var obj = client.query_by_device_file("/dev/dri/card0");
 console.log(obj.get_name());
+
+console.log(GLib.test_override());
