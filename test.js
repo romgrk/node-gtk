@@ -5,4 +5,5 @@ console.log(GLib.ascii_strup("foo", -1));
 
 const GUdev = gi.importRepo("GUdev");
 var client = new GUdev.Client();
-console.log(client.query_by_device_file);
+var obj = client.query_by_device_file("/dev/dri/card0");
+console.log(obj.get_name());

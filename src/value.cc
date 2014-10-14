@@ -1,5 +1,6 @@
 
 #include "value.h"
+#include "object.h"
 
 namespace GINode {
 
@@ -53,6 +54,20 @@ v8::Handle<v8::Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
         else
             return v8::Null ();
 
+    case GI_TYPE_TAG_INTERFACE:
+        {
+            GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
+            GIInfoType interface_type = g_base_info_get_type (interface_info);
+
+            switch (interface_type) {
+            case GI_INFO_TYPE_OBJECT:
+                return WrapperFromGObject ((GObject *) arg->v_pointer);
+            default:
+                g_assert_not_reached ();
+            }
+        }
+        break;
+
     default:
         g_assert_not_reached ();
     }
@@ -92,6 +107,23 @@ void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, v8::Handle<v8::Value
             v8::String::Utf8Value str (value);
             const char *data = *str;
             arg->v_pointer = g_strdup (data);
+        }
+        break;
+
+    case GI_TYPE_TAG_INTERFACE:
+        {
+            GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
+            GIInfoType interface_type = g_base_info_get_type (interface_info);
+
+            switch (interface_type) {
+            case GI_INFO_TYPE_OBJECT:
+                arg->v_pointer = GObjectFromWrapper (value);
+                break;
+            default:
+                g_assert_not_reached ();
+            }
+
+            g_base_info_unref (interface_info);
         }
         break;
 
