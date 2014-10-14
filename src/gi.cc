@@ -31,7 +31,7 @@ static void DefineConstant(Handle<Object> module_obj, GIBaseInfo *info) {
     GITypeInfo *type_info = g_constant_info_get_type ((GIConstantInfo *) info);
     GIArgument garg;
     g_constant_info_get_value ((GIConstantInfo *) info, &garg);
-    Handle<Value> value = GINode::GIArgumentToV8 (type_info, &garg);
+    Handle<Value> value = GNodeJS::GIArgumentToV8 (type_info, &garg);
     g_base_info_unref ((GIBaseInfo *) type_info);
 
     const char *constant_name = g_base_info_get_name ((GIBaseInfo *) info);
@@ -40,12 +40,12 @@ static void DefineConstant(Handle<Object> module_obj, GIBaseInfo *info) {
 
 static void DefineFunction(Handle<Object> module_obj, GIBaseInfo *info) {
     const char *function_name = g_base_info_get_name ((GIBaseInfo *) info);
-    module_obj->Set (String::NewSymbol (function_name), GINode::MakeFunction (info));
+    module_obj->Set (String::NewSymbol (function_name), GNodeJS::MakeFunction (info));
 }
 
 static void DefineObject(Handle<Object> module_obj, GIBaseInfo *info) {
     const char *class_name = g_base_info_get_name ((GIBaseInfo *) info);
-    module_obj->Set (String::NewSymbol (class_name), GINode::MakeClass (info));
+    module_obj->Set (String::NewSymbol (class_name), GNodeJS::MakeClass (info));
 }
 
 static void DefineInfo(Handle<Object> module_obj, GIBaseInfo *info) {

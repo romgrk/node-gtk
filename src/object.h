@@ -5,7 +5,7 @@
 #include <girepository.h>
 #include <glib-object.h>
 
-namespace GINode {
+namespace GNodeJS {
 
 v8::Handle<v8::Function> MakeClass(GIBaseInfo *info);
 

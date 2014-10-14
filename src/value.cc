@@ -2,7 +2,7 @@
 #include "value.h"
 #include "object.h"
 
-namespace GINode {
+namespace GNodeJS {
 
 v8::Handle<v8::Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);

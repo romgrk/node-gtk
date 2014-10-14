@@ -5,7 +5,7 @@
 
 using namespace v8;
 
-namespace GINode {
+namespace GNodeJS {
 
 static Handle<Value> FunctionInvoker(const Arguments &args) {
     HandleScope scope;

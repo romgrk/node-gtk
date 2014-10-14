@@ -5,7 +5,7 @@
 
 using namespace v8;
 
-namespace GINode {
+namespace GNodeJS {
 
 static bool InitGParameterFromProperty(GParameter    *parameter,
                                        void          *klass,
