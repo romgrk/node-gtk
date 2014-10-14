@@ -22,7 +22,7 @@
 
 #include "function.h"
 #include "value.h"
-#include "object.h"
+#include "gobject.h"
 
 using namespace v8;
 

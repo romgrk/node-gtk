@@ -20,7 +20,7 @@
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
-#include "object.h"
+#include "gobject.h"
 #include "function.h"
 #include "value.h"
 

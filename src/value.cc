@@ -21,7 +21,7 @@
  */
 
 #include "value.h"
-#include "object.h"
+#include "gobject.h"
 
 namespace GNodeJS {
 

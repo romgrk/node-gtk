@@ -25,7 +25,7 @@
 
 #include "value.h"
 #include "function.h"
-#include "object.h"
+#include "gobject.h"
 
 using namespace v8;
 
