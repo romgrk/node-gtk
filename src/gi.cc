@@ -91,7 +91,7 @@ static void DefineInfo(Handle<Object> module_obj, GIBaseInfo *info) {
     }
 }
 
-static Handle<Value> ImportRepo(const Arguments& args) {
+static Handle<Value> ImportNS(const Arguments& args) {
     GIRepository *repo = g_irepository_get_default ();
     HandleScope scope;
 
@@ -129,7 +129,7 @@ static Handle<Value> ImportRepo(const Arguments& args) {
 }
 
 void InitModule(Handle<Object> exports) {
-    exports->Set(String::NewSymbol("importRepo"), FunctionTemplate::New(ImportRepo)->GetFunction());
+    exports->Set(String::NewSymbol("importNS"), FunctionTemplate::New(ImportNS)->GetFunction());
 }
 
 NODE_MODULE(gi, InitModule)
