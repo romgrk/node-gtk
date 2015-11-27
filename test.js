@@ -14,3 +14,7 @@ console.log(GLib.test_override());
 const Gtk = GNode.importNS("Gtk");
 Gtk.init(0, null);
 
+var w = new Gtk.Window();
+w.show_all();
+
+Gtk.main();
