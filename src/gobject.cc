@@ -176,6 +176,12 @@ static void DefinePrototypeMethods(Handle<ObjectTemplate> prototype, GIBaseInfo 
     }
 }
 
+static Handle<FunctionTemplate> GetBaseClassTemplate() {
+    Local<FunctionTemplate> tpl = FunctionTemplate::New ();
+    tpl->InstanceTemplate ()->SetInternalFieldCount (1);
+    return tpl;
+}
+
 static Handle<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info);
 
 static Handle<FunctionTemplate> GetClassTemplate(GIBaseInfo *info, GType gtype) {
@@ -198,12 +204,12 @@ static Handle<FunctionTemplate> GetClassTemplate(GIBaseInfo *info, GType gtype) 
         if (parent_info) {
             Handle<FunctionTemplate> parent_tpl = GetClassTemplateFromGI ((GIBaseInfo *) parent_info);
             tpl->Inherit (parent_tpl);
+        } else {
+            tpl->Inherit (GetBaseClassTemplate ());
         }
 
         DefineConstructorMethods (tpl, info);
         DefinePrototypeMethods (tpl->PrototypeTemplate (), info);
-
-        tpl->InstanceTemplate ()->SetInternalFieldCount (1);
 
         return tpl;
     }
