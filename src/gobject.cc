@@ -144,7 +144,7 @@ static void ClassDestroyed(Persistent<Value> object, void *data) {
     g_base_info_unref (info);
 }
 
-static void DefineConstructorMethods(Handle<Object> constructor, GIBaseInfo *info) {
+static void DefineConstructorMethods(Handle<FunctionTemplate> constructor, GIBaseInfo *info) {
     int n_methods = g_object_info_get_n_methods (info);
     for (int i = 0; i < n_methods; i++) {
         GIFunctionInfo *meth_info = g_object_info_get_method (info, i);
@@ -200,11 +200,10 @@ static Handle<FunctionTemplate> GetClassTemplate(GIBaseInfo *info, GType gtype) 
             tpl->Inherit (parent_tpl);
         }
 
-        DefineConstructorMethods (tpl->GetFunction (), info);
-        DefinePrototypeMethods (tpl->InstanceTemplate (), info);
+        DefineConstructorMethods (tpl, info);
+        DefinePrototypeMethods (tpl->PrototypeTemplate (), info);
 
-        Handle<ObjectTemplate> inst_tpl = tpl->InstanceTemplate ();
-        inst_tpl->SetInternalFieldCount (1);
+        tpl->InstanceTemplate ()->SetInternalFieldCount (1);
 
         return tpl;
     }
