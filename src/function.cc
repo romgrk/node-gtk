@@ -24,12 +24,15 @@
 #include "value.h"
 #include "gobject.h"
 
+#include <girffi.h>
+
 using namespace v8;
 
 namespace GNodeJS {
 
 struct FunctionInfo {
     GIFunctionInfo *info;
+    GIFunctionInvoker invoker;
 };
 
 static Handle<Value> FunctionInvoker(const Arguments &args) {
@@ -37,13 +40,21 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
     FunctionInfo *func = (FunctionInfo *) External::Unwrap (args.Data ());
 
     GIBaseInfo *info = func->info;
-    GIFunctionInfo *function_info = (GIFunctionInfo *) info;
     GError *error = NULL;
 
-    /* XXX: For now, only work on functions without any OUT args at all.
-     * Just assume everything is an in arg. */
-    int n_in_args = g_callable_info_get_n_args ((GICallableInfo *) info);
-    int n_total_args = n_in_args;
+    int n_callable_args = g_callable_info_get_n_args ((GICallableInfo *) info);
+    int n_total_args = n_callable_args;
+    int n_in_args = 0;
+
+    for (int i = 0; i < n_callable_args; i++) {
+        GIArgInfo arg_info;
+
+        g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
+
+        if (g_arg_info_get_direction (&arg_info) == GI_DIRECTION_IN ||
+            g_arg_info_get_direction (&arg_info) == GI_DIRECTION_INOUT)
+            n_in_args++;
+    }
 
     if (args.Length() < n_in_args) {
         ThrowException (Exception::TypeError (String::New ("Not enough arguments.")));
@@ -55,38 +66,54 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
     if (is_method)
         n_total_args++;
 
-    GIArgument total_args[n_total_args];
-    GIArgument *in_args;
+    GIArgument total_arg_values[n_total_args];
+    GIArgument *callable_arg_values;
 
     if (is_method) {
-        total_args[0].v_pointer = GObjectFromWrapper (args.This ());
-        in_args = &total_args[1];
+        total_arg_values[0].v_pointer = GObjectFromWrapper (args.This ());
+        callable_arg_values = &total_arg_values[1];
     } else {
-        in_args = &total_args[0];
+        callable_arg_values = &total_arg_values[0];
     }
 
-    for (int i = 0; i < n_in_args; i++) {
-        GIArgInfo *arg_info = g_callable_info_get_arg ((GICallableInfo *) info, i);
-        GITypeInfo type_info;
-        bool may_be_null = g_arg_info_may_be_null (arg_info);
-        g_arg_info_load_type (arg_info, &type_info);
-        V8ToGIArgument (&type_info, &in_args[i], args[i], may_be_null);
-        g_base_info_unref ((GIBaseInfo *) arg_info);
+    for (int i = 0; i < n_callable_args; i++) {
+        GIArgInfo arg_info = {};
+        g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
+        GIDirection direction = g_arg_info_get_direction (&arg_info);
+
+        if (direction == GI_DIRECTION_OUT) {
+            if (g_arg_info_is_caller_allocates (&arg_info)) {
+                assert (0);
+            } else {
+                callable_arg_values[i].v_pointer = NULL;
+            }
+        } else {
+            bool may_be_null = g_arg_info_may_be_null (&arg_info);
+            GITypeInfo type_info;
+            g_arg_info_load_type (&arg_info, &type_info);
+            V8ToGIArgument (&type_info, &callable_arg_values[i], args[i], may_be_null);
+        }
     }
+
+    void *ffi_arg_pointers[n_total_args];
+    for (int i = 0; i < n_total_args; i++)
+        ffi_arg_pointers[i] = &total_arg_values[i];
 
     GIArgument return_value;
-    g_function_info_invoke (function_info,
-                            total_args, n_total_args,
-                            NULL, 0,
-                            &return_value,
-                            &error);
+    ffi_call (&func->invoker.cif, FFI_FN (func->invoker.native_address),
+              &return_value, ffi_arg_pointers);
 
-    for (int i = 0; i < n_in_args; i++) {
-        GIArgInfo *arg_info = g_callable_info_get_arg ((GICallableInfo *) info, i);
-        GITypeInfo type_info;
-        g_arg_info_load_type (arg_info, &type_info);
-        FreeGIArgument (&type_info, &in_args[i]);
-        g_base_info_unref ((GIBaseInfo *) arg_info);
+    for (int i = 0; i < n_callable_args; i++) {
+        GIArgInfo arg_info;
+        g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
+        GIDirection direction = g_arg_info_get_direction (&arg_info);
+        if (direction == GI_DIRECTION_OUT) {
+            /* XXX: Process out value. */
+        } else {
+            GITypeInfo type_info;
+            g_arg_info_load_type (&arg_info, &type_info);
+            FreeGIArgument (&type_info, &callable_arg_values[i]);
+        }
     }
 
     if (error) {
@@ -102,12 +129,16 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
 static void FunctionDestroyed(Persistent<Value> object, void *data) {
     FunctionInfo *func = (FunctionInfo *) data;
     g_base_info_unref (func->info);
+    g_function_invoker_destroy(&func->invoker);
     g_free (func);
 }
 
 Handle<Function> MakeFunction(GIBaseInfo *info) {
     FunctionInfo *func = g_new0 (FunctionInfo, 1);
     func->info = g_base_info_ref (info);
+
+    g_function_info_prep_invoker (func->info, &func->invoker, NULL);
+
     Persistent<FunctionTemplate> tpl = Persistent<FunctionTemplate>::New (FunctionTemplate::New (FunctionInvoker, External::Wrap (func)));
     tpl.MakeWeak (func, FunctionDestroyed);
     Local<Function> fn = tpl->GetFunction ();
