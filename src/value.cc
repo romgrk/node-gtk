@@ -23,57 +23,59 @@
 #include "value.h"
 #include "gobject.h"
 
+using namespace v8;
+
 namespace GNodeJS {
 
-v8::Handle<v8::Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
+Handle<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
     case GI_TYPE_TAG_VOID:
-        return v8::Undefined ();
+        return Undefined ();
 
     case GI_TYPE_TAG_BOOLEAN:
         if (arg->v_boolean)
-            return v8::True ();
+            return True ();
         else
-            return v8::False ();
+            return False ();
 
     case GI_TYPE_TAG_INT32:
-        return v8::Integer::New (arg->v_int);
+        return Integer::New (arg->v_int);
     case GI_TYPE_TAG_UINT32:
-        return v8::Integer::NewFromUnsigned (arg->v_uint);
+        return Integer::NewFromUnsigned (arg->v_uint);
     case GI_TYPE_TAG_INT16:
-        return v8::Integer::New (arg->v_int16);
+        return Integer::New (arg->v_int16);
     case GI_TYPE_TAG_UINT16:
-        return v8::Integer::NewFromUnsigned (arg->v_uint16);
+        return Integer::NewFromUnsigned (arg->v_uint16);
     case GI_TYPE_TAG_INT8:
-        return v8::Integer::New (arg->v_int8);
+        return Integer::New (arg->v_int8);
     case GI_TYPE_TAG_UINT8:
-        return v8::Integer::NewFromUnsigned (arg->v_uint8);
+        return Integer::NewFromUnsigned (arg->v_uint8);
     case GI_TYPE_TAG_FLOAT:
-        return v8::Number::New (arg->v_float);
+        return Number::New (arg->v_float);
     case GI_TYPE_TAG_DOUBLE:
-        return v8::Number::New (arg->v_double);
+        return Number::New (arg->v_double);
 
     /* For 64-bit integer types, use a float. When JS and V8 adopt
      * bigger sized integer types, start using those instead. */
     case GI_TYPE_TAG_INT64:
-        return v8::Number::New (arg->v_int64);
+        return Number::New (arg->v_int64);
     case GI_TYPE_TAG_UINT64:
-        return v8::Number::New (arg->v_uint64);
+        return Number::New (arg->v_uint64);
 
     case GI_TYPE_TAG_UNICHAR:
         {
             char data[7];
             int size = g_unichar_to_utf8 (arg->v_uint32, data);
-            return v8::String::New (data, size);
+            return String::New (data, size);
         }
 
     case GI_TYPE_TAG_UTF8:
         if (arg->v_pointer)
-            return v8::String::New ((char *) arg->v_pointer);
+            return String::New ((char *) arg->v_pointer);
         else
-            return v8::Null ();
+            return Null ();
 
     case GI_TYPE_TAG_INTERFACE:
         {
@@ -94,19 +96,19 @@ v8::Handle<v8::Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     }
 }
 
-static GArray * V8ToGArray(GITypeInfo *type_info, v8::Handle<v8::Value> value) {
+static GArray * V8ToGArray(GITypeInfo *type_info, Handle<Value> value) {
     if (!value->IsArray ()) {
-        ThrowException (v8::Exception::TypeError (v8::String::New ("Not an array.")));
+        ThrowException (Exception::TypeError (String::New ("Not an array.")));
         return NULL;
     }
 
-    v8::Local<v8::Array> array = v8::Local<v8::Array>::Cast (value->ToObject ());
+    Local<Array> array = Local<Array>::Cast (value->ToObject ());
     GITypeInfo *elem_info = g_type_info_get_param_type (type_info, 0);
 
     int length = array->Length ();
     GArray *garray = g_array_sized_new (TRUE, FALSE, sizeof (GIArgument), length);
     for (int i = 0; i < length; i++) {
-        v8::Local<v8::Value> value = array->Get (i);
+        Local<Value> value = array->Get (i);
         GIArgument arg;
 
         V8ToGIArgument (elem_info, &arg, value, false);
@@ -117,14 +119,14 @@ static GArray * V8ToGArray(GITypeInfo *type_info, v8::Handle<v8::Value> value) {
     return garray;
 }
 
-void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, v8::Handle<v8::Value> value, bool may_be_null) {
+void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Handle<Value> value, bool may_be_null) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     if (value->IsNull ()) {
         if (may_be_null)
             arg->v_pointer = NULL;
         else
-            ThrowException (v8::Exception::TypeError (v8::String::New ("Argument may not be null.")));
+            ThrowException (Exception::TypeError (String::New ("Argument may not be null.")));
 
         return;
     }
@@ -157,7 +159,7 @@ void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, v8::Handle<v8::Value
 
     case GI_TYPE_TAG_UTF8:
         {
-            v8::String::Utf8Value str (value);
+            String::Utf8Value str (value);
             const char *data = *str;
             arg->v_pointer = g_strdup (data);
         }
@@ -232,7 +234,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
     }
 }
 
-void V8ToGValue(GValue *gvalue, v8::Handle<v8::Value> value) {
+void V8ToGValue(GValue *gvalue, Handle<Value> value) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, value->BooleanValue ());
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
@@ -244,7 +246,7 @@ void V8ToGValue(GValue *gvalue, v8::Handle<v8::Value> value) {
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         g_value_set_double (gvalue, value->NumberValue ());
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
-        v8::String::Utf8Value str (value);
+        String::Utf8Value str (value);
         const char *data = *str;
         g_value_set_string (gvalue, data);
     } else {
