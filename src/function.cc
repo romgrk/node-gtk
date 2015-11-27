@@ -28,9 +28,15 @@ using namespace v8;
 
 namespace GNodeJS {
 
+struct FunctionInfo {
+    GIFunctionInfo *info;
+};
+
 static Handle<Value> FunctionInvoker(const Arguments &args) {
     HandleScope scope;
-    GIBaseInfo *info = (GIBaseInfo *) External::Unwrap (args.Data ());
+    FunctionInfo *func = (FunctionInfo *) External::Unwrap (args.Data ());
+
+    GIBaseInfo *info = func->info;
     GIFunctionInfo *function_info = (GIFunctionInfo *) info;
     GError *error = NULL;
 
@@ -94,13 +100,16 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
 }
 
 static void FunctionDestroyed(Persistent<Value> object, void *data) {
-    GIBaseInfo *info = (GIBaseInfo *) data;
-    g_base_info_unref (info);
+    FunctionInfo *func = (FunctionInfo *) data;
+    g_base_info_unref (func->info);
+    g_free (func);
 }
 
 Handle<Function> MakeFunction(GIBaseInfo *info) {
-    Persistent<FunctionTemplate> tpl = Persistent<FunctionTemplate>::New (FunctionTemplate::New (FunctionInvoker, External::Wrap (info)));
-    tpl.MakeWeak (g_base_info_ref (info), FunctionDestroyed);
+    FunctionInfo *func = g_new0 (FunctionInfo, 1);
+    func->info = g_base_info_ref (info);
+    Persistent<FunctionTemplate> tpl = Persistent<FunctionTemplate>::New (FunctionTemplate::New (FunctionInvoker, External::Wrap (func)));
+    tpl.MakeWeak (func, FunctionDestroyed);
     Local<Function> fn = tpl->GetFunction ();
 
     const char *function_name = g_base_info_get_name (info);
