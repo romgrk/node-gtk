@@ -1,5 +1,6 @@
 
 const GNode = require('gnode');
+GNode.startLoop();
 
 const GLib = GNode.importNS("GLib");
 console.log(GLib.ascii_strup("foo", -1));
@@ -17,4 +18,5 @@ Gtk.init(0, null);
 var w = new Gtk.Window();
 w.show_all();
 
+setTimeout(function() { console.log("AA"); }, 2000);
 Gtk.main();

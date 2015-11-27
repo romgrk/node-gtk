@@ -3,6 +3,7 @@
         {
             "target_name": "gi",
             "sources": [
+                "src/loop.cc",
                 "src/gi.cc",
                 "src/value.cc",
                 "src/function.cc",

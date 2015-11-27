@@ -26,6 +26,7 @@
 #include "value.h"
 #include "function.h"
 #include "gobject.h"
+#include "loop.h"
 
 using namespace v8;
 
@@ -128,8 +129,17 @@ static Handle<Value> ImportNS(const Arguments& args) {
     return scope.Close (module_obj);
 }
 
+static Handle<Value> StartLoop(const Arguments& args) {
+    HandleScope scope;
+
+    GNodeJS::StartLoop ();
+
+    return scope.Close (Undefined ());
+}
+
 void InitModule(Handle<Object> exports) {
     exports->Set(String::NewSymbol("importNS"), FunctionTemplate::New(ImportNS)->GetFunction());
+    exports->Set(String::NewSymbol("startLoop"), FunctionTemplate::New(StartLoop)->GetFunction());
 }
 
 NODE_MODULE(gi, InitModule)
