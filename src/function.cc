@@ -150,14 +150,12 @@ Handle<Function> MakeFunction(GIBaseInfo *info) {
 }
 
 class TrampolineInfo {
- private:
     ffi_cif cif;
     ffi_closure *closure;
     v8::Persistent<v8::Function> func;
     GICallableInfo *info;
     GIScopeType scope_type;
 
- public:
     TrampolineInfo(v8::Handle<v8::Function>  function,
                    GICallableInfo           *info,
                    GIScopeType               scope_type);
@@ -238,7 +236,9 @@ void Closure::Marshal(GClosure *base,
 
     Handle<Object> this_obj = func;
     Handle<Value> return_value = func->Call (this_obj, argc, argv);
-    V8ToGValue (g_return_value, return_value);
+
+    if (g_return_value)
+        V8ToGValue (g_return_value, return_value);
 }
 
 void Closure::Invalidated(gpointer data, GClosure *base) {

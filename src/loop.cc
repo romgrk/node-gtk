@@ -36,14 +36,22 @@ static gboolean uv_loop_source_prepare (GSource *base, int *timeout) {
     struct uv_loop_source *source = (struct uv_loop_source *) base;
     uv_update_time (source->loop);
 
-    int t = uv_backend_timeout (source->loop);
+    bool loop_alive = uv_loop_alive (source->loop);
 
-    if (t == 0) {
-        return TRUE;
-    } else {
-        *timeout = t;
+    /* If the loop is dead, we can simply sleep forever until a GTK+ source
+     * (presumably) wakes us back up again. */
+    if (!loop_alive)
         return FALSE;
-    }
+
+    /* Otherwise, check the timeout. If the timeout is 0, that means we're
+     * ready to go. Otherwise, keep sleeping until the timeout happens again. */
+    int t = uv_backend_timeout (source->loop);
+    *timeout = t;
+
+    if (t == 0)
+        return TRUE;
+    else
+        return FALSE;
 }
 
 static gboolean uv_loop_source_dispatch (GSource *base, GSourceFunc callback, gpointer user_data) {
@@ -67,7 +75,7 @@ static GSource *uv_loop_source_new (uv_loop_t *loop)
     source->loop = loop;
     g_source_add_unix_fd (&source->source,
                           uv_backend_fd (loop),
-                          (GIOCondition) (G_IO_IN | G_IO_ERR));
+                          (GIOCondition) (G_IO_IN | G_IO_OUT | G_IO_ERR));
     return &source->source;
 }
 

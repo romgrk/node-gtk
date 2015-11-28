@@ -249,6 +249,8 @@ void V8ToGValue(GValue *gvalue, Handle<Value> value) {
         String::Utf8Value str (value);
         const char *data = *str;
         g_value_set_string (gvalue, data);
+    } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
+        g_value_set_object (gvalue, GObjectFromWrapper (value));
     } else {
         g_assert_not_reached ();
     }
@@ -270,6 +272,8 @@ Handle<Value> GValueToV8(const GValue *gvalue) {
         return Number::New (g_value_get_double (gvalue));
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
         return String::New (g_value_get_string (gvalue));
+    } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
+        return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else {
         g_assert_not_reached ();
     }
