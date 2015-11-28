@@ -123,9 +123,9 @@ void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Handle<Value> value,
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     if (value->IsNull ()) {
-        if (may_be_null)
-            arg->v_pointer = NULL;
-        else
+        arg->v_pointer = NULL;
+
+        if (!may_be_null)
             ThrowException (Exception::TypeError (String::New ("Argument may not be null.")));
 
         return;
