@@ -254,4 +254,25 @@ void V8ToGValue(GValue *gvalue, Handle<Value> value) {
     }
 }
 
+Handle<Value> GValueToV8(const GValue *gvalue) {
+    if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
+        if (g_value_get_boolean (gvalue))
+            return True ();
+        else
+            return False ();
+    } else if (G_VALUE_HOLDS_INT (gvalue)) {
+        return Integer::New (g_value_get_int (gvalue));
+    } else if (G_VALUE_HOLDS_UINT (gvalue)) {
+        return Integer::NewFromUnsigned (g_value_get_uint (gvalue));
+    } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
+        return Number::New (g_value_get_float (gvalue));
+    } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
+        return Number::New (g_value_get_double (gvalue));
+    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+        return String::New (g_value_get_string (gvalue));
+    } else {
+        g_assert_not_reached ();
+    }
+}
+
 };

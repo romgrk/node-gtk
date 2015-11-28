@@ -24,9 +24,11 @@
 
 #include <node.h>
 #include <girepository.h>
+#include <girffi.h>
 
 namespace GNodeJS {
 
 v8::Handle<v8::Function> MakeFunction(GIBaseInfo *base_info);
+GClosure *MakeClosure(v8::Handle<v8::Function> function);
 
 };

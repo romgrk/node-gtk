@@ -32,5 +32,6 @@ void V8ToGIArgument(GITypeInfo *type_info, GIArgument *argument, v8::Handle<v8::
 void FreeGIArgument(GITypeInfo *type_info, GIArgument *argument);
 
 void V8ToGValue(GValue *gvalue, v8::Handle<v8::Value> value);
+v8::Handle<v8::Value> GValueToV8(const GValue *gvalue);
 
 };

@@ -176,9 +176,29 @@ static void DefinePrototypeMethods(Handle<ObjectTemplate> prototype, GIBaseInfo 
     }
 }
 
+static Handle<Value> SignalConnectInternal(const Arguments &args, bool after) {
+    HandleScope scope;
+    GObject *gobject = GObjectFromWrapper(args.This ());
+
+    String::Utf8Value signal_name (args[0]->ToString ());
+    Handle<Function> callback = Local<Function>::Cast (args[1]->ToObject ());
+    GClosure *gclosure = MakeClosure (callback);
+
+    ulong handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
+    return scope.Close (Integer::NewFromUnsigned (handler_id));
+}
+
+static Handle<Value> SignalConnect(const Arguments &args) {
+    return SignalConnectInternal (args, false);
+}
+
 static Handle<FunctionTemplate> GetBaseClassTemplate() {
     Local<FunctionTemplate> tpl = FunctionTemplate::New ();
     tpl->InstanceTemplate ()->SetInternalFieldCount (1);
+
+    Handle<ObjectTemplate> proto = tpl->PrototypeTemplate ();
+    proto->Set (String::NewSymbol ("connect"), FunctionTemplate::New (SignalConnect)->GetFunction ());
+
     return tpl;
 }
 

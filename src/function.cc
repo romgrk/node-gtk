@@ -149,4 +149,110 @@ Handle<Function> MakeFunction(GIBaseInfo *info) {
     return fn;
 }
 
+class TrampolineInfo {
+ private:
+    ffi_cif cif;
+    ffi_closure *closure;
+    v8::Persistent<v8::Function> func;
+    GICallableInfo *info;
+    GIScopeType scope_type;
+
+ public:
+    TrampolineInfo(v8::Handle<v8::Function>  function,
+                   GICallableInfo           *info,
+                   GIScopeType               scope_type);
+
+    void Dispose();
+    static void Call(ffi_cif *cif, void *result, void **args, void *data);
+    void *GetClosure();
+};
+
+void TrampolineInfo::Dispose() {
+    func.Dispose ();
+    g_base_info_unref (info);
+    g_callable_info_free_closure (info, closure);
+};
+
+void TrampolineInfo::Call(ffi_cif *cif,
+                          void *result,
+                          void **args,
+                          void *data) {
+    TrampolineInfo *trampoline = (TrampolineInfo *) data;
+
+    int argc = g_callable_info_get_n_args (trampoline->info);
+    Handle<Value> argv[argc];
+
+    for (int i = 0; i < argc; i++) {
+        GIArgInfo arg_info;
+        g_callable_info_load_arg (trampoline->info, i, &arg_info);
+        GITypeInfo type_info;
+        g_arg_info_load_type (&arg_info, &type_info);
+        argv[i] = GIArgumentToV8 (&type_info, (GIArgument *) &args[i]);
+    }
+
+    Handle<Function> func = trampoline->func;
+    /* Provide a bogus "this" function. Any interested callers should
+     * bind their callbacks to what they're intersted in... */
+    Handle<Object> this_obj = func;
+    Handle<Value> return_value = func->Call (this_obj, argc, argv);
+    GITypeInfo type_info;
+    g_callable_info_load_return_type (trampoline->info, &type_info);
+    V8ToGIArgument (&type_info, (GIArgument *) &result, return_value,
+                    g_callable_info_may_return_null (trampoline->info));
+}
+
+TrampolineInfo::TrampolineInfo(Handle<Function>  function,
+                               GICallableInfo   *info,
+                               GIScopeType       scope_type) {
+    this->closure = g_callable_info_prepare_closure (info, &cif, Call, this);
+    this->func = Persistent<Function>::New (function);
+    this->info = g_base_info_ref (info);
+    this->scope_type = scope_type;
+}
+
+struct Closure {
+    GClosure base_;
+    Persistent<Function> func;
+
+    static void Marshal(GClosure *closure,
+                        GValue   *g_return_value,
+                        uint argc, const GValue *g_argv,
+                        gpointer  invocation_hint,
+                        gpointer  marshal_data);
+
+    static void Invalidated(gpointer data, GClosure *closure);
+};
+
+void Closure::Marshal(GClosure *base,
+                      GValue   *g_return_value,
+                      uint argc, const GValue *g_argv,
+                      gpointer  invocation_hint,
+                      gpointer  marshal_data) {
+    Closure *closure = (Closure *) base;
+    Handle<Function> func = closure->func;
+
+    Handle<Value> argv[argc];
+
+    for (uint i = 0; i < argc; i++)
+        argv[i] = GValueToV8 (&g_argv[i]);
+
+    Handle<Object> this_obj = func;
+    Handle<Value> return_value = func->Call (this_obj, argc, argv);
+    V8ToGValue (g_return_value, return_value);
+}
+
+void Closure::Invalidated(gpointer data, GClosure *base) {
+    Closure *closure = (Closure *) base;
+    closure->func.Dispose();
+}
+
+GClosure *MakeClosure(Handle<Function> function) {
+    Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
+    closure->func = Persistent<Function>::New (function);
+    GClosure *gclosure = &closure->base_;
+    g_closure_set_marshal (gclosure, Closure::Marshal);
+    g_closure_add_invalidate_notifier (gclosure, NULL, Closure::Invalidated);
+    return gclosure;
+}
+
 };
