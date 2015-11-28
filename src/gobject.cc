@@ -194,8 +194,6 @@ static Handle<Value> SignalConnect(const Arguments &args) {
 
 static Handle<FunctionTemplate> GetBaseClassTemplate() {
     Local<FunctionTemplate> tpl = FunctionTemplate::New ();
-    tpl->InstanceTemplate ()->SetInternalFieldCount (1);
-
     Handle<ObjectTemplate> proto = tpl->PrototypeTemplate ();
     proto->Set (String::NewSymbol ("connect"), FunctionTemplate::New (SignalConnect)->GetFunction ());
 
@@ -227,6 +225,8 @@ static Handle<FunctionTemplate> GetClassTemplate(GIBaseInfo *info, GType gtype) 
         } else {
             tpl->Inherit (GetBaseClassTemplate ());
         }
+
+        tpl->InstanceTemplate ()->SetInternalFieldCount (1);
 
         DefineConstructorMethods (tpl, info);
         DefinePrototypeMethods (tpl->PrototypeTemplate (), info);
