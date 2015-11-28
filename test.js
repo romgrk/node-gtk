@@ -16,6 +16,8 @@ const Gtk = GNode.importNS("Gtk");
 Gtk.init(0, null);
 
 var w = new Gtk.Window();
+var b = new Gtk.Button({ label: "Hi!" });
+w.add(b);
 w.show_all();
 
 setTimeout(function() { console.log("AA"); }, 2000);
