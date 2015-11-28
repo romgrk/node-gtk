@@ -28,7 +28,7 @@
 
 namespace GNodeJS {
 
-v8::Handle<v8::Function> MakeFunction(GIBaseInfo *base_info);
-GClosure *MakeClosure(v8::Handle<v8::Function> function);
+v8::Handle<v8::Function> MakeFunction(v8::Isolate *isolate, GIBaseInfo *base_info);
+GClosure *MakeClosure(v8::Isolate *isolate, v8::Handle<v8::Function> function);
 
 };

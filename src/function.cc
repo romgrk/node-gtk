@@ -35,9 +35,9 @@ struct FunctionInfo {
     GIFunctionInvoker invoker;
 };
 
-static Handle<Value> FunctionInvoker(const Arguments &args) {
-    HandleScope scope;
-    FunctionInfo *func = (FunctionInfo *) External::Unwrap (args.Data ());
+static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
+    Isolate *isolate = args.GetIsolate();
+    FunctionInfo *func = (FunctionInfo *) External::Cast (*args.Data ())->Value ();
 
     GIBaseInfo *info = func->info;
     GError *error = NULL;
@@ -57,8 +57,8 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
     }
 
     if (args.Length() < n_in_args) {
-        ThrowException (Exception::TypeError (String::New ("Not enough arguments.")));
-        return scope.Close (Undefined ());
+        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Not enough arguments.")));
+        return;
     }
 
     gboolean is_method = ((g_function_info_get_flags (info) & GI_FUNCTION_IS_METHOD) != 0 &&
@@ -91,7 +91,7 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
             bool may_be_null = g_arg_info_may_be_null (&arg_info);
             GITypeInfo type_info;
             g_arg_info_load_type (&arg_info, &type_info);
-            V8ToGIArgument (&type_info, &callable_arg_values[i], args[i], may_be_null);
+            V8ToGIArgument (isolate, &type_info, &callable_arg_values[i], args[i], may_be_null);
         }
     }
 
@@ -117,48 +117,51 @@ static Handle<Value> FunctionInvoker(const Arguments &args) {
     }
 
     if (error) {
-        ThrowException (Exception::TypeError (String::New (error->message)));
-        return scope.Close (Undefined ());
+        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, error->message)));
+        return;
     }
 
     GITypeInfo return_value_type;
     g_callable_info_load_return_type ((GICallableInfo *) info, &return_value_type);
-    return scope.Close (GIArgumentToV8 (&return_value_type, &return_value));
+    args.GetReturnValue ().Set (GIArgumentToV8 (isolate, &return_value_type, &return_value));
 }
 
-static void FunctionDestroyed(Persistent<Value> object, void *data) {
-    FunctionInfo *func = (FunctionInfo *) data;
+static void FunctionDestroyed(const WeakCallbackData<FunctionTemplate, FunctionInfo> &data) {
+    FunctionInfo *func = data.GetParameter ();
     g_base_info_unref (func->info);
-    g_function_invoker_destroy(&func->invoker);
+    g_function_invoker_destroy (&func->invoker);
     g_free (func);
 }
 
-Handle<Function> MakeFunction(GIBaseInfo *info) {
+Handle<Function> MakeFunction(Isolate *isolate, GIBaseInfo *info) {
     FunctionInfo *func = g_new0 (FunctionInfo, 1);
     func->info = g_base_info_ref (info);
 
     g_function_info_prep_invoker (func->info, &func->invoker, NULL);
 
-    Persistent<FunctionTemplate> tpl = Persistent<FunctionTemplate>::New (FunctionTemplate::New (FunctionInvoker, External::Wrap (func)));
-    tpl.MakeWeak (func, FunctionDestroyed);
+    Local<FunctionTemplate> tpl = FunctionTemplate::New (isolate, FunctionInvoker, External::New (isolate, func));
     Local<Function> fn = tpl->GetFunction ();
 
+    Persistent<FunctionTemplate> persistent(isolate, tpl);
+    persistent.SetWeak (func, FunctionDestroyed);
+
     const char *function_name = g_base_info_get_name (info);
-    fn->SetName (String::NewSymbol (function_name));
+    fn->SetName (String::NewFromUtf8 (isolate, function_name));
 
     return fn;
 }
 
+#if 0
 class TrampolineInfo {
     ffi_cif cif;
     ffi_closure *closure;
-    v8::Persistent<v8::Function> func;
+    Persistent<Function> persistent;
     GICallableInfo *info;
     GIScopeType scope_type;
 
-    TrampolineInfo(v8::Handle<v8::Function>  function,
-                   GICallableInfo           *info,
-                   GIScopeType               scope_type);
+    TrampolineInfo(Handle<Function>  function,
+                   GICallableInfo   *info,
+                   GIScopeType       scope_type);
 
     void Dispose();
     static void Call(ffi_cif *cif, void *result, void **args, void *data);
@@ -166,7 +169,7 @@ class TrampolineInfo {
 };
 
 void TrampolineInfo::Dispose() {
-    func.Dispose ();
+    persistent = nullptr;
     g_base_info_unref (info);
     g_callable_info_free_closure (info, closure);
 };
@@ -207,10 +210,11 @@ TrampolineInfo::TrampolineInfo(Handle<Function>  function,
     this->info = g_base_info_ref (info);
     this->scope_type = scope_type;
 }
+#endif
 
 struct Closure {
-    GClosure base_;
-    Persistent<Function> func;
+    GClosure base;
+    Persistent<Function> persistent;
 
     static void Marshal(GClosure *closure,
                         GValue   *g_return_value,
@@ -226,13 +230,17 @@ void Closure::Marshal(GClosure *base,
                       uint argc, const GValue *g_argv,
                       gpointer  invocation_hint,
                       gpointer  marshal_data) {
+    /* XXX: Any other way to get this? */
+    Isolate *isolate = Isolate::GetCurrent ();
+    HandleScope scope(isolate);
+
     Closure *closure = (Closure *) base;
-    Handle<Function> func = closure->func;
+    Handle<Function> func = Handle<Function>::New(isolate, closure->persistent);
 
     Handle<Value> argv[argc];
 
     for (uint i = 0; i < argc; i++)
-        argv[i] = GValueToV8 (&g_argv[i]);
+        argv[i] = GValueToV8 (isolate, &g_argv[i]);
 
     Handle<Object> this_obj = func;
     Handle<Value> return_value = func->Call (this_obj, argc, argv);
@@ -243,13 +251,13 @@ void Closure::Marshal(GClosure *base,
 
 void Closure::Invalidated(gpointer data, GClosure *base) {
     Closure *closure = (Closure *) base;
-    closure->func.Dispose();
+    closure->~Closure();
 }
 
-GClosure *MakeClosure(Handle<Function> function) {
+GClosure *MakeClosure(Isolate *isolate, Handle<Function> function) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
-    closure->func = Persistent<Function>::New (function);
-    GClosure *gclosure = &closure->base_;
+    closure->persistent.Reset(isolate, function);
+    GClosure *gclosure = &closure->base;
     g_closure_set_marshal (gclosure, Closure::Marshal);
     g_closure_add_invalidate_notifier (gclosure, NULL, Closure::Invalidated);
     return gclosure;

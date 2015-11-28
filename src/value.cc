@@ -27,55 +27,55 @@ using namespace v8;
 
 namespace GNodeJS {
 
-Handle<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
+Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
     case GI_TYPE_TAG_VOID:
-        return Undefined ();
+        return Undefined (isolate);
 
     case GI_TYPE_TAG_BOOLEAN:
         if (arg->v_boolean)
-            return True ();
+            return True (isolate);
         else
-            return False ();
+            return False (isolate);
 
     case GI_TYPE_TAG_INT32:
-        return Integer::New (arg->v_int);
+        return Integer::New (isolate, arg->v_int);
     case GI_TYPE_TAG_UINT32:
-        return Integer::NewFromUnsigned (arg->v_uint);
+        return Integer::NewFromUnsigned (isolate, arg->v_uint);
     case GI_TYPE_TAG_INT16:
-        return Integer::New (arg->v_int16);
+        return Integer::New (isolate, arg->v_int16);
     case GI_TYPE_TAG_UINT16:
-        return Integer::NewFromUnsigned (arg->v_uint16);
+        return Integer::NewFromUnsigned (isolate, arg->v_uint16);
     case GI_TYPE_TAG_INT8:
-        return Integer::New (arg->v_int8);
+        return Integer::New (isolate, arg->v_int8);
     case GI_TYPE_TAG_UINT8:
-        return Integer::NewFromUnsigned (arg->v_uint8);
+        return Integer::NewFromUnsigned (isolate, arg->v_uint8);
     case GI_TYPE_TAG_FLOAT:
-        return Number::New (arg->v_float);
+        return Number::New (isolate, arg->v_float);
     case GI_TYPE_TAG_DOUBLE:
-        return Number::New (arg->v_double);
+        return Number::New (isolate, arg->v_double);
 
     /* For 64-bit integer types, use a float. When JS and V8 adopt
      * bigger sized integer types, start using those instead. */
     case GI_TYPE_TAG_INT64:
-        return Number::New (arg->v_int64);
+        return Number::New (isolate, arg->v_int64);
     case GI_TYPE_TAG_UINT64:
-        return Number::New (arg->v_uint64);
+        return Number::New (isolate, arg->v_uint64);
 
     case GI_TYPE_TAG_UNICHAR:
         {
-            char data[7];
-            int size = g_unichar_to_utf8 (arg->v_uint32, data);
-            return String::New (data, size);
+            char data[7] = { 0 };
+            g_unichar_to_utf8 (arg->v_uint32, data);
+            return String::NewFromUtf8 (isolate, data);
         }
 
     case GI_TYPE_TAG_UTF8:
         if (arg->v_pointer)
-            return String::New ((char *) arg->v_pointer);
+            return String::NewFromUtf8 (isolate, (char *) arg->v_pointer);
         else
-            return Null ();
+            return Null (isolate);
 
     case GI_TYPE_TAG_INTERFACE:
         {
@@ -84,7 +84,7 @@ Handle<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
 
             switch (interface_type) {
             case GI_INFO_TYPE_OBJECT:
-                return WrapperFromGObject ((GObject *) arg->v_pointer);
+                return WrapperFromGObject (isolate, (GObject *) arg->v_pointer);
             default:
                 g_assert_not_reached ();
             }
@@ -96,9 +96,9 @@ Handle<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     }
 }
 
-static GArray * V8ToGArray(GITypeInfo *type_info, Handle<Value> value) {
+static GArray * V8ToGArray(Isolate *isolate, GITypeInfo *type_info, Handle<Value> value) {
     if (!value->IsArray ()) {
-        ThrowException (Exception::TypeError (String::New ("Not an array.")));
+        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Not an array.")));
         return NULL;
     }
 
@@ -111,7 +111,7 @@ static GArray * V8ToGArray(GITypeInfo *type_info, Handle<Value> value) {
         Local<Value> value = array->Get (i);
         GIArgument arg;
 
-        V8ToGIArgument (elem_info, &arg, value, false);
+        V8ToGIArgument (isolate, elem_info, &arg, value, false);
         g_array_append_val (garray, arg);
     }
 
@@ -119,14 +119,14 @@ static GArray * V8ToGArray(GITypeInfo *type_info, Handle<Value> value) {
     return garray;
 }
 
-void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Handle<Value> value, bool may_be_null) {
+void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Handle<Value> value, bool may_be_null) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     if (value->IsNull ()) {
         arg->v_pointer = NULL;
 
         if (!may_be_null)
-            ThrowException (Exception::TypeError (String::New ("Argument may not be null.")));
+            isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Argument may not be null.")));
 
         return;
     }
@@ -185,7 +185,7 @@ void V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Handle<Value> value,
     case GI_TYPE_TAG_ARRAY:
         {
             GIArrayType array_type = g_type_info_get_array_type (type_info);
-            GArray *garray = V8ToGArray (type_info, value);
+            GArray *garray = V8ToGArray (isolate, type_info, value);
 
             switch (array_type) {
             case GI_ARRAY_TYPE_C:
@@ -256,24 +256,24 @@ void V8ToGValue(GValue *gvalue, Handle<Value> value) {
     }
 }
 
-Handle<Value> GValueToV8(const GValue *gvalue) {
+Handle<Value> GValueToV8(Isolate *isolate, const GValue *gvalue) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         if (g_value_get_boolean (gvalue))
-            return True ();
+            return True (isolate);
         else
-            return False ();
+            return False (isolate);
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
-        return Integer::New (g_value_get_int (gvalue));
+        return Integer::New (isolate, g_value_get_int (gvalue));
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
-        return Integer::NewFromUnsigned (g_value_get_uint (gvalue));
+        return Integer::NewFromUnsigned (isolate, g_value_get_uint (gvalue));
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
-        return Number::New (g_value_get_float (gvalue));
+        return Number::New (isolate, g_value_get_float (gvalue));
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
-        return Number::New (g_value_get_double (gvalue));
+        return Number::New (isolate, g_value_get_double (gvalue));
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
-        return String::New (g_value_get_string (gvalue));
+        return String::NewFromUtf8 (isolate, g_value_get_string (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
-        return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
+        return WrapperFromGObject (isolate, G_OBJECT (g_value_get_object (gvalue)));
     } else {
         g_assert_not_reached ();
     }
