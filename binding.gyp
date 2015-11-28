@@ -8,6 +8,7 @@
                 "src/value.cc",
                 "src/function.cc",
                 "src/gobject.cc",
+                "src/closure.cc",
             ],
             "cflags": [
                 "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -Werror",

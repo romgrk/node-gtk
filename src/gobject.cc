@@ -21,8 +21,10 @@
  */
 
 #include "gobject.h"
+
 #include "function.h"
 #include "value.h"
+#include "closure.h"
 
 using namespace v8;
 

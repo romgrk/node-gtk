@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Endless Mobile
+ * Copyright (C) 2015 Endless Mobile
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,11 +23,10 @@
 #pragma once
 
 #include <node.h>
-#include <girepository.h>
-#include <girffi.h>
+#include <glib-object.h>
 
 namespace GNodeJS {
 
-v8::Handle<v8::Function> MakeFunction(v8::Isolate *isolate, GIBaseInfo *base_info);
+GClosure *MakeClosure(v8::Isolate *isolate, v8::Handle<v8::Function> function);
 
 };
