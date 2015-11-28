@@ -85,6 +85,8 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
             switch (interface_type) {
             case GI_INFO_TYPE_OBJECT:
                 return WrapperFromGObject (isolate, (GObject *) arg->v_pointer);
+            case GI_INFO_TYPE_ENUM:
+                return Integer::New (isolate, arg->v_int);
             default:
                 g_assert_not_reached ();
             }
@@ -272,6 +274,8 @@ Handle<Value> GValueToV8(Isolate *isolate, const GValue *gvalue) {
         return Number::New (isolate, g_value_get_double (gvalue));
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
         return String::NewFromUtf8 (isolate, g_value_get_string (gvalue));
+    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
+        return Integer::New (isolate, g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return WrapperFromGObject (isolate, G_OBJECT (g_value_get_object (gvalue)));
     } else {
