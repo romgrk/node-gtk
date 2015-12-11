@@ -20,6 +20,8 @@
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
+#include "loop.h"
+
 #include <glib.h>
 #include <uv.h>
 
