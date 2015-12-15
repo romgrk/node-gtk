@@ -251,6 +251,8 @@ void V8ToGValue(GValue *gvalue, Handle<Value> value) {
         String::Utf8Value str (value);
         const char *data = *str;
         g_value_set_string (gvalue, data);
+    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
+        g_value_set_enum (gvalue, value->Int32Value ());
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         g_value_set_object (gvalue, GObjectFromWrapper (value));
     } else {
