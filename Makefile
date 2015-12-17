@@ -26,7 +26,7 @@ release:
 	@git commit -m "Release $(TAG)"
 	@git push
 	@echo "Tagging Release $(BOLD)$(TAG)$(RESET)"
-	@git tag -m "$(TAG)" v$(TAG)
+	@git tag -m "Release $(TAG)" $(TAG)
 	@echo "Pushing tags to GitHub"
 	@git push --tags
 	@echo "Building Package"
@@ -34,11 +34,11 @@ release:
 	node-pre-gyp rebuild
 	node-pre-gyp package
 	NODE_PRE_GYP_GITHUB_TOKEN="$(NODE_PRE_GYP_GITHUB_TOKEN)" node-pre-gyp-github publish
-	@mkdir -p "releases/download/$(TAG)"
-	@mv build/stage/node-* "releases/download/$(TAG)/"
-	@rm -rf build/stage
-	@git add .
-	@git commit -m "releases/download/$(TAG)"
-	@git push
+	# @mkdir -p "releases/download/$(TAG)"
+	# @mv build/stage/node-* "releases/download/$(TAG)/"
+	# @rm -rf build/stage
+	# @git add .
+	# @git commit -m "releases/download/$(TAG)"
+	# @git push
 	@echo "Publishing to npm"
 	npm publish
