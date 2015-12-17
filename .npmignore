@@ -1,0 +1,9 @@
+build/Makefile
+build/binding.Makefile
+build/config.gypi
+build/gi.target.mk
+examples
+src
+.DS_Store
+.gitignore
+binding.gyp

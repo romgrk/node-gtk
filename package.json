@@ -1,0 +1,27 @@
+{
+  "name": "node-gtk",
+  "version": "0.0.0",
+  "description": "GNOME Gtk+ bindings for NodeJS",
+  "main": "./lib/gnode.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WebReflection/node-gtk.git"
+  },
+  "keywords": [
+    "GNOME",
+    "gobject-introspection",
+    "GObject",
+    "Gtk+",
+    "Gtk",
+    "bindings"
+  ],
+  "author": "",
+  "license": "LGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/WebReflection/node-gtk/issues"
+  },
+  "homepage": "https://github.com/WebReflection/node-gtk#readme"
+}
