@@ -36,10 +36,6 @@ release:
 	@git add .
 	@git commit -m "Release $(TAG)"
 	@git push
-	@echo "Tagging gh-pages Release $(BOLD)$(TAG)$(RESET)"
-	@git tag -m "Release $(TAG)" $(TAG)
-	@echo "Pushing gh-pages tags to GitHub"
-	@git push --tags
 	@git checkout master
 	@rm -rf ~/node-gtk-tmp-release/
 	@echo "Tagging master Release $(BOLD)$(TAG)$(RESET)"
