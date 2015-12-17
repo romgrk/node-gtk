@@ -1,5 +1,10 @@
 .DS_Store
 *~
 \#*\#
-build/*
+build/Debug
+build/Release
+build/*.Makefile
+build/*.gypi
+build/Makefile
+build/*.mk
 node_modules/*
