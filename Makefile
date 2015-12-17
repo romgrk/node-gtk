@@ -32,12 +32,12 @@ release:
 	node-pre-gyp configure
 	node-pre-gyp rebuild
 	node-pre-gyp package
-	NODE_PRE_GYP_GITHUB_TOKEN="$(NODE_PRE_GYP_GITHUB_TOKEN)" node-pre-gyp-github publish
 	@mkdir -p "releases/download/$(TAG)"
 	@mv build/stage/node-* "releases/download/$(TAG)/"
 	@rm -rf build/stage
 	@git add .
 	@git commit -m "releases/download/$(TAG)"
 	@git push
+	NODE_PRE_GYP_GITHUB_TOKEN="$(NODE_PRE_GYP_GITHUB_TOKEN)" node-pre-gyp-github publish
 	@echo "Publishing to npm"
 	npm publish
