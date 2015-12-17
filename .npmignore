@@ -1,5 +1,4 @@
 build/Debug
-build/Release
 build/*.Makefile
 build/*.gypi
 build/Makefile
@@ -7,7 +6,6 @@ build/*.mk
 examples
 lib
 node_modules
-releases
 .DS_Store
 .gitignore
 Makefile

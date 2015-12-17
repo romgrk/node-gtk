@@ -2,7 +2,6 @@
 *~
 \#*\#
 build/Debug
-build/Release
 build/*.Makefile
 build/*.gypi
 build/Makefile
