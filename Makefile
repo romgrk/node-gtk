@@ -29,7 +29,7 @@ release:
 	node-pre-gyp rebuild
 	node-pre-gyp package
 	@mkdir -p ~/node-gtk-tmp-release/
-	@mv build/stage/node-* ~/node-gtk-tmp-release/
+	@cp build/stage/node-* ~/node-gtk-tmp-release/
 	@git checkout gh-pages
 	@mkdir -p "releases/download/$(TAG)"
 	@mv ~/node-gtk-tmp-release/* "releases/download/$(TAG)/"
