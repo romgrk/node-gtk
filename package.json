@@ -1,6 +1,6 @@
 {
   "name": "node-gtk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "GNOME Gtk+ bindings for NodeJS",
   "main": "./node-gtk.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "module_name": "node-gtk",
     "module_path": "./build/{configuration}/{node_abi}-{platform}-{arch}/",
     "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
-    "host": "https://github.com/WebReflection/node-gtk/releases/download/0.0.1"
+    "host": "https://github.com/WebReflection/node-gtk/releases/download/0.0.2"
   },
   "keywords": [
     "GNOME",
