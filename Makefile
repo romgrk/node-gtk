@@ -20,14 +20,18 @@ release:
 	@echo "Creating Release: $(BOLD)$(TAG)$(RESET)"
 	@echo ""
 	@node -e "var pkg=require('./package.json');pkg.version='$(TAG)';pkg.binary.host=pkg.binary.host.replace(/\/\d+\.\d+\.\d+\$$/,'/$(TAG)');require('fs').writeFileSync('./package.json', JSON.stringify(pkg,null,'  '));"
-	@echo "Adding updated package.json"
-	@git add package.json
-	@git commit -m "Release $(TAG)"
-	@git push
 	@echo "Building Package"
 	node-pre-gyp configure
 	node-pre-gyp rebuild
 	node-pre-gyp package
+	@echo "Adding updated package.json"
+	@git add .
+	@git commit -m "Release $(TAG)"
+	@git push
+	@echo "Tagging master Release $(BOLD)$(TAG)$(RESET)"
+	@git tag -m "Release $(TAG)" $(TAG)
+	@echo "Pushing master tags to GitHub"
+	@git push --tags
 	@mkdir -p ~/node-gtk-tmp-release/
 	@cp build/stage/node-* ~/node-gtk-tmp-release/
 	@git checkout gh-pages
@@ -38,10 +42,6 @@ release:
 	@git push
 	@git checkout master
 	@rm -rf ~/node-gtk-tmp-release/
-	@echo "Tagging master Release $(BOLD)$(TAG)$(RESET)"
-	@git tag -m "Release $(TAG)" $(TAG)
-	@echo "Pushing master tags to GitHub"
-	@git push --tags
 	NODE_PRE_GYP_GITHUB_TOKEN="$(NODE_PRE_GYP_GITHUB_TOKEN)" node-pre-gyp-github publish
 	@echo "Publishing to npm"
 	npm publish
