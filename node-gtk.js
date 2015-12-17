@@ -7,9 +7,9 @@ var
 ;
 
 exports.importNS = function(name, version) {
-    return gi.importNS(name, version);
+  return gi.importNS(name, version);
 };
 
 exports.startLoop = function() {
-    gi.startLoop();
+  gi.startLoop();
 };
