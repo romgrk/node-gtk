@@ -35,10 +35,10 @@ release:
 	node-pre-gyp package
 	NODE_PRE_GYP_GITHUB_TOKEN="$(NODE_PRE_GYP_GITHUB_TOKEN)" node-pre-gyp-github publish
 	@mkdir -p "releases/download/$(TAG)"
-    @mv build/stage/node-* "releases/download/$(TAG)/"
-    @rm -rf build/stage
-    @git add .
-    @git commit -m "releases/download/$(TAG)"
-    @git push
+	@mv build/stage/node-* "releases/download/$(TAG)/"
+	@rm -rf build/stage
+	@git add .
+	@git commit -m "releases/download/$(TAG)"
+	@git push
 	@echo "Publishing to npm"
 	npm publish
