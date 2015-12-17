@@ -23,7 +23,7 @@
     "module_name": "node-gtk",
     "module_path": "./build/{configuration}/{node_abi}-{platform}-{arch}/",
     "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
-    "host": "http://webreflection.github.io/node-gtk/releases/download/0.0.9"
+    "host": "https://webreflection.github.io/node-gtk/releases/download/0.0.9"
   },
   "keywords": [
     "GNOME",
