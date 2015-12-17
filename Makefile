@@ -1,7 +1,6 @@
 .PHONY: build default release
 
 VERSION := $(shell node -e "console.log(require('./package.json').version)")
-TAG := $(TAG)$(tag)
 BOLD := $(shell tput bold)
 RED := $(shell tput setaf 1)
 RESET := $(shell tput sgr0)
