@@ -32,12 +32,16 @@ release:
 	node-pre-gyp configure
 	node-pre-gyp rebuild
 	node-pre-gyp package
+	@mkdir -p ~/node-gtk-tmp-release/
+	@mv build/stage/node-* ~/node-gtk-tmp-release/
+	@git checkout gh-pages
 	@mkdir -p "releases/download/$(TAG)"
-	@mv build/stage/node-* "releases/download/$(TAG)/"
-	@rm -rf build/stage
+	@mv ~/node-gtk-tmp-release/* "releases/download/$(TAG)/"
 	@git add .
-	@git commit -m "releases/download/$(TAG)"
+	@git commit -m "Release $(TAG)"
 	@git push
+	@git checkout master
+	@rm -rf ~/node-gtk-tmp-release/
 	NODE_PRE_GYP_GITHUB_TOKEN="$(NODE_PRE_GYP_GITHUB_TOKEN)" node-pre-gyp-github publish
 	@echo "Publishing to npm"
 	npm publish
