@@ -5,12 +5,12 @@
          xmlns:gnome="http://api.gnome.org/doap-extensions#"
          xmlns="http://usefulinc.com/ns/doap#">
 
-  <name>gnode</name>
-  <shortname>gnode</shortname>
+  <name>node-gtk</name>
+  <shortname>node-gtk</shortname>
   <category rdf:resource="http://api.gnome.org/doap-extensions#core" />
 
-  <description xml:lang="en">GNOME + node.js</description>
-  <shortdesc xml:lang="en">GNOME + node.js</shortdesc>
+  <description xml:lang="en">GNOME Gtk+ bindings for NodeJS</description>
+  <shortdesc xml:lang="en">GNOME Gtk+ bindings for NodeJS</shortdesc>
 
   <programming-language>C++, JS</programming-language>
 

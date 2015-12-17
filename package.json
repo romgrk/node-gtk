@@ -2,7 +2,7 @@
   "name": "node-gtk",
   "version": "0.0.0",
   "description": "GNOME Gtk+ bindings for NodeJS",
-  "main": "./lib/gnode.js",
+  "main": "./lib/node-gtk.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
