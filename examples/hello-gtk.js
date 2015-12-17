@@ -10,7 +10,7 @@ GNode.startLoop();
 Gtk.init(0, null);
  
 win = new Gtk.Window({
-  title: 'gnode',
+  title: 'node-gtk',
   window_position: Gtk.WindowPosition.CENTER
 });
 
