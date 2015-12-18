@@ -1,7 +1,11 @@
 {
     "targets": [
         {
+<<<<<<< HEAD
             "target_name": "node-gtk",
+=======
+            "target_name": "gi",
+>>>>>>> gnode/master
             "sources": [
                 "src/loop.cc",
                 "src/gi.cc",
@@ -16,6 +20,7 @@
             "ldflags": [
                 "<!@(pkg-config --libs gobject-introspection-1.0)",
             ],
+<<<<<<< HEAD
         },
         {
             "target_name": "action_after_build",
@@ -27,6 +32,8 @@
                     "destination": "<(module_path)"
                 }
             ]
+=======
+>>>>>>> gnode/master
         }
     ]
 }

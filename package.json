@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "node-gtk",
   "version": "0.0.15",
   "description": "GNOME Gtk+ bindings for NodeJS",
@@ -40,3 +41,17 @@
   },
   "homepage": "https://github.com/WebReflection/node-gtk#readme"
 }
+=======
+    "name": "gnode",
+    "description": "GNOME + Node.js",
+    "keywords": [
+        "gnome",
+        "gobject-introspection",
+        "gobject",
+        "gtk+",
+        "gtk"
+    ],
+    "version": "0.0.1",
+    "main": "./lib/gnode.js"
+}
+>>>>>>> gnode/master
