@@ -1,1 +1,0 @@
-cmd_/home/webreflection/code/node-gtk/build/Release/node-v47-linux-x64/node-gtk.node := rm -rf "/home/webreflection/code/node-gtk/build/Release/node-v47-linux-x64/node-gtk.node" && cp -af "Release/node-gtk.node" "/home/webreflection/code/node-gtk/build/Release/node-v47-linux-x64/node-gtk.node"
