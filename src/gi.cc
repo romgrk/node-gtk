@@ -146,6 +146,8 @@ static void StartLoop(const FunctionCallbackInfo<Value> &args) {
 void InitModule(Handle<Object> exports, Handle<Value> module, void *priv) {
     Isolate *isolate = Isolate::GetCurrent ();
 
+    /* XXX: This is an ugly collection of random bits and pieces. We should organize
+     * this functionality a lot better and clean it up. */
     exports->Set (String::NewFromUtf8 (isolate, "Bootstrap"), FunctionTemplate::New (isolate, Bootstrap)->GetFunction ());
     exports->Set (String::NewFromUtf8 (isolate, "GetConstantValue"), FunctionTemplate::New (isolate, GetConstantValue)->GetFunction ());
     exports->Set (String::NewFromUtf8 (isolate, "MakeFunction"), FunctionTemplate::New (isolate, MakeFunction)->GetFunction ());
