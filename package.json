@@ -4,7 +4,7 @@
   "description": "GNOME Gtk+ bindings for NodeJS",
   "main": "lib/index.js",
   "scripts": {
-    "install": "node-pre-gyp install --fallback-to-build",
+    "install": "node-gyp rebuild",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -24,15 +24,5 @@
   "bugs": {
     "url": "https://github.com/WebReflection/node-gtk/issues"
   },
-  "homepage": "https://github.com/WebReflection/node-gtk#readme",
-  "dependencies": {
-    "node-pre-gyp": "^0.6.x",
-    "node-pre-gyp-github": "^1.x"
-  },
-  "binary": {
-    "module_name": "node-gtk",
-    "module_path": "./build/{configuration}/{node_abi}-{platform}-{arch}/",
-    "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
-    "host": "https://github.com/WebReflection/node-gtk/releases/download/0.0.15"
-  }
+  "homepage": "https://github.com/WebReflection/node-gtk#readme"
 }
