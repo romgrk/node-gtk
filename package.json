@@ -2,7 +2,7 @@
   "name": "node-gtk",
   "version": "0.0.15",
   "description": "GNOME Gtk+ bindings for NodeJS",
-  "main": "./node-gtk.js",
+  "main": "lib/index.js",
   "scripts": {
     "install": "node-gyp rebuild",
     "test": "echo \"Error: no test specified\" && exit 1"

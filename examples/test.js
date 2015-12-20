@@ -1,5 +1,5 @@
 
-const GNode = require('../lib/node-gtk');
+const GNode = require('../lib/');
 GNode.startLoop();
 
 const GLib = GNode.importNS("GLib");

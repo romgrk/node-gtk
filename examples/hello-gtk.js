@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 var
-  GNode = require('../lib/node-gtk'),
+  GNode = require('../lib/'),
   Gtk = GNode.importNS('Gtk'),
   win
 ;
