@@ -85,6 +85,7 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
             switch (interface_type) {
             case GI_INFO_TYPE_OBJECT:
                 return WrapperFromGObject (isolate, (GObject *) arg->v_pointer);
+            case GI_INFO_TYPE_FLAGS:
             case GI_INFO_TYPE_ENUM:
                 return Integer::New (isolate, arg->v_int);
             default:
@@ -175,6 +176,10 @@ void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Ha
             switch (interface_type) {
             case GI_INFO_TYPE_OBJECT:
                 arg->v_pointer = GObjectFromWrapper (value);
+                break;
+            case GI_INFO_TYPE_FLAGS:
+            case GI_INFO_TYPE_ENUM:
+                arg->v_int = value->Int32Value ();
                 break;
             default:
                 g_assert_not_reached ();
