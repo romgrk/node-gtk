@@ -13,7 +13,7 @@ console.log(obj.get_name());
 console.log(GLib.test_override());
 
 const Gtk = GNode.importNS("Gtk");
-Gtk.init(0, null);
+Gtk.init(null);
 
 var w = new Gtk.Window();
 var b = new Gtk.Button({ label: "Hi!" });

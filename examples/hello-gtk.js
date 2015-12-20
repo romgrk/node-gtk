@@ -7,7 +7,7 @@ var
 ;
 
 GNode.startLoop();
-Gtk.init(0, null);
+Gtk.init(null);
  
 win = new Gtk.Window({
   title: 'node-gtk',
