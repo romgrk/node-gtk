@@ -76,8 +76,8 @@ static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
         callable_arg_values = &total_arg_values[0];
     }
 
-    int in_arg = 0;
-    for (int i = 0; i < n_callable_args; i++) {
+    int in_arg = 0, i = 0;
+    while (i < n_callable_args) {
         GIArgInfo arg_info = {};
         g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
         GIDirection direction = g_arg_info_get_direction (&arg_info);
@@ -95,6 +95,8 @@ static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
             V8ToGIArgument (isolate, &type_info, &callable_arg_values[i], args[in_arg], may_be_null);
             in_arg++;
         }
+
+        i++;
     }
 
     void *ffi_arg_pointers[n_total_args];
