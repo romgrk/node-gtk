@@ -282,7 +282,6 @@ static Handle<FunctionTemplate> GetClassTemplate(Isolate *isolate, GIBaseInfo *i
 
         DefineConstructorMethods (isolate, tpl, info);
         DefinePrototypeMethods (isolate, tpl->PrototypeTemplate (), info);
-        DefineObjectProperties (isolate, tpl->InstanceTemplate (), info);
 
         GIObjectInfo *parent_info = g_object_info_get_parent (info);
         if (parent_info) {
@@ -291,6 +290,10 @@ static Handle<FunctionTemplate> GetClassTemplate(Isolate *isolate, GIBaseInfo *i
         } else {
             tpl->Inherit (GetBaseClassTemplate (isolate));
         }
+
+        /* XXX: Why can't we use PrototypeTemplate here, and will that affect inheritance
+         * of these properties? Are we better off using a Proxy instead of named accessors? */
+        DefineObjectProperties (isolate, tpl->InstanceTemplate (), info);
 
         return tpl;
     }
