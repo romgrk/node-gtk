@@ -50,8 +50,7 @@ static GSourceFuncs uv_loop_source_funcs = {
     NULL, NULL,
 };
 
-static GSource *uv_loop_source_new (uv_loop_t *loop)
-{
+static GSource *uv_loop_source_new (uv_loop_t *loop) {
     struct uv_loop_source *source = (struct uv_loop_source *) g_source_new (&uv_loop_source_funcs, sizeof (*source));
     source->loop = loop;
     g_source_add_unix_fd (&source->source,

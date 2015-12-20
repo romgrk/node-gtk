@@ -12,8 +12,7 @@ namespace GNodeJS {
 static bool InitGParameterFromProperty(GParameter    *parameter,
                                        void          *klass,
                                        Handle<String> name,
-                                       Handle<Value>  value)
-{
+                                       Handle<Value>  value) {
     String::Utf8Value name_str (name);
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_CLASS (klass), *name_str);
     if (pspec == NULL)
@@ -28,8 +27,7 @@ static bool InitGParameterFromProperty(GParameter    *parameter,
 static bool InitGParametersFromProperty(GParameter    **parameters_p,
                                         int            *n_parameters_p,
                                         void           *klass,
-                                        Handle<Object>  property_hash)
-{
+                                        Handle<Object>  property_hash) {
     Local<Array> properties = property_hash->GetOwnPropertyNames ();
     int n_parameters = properties->Length();
     GParameter *parameters = g_new0 (GParameter, n_parameters);
