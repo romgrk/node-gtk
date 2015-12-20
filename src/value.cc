@@ -160,6 +160,14 @@ void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Ha
         arg->v_double = value->NumberValue ();
         break;
 
+    case GI_TYPE_TAG_FILENAME:
+        {
+            String::Utf8Value str (value);
+            const char *utf8_data = *str;
+            arg->v_pointer = g_filename_from_utf8 (utf8_data, -1, NULL, NULL, NULL);
+        }
+        break;
+
     case GI_TYPE_TAG_UTF8:
         {
             String::Utf8Value str (value);
@@ -216,6 +224,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
+    case GI_TYPE_TAG_FILENAME:
     case GI_TYPE_TAG_UTF8:
         g_free (arg->v_pointer);
         break;
