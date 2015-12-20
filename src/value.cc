@@ -87,6 +87,7 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
             case GI_INFO_TYPE_OBJECT:
                 return WrapperFromGObject (isolate, (GObject *) arg->v_pointer);
             case GI_INFO_TYPE_BOXED:
+            case GI_INFO_TYPE_STRUCT:
                 return WrapperFromBoxed (isolate, interface_info, arg->v_pointer);
             case GI_INFO_TYPE_FLAGS:
             case GI_INFO_TYPE_ENUM:
@@ -123,6 +124,26 @@ static GArray * V8ToGArray(Isolate *isolate, GITypeInfo *type_info, Handle<Value
 
     g_base_info_unref ((GIBaseInfo *) elem_info);
     return garray;
+}
+
+void V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Handle<Value> value) {
+    GIInfoType type = g_base_info_get_type (base_info);
+
+    switch (type) {
+    case GI_INFO_TYPE_OBJECT:
+        arg->v_pointer = GObjectFromWrapper (value);
+        break;
+    case GI_INFO_TYPE_BOXED:
+    case GI_INFO_TYPE_STRUCT:
+        arg->v_pointer = BoxedFromWrapper (value);
+        break;
+    case GI_INFO_TYPE_FLAGS:
+    case GI_INFO_TYPE_ENUM:
+        arg->v_int = value->Int32Value ();
+        break;
+    default:
+        g_assert_not_reached ();
+    }
 }
 
 void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Handle<Value> value, bool may_be_null) {
@@ -187,23 +208,7 @@ void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Ha
     case GI_TYPE_TAG_INTERFACE:
         {
             GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
-            GIInfoType interface_type = g_base_info_get_type (interface_info);
-
-            switch (interface_type) {
-            case GI_INFO_TYPE_OBJECT:
-                arg->v_pointer = GObjectFromWrapper (value);
-                break;
-            case GI_INFO_TYPE_BOXED:
-                arg->v_pointer = BoxedFromWrapper (value);
-                break;
-            case GI_INFO_TYPE_FLAGS:
-            case GI_INFO_TYPE_ENUM:
-                arg->v_int = value->Int32Value ();
-                break;
-            default:
-                g_assert_not_reached ();
-            }
-
+            V8ToGIArgument (isolate, interface_info, arg, value);
             g_base_info_unref (interface_info);
         }
         break;

@@ -117,7 +117,8 @@ static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
     GIArgument *callable_arg_values;
 
     if (is_method) {
-        total_arg_values[0].v_pointer = GObjectFromWrapper (args.This ());
+        GIBaseInfo *container = g_base_info_get_container (func->info);
+        V8ToGIArgument (isolate, container, &total_arg_values[0], args.This ());
         callable_arg_values = &total_arg_values[1];
     } else {
         callable_arg_values = &total_arg_values[0];

@@ -33,7 +33,7 @@ struct Boxed {
 
 static G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
 
-static void BoxedDestroyed(const WeakCallbackData<FunctionTemplate, GIBaseInfo> &data) {
+static void BoxedClassDestroyed(const WeakCallbackData<FunctionTemplate, GIBaseInfo> &data) {
     GIBaseInfo *info = data.GetParameter ();
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
 
@@ -61,13 +61,9 @@ static void BoxedConstructor(const FunctionCallbackInfo<Value> &args) {
     if (args[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
 
-        void *data = External::Cast (*args[0])->Value ();
+        /* XXX: We might want to copy the boxed? */
+        void *boxed = External::Cast (*args[0])->Value ();
 
-        GIBaseInfo *info = (GIBaseInfo *) External::Cast (*args.Data ())->Value ();
-        GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
-
-        /* XXX: We might not always want to copy the boxed here. */
-        void *boxed = g_boxed_copy (gtype, data);
         self->SetAlignedPointerInInternalField (0, boxed);
     } else {
         /* TODO: Boxed construction not supported yet. */
@@ -87,7 +83,7 @@ static Local<FunctionTemplate> GetBoxedTemplate(Isolate *isolate, GIBaseInfo *in
         Local<FunctionTemplate> tpl = FunctionTemplate::New (isolate, BoxedConstructor, External::New (isolate, info));
 
         Persistent<FunctionTemplate> *persistent = new Persistent<FunctionTemplate>(isolate, tpl);
-        persistent->SetWeak (g_base_info_ref (info), BoxedDestroyed);
+        persistent->SetWeak (g_base_info_ref (info), BoxedClassDestroyed);
         g_type_set_qdata (gtype, gnode_js_template_quark (), persistent);
 
         const char *class_name = g_base_info_get_name (info);

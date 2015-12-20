@@ -8,7 +8,9 @@ var
 
 GNode.startLoop();
 Gtk.init(null);
- 
+
+console.log(Gtk.Settings.get_default().gtk_enable_accels);
+
 win = new Gtk.Window({
   title: 'node-gtk',
   window_position: Gtk.WindowPosition.CENTER
