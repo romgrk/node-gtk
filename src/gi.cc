@@ -85,45 +85,6 @@ static void DefineBootstrapInfo(Isolate *isolate, Handle<Object> module_obj, GIB
     }
 }
 
-#if 0
-static void ImportNS(const FunctionCallbackInfo<Value> &args) {
-    Isolate *isolate = args.GetIsolate ();
-    GIRepository *repo = g_irepository_get_default ();
-
-    if (args.Length() < 1) {
-        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Wrong number of arguments")));
-        return;
-    }
-
-    String::Utf8Value ns_str (args[0]->ToString());
-    const char *ns = *ns_str;
-
-    const char *version = NULL;
-    if (args[1]->IsString ()) {
-        String::Utf8Value version_str (args[1]->ToString ());
-        version = *version_str;
-    }
-
-    GError *error = NULL;
-    g_irepository_require (repo, ns, version, (GIRepositoryLoadFlags) 0, &error);
-    if (error) {
-        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, error->message)));
-        return;
-    }
-
-    Handle<Object> module_obj = Object::New (isolate);
-
-    int n = g_irepository_get_n_infos (repo, ns);
-    for (int i = 0; i < n; i++) {
-        GIBaseInfo *info = g_irepository_get_info (repo, ns, i);
-        DefineInfo (isolate, module_obj, info);
-        g_base_info_unref (info);
-    }
-
-    args.GetReturnValue ().Set (module_obj);
-}
-#endif
-
 static void Bootstrap(const FunctionCallbackInfo<Value> &args) {
     Isolate *isolate = args.GetIsolate ();
 
