@@ -70,7 +70,7 @@ static bool InitGParametersFromProperty(GParameter    **parameters_p,
 
 static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down);
 
-G_DEFINE_QUARK(gnode_js_object, gnode_js_object);
+static G_DEFINE_QUARK(gnode_js_object, gnode_js_object);
 
 static void AssociateGObject(Isolate *isolate, Handle<Object> object, GObject *gobject) {
     object->SetAlignedPointerInInternalField (0, gobject);
@@ -135,7 +135,7 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
     }
 }
 
-G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
+static G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
 
 static void DefineConstructorMethods(Isolate *isolate, Handle<FunctionTemplate> constructor, GIBaseInfo *info) {
     int n_methods = g_object_info_get_n_methods (info);
