@@ -76,6 +76,7 @@ static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
         callable_arg_values = &total_arg_values[0];
     }
 
+    int in_arg = 0;
     for (int i = 0; i < n_callable_args; i++) {
         GIArgInfo arg_info = {};
         g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
@@ -91,7 +92,8 @@ static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
             bool may_be_null = g_arg_info_may_be_null (&arg_info);
             GITypeInfo type_info;
             g_arg_info_load_type (&arg_info, &type_info);
-            V8ToGIArgument (isolate, &type_info, &callable_arg_values[i], args[i], may_be_null);
+            V8ToGIArgument (isolate, &type_info, &callable_arg_values[i], args[in_arg], may_be_null);
+            in_arg++;
         }
     }
 
