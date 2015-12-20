@@ -66,6 +66,10 @@ static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
     if (is_method)
         n_total_args++;
 
+    gboolean can_throw = g_callable_info_can_throw_gerror (info);
+    if (can_throw)
+        n_total_args++;
+
     GIArgument total_arg_values[n_total_args];
     GIArgument *callable_arg_values;
 
@@ -98,6 +102,9 @@ static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
 
         i++;
     }
+
+    if (can_throw)
+        callable_arg_values[i].v_pointer = &error;
 
     void *ffi_arg_pointers[n_total_args];
     for (int i = 0; i < n_total_args; i++)
