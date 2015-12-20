@@ -134,6 +134,11 @@ void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Ha
         return;
     }
 
+    if (value->IsUndefined ()) {
+        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Argument may not be undefined.")));
+        return;
+    }
+
     switch (type_tag) {
     case GI_TYPE_TAG_VOID:
         arg->v_pointer = NULL;
