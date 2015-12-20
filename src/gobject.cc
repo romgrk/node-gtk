@@ -169,6 +169,60 @@ static void DefinePrototypeMethods(Isolate *isolate, Handle<ObjectTemplate> prot
     }
 }
 
+static void ObjectPropertyGetter(Local<String> name,
+                                 const PropertyCallbackInfo<Value> &info)
+{
+    Isolate *isolate = info.GetIsolate ();
+    GObject *gobject = GObjectFromWrapper (info.This ());
+    String::Utf8Value name_v (name);
+    const char *prop_name = *name_v;
+
+    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
+    GValue value = {};
+    g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+
+    g_object_get_property (gobject, prop_name, &value);
+
+    info.GetReturnValue ().Set (GValueToV8 (isolate, &value));
+}
+
+static void ObjectPropertySetter(Local<String> name,
+                                 Local<Value> value,
+                                 const PropertyCallbackInfo<void> &info)
+{
+    /* TODO: Setting properties. */
+}
+
+static Local<String> JSPropName(Isolate *isolate, GIBaseInfo *prop_info)
+{
+    const char *prop_name = g_base_info_get_name ((GIBaseInfo *) prop_info);
+    char *js_name = g_strdup (prop_name);
+
+    /* Replace all hyphens with underscores. */
+    for (char *c = js_name; *c; c++) {
+        if (*c == '-')
+            *c = '_';
+    }
+
+    Local<String> ret = String::NewFromUtf8 (isolate, js_name);
+    g_free (js_name);
+    return ret;
+}
+
+static void DefineObjectProperties(Isolate *isolate, Handle<ObjectTemplate> prototype, GIBaseInfo *info) {
+    int n_properties = g_object_info_get_n_properties (info);
+
+    for (int i = 0; i < n_properties; i++) {
+        GIPropertyInfo *prop_info = g_object_info_get_property (info, i);
+
+        prototype->SetNativeDataProperty (JSPropName (isolate, prop_info),
+                                          ObjectPropertyGetter,
+                                          ObjectPropertySetter);
+
+        g_base_info_unref ((GIBaseInfo *) prop_info);
+    }
+}
+
 static void SignalConnectInternal(const FunctionCallbackInfo<Value> &args, bool after) {
     Isolate *isolate = args.GetIsolate ();
     GObject *gobject = GObjectFromWrapper (args.This ());
@@ -228,6 +282,7 @@ static Handle<FunctionTemplate> GetClassTemplate(Isolate *isolate, GIBaseInfo *i
 
         DefineConstructorMethods (isolate, tpl, info);
         DefinePrototypeMethods (isolate, tpl->PrototypeTemplate (), info);
+        DefineObjectProperties (isolate, tpl->InstanceTemplate (), info);
 
         GIObjectInfo *parent_info = g_object_info_get_parent (info);
         if (parent_info) {
