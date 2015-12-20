@@ -21,9 +21,9 @@ release:
 	@echo ""
 	@node -e "var pkg=require('./package.json');pkg.version='$(TAG)';pkg.binary.host=pkg.binary.host.replace(/\/\d+\.\d+\.\d+\$$/,'/$(TAG)');require('fs').writeFileSync('./package.json', JSON.stringify(pkg,null,'  '));"
 	@echo "Building Package"
-	node-pre-gyp configure
-	node-pre-gyp rebuild
-	node-pre-gyp package
+	./node_modules/node-pre-gyp/bin/node-pre-gyp configure
+	./node_modules/node-pre-gyp/bin/node-pre-gyp rebuild
+	node-pre-gyp-github package
 	@echo "Adding updated package.json"
 	@git add .
 	@git commit -m "Release $(TAG)"
