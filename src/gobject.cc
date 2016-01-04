@@ -29,7 +29,7 @@ static bool InitGParametersFromProperty(GParameter    **parameters_p,
                                         void           *klass,
                                         Handle<Object>  property_hash) {
     Local<Array> properties = property_hash->GetOwnPropertyNames ();
-    int n_parameters = properties->Length();
+    int n_parameters = properties->Length ();
     GParameter *parameters = g_new0 (GParameter, n_parameters);
 
     for (int i = 0; i < n_parameters; i++) {
