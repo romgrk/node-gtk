@@ -8,7 +8,7 @@
 
 /* The way that this works is that we take uv's loop and nest it inside GLib's
  * mainloop, since nesting GLib inside uv seems to be fairly impossible until
- * either uv allows external sources to drive prepare/checl, or until GLib
+ * either uv allows external sources to drive prepare/check, or until GLib
  * exposes an epoll fd to wait on... */
 
 namespace GNodeJS {
