@@ -154,7 +154,7 @@ static void FunctionInvoker(const FunctionCallbackInfo<Value> &args) {
         g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
         GIDirection direction = g_arg_info_get_direction (&arg_info);
         if (direction == GI_DIRECTION_OUT) {
-            /* XXX: Process out value. */
+    /* XXX: Process out value. */
         } else {
             GITypeInfo type_info;
             g_arg_info_load_type (&arg_info, &type_info);

@@ -3,6 +3,8 @@
 #include "boxed.h"
 #include "gobject.h"
 
+#include "debug.cc"
+
 using namespace v8;
 
 namespace GNodeJS {
@@ -121,6 +123,7 @@ void V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Ha
         arg->v_int = value->Int32Value ();
         break;
     default:
+        print_info_type (base_info, type);
         g_assert_not_reached ();
     }
 }
