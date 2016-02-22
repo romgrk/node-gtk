@@ -38,3 +38,24 @@ win.add(new Gtk.Label({label: 'Hello Gtk+'}));
 
 win.show_all();
 ```
+
+
+### How to build in Ubuntu
+The following has been tested on Ubuntu 15.10.
+```bash
+# setup node v5
+curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
+
+# install dependencies
+sudo apt-get install \
+  build-essential \
+  git \
+  nodejs \
+  gobject-introspection \
+  libgirepository1.0-dev
+
+# clone and build
+git clone https://github.com/WebReflection/node-gtk.git
+cd node-gtk
+npm install
+```
