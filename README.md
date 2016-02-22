@@ -58,4 +58,7 @@ sudo apt-get install \
 git clone https://github.com/WebReflection/node-gtk.git
 cd node-gtk
 npm install
+
+# how to verify from node-gtk folder
+./examples/hello-gtk.js
 ```
