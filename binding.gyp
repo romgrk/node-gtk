@@ -15,6 +15,7 @@
                 "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -Werror",
             ],
             "ldflags": [
+                "-Wl,-no-as-needed",
                 "<!@(pkg-config --libs gobject-introspection-1.0)",
             ],
         }

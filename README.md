@@ -40,7 +40,7 @@ win.show_all();
 ```
 
 
-### How to build in Ubuntu
+### How to build in Ubuntu 15.10
 The following has been tested on Ubuntu 15.10.
 ```bash
 # setup node v5
@@ -62,3 +62,29 @@ npm install
 # how to verify from node-gtk folder
 ./examples/hello-gtk.js
 ```
+
+#### How to install node 5.x in Ubuntu 16 LTS
+The setup file might not recognize `xenial` platform.
+In this case you need to download the file and edit it.
+
+```bash
+# download the file
+curl -L -O https://deb.nodesource.com/setup_5.x
+
+# edit (use vi or gedit or whatever you like) 
+gedit setup_5.x
+
+# find the following line
+DISTRO=$(lsb_release -c -s)
+# and change it to
+DISTRO=jessie
+
+
+# save the file and run the following
+cat setup_5.x | sudo -E bash -
+
+# once done you can
+rm setup_5.x
+```
+
+At this point you can `apt-get install nodejs`
