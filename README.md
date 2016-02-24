@@ -7,37 +7,42 @@ A work in progress to bring Gtk+ usable directly from nodejs so that the environ
 Please note this project is currently in an _alpha_ state and it needs more contributors.
 
 
-### How to install
-Currently, Linux is the main target but we are working to make this work on OSX too.
+### How to build on OSX
+Assuming you have [brew]() installed, the following has been successfully tested on El Captain.
 
-If you have installed `gtk3` you should be already OK and off via `npm install node-gtk`
+```sh
+# basic dependencies to clone this repo
+brew install git node
 
-Once installed, you can import various namespaces as following:
-```js
-#!/usr/bin/env node
 
-var
-  GNode = require('node-gtk'),
-  Gtk = GNode.importNS('Gtk'),
-  win
-;
+# Gtk+
+brew install gtk+3
 
-GNode.startLoop();
-Gtk.init(0, null);
- 
-win = new Gtk.Window({
-  title: 'node-gtk',
-  window_position: Gtk.WindowPosition.CENTER
-});
 
-win.connect('show', Gtk.main);
-win.connect('destroy', Gtk.main_quit);
+# in order to test this project localy
+git clone https://github.com/WebReflection/node-gtk
+cd node-gtk
 
-win.set_default_size(200, 80);
-win.add(new Gtk.Label({label: 'Hello Gtk+'}));
 
-win.show_all();
+# in order to build it successfully (this is one line command)
+# feel free to ignore ignore possible warnings
+PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig" \
+CXX="$(which g++) $(pkg-config --cflags glib-2.0 gobject-introspection-1.0 --libs gobject-introspection-1.0)" \
+npm run install
+
+
+# in order to test it
+./examples/hello-gtk.js
 ```
+Please note in OSX the window doesn't automatically open above other windows.
+Try Cmd + Tab if you don't see it.
+
+
+### How to build on Linux
+
+The main dependency in linux too is `gtk3` and possibly `gobject-introspection`.
+
+A simple `npm install` after cloning this project should be enough to build it.
 
 
 ### How to build in Ubuntu 15.10
