@@ -7,10 +7,6 @@
 
 namespace GNodeJS {
 
-#ifdef __APPLE__
-    typedef unsigned long ulong;
-#endif
-
 v8::Handle<v8::Function> MakeClass(v8::Isolate *isolate, GIBaseInfo *info);
 
 v8::Handle<v8::Value> WrapperFromGObject(v8::Isolate *isolate, GObject *object);

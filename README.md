@@ -26,9 +26,7 @@ cd node-gtk
 
 # in order to build it successfully (this is one line command)
 # feel free to ignore ignore possible warnings
-PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig" \
-CXX="$(which g++) $(pkg-config --cflags glib-2.0 gobject-introspection-1.0 --libs gobject-introspection-1.0)" \
-npm install
+PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig" npm install
 
 
 # in order to test it

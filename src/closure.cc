@@ -32,7 +32,7 @@ void Closure::Marshal(GClosure *base,
     Closure *closure = (Closure *) base;
     Handle<Function> func = Handle<Function>::New(isolate, closure->persistent);
 
-    #ifdef __APPLE__
+    #ifndef __linux__
         Handle<Value>* argv = new Handle<Value>[argc];
     #else
         Handle<Value> argv[argc];
@@ -44,7 +44,7 @@ void Closure::Marshal(GClosure *base,
     Handle<Object> this_obj = func;
     Handle<Value> return_value = func->Call (this_obj, argc, argv);
 
-    #ifdef __APPLE__
+    #ifndef __linux__
         delete[] argv;
     #endif
 
