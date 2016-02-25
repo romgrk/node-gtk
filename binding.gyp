@@ -20,10 +20,25 @@
             ],
             "conditions": [
                 ['OS != "linux"', {
-                      "defines": ["ulong=unsigned long"]}],
+                    "defines": [
+                        "ulong=unsigned long",
+                    ]
+                }],
+                ['OS == "mac"', {
+                    "xcode_settings": {
+                        "OTHER_CFLAGS": [
+                            "<!@(pkg-config --cflags glib-2.0 gobject-introspection-1.0)",
+                        ],
+                        "OTHER_LDFLAGS": [
+                            "<!@(pkg-config --libs gobject-introspection-1.0)",
+                        ]
+                    },
+                }],
                 ['OS == "win"', {
-                      "defines": ["uint=unsigned int"],
-                      "include_dirs":[
+                    "defines": [
+                        "uint=unsigned int",
+                    ],
+                    "include_dirs": [
                         "include",
                         "/msys64/mingw64/include/gobject-introspection-1.0",
                         "/msys64/mingw64/lib/libffi-3.2.1/include",
