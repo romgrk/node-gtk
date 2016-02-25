@@ -93,3 +93,37 @@ rm setup_5.x
 ```
 
 At this point you can `apt-get install nodejs`
+
+### How to build on Windows (experimental)
+Mandatory dependency is _[Visual Studio Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)_ or _Express_ with a C++ compiler (open a new C++ project and install it via IDE if necessary).
+
+The easiest/tested way to at least try building this repository is within a _MinGW shell_ provided by the [MSYS2 installer](https://msys2.github.io/).
+
+Once VS and its C++ compiler is available and MSYS2 installed, launch the MinGW shell.
+
+```sh
+# update the system
+# in case of errors, wait for the update to complete
+# then close and open again MingW shell
+pacman -Syyu --noconfirm
+
+# install gtk3 and basic dependencies
+pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config}
+
+# where to put the repository clone?
+# pick your flder or use ~/oss (Open Source Software)
+mkdir -p ~/oss/
+cd ~/oss
+
+# clone node-gtk there
+git clone https://github.com/WebReflection/node-gtk
+cd node-gtk
+
+# first run might take a while
+GYP_MSVS_VERSION=2015 npm install
+```
+The `GYP_MSVS_VERSION` could be 2010, 2012, 2013 or 2015.
+Please verify [which version you should use](https://github.com/nodejs/node-gyp#installation)
+
+#### known issues building on Windows
+Right now there are few gotchas and the build will most likely fail. Please help with a PR if you know how to solve the issue, thank you!
