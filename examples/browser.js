@@ -41,7 +41,7 @@ ngtk.startLoop();
   // ./browser.js google.com dark
   if (process.argv.some(color => color === 'dark')) {
     let gtkSettings = Gtk.Settings.get_default();
-    gtkSettings.set_property('gtk-application-prefer-dark-theme', true);
+    gtkSettings.gtk_application_prefer_dark_theme = true;
     gtkSettings.gtk_theme_name = 'Adwaita';
   }
 
