@@ -33,8 +33,8 @@ ngtk.startLoop();
     // the browser container, so that's scrollable
     scrollWindow = new Gtk.ScrolledWindow({}),
     // horizontal and vertical boxes
-    hbox = new Gtk.HBox({}),
-    vbox = new Gtk.VBox({})
+    hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL}),
+    vbox = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL})
   ;
 
   // Setting up optional Dark theme (gotta love it!)
@@ -87,7 +87,7 @@ ngtk.startLoop();
 
   // pack vertically top bar (hbox) and scrollable window
   vbox.pack_start(hbox, false, true, 0);
-  vbox.add(scrollWindow);
+  vbox.pack_start(scrollWindow, true, true, 0);
 
   // configure main window
   window.set_default_size(1024, 720);
