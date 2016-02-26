@@ -105,8 +105,10 @@ Once VS and its C++ compiler is available and MSYS2 installed, launch the MinGW 
 # then close and open again MingW shell
 pacman -Syyu --noconfirm
 
-# install gtk3 and basic dependencies
-pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config}
+# install basic dependencies
+pacman -S --needed --noconfirm git python2 python2-setuptools
+# install gtk3 + extras
+pacman -S --needed --noconfirm mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config}
 
 # where to put the repository clone?
 # pick your flder or use ~/oss (Open Source Software)
@@ -122,6 +124,20 @@ GYP_MSVS_VERSION=2015 npm install
 ```
 The `GYP_MSVS_VERSION` could be 2010, 2012, 2013 or 2015.
 Please verify [which version you should use](https://github.com/nodejs/node-gyp#installation)
+
+
+#### Known issue in 32 bit MinGW shell
+If `python` is not available, and you can check via `which python` command,
+you need to export the binary path:
+
+```sh
+export PATH="/mingw32/bin:$PATH"
+npm run install
+```
+This should do the trick. You can always check if there is any python at all via `pacman -Qs python`.
+
+Please remember `python2` is the one needed.
+
 
 #### known issues building on Windows
 Right now there are few gotchas and the build will most likely fail. Please help with a PR if you know how to solve the issue, thank you!
