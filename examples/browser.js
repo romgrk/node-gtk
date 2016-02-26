@@ -7,7 +7,7 @@
 var ngtk = require('../lib/');
 ngtk.startLoop();
 
-(function (Gtk, WebKit) {'use strict';
+(function (Gtk, WebKit2) {'use strict';
 
   // necessary to initialize the graphic environment
   // if this fails it means the host cannot show GTK3
@@ -18,8 +18,8 @@ ngtk.startLoop();
     window = new Gtk.Window({
       type : Gtk.WindowType.TOPLEVEL
     }),
-    // the WebKit browser wrapper
-    webView = new WebKit.WebView(),
+    // the WebKit2 browser wrapper
+    webView = new WebKit2.WebView(),
     // toolbar with buttons
     toolbar = new Gtk.Toolbar(),
     // buttons to go back, go forward, or refresh
@@ -46,14 +46,18 @@ ngtk.startLoop();
   }
 
   // open first argument or Google
-  webView.open(url(process.argv[2] || 'google.com'));
+  webView.load_uri(url(process.argv[2] || 'google.com'));
 
   // whenever a new page is loaded ...
-  webView.connect('load_committed', (widget, data) => {
-    // ... update the URL bar with the current adress
-    urlBar.set_text(widget.get_main_frame().get_uri());
-    button.back.set_sensitive(webView.can_go_back());
-    button.forward.set_sensitive(webView.can_go_forward());
+  webView.connect('load-changed', (widget, load_event, data) => {
+    switch (load_event) {
+      case 2: // XXX: where is WEBKIT_LOAD_COMMITTED ?
+        // ... update the URL bar with the current adress
+        urlBar.set_text(widget.get_uri());
+        button.back.set_sensitive(webView.can_go_back());
+        button.forward.set_sensitive(webView.can_go_forward());
+        break;
+    }
   });
 
   // configure buttons actions
@@ -71,7 +75,7 @@ ngtk.startLoop();
   urlBar.connect('activate', () => {
     let href = url(urlBar.get_text());
     urlBar.set_text(href);
-    webView.open(href);
+    webView.load_uri(href);
   });
 
   // make the container scrollable
@@ -108,5 +112,5 @@ ngtk.startLoop();
 
 }(
   ngtk.importNS('Gtk'),
-  ngtk.importNS('WebKit')
+  ngtk.importNS('WebKit2')
 ));
