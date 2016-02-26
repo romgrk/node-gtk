@@ -5,3 +5,4 @@ node_modules
 .gitignore
 Makefile
 node-gtk.doap
+npm-debug.log
