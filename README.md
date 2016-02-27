@@ -100,10 +100,10 @@ If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://
     You'll need to link the folder to the missing one.
 
         ```sh
-# example, the linked folder might be different
-TO_BE_LINKED=/tmp/webkitgtk20160213-86964-wydvdb/webkitgtk-2.10.7
-mkdir -p $TO_BE_LINKED
-ln -s /usr/local/Cellar/webkitgtk/2.10.7_1/lib $TO_BE_LINKED/lib
+        # example, the linked folder might be different
+        TO_BE_LINKED=/tmp/webkitgtk20160213-86964-wydvdb/webkitgtk-2.10.7
+        mkdir -p $TO_BE_LINKED
+        ln -s /usr/local/Cellar/webkitgtk/2.10.7_1/lib $TO_BE_LINKED/lib
         ```
 
 Once installed, you can `./examples/browser.js google.com` or any other page, and you might try the _dark theme_ out too:
