@@ -7,8 +7,18 @@ A work in progress to bring Gtk+ usable directly from nodejs so that the environ
 Please note this project is currently in an _alpha_ state and it needs more contributors.
 
 
+### Target Platforms (so far)
+We're planning to serve pre-built binaries in order to make this project as cross platform and easy to install as possible.
+However, right now we support only **Linux** and experimentally **OSX** but in both targets _the project will falback to build_.
+
+
+#### Common dependencies
+In order to clone, install, and build this project you'll need a working copy of _git_ CLI, _nodejs 5_, _npm_, and python2.
+In the not-working-yet Windows platform, all dependencies must be available under [MSYS2 shell](https://msys2.github.io).
+
+
 ### How to build on OSX
-Assuming you have [brew]() installed, the following has been successfully tested on El Captain.
+Assuming you have [brew](http://brew.sh) installed, the following has been successfully tested on El Captain.
 
 ```sh
 # basic dependencies to clone this repo
@@ -24,9 +34,9 @@ git clone https://github.com/WebReflection/node-gtk
 cd node-gtk
 
 
-# in order to build it successfully (this is one line command)
+# in order to build it successfully
 # feel free to ignore ignore possible warnings
-PKG_CONFIG_PATH="$(brew --prefix libffi)/lib/pkgconfig" npm install
+npm install
 
 
 # in order to test it
@@ -105,10 +115,8 @@ Once VS and its C++ compiler is available and MSYS2 installed, launch the MinGW 
 # then close and open again MingW shell
 pacman -Syyu --noconfirm
 
-# install basic dependencies
-pacman -S --needed --noconfirm git python2 python2-setuptools
-# install gtk3 + extras
-pacman -S --needed --noconfirm mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config}
+# install git, gtk3 and extra dependencie
+pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config}
 
 # where to put the repository clone?
 # pick your flder or use ~/oss (Open Source Software)
@@ -126,15 +134,21 @@ The `GYP_MSVS_VERSION` could be 2010, 2012, 2013 or 2015.
 Please verify [which version you should use](https://github.com/nodejs/node-gyp#installation)
 
 
-#### Known issue in 32 bit MinGW shell
-If `python` is not available, and you can check via `which python` command,
-you need to export the binary path:
+#### Possible issue on MinGW shell
+In case you are launching the general executable without knowing the correct platform,
+the binary path might not be available.
+
+In such case `python` won't be available neither, and you can check via `which python` command.
+
+If not found, you need to export the platform related binary path:
 
 ```sh
+# example for the 32bit version
 export PATH="/mingw32/bin:$PATH"
 npm run install
 ```
-This should do the trick. You can always check if there is any python at all via `pacman -Qs python`.
+
+This should do the trick. You can also check if there is any python at all via `pacman -Qs python`.
 
 Please remember `python2` is the one needed.
 
