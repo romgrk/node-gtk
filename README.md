@@ -87,7 +87,7 @@ If you'll see a little window saying hello that's it: it works!
 Please note in OSX the window doesn't automatically open above other windows.
 Try Cmd + Tab if you don't see it.
 
-![Hello node-gtk!](./img/hello-node-gtk.png)
+![Hello node-gtk!](img/hello-node-gtk.png)
 
 
 #### browser demo
