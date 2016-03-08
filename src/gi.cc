@@ -5,11 +5,16 @@
 #include "boxed.h"
 #include "function.h"
 #include "gobject.h"
-#include "gi.h"
 #include "loop.h"
 #include "value.h"
 
 #include <string.h>
+
+#define _str(s) #s
+#define UTF8(s) String::NewFromUtf8 (isolate, s)
+#define FUNC(f) FunctionTemplate::New (isolate, f)->GetFunction ()
+#define EXPORT(name,value) exports->Set (String::NewFromUtf8 (isolate, name), value)
+#define EXPORT_FUNC(name) exports->Set (String::NewFromUtf8 (isolate, _str(name)), FUNC(name))
 
 using namespace v8;
 
