@@ -111,6 +111,7 @@ void V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Ha
     GIInfoType type = g_base_info_get_type (base_info);
 
     switch (type) {
+    case GI_INFO_TYPE_INTERFACE:
     case GI_INFO_TYPE_OBJECT:
         arg->v_pointer = GObjectFromWrapper (value);
         break;
