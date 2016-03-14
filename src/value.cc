@@ -3,7 +3,7 @@
 #include "boxed.h"
 #include "gobject.h"
 
-#include "debug.cc"
+#include "debug.h"
 
 using namespace v8;
 
@@ -56,6 +56,8 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
     case GI_TYPE_TAG_UTF8:
         if (arg->v_pointer)
             return String::NewFromUtf8 (isolate, (char *) arg->v_pointer);
+        else if (arg->v_string)
+            return String::NewFromUtf8 (isolate, (char *) arg->v_string);
         else
             return Null (isolate);
 
@@ -69,6 +71,7 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
                 return WrapperFromGObject (isolate, (GObject *) arg->v_pointer);
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
+            case GI_INFO_TYPE_UNION:
                 return WrapperFromBoxed (isolate, interface_info, arg->v_pointer);
             case GI_INFO_TYPE_FLAGS:
             case GI_INFO_TYPE_ENUM:
@@ -79,10 +82,41 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
         }
         break;
 
+    case GI_TYPE_TAG_ARRAY:
+        {
+            //WARN("Array not constructed");
+            return Null(isolate);
+        }
+
     default:
+        printf("Tag: %s\n", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
     }
 }
+
+/*
+Handle<Value> GArrayToV8 (Isolate *isolate, GITypeInfo *type_info, GIArgument *arg) {
+    GIArrayType array_type = g_type_info_get_array_type(type_info);
+    gint length = g_type_info_get_array_length(type_info);
+    Local<Array> array = Array::New(isolate, length);
+    if (array_type == GI_ARRAY_TYPE_C) {
+        gint fixed_size = g_type_info_get_array_fixed_size(type_info);
+        void *v_array = arg->v_pointer;
+        for (int i = 0; i < length; i++) {
+            Local<Value> val = Number::New(isolate, (fixed_size *)v_array[i * fixed_size]);
+            array.Set(isolate, i, val);
+        }
+    } else if (array_type == GI_ARRAY_TYPE_ARRAY) {
+        GArray *garray = arg->v_pointer;
+        for (int i = 0; i < length; i++) {
+            g_array_index(garray, )
+            Local<Value> val = Number::New(isolate, (fixed_size *)v_array[i * fixed_size]);
+            array.Set(isolate, i, val);
+        }
+    }
+    return array;
+}
+*/
 
 static GArray * V8ToGArray(Isolate *isolate, GITypeInfo *type_info, Handle<Value> value) {
     if (!value->IsArray ()) {
@@ -117,6 +151,7 @@ void V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Ha
         break;
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
+    case GI_INFO_TYPE_UNION:
         arg->v_pointer = BoxedFromWrapper (value);
         break;
     case GI_INFO_TYPE_FLAGS:
@@ -124,7 +159,7 @@ void V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Ha
         arg->v_int = value->Int32Value ();
         break;
     default:
-        print_info_type (base_info, type);
+        print_info (base_info);
         g_assert_not_reached ();
     }
 }
@@ -293,6 +328,20 @@ Handle<Value> GValueToV8(Isolate *isolate, const GValue *gvalue) {
         return Integer::New (isolate, g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return WrapperFromGObject (isolate, G_OBJECT (g_value_get_object (gvalue)));
+    } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
+        GType type = G_VALUE_TYPE (gvalue);
+        g_type_ensure(type);
+
+        GIBaseInfo *info = g_irepository_find_by_gtype(NULL, type);
+
+        //print_value (gvalue);
+        //print_info (info);
+        //print_attributes (info);
+
+        Local<Value> obj = WrapperFromBoxed (isolate, info, g_value_get_boxed (gvalue));
+
+        g_base_info_unref(info);
+        return obj;
     } else {
         g_assert_not_reached ();
     }
