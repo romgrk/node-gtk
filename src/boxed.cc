@@ -2,6 +2,7 @@
 #include "boxed.h"
 #include "debug.h"
 #include "function.h"
+#include "gobject.h"
 #include "value.h"
 
 #define UTF8(s) String::NewFromUtf8(isolate, s)
@@ -11,21 +12,67 @@ using namespace v8;
 
 namespace GNodeJS {
 
-#define TAG(t) g_type_info_get_tag(t)
-typedef GITypeTag Tag;
-
 struct Boxed {
+    gpointer    pointer;
     GIBaseInfo *info;
 };
 
 static G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
+
+static Handle<Value>
+GetFieldValue ( Isolate *isolate, gpointer pointer, GIFieldInfo *field) {
+  GITypeInfo  *fieldType = g_field_info_get_type(field);
+  GITypeTag    fieldTag  = g_type_info_get_tag(fieldType);
+  GIArgument   value;
+  gint         offset;
+  Handle<Value> ret;
+
+  if (g_field_info_get_field(field, pointer, &value)) {
+    ret = GIArgumentToV8(isolate, fieldType, &value);
+
+  } else if (fieldTag == GI_TYPE_TAG_INTERFACE) {
+    offset = g_field_info_get_offset (field); // XXX Use this
+    printf("field: %s \t offset: %i", g_base_info_get_name(field), offset);
+
+    GIBaseInfo *i_info = g_type_info_get_interface(fieldType);
+    GIInfoType  i_type = g_base_info_get_type(i_info);
+    print_info (i_info);
+
+    switch (i_type) {
+    case GI_INFO_TYPE_OBJECT:
+        ret = WrapperFromGObject (isolate, i_info, (GObject *)(pointer + offset));
+        break;
+    case GI_INFO_TYPE_BOXED:
+    case GI_INFO_TYPE_STRUCT:
+    case GI_INFO_TYPE_UNION:
+        ret = WrapperFromBoxed (isolate, i_info, (pointer + offset));
+        break;
+    case GI_INFO_TYPE_FLAGS:
+    case GI_INFO_TYPE_ENUM:
+        ret = Integer::New (isolate, value.v_int);
+        break;
+    default:
+        g_assert_not_reached ();
+    }
+    g_base_info_unref(i_info);
+
+  } else if (fieldTag == GI_TYPE_TAG_UTF8) {
+    ret = UTF8((char *)value.v_pointer);
+
+  } else {
+    ret = GIArgumentToV8(isolate, fieldType, &value);
+  }
+
+  g_base_info_unref(fieldType);
+  return ret;
+}
 
 static void InitBoxedFromInterface (Isolate *isolate, Local<Object> self, GIInterfaceInfo *info, void *boxed) {
     gint n_props = g_interface_info_get_n_properties(info);
     gint n_methods = g_interface_info_get_n_methods(info);
 
     for (int i = 0; i < n_props; i++) {
-        GIArgument value;
+        //GIArgument value;
         GIPropertyInfo *prop = g_interface_info_get_property(info, i);
         GITypeInfo *type = g_property_info_get_type(prop);
 
@@ -51,42 +98,14 @@ static void InitBoxedFromStruct (Isolate *isolate, Local<Object> self, GIStructI
     gint n_fields = g_struct_info_get_n_fields(info);
     gint n_methods = g_struct_info_get_n_methods(info);
 
-    void *boxed = self->GetAlignedPointerFromInternalField(0);
+    gpointer pointer = self->GetAlignedPointerFromInternalField(0);
 
     for (int i = 0; i < n_fields; i++) {
-        GIArgument value;
         GIFieldInfo *field    = g_struct_info_get_field(info, i);
-        GITypeInfo *type      = g_field_info_get_type(field);
         const char *fieldName = g_base_info_get_name(field);
-        Tag tag = TAG(type);
-
-        //LOG("StructField: %s", g_base_info_get_name(field));
-        if (g_field_info_get_field(field, boxed, &value)) {
-
-            if (tag == GI_TYPE_TAG_INTERFACE) {
-                //GIBaseInfo *i_type = g_type_info_get_interface(type);
-                //GIInfoType *i_info = g_base_info_get_type(i_type);
-
-                self->Set( UTF8(g_base_info_get_name(field)),
-                        GIArgumentToV8(isolate, type, &value));
-
-                //g_base_info_unref(i_type);
-                //g_base_info_unref(i_info);
-
-            } else if (tag == GI_TYPE_TAG_UTF8) {
-                self->Set( UTF8(g_base_info_get_name(field)),
-                           UTF8((char *)value.v_pointer));
-
-            } else {
-                self->Set( UTF8(g_base_info_get_name(field)),
-                        GIArgumentToV8(isolate, type, &value));
-            }
-
-        }
-
-        //FreeGIArgument(type, value);
+        self->Set( UTF8(fieldName),
+            GetFieldValue(isolate, pointer, field));
         g_base_info_unref (field);
-        g_base_info_unref (type);
     }
 
     for (int i = 0; i < n_methods; i++) {
@@ -94,7 +113,7 @@ static void InitBoxedFromStruct (Isolate *isolate, Local<Object> self, GIStructI
         GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
 
         if ((flags & GI_FUNCTION_IS_METHOD) &&
-            (flags & GI_FUNCTION_IS_CONSTRUCTOR == 0))
+           !(flags & GI_FUNCTION_IS_CONSTRUCTOR))
             self->Set( UTF8_NAME(func_info),
                        MakeFunction(isolate, func_info));
 
@@ -102,22 +121,24 @@ static void InitBoxedFromStruct (Isolate *isolate, Local<Object> self, GIStructI
     }
 }
 
-static void InitBoxedFromUnion (Isolate *isolate, Local<Object> self, GIUnionInfo *info, void *boxed) {
+static void InitBoxedFromUnion (Isolate *isolate, Local<Object> self, GIUnionInfo *info) {
     gint n_fields = g_union_info_get_n_fields(info);
-    gint n_methods = g_union_info_get_n_methods(info);
+    //gint n_methods = g_union_info_get_n_methods(info);
+
+    void *boxed = self->GetAlignedPointerFromInternalField(0);
 
     for (int i = 0; i < n_fields; i++) {
-        GIArgument value;
+        GIArgument   value;
         GIFieldInfo *field = g_union_info_get_field(info, i);
-        GITypeInfo *type   = g_field_info_get_type(field);
-        const char *fieldName    = g_base_info_get_name(field);
+        GITypeInfo  *type  = g_field_info_get_type(field);
+        const char  *fieldName = g_base_info_get_name(field);
 
         if (g_field_info_get_field(field, boxed, &value)) {
 
             self->Set( UTF8(fieldName),
                     GIArgumentToV8(isolate, type, &value));
 
-            Tag tag = TAG(type);
+            GITypeTag tag = g_type_info_get_tag(type);
             LOG("Type: %s", g_type_tag_to_string (tag) );
 
             if (g_str_equal(fieldName, "type")) {
@@ -143,16 +164,16 @@ static void InitBoxedFromUnion (Isolate *isolate, Local<Object> self, GIUnionInf
         //g_free(fieldName);
     }
 
-    for (int i = 0; i < n_methods; i++) {
-        GIFunctionInfo *func_info = g_union_info_get_method(info, i);
-        GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
-
-        if ((flags & GI_FUNCTION_IS_METHOD) &&
-            (flags & GI_FUNCTION_IS_CONSTRUCTOR == 0))
-            self->Set( UTF8_NAME(func_info), MakeFunction(isolate, func_info));
-
-        g_base_info_unref (func_info);
-    }
+/* for (int i = 0; i < n_methods; i++) {
+ *        GIFunctionInfo *func_info = g_union_info_get_method(info, i);
+ *        GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
+ *
+ *        if ((flags & GI_FUNCTION_IS_METHOD) &&
+ *            !(flags & GI_FUNCTION_IS_CONSTRUCTOR))
+ *            self->Set( UTF8_NAME(func_info), MakeFunction(isolate, func_info));
+ *
+ *        g_base_info_unref (func_info);
+ *    } */
 }
 
 static void BoxedClassDestroyed(const WeakCallbackData<FunctionTemplate, GIBaseInfo> &data) {
@@ -188,25 +209,24 @@ static void BoxedConstructor(const FunctionCallbackInfo<Value> &args) {
 
         self->SetAlignedPointerInInternalField (0, boxed);
 
+        //GIStructInfo *struct_info;
         GIBaseInfo *base_info;
-        GIStructInfo *struct_info;
-        GIInfoType info_type;
+        GIInfoType  info_type;
+        GType       gtype;
+        const char *typeName;
 
         base_info = (GIBaseInfo *) External::Cast (*args.Data ())->Value ();
         info_type = g_base_info_get_type (base_info);
+        gtype     = g_registered_type_info_get_g_type((GIRegisteredTypeInfo *) base_info);
+        typeName  = g_registered_type_info_get_type_name((GIRegisteredTypeInfo *) base_info);
         //printf(g_registered_type_info_get_type_name(base_info));
 
         if (info_type == GI_INFO_TYPE_STRUCT) {
             InitBoxedFromStruct(isolate, self, base_info);
         } else if (info_type == GI_INFO_TYPE_INTERFACE) {
-            // LOG("INTERFACE: %i", 1);
-            //struct_info = g_interface_info_get_iface_struct (base_info);
-            //print_struct_info (struct_info);
-            //g_base_info_unref (struct_info);
-            InitBoxedFromStruct(isolate, self, base_info);
+            InitBoxedFromStruct(isolate, self, base_info); // FIXME does it work?
         } else if (info_type == GI_INFO_TYPE_UNION) {
-            //print_union_info (base_info);
-            InitBoxedFromUnion(isolate, self, base_info, boxed);
+            InitBoxedFromUnion(isolate, self, base_info);
         } else {
             g_assert_not_reached();
         }
@@ -220,7 +240,7 @@ static void BoxedConstructor(const FunctionCallbackInfo<Value> &args) {
 static Local<FunctionTemplate>
 GetBoxedTemplate(Isolate *isolate, GIBaseInfo *info, GType type) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
-    void *data = g_type_get_qdata (gtype, gnode_js_template_quark ());
+    void  *data = g_type_get_qdata (gtype, gnode_js_template_quark ());
 
     if (data) {
         Persistent<FunctionTemplate> *persistent = (Persistent<FunctionTemplate> *) data;
