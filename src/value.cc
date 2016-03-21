@@ -56,8 +56,8 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
     case GI_TYPE_TAG_UTF8:
         if (arg->v_pointer)
             return String::NewFromUtf8 (isolate, (char *) arg->v_pointer);
-        else if (arg->v_string)
-            return String::NewFromUtf8 (isolate, (char *) arg->v_string);
+        else if (arg->v_string) // FIXME should be equivalent
+            return String::NewFromUtf8 (isolate, (char *) arg->v_string); 
         else
             return Null (isolate);
 
@@ -68,7 +68,8 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
 
             switch (interface_type) {
             case GI_INFO_TYPE_OBJECT:
-                return WrapperFromGObject (isolate, (GObject *) arg->v_pointer);
+                return WrapperFromGObject (isolate, interface_info, (GObject *)arg->v_pointer);
+            //case GI_INFO_TYPE_OBJECT:
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
@@ -327,7 +328,7 @@ Handle<Value> GValueToV8(Isolate *isolate, const GValue *gvalue) {
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return Integer::New (isolate, g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
-        return WrapperFromGObject (isolate, G_OBJECT (g_value_get_object (gvalue)));
+        return WrapperFromGObject (isolate, NULL, G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         GType type = G_VALUE_TYPE (gvalue);
         g_type_ensure(type);
