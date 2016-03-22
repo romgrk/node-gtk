@@ -6,3 +6,7 @@ test/*.coffee
 test/*.js
 node_modules/
 npm-debug.log
+src/debug.h
+src/debug.cc
+.ycm_extra_conf.pyc
+.buildconfig

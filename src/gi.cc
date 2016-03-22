@@ -4,15 +4,12 @@
 
 #include "boxed.h"
 #include "function.h"
+#include "gi.h"
 #include "gobject.h"
 #include "loop.h"
 #include "value.h"
 
 #include <string.h>
-
-#define UTF8(s) String::NewFromUtf8 (isolate, s)
-#define FUNC(f) FunctionTemplate::New (isolate, f)->GetFunction ()
-#define EXPORT(name,value) exports->Set (String::NewFromUtf8 (isolate, name), value)
 
 using namespace v8;
 

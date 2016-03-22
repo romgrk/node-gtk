@@ -67,9 +67,13 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
             GIInfoType interface_type = g_base_info_get_type (interface_info);
 
             switch (interface_type) {
+            /** from documentation:
+             * GIObjectInfo represents a GObject. This doesn't represent a specific instance
+             * of a GObject, instead this represent the object type (eg class).  A GObject
+             * has methods, fields, properties, signals, interfaces, constants and virtual functions.
+             */
             case GI_INFO_TYPE_OBJECT:
                 return WrapperFromGObject (isolate, interface_info, (GObject *)arg->v_pointer);
-            //case GI_INFO_TYPE_OBJECT:
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
@@ -85,12 +89,12 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
 
     case GI_TYPE_TAG_ARRAY:
         {
-            //WARN("Array not constructed");
+            // WARN("Array not constructed"); FIXME
             return Null(isolate);
         }
 
     default:
-        printf("Tag: %s\n", g_type_tag_to_string(type_tag));
+        DEBUG("Tag: %s", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
     }
 }
@@ -120,26 +124,39 @@ Handle<Value> GArrayToV8 (Isolate *isolate, GITypeInfo *type_info, GIArgument *a
 */
 
 static GArray * V8ToGArray(Isolate *isolate, GITypeInfo *type_info, Handle<Value> value) {
-    if (!value->IsArray ()) {
-        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Not an array.")));
-        return NULL;
+    if (value->IsString()) {
+        Local<String> string = value->ToString();
+
+        const char *utf8_data = *v8::String::Utf8Value(string);
+
+        int length = string->Length ();
+        GArray *garray = g_array_sized_new (TRUE, FALSE, sizeof (char), length);
+        for (int i = 0; i < length; i++) {
+            g_array_append_val (garray, utf8_data[i]);
+        }
+
+        return garray;
+
+    } else if (value->IsArray ()) {
+        Local<Array> array = Local<Array>::Cast (value->ToObject ());
+        GITypeInfo *elem_info = g_type_info_get_param_type (type_info, 0);
+
+        int length = array->Length ();
+        GArray *garray = g_array_sized_new (TRUE, FALSE, sizeof (GIArgument), length);
+        for (int i = 0; i < length; i++) {
+            Local<Value> value = array->Get (i);
+            GIArgument arg;
+
+            V8ToGIArgument (isolate, elem_info, &arg, value, false);
+            g_array_append_val (garray, arg);
+        }
+
+        g_base_info_unref ((GIBaseInfo *) elem_info);
+        return garray;
     }
 
-    Local<Array> array = Local<Array>::Cast (value->ToObject ());
-    GITypeInfo *elem_info = g_type_info_get_param_type (type_info, 0);
-
-    int length = array->Length ();
-    GArray *garray = g_array_sized_new (TRUE, FALSE, sizeof (GIArgument), length);
-    for (int i = 0; i < length; i++) {
-        Local<Value> value = array->Get (i);
-        GIArgument arg;
-
-        V8ToGIArgument (isolate, elem_info, &arg, value, false);
-        g_array_append_val (garray, arg);
-    }
-
-    g_base_info_unref ((GIBaseInfo *) elem_info);
-    return garray;
+    isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Not an array.")));
+    return NULL;
 }
 
 void V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Handle<Value> value) {

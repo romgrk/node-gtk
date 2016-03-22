@@ -4,6 +4,8 @@
 #include "function.h"
 #include "value.h"
 #include "closure.h"
+#include "gi.h"
+#include "debug.h"
 
 using namespace v8;
 
@@ -70,7 +72,7 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
      * the constructor is called with one external. */
 
     if (!args.IsConstructCall ()) {
-        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Not a construct call.")));
+        THROW(Exception::TypeError, "Not a construct call.");
         return;
     }
 
@@ -98,7 +100,7 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
             Local<Object> property_hash = args[0]->ToObject ();
 
             if (!InitGParametersFromProperty (&parameters, &n_parameters, klass, property_hash)) {
-                isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Unable to make GParameters.")));
+                THROW(Exception::TypeError, "Unable to make GParameters.");
                 goto out;
             }
         }
@@ -160,15 +162,16 @@ static Handle<FunctionTemplate> GetClassTemplate(Isolate *isolate, GIBaseInfo *i
         Handle<FunctionTemplate> tpl = Handle<FunctionTemplate>::New (isolate, *persistent);
         return tpl;
     } else {
+        //printf("\x1b[38;5;201mGetClassTemplate \x1b[93m%lu\x1b[0m %s \n", gtype, g_type_name(gtype));
         Handle<FunctionTemplate> tpl = FunctionTemplate::New (isolate, GObjectConstructor, External::New (isolate, info));
 
         Persistent<FunctionTemplate> *persistent = new Persistent<FunctionTemplate>(isolate, tpl);
         persistent->SetWeak (g_base_info_ref (info), ClassDestroyed);
         g_type_set_qdata (gtype, gnode_js_template_quark (), persistent);
 
-        const char *class_name = g_base_info_get_name (info);
+        //const char *class_name = g_base_info_get_name (info);
+        const char *class_name = g_type_name (gtype);
         tpl->SetClassName (String::NewFromUtf8 (isolate, class_name));
-
         tpl->InstanceTemplate ()->SetInternalFieldCount (1);
 
         GIObjectInfo *parent_info = g_object_info_get_parent (info);
@@ -191,6 +194,10 @@ static Handle<FunctionTemplate> GetClassTemplateFromGI(Isolate *isolate, GIBaseI
 static Handle<FunctionTemplate> GetClassTemplateFromGType(Isolate *isolate, GType gtype) {
     GIRepository *repo = g_irepository_get_default ();
     GIBaseInfo *info = g_irepository_find_by_gtype (repo, gtype);
+    while (info == NULL) {
+        gtype = g_type_parent(gtype);
+        info = g_irepository_find_by_gtype (repo, gtype);
+    }
     return GetClassTemplate (isolate, info, gtype);
 }
 
@@ -231,8 +238,8 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
     }
 }
 
-Handle<Value> WrapperFromGObject(Isolate *isolate, GObject *gobject) {
-    void *data = g_object_get_qdata (gobject, gnode_js_object_quark ());
+Handle<Value> WrapperFromGObject(Isolate *isolate, GIBaseInfo *info, GObject *gobject) {
+    void        *data = g_object_get_qdata (gobject, gnode_js_object_quark ());
 
     if (data) {
         /* Easy case: we already have an object. */
@@ -240,14 +247,38 @@ Handle<Value> WrapperFromGObject(Isolate *isolate, GObject *gobject) {
         Handle<Object> obj = Handle<Object>::New (isolate, *persistent);
         return obj;
     } else {
-        GType gtype = G_OBJECT_TYPE (gobject);
+        GType        type = G_OBJECT_TYPE(gobject);
+        const char *name  = G_OBJECT_TYPE_NAME(gobject);
+        //GTypePlugin *plugin = g_type_get_plugin(type);
+        void *klass = g_type_class_ref (type);
 
-        Handle<FunctionTemplate> tpl = GetClassTemplateFromGType (isolate, gtype);
+        DEBUG("GObject: %s \n", name);
+        printf("\x1b[38;5;202mclass: %s \x1b[0;93m %lu \x1b[0m\n",
+                G_OBJECT_CLASS_NAME (klass),
+                G_OBJECT_CLASS_TYPE (klass) );
+        print_type(type);
+
+        if (info != NULL) {
+            print_info(info);
+            //if (GI_IS_OBJECT_INFO(info)) {
+                //GIBaseInfo *class_info = g_object_info_get_class_struct(info);
+                //print_info(class_info);
+                //g_base_info_unref(class_info);
+            //}
+        }
+
+        Handle<FunctionTemplate> tpl;
+
+        tpl = GetClassTemplateFromGType (isolate, type);
+
         Handle<Function> constructor = tpl->GetFunction ();
-
         Handle<Value> gobject_external = External::New (isolate, gobject);
         Handle<Value> args[] = { gobject_external };
         Handle<Object> obj = constructor->NewInstance (1, args);
+
+        //g_base_info_unref(info);
+        g_type_class_unref (klass);
+
         return obj;
     }
 }

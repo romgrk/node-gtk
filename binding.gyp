@@ -13,7 +13,7 @@
                 "src/debug.cc",
             ],
             "cflags": [
-                "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall ",
+                "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -g",
             ],
             "ldflags": [
                 "<!@(pkg-config --libs gobject-introspection-1.0)",
