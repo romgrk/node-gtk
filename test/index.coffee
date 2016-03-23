@@ -1,5 +1,7 @@
 # !::coffee [.]
-Fs   = require('fs-plus')
+
+Util = require 'util'
+Fs   = require 'fs-plus'
 Path = require 'path'
 
 GI = require '../lib/index'
@@ -18,8 +20,8 @@ StyleContext = Gtk.StyleContext
 CssProvider  = Gtk.CssProvider
 
 schemeManager = GtkSource.StyleSchemeManager.get_default()
-langManager = GtkSource.LanguageManager.get_default()
-scheme = schemeManager.get_scheme("builder-dark")
+langManager   = GtkSource.LanguageManager.get_default()
+scheme        = schemeManager.get_scheme("builder-dark")
 
 css = new CssProvider
 css.load_from_path Path.join __dirname, 'style.css'
@@ -38,7 +40,7 @@ win.connect 'destroy', Gtk.main_quit
 grid     = new Gtk.Grid
 
 header = new Gtk.HeaderBar
-label = new Gtk.Label 'label'
+label  = new Gtk.Label 'label'
 header.add label
 
 entryView   = new Gtk.Entry
@@ -49,6 +51,17 @@ entryView.name = 'entry'
 scrollView = new Gtk.ScrolledWindow
 textView   = new GtkSource.View
 scrollView.add textView
+
+btn = new Gtk.Button("yo")
+pop = new Gtk.Popover(btn)
+pop.set_size_request(50, 100)
+popLabel = new Gtk.Label("yo")
+header.add btn
+btn.connect 'clicked', () ->
+    if pop.get_visible()
+        pop.hide()
+    else
+        pop.show_all()
 
 scrollView.margin  = 10
 
@@ -89,9 +102,14 @@ loadFile = (filename) ->
 saveFile = (filename) ->
     try
         filename = buffer.filename unless filename?
-        content = buffer.get_text()
+
+        start = buffer.get_start_iter()
+        end   = buffer.get_end_iter()
+        content = buffer.get_text(start, end, false)
+
+        #console.log content
         Fs.writeFileSync(filename, content)
-        console.log "#{filename} written"
+        console.log "#{filename} written #{content.length}"
     catch err
         console.error err
 
@@ -107,31 +125,55 @@ safeEval = (code) ->
         console.error err
     return null
 
+# Command execution
 execute = (command) ->
     tokens = command.split(' ')
     if tokens[0] == 'e'
-        loadFile resolvePath(tokens[1])
+        if tokens.length > 1
+            loadFile(resolvePath(tokens[1]))
+        else if buf.filename?
+            loadFile(buf.filename)
+        else
+         console.log('No filename')
     else if tokens[0] == 'w'
         if tokens.length > 1
             saveFile(resolvePath(tokens[1]))
         else
             saveFile()
+    else if tokens[0] == 'q'
+        win.close()
+        process.exit()
+    else if tokens[0] == 'pop'
+        pop.show_all()
     else
         console.log command, ' => ', safeEval(command)
 
-
 # Event handling
 textView.connect 'key-press-event', (widget, event) ->
-    keyname = Gdk.keyval_name(event.keyval)
+    key = event.keyval
+    keyname = Gdk.keyval_name(key)
     console.log 'KeyPress: ', Gtk.accelerator_get_label(event.keyval, event.state)
+
     if keyname.match /(semi)?colon/
         entryView.grab_focus()
         return true
+
+    if key == Gdk.KEY_G
+        buffer.place_cursor buffer.get_end_iter()
+        return true
+
+    if key == Gdk.KEY_g
+        start = buffer.get_start_iter()
+        buffer.place_cursor start
+        return true
+
     return false
 
-entryView.history = ['']
+entryView.history = ['buf.get_start_iter()']
+
 entryView.connect 'key-press-event', (widget, event) ->
     keyname = Gdk.keyval_name(event.keyval)
+    console.log 'CmdPress: ', Gtk.accelerator_get_label(event.keyval, event.state)
     if event.keyval == Gdk.KEY_Tab
         entryView.set_text(entryView.history[0])
         return true
@@ -145,9 +187,8 @@ entryView.connect 'key-press-event', (widget, event) ->
 
 # UI loop start
 
-term = termView
 buf = buffer
 
 loadFile Path.join(__dirname, 'index.coffee')
-win.show_all()
 
+win.show_all()
