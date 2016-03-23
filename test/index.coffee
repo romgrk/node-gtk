@@ -53,15 +53,11 @@ textView   = new GtkSource.View
 scrollView.add textView
 
 btn = new Gtk.Button("yo")
-pop = new Gtk.Popover(btn)
-pop.set_size_request(50, 100)
-popLabel = new Gtk.Label("yo")
 header.add btn
-btn.connect 'clicked', () ->
-    if pop.get_visible()
-        pop.hide()
-    else
-        pop.show_all()
+
+pop = new Gtk.Popover(btn)
+pop.add new Gtk.Label("yo")
+pop.set_size_request(50, 100)
 
 scrollView.margin  = 10
 
@@ -170,7 +166,6 @@ textView.connect 'key-press-event', (widget, event) ->
     return false
 
 entryView.history = ['buf.get_start_iter()']
-
 entryView.connect 'key-press-event', (widget, event) ->
     keyname = Gdk.keyval_name(event.keyval)
     console.log 'CmdPress: ', Gtk.accelerator_get_label(event.keyval, event.state)
@@ -184,6 +179,13 @@ entryView.connect 'key-press-event', (widget, event) ->
         entryView.set_text('')
         entryView.history.unshift text
         execute text
+
+btn.connect 'clicked', () ->
+    if pop.get_visible()
+        pop.hide()
+    else
+        pop.show_all()
+
 
 # UI loop start
 
