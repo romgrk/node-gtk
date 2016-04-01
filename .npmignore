@@ -1,12 +1,8 @@
-build/Debug
-build/*.Makefile
-build/*.gypi
-build/Makefile
-build/*.mk
+build
 examples
-lib
 node_modules
 .DS_Store
 .gitignore
 Makefile
 node-gtk.doap
+npm-debug.log
