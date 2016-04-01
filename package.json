@@ -5,8 +5,11 @@
   "main": "lib/index.js",
   "scripts": {
     "install": "node-pre-gyp install --fallback-to-build",
-    "test": "node test/index.js"
+    "test": "npm run build-js && npm run test-js",
+    "test-js": "node test/index.js",
+    "build-js": "traceur --modules commonjs --source-maps inline --out test/index.js test/index.es"
   },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/WebReflection/node-gtk.git"
