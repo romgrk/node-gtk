@@ -65,6 +65,8 @@ static void DefineBootstrapInfo(Isolate *isolate, Handle<Object> module_obj, GIB
     }
 }
 
+
+
 static void Bootstrap(const FunctionCallbackInfo<Value> &args) {
     Isolate *isolate = args.GetIsolate ();
 
@@ -73,8 +75,9 @@ static void Bootstrap(const FunctionCallbackInfo<Value> &args) {
 
     const char *ns = "GIRepository";
     g_irepository_require (repo, ns, NULL, (GIRepositoryLoadFlags) 0, &error);
+
     if (error) {
-        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, error->message)));
+        THROW_E(Exception::TypeError, error);
         return;
     }
 
@@ -108,7 +111,7 @@ static void MakeFunction(const FunctionCallbackInfo<Value> &args) {
 static void MakeClass(const FunctionCallbackInfo<Value> &args) {
     Isolate *isolate = args.GetIsolate ();
     GIBaseInfo *info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (args[0]);
-    args.GetReturnValue ().Set (GNodeJS::MakeClass (isolate, info));
+    args.GetReturnValue().Set(GNodeJS::MakeClass (isolate, info));
 }
 
 static void ObjectPropertyGetter(const FunctionCallbackInfo<Value> &args) {
@@ -144,17 +147,16 @@ static void StartLoop(const FunctionCallbackInfo<Value> &args) {
     GNodeJS::StartLoop ();
 }
 
-void InitModule(Handle<Object> exports, Handle<Value> module, void *priv) {
-    Isolate *isolate = Isolate::GetCurrent ();
 
-    //exports->Set (String::NewFromUtf8 (isolate, "Bootstrap"), FunctionTemplate::New (isolate, Bootstrap)->GetFunction ());
-    EXPORT("Bootstrap",            FUNC(Bootstrap));
-    EXPORT("GetConstantValue",     FUNC(GetConstantValue));
-    EXPORT("MakeFunction",         FUNC(MakeFunction));
-    EXPORT("MakeClass",            FUNC(MakeClass));
-    EXPORT("ObjectPropertyGetter", FUNC(ObjectPropertyGetter));
-    EXPORT("ObjectPropertySetter", FUNC(ObjectPropertySetter));
-    EXPORT("StartLoop",            FUNC(StartLoop));
+void InitModule(Handle<Object> exports, Handle<Value> module, void *priv) {
+    NODE_SET_METHOD(exports, "Bootstrap",            Bootstrap);
+    NODE_SET_METHOD(exports, "GetConstantValue",     GetConstantValue);
+    NODE_SET_METHOD(exports, "MakeFunction",         MakeFunction);
+    NODE_SET_METHOD(exports, "MakeClass",            MakeClass);
+    NODE_SET_METHOD(exports, "ObjectPropertyGetter", ObjectPropertyGetter);
+    NODE_SET_METHOD(exports, "ObjectPropertySetter", ObjectPropertySetter);
+    NODE_SET_METHOD(exports, "StartLoop",            StartLoop);
 }
 
 NODE_MODULE(gi, InitModule)
+
