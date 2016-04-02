@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/WebReflection/node-gtk#readme",
   "dependencies": {
+    "nan": "2.2.1",
     "node-gyp": "^3.2.1",
     "node-pre-gyp": "^0.6.x",
     "node-pre-gyp-github": "^1.x"

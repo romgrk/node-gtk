@@ -12,6 +12,9 @@
                 "src/boxed.cc",
                 "src/debug.cc",
             ],
+            "include_dirs" : [
+                "<!(node -e \"require('nan')\")"
+            ],
             "cflags": [
                 "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -g",
             ],
