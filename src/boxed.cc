@@ -5,9 +5,6 @@
 #include "gobject.h"
 #include "value.h"
 
-#define UTF8(s) String::NewFromUtf8(isolate, s)
-#define UTF8_NAME(s) String::NewFromUtf8(isolate, g_base_info_get_name(s))
-
 using namespace v8;
 
 namespace GNodeJS {
@@ -32,7 +29,7 @@ static void InitBoxedFromStruct (Isolate *isolate, Local<Object> self, GIStructI
             GITypeInfo  *fieldType = g_field_info_get_type(field);
 
             self->Set( UTF8(fieldName),
-                GIArgumentToV8(isolate, fieldType, &value));
+                    GIArgumentToV8(isolate, fieldType, &value));
 
             g_base_info_unref (fieldType);
         }
@@ -46,9 +43,9 @@ static void InitBoxedFromStruct (Isolate *isolate, Local<Object> self, GIStructI
         GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
 
         if ((flags & GI_FUNCTION_IS_METHOD) &&
-           !(flags & GI_FUNCTION_IS_CONSTRUCTOR))
+                !(flags & GI_FUNCTION_IS_CONSTRUCTOR))
             self->Set( UTF8_NAME(func_info),
-                       MakeFunction(isolate, func_info));
+                    MakeFunction(isolate, func_info));
 
         g_base_info_unref(func_info);
     }
@@ -123,7 +120,7 @@ static void BoxedConstructor(const FunctionCallbackInfo<Value> &args) {
     /* See gobject.cc for how this works */
 
     if (!args.IsConstructCall ()) {
-        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Not a construct call.")));
+        ThrowTypeError("Not a construct call");
         return;
     }
 
@@ -157,8 +154,7 @@ static void BoxedConstructor(const FunctionCallbackInfo<Value> &args) {
     }
 }
 
-static Local<FunctionTemplate> GetBoxedTemplate(Isolate *isolate, GIBaseInfo *info, GType type) {
-    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
+static Local<FunctionTemplate> GetBoxedTemplate(Isolate *isolate, GIBaseInfo *info, GType gtype) {
     void  *data = g_type_get_qdata (gtype, gnode_js_template_quark ());
 
     if (data) {
@@ -166,12 +162,15 @@ static Local<FunctionTemplate> GetBoxedTemplate(Isolate *isolate, GIBaseInfo *in
         Local<FunctionTemplate> tpl = Local<FunctionTemplate>::New (isolate, *persistent);
         return tpl;
     } else {
-        Local<FunctionTemplate> tpl = FunctionTemplate::New (isolate, BoxedConstructor, External::New (isolate, info));
+        Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate,
+                BoxedConstructor,
+                External::New (isolate, info));
 
         Persistent<FunctionTemplate> *persistent = new Persistent<FunctionTemplate>(isolate, tpl);
-        persistent->SetWeak (g_base_info_ref (info), BoxedClassDestroyed);
+        persistent->SetWeak( g_base_info_ref(info), BoxedClassDestroyed);
         g_type_set_qdata (gtype, gnode_js_template_quark (), persistent);
 
+        // g_type_name(gtype) ? FIXME
         const char *class_name = g_base_info_get_name (info);
         tpl->SetClassName (String::NewFromUtf8 (isolate, class_name));
 
@@ -186,7 +185,7 @@ static Local<FunctionTemplate> GetBoxedTemplateFromGI(Isolate *isolate, GIBaseIn
     return GetBoxedTemplate (isolate, info, gtype);
 }
 
-static Local<Function> MakeBoxed(Isolate *isolate, GIBaseInfo *info) {
+Handle<Function> MakeBoxed(Isolate *isolate, GIBaseInfo *info) {
     Local<FunctionTemplate> tpl = GetBoxedTemplateFromGI (isolate, info);
     return tpl->GetFunction ();
 }
