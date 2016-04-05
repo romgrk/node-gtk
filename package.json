@@ -5,9 +5,11 @@
   "main": "lib/index.js",
   "scripts": {
     "install": "if [ \"$(uname)\" = \"Darwin\" ] && [ \"$(which brew)\" != \"\" ]; then export PKG_CONFIG_PATH=$(brew --prefix libffi)/lib/pkgconfig; fi; node-pre-gyp install --fallback-to-build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build-js && npm run test-js",
+    "test-js": "node test/index.js",
+    "inspect": "traceur --modules commonjs --source-maps inline --out test/inspect.js test/inspect.es && node -r ./test/inspect.js",
+    "build-js": "traceur --modules commonjs --source-maps inline --out test/index.js test/index.es"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/WebReflection/node-gtk.git"
