@@ -56,6 +56,9 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
     case GI_TYPE_TAG_UINT64:
         return Number::New (isolate, arg->v_uint64);
 
+    case GI_TYPE_TAG_GTYPE: /* c++: gulong */
+        return Number::New(isolate, arg->v_ulong);
+
     case GI_TYPE_TAG_UNICHAR:
         {
             char data[7] = { 0 };
