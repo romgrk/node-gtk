@@ -7,7 +7,6 @@
 
 #include "debug.h"
 
-using namespace v8;
 using namespace Nan;
 using v8::Isolate;
 using v8::Value;
