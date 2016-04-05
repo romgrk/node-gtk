@@ -2,8 +2,10 @@
 *~
 \#*\#
 build/
-test/*.coffee
 test/*.js
+test/*.es
+test/*.txt
+test/*
 node_modules/
 npm-debug.log
 src/debug.h
