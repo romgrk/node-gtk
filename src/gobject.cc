@@ -1,15 +1,17 @@
 
-#include "gobject.h"
-
 #include "function.h"
 #include "value.h"
 #include "closure.h"
 #include "gi.h"
+#include "gobject.h"
 #include "debug.h"
 
 using namespace v8;
 
 namespace GNodeJS {
+
+static G_DEFINE_QUARK(gnode_js_object, gnode_js_object);
+static G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
 
 static bool InitGParameterFromProperty(GParameter    *parameter,
                                        void          *klass,
@@ -48,8 +50,6 @@ static bool InitGParametersFromProperty(GParameter    **parameters_p,
 }
 
 static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down);
-
-static G_DEFINE_QUARK(gnode_js_object, gnode_js_object);
 
 static void AssociateGObject(Isolate *isolate, Handle<Object> object, GObject *gobject) {
     object->SetAlignedPointerInInternalField (0, gobject);
@@ -114,8 +114,6 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
     }
 }
 
-static G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
-
 static void SignalConnectInternal(const FunctionCallbackInfo<Value> &args, bool after) {
     Isolate *isolate = args.GetIsolate ();
     GObject *gobject = GObjectFromWrapper (args.This ());
@@ -163,16 +161,16 @@ static Handle<FunctionTemplate> GetClassTemplate(Isolate *isolate, GIBaseInfo *i
         return tpl;
     } else {
         //printf("\x1b[38;5;201mGetClassTemplate \x1b[93m%lu\x1b[0m %s \n", gtype, g_type_name(gtype));
+        //const char *class_name = g_base_info_get_name (info);
+        const char *class_name = g_type_name (gtype);
+
         Handle<FunctionTemplate> tpl = FunctionTemplate::New (isolate, GObjectConstructor, External::New (isolate, info));
+        tpl->SetClassName (String::NewFromUtf8 (isolate, class_name));
+        tpl->InstanceTemplate ()->SetInternalFieldCount (1);
 
         Persistent<FunctionTemplate> *persistent = new Persistent<FunctionTemplate>(isolate, tpl);
         persistent->SetWeak (g_base_info_ref (info), ClassDestroyed);
         g_type_set_qdata (gtype, gnode_js_template_quark (), persistent);
-
-        //const char *class_name = g_base_info_get_name (info);
-        const char *class_name = g_type_name (gtype);
-        tpl->SetClassName (String::NewFromUtf8 (isolate, class_name));
-        tpl->InstanceTemplate ()->SetInternalFieldCount (1);
 
         GIObjectInfo *parent_info = g_object_info_get_parent (info);
         if (parent_info) {
@@ -239,7 +237,7 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
 }
 
 Handle<Value> WrapperFromGObject(Isolate *isolate, GIBaseInfo *info, GObject *gobject) {
-    void        *data = g_object_get_qdata (gobject, gnode_js_object_quark ());
+    void *data = g_object_get_qdata (gobject, gnode_js_object_quark ());
 
     if (data) {
         /* Easy case: we already have an object. */
