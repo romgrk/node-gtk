@@ -114,7 +114,7 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
     }
 }
 
-static void SignalConnectInternal(const FunctionCallbackInfo<Value> &args, bool after) {
+static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &args, bool after) {
     Isolate *isolate = args.GetIsolate ();
     GObject *gobject = GObjectFromWrapper (args.This ());
 
@@ -126,14 +126,15 @@ static void SignalConnectInternal(const FunctionCallbackInfo<Value> &args, bool 
     args.GetReturnValue ().Set(Integer::NewFromUnsigned (isolate, handler_id));
 }
 
-static void SignalConnect(const FunctionCallbackInfo<Value> &args) {
-    SignalConnectInternal (args, false);
+NAN_METHOD(SignalConnect) {
+    SignalConnectInternal(info, false);
 }
 
 static Handle<FunctionTemplate> GetBaseClassTemplate(Isolate *isolate) {
     Local<FunctionTemplate> tpl = FunctionTemplate::New (isolate);
-    Handle<ObjectTemplate> proto = tpl->PrototypeTemplate ();
-    proto->Set (String::NewFromUtf8 (isolate, "connect"), FunctionTemplate::New (isolate, SignalConnect)->GetFunction ());
+    Nan::SetPrototypeMethod(tpl, "on", SignalConnect);
+    Nan::SetPrototypeMethod(tpl, "connect", SignalConnect);
+    Nan::SetPrototypeMethod(tpl, "addEventListener", SignalConnect);
     return tpl;
 }
 
