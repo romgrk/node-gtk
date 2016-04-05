@@ -11,6 +11,7 @@
                 "src/closure.cc",
                 "src/boxed.cc",
                 "src/debug.cc",
+                "src/string.cc",
             ],
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"
