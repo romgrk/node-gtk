@@ -2,6 +2,7 @@
 #pragma once
 
 #include <node.h>
+#include <nan.h>
 #include <girepository.h>
 
 #define UTF8(s) String::NewFromUtf8 (isolate, s)

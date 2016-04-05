@@ -2,14 +2,19 @@
 #pragma once
 
 #include <node.h>
+#include <nan.h>
 #include <girepository.h>
 #include <glib-object.h>
 
 namespace GNodeJS {
 
-v8::Handle<v8::Function> MakeClass(v8::Isolate *isolate, GIBaseInfo *info);
+using v8::Function;
+using v8::Handle;
+using v8::Isolate;
+using v8::Value;
 
-v8::Handle<v8::Value> WrapperFromGObject(v8::Isolate *isolate, GIBaseInfo *info, GObject *object);
-GObject * GObjectFromWrapper(v8::Handle<v8::Value> value);
+Handle<Function> MakeClass          (Isolate *isolate, GIBaseInfo *info);
+Handle<Value>    WrapperFromGObject (Isolate *isolate, GIBaseInfo *info, GObject *object);
+GObject *        GObjectFromWrapper (Handle<Value> value);
 
 };

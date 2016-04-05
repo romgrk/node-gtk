@@ -1,4 +1,6 @@
 
+#include <node.h>
+#include <nan.h>
 #include "value.h"
 #include "boxed.h"
 #include "gobject.h"
@@ -6,6 +8,15 @@
 #include "debug.h"
 
 using namespace v8;
+using namespace Nan;
+using v8::Isolate;
+using v8::Value;
+using v8::Local;
+using v8::Integer;
+using v8::Number;
+using v8::String;
+using v8::Array;
+using v8::Exception;
 
 namespace GNodeJS {
 
