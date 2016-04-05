@@ -28,9 +28,9 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
 
     case GI_TYPE_TAG_BOOLEAN:
         if (arg->v_boolean)
-            return True (isolate);
+            return True(isolate);
         else
-            return False (isolate);
+            return False(isolate);
 
     case GI_TYPE_TAG_INT32:
         return Integer::New (isolate, arg->v_int);
@@ -64,12 +64,10 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
         }
 
     case GI_TYPE_TAG_UTF8:
-        if (arg->v_pointer)
-            return String::NewFromUtf8 (isolate, (char *) arg->v_pointer);
-        else if (arg->v_string) // FIXME should be equivalent
-            return String::NewFromUtf8 (isolate, (char *) arg->v_string); 
+        if (arg->v_string)
+            return String::NewFromUtf8 (isolate, (char *) arg->v_string);
         else
-            return Null (isolate);
+            return Nan::EmptyString();
 
     case GI_TYPE_TAG_INTERFACE:
         {
@@ -83,7 +81,8 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
              * has methods, fields, properties, signals, interfaces, constants and virtual functions.
              */
             case GI_INFO_TYPE_OBJECT:
-                return WrapperFromGObject (isolate, interface_info, (GObject *)arg->v_pointer);
+                return WrapperFromGObject(isolate, interface_info, (GObject *)arg->v_pointer);
+
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
@@ -106,6 +105,7 @@ Handle<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument
     default:
         DEBUG("Tag: %s", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
+
     }
 }
 
@@ -137,7 +137,7 @@ static GArray * V8ToGArray(Isolate *isolate, GITypeInfo *type_info, Handle<Value
     if (value->IsString()) {
         Local<String> string = value->ToString();
 
-        const char *utf8_data = *v8::String::Utf8Value(string);
+        const char *utf8_data = *String::Utf8Value(string);
 
         int length = string->Length ();
         GArray *garray = g_array_sized_new (TRUE, FALSE, sizeof (char), length);
@@ -165,7 +165,8 @@ static GArray * V8ToGArray(Isolate *isolate, GITypeInfo *type_info, Handle<Value
         return garray;
     }
 
-    isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Not an array.")));
+    ThrowTypeError("Not an array.");
+
     return NULL;
 }
 
@@ -175,7 +176,7 @@ void V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Ha
     switch (type) {
     case GI_INFO_TYPE_INTERFACE:
     case GI_INFO_TYPE_OBJECT:
-        arg->v_pointer = GObjectFromWrapper (value);
+        arg->v_pointer = GObjectFromWrapper(value); // XXX Wrong?
         break;
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
@@ -199,13 +200,13 @@ void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Ha
         arg->v_pointer = NULL;
 
         if (!may_be_null)
-            isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Argument may not be null.")));
+            ThrowTypeError("Argument may not be null.");
 
         return;
     }
 
     if (value->IsUndefined ()) {
-        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, "Argument may not be undefined.")));
+        ThrowTypeError("Argument may not be undefined.");
         return;
     }
 
@@ -276,6 +277,9 @@ void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Ha
             }
         }
         break;
+
+    //case GI_TYPE_TAG_GLIST:  FIXME
+    //case GI_TYPE_TAG_GSLIST: FIXME
 
     default:
         g_assert_not_reached ();
@@ -352,6 +356,8 @@ Handle<Value> GValueToV8(Isolate *isolate, const GValue *gvalue) {
         return Number::New (isolate, g_value_get_double (gvalue));
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
         return String::NewFromUtf8 (isolate, g_value_get_string (gvalue));
+    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
+        return Integer::New (isolate, g_value_get_flags(gvalue));
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return Integer::New (isolate, g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
@@ -361,15 +367,11 @@ Handle<Value> GValueToV8(Isolate *isolate, const GValue *gvalue) {
         g_type_ensure(type);
 
         GIBaseInfo *info = g_irepository_find_by_gtype(NULL, type);
-
-        //print_value (gvalue);
-        //print_info (info);
-        //print_attributes (info);
-
-        Local<Value> obj = WrapperFromBoxed (isolate, info, g_value_get_boxed (gvalue));
-
+        Local<Value> obj = WrapperFromBoxed(isolate, info, g_value_get_boxed(gvalue));
         g_base_info_unref(info);
+
         return obj;
+
     } else {
         g_assert_not_reached ();
     }
