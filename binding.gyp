@@ -3,15 +3,15 @@
         {
             "target_name": "node-gtk",
             "sources": [
-                "src/loop.cc",
-                "src/gi.cc",
-                "src/value.cc",
-                "src/function.cc",
-                "src/gobject.cc",
-                "src/closure.cc",
                 "src/boxed.cc",
+                "src/closure.cc",
                 "src/debug.cc",
-                "src/string.cc",
+                "src/function.cc",
+                "src/gi.cc",
+                "src/gobject.cc",
+                "src/loop.cc",
+                "src/util.cc",
+                "src/value.cc",
             ],
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"

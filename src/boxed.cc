@@ -2,7 +2,9 @@
 #include "boxed.h"
 #include "debug.h"
 #include "function.h"
+#include "gi.h"
 #include "gobject.h"
+#include "util.h"
 #include "value.h"
 
 using namespace v8;
@@ -36,23 +38,9 @@ static void InitBoxedFromStruct (Isolate *isolate, Local<Object> self, GIStructI
 
         g_base_info_unref (field);
     }
-
-    int n_methods = g_struct_info_get_n_methods(info);
-    for (int i = 0; i < n_methods; i++) {
-        GIFunctionInfo *func_info = g_struct_info_get_method(info, i);
-        GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
-
-        if ((flags & GI_FUNCTION_IS_METHOD) &&
-                !(flags & GI_FUNCTION_IS_CONSTRUCTOR))
-            self->Set( UTF8_NAME(func_info),
-                    MakeFunction(isolate, func_info));
-
-        g_base_info_unref(func_info);
-    }
 }
 
 static void InitBoxedFromUnion (Isolate *isolate, Local<Object> self, GIUnionInfo *info) {
-
     void *boxed = self->GetAlignedPointerFromInternalField(0);
 
     // XXX is there a standard way to get the type?
@@ -60,6 +48,7 @@ static void InitBoxedFromUnion (Isolate *isolate, Local<Object> self, GIUnionInf
     for (int i = 0; i < n_fields; i++) {
         GIArgument   value;
         GIFieldInfo *field = g_union_info_get_field(info, i);
+        //print_info(field);
 
         if (g_field_info_get_field(field, boxed, &value)) {
             GITypeInfo  *type  = g_field_info_get_type(field);
@@ -87,18 +76,6 @@ static void InitBoxedFromUnion (Isolate *isolate, Local<Object> self, GIUnionInf
         }
     }
 
-    // XXX is this correct?
-    gint n_methods = g_union_info_get_n_methods(info);
-    for (int i = 0; i < n_methods; i++) {
-        GIFunctionInfo *func_info = g_union_info_get_method(info, i);
-        GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
-
-        if ((flags & GI_FUNCTION_IS_METHOD)
-            && !(flags & GI_FUNCTION_IS_CONSTRUCTOR))
-            self->Set( UTF8_NAME(func_info), MakeFunction(isolate, func_info));
-
-        g_base_info_unref (func_info);
-    }
 }
 
 static void BoxedClassDestroyed(const WeakCallbackData<FunctionTemplate, GIBaseInfo> &data) {
@@ -120,7 +97,7 @@ static void BoxedConstructor(const FunctionCallbackInfo<Value> &args) {
     /* See gobject.cc for how this works */
 
     if (!args.IsConstructCall ()) {
-        ThrowTypeError("Not a construct call");
+        Nan::ThrowTypeError("Not a construct call");
         return;
     }
 
@@ -133,11 +110,13 @@ static void BoxedConstructor(const FunctionCallbackInfo<Value> &args) {
         void *boxed = External::Cast (*args[0])->Value ();
         self->SetAlignedPointerInInternalField (0, boxed);
 
-        GIBaseInfo *base_info;
-        GIInfoType  info_type;
+        GIBaseInfo *base_info = (GIBaseInfo *) External::Cast (*args.Data ())->Value ();
+        g_assert(base_info != nullptr);
 
-        base_info = (GIBaseInfo *) External::Cast (*args.Data ())->Value ();
-        info_type = g_base_info_get_type (base_info);
+        GIInfoType info_type = g_base_info_get_type (base_info);
+
+        if (GI_IS_REGISTERED_TYPE_INFO(base_info))
+            self->Set(UTF8("$gtype"), Nan::New<Number>(g_registered_type_info_get_g_type(base_info)));
 
         if (info_type == GI_INFO_TYPE_STRUCT) {
             InitBoxedFromStruct(isolate, self, base_info);
@@ -154,6 +133,29 @@ static void BoxedConstructor(const FunctionCallbackInfo<Value> &args) {
     }
 }
 
+//static void InstallFunction (Isolate *isolate, Local<FunctionTemplate> tpl, GIFunctionInfo *func_info) {
+    //GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
+    //const char *func_name = g_base_info_get_name(func_info);
+    //char *camel_name = Util::toCamelCase(func_name);
+
+    //Local<Function> fn = MakeFunction(isolate, func_info);
+
+    //if ((flags & GI_FUNCTION_IS_METHOD) &&
+            //!(flags & GI_FUNCTION_IS_CONSTRUCTOR)) {
+        //tpl->PrototypeTemplate()->Set(UTF8(func_name), fn);
+        //tpl->PrototypeTemplate()->Set(UTF8(camel_name), fn);
+
+    //} else {
+        //tpl->Set(UTF8(func_name), fn);
+        //tpl->Set(UTF8(camel_name), fn);
+    //}
+    //if ((flags & GI_FUNCTION_IS_GETTER) || (flags & GI_FUNCTION_IS_SETTER)) {
+        //print_info(func_info);
+    //}
+
+    //g_free(camel_name);
+//}
+
 static Local<FunctionTemplate> GetBoxedTemplate(Isolate *isolate, GIBaseInfo *info, GType gtype) {
     void  *data = g_type_get_qdata (gtype, gnode_js_template_quark ());
 
@@ -163,18 +165,59 @@ static Local<FunctionTemplate> GetBoxedTemplate(Isolate *isolate, GIBaseInfo *in
         return tpl;
     } else {
         Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate,
-                BoxedConstructor,
-                External::New (isolate, info));
+            BoxedConstructor, External::New (isolate, info));
+
+        // g_type_name(gtype) ? FIXME
+        //const char *class_name = g_base_info_get_name (info);
+        const char *class_name = g_type_name(gtype);
+        tpl->SetClassName( UTF8(class_name) );
+        tpl->InstanceTemplate()->SetInternalFieldCount(1);
+        tpl->Set(UTF8("$gtype"), Nan::New<Number>(gtype));
+        if (G_TYPE_IS_INTERFACE(gtype)) {
+            WARN("GetBoxedTemplate: GTypeInterface: %s", g_type_name(gtype));
+        }
+
+        DEBUG("GetBoxedTemplate: %s", class_name);
+        print_gtype(gtype);
+        printf("\n");
+
+        // FIXME handle getter/setters
+        // FIXME re-use code
+        //
+        if (GI_IS_STRUCT_INFO(info)) {
+            int n_methods = g_struct_info_get_n_methods(info);
+            for (int i = 0; i < n_methods; i++) {
+                GIFunctionInfo *func_info = g_struct_info_get_method(info, i);
+                InstallFunction(isolate, tpl, func_info);
+                g_base_info_unref(func_info);
+            }
+        } else if (GI_IS_UNION_INFO(info)) {
+            gint n_methods = g_union_info_get_n_methods(info);
+            for (int i = 0; i < n_methods; i++) {
+                GIFunctionInfo *func_info = g_union_info_get_method(info, i);
+                InstallFunction(isolate, tpl, func_info);
+                g_base_info_unref (func_info);
+            }
+        } else {
+            print_info(info);
+            g_assert_not_reached();
+        }
 
         Persistent<FunctionTemplate> *persistent = new Persistent<FunctionTemplate>(isolate, tpl);
         persistent->SetWeak( g_base_info_ref(info), BoxedClassDestroyed);
-        g_type_set_qdata (gtype, gnode_js_template_quark (), persistent);
+        g_type_set_qdata(gtype, gnode_js_template_quark (), persistent);
 
-        // g_type_name(gtype) ? FIXME
-        const char *class_name = g_base_info_get_name (info);
-        tpl->SetClassName (String::NewFromUtf8 (isolate, class_name));
-
-        tpl->InstanceTemplate ()->SetInternalFieldCount (1);
+        GType parent_type = g_type_parent(gtype);
+        if (parent_type != 0) {
+            //DEBUG("Boxed parent: %zu", parent_type);
+            GIBaseInfo *parent_info = g_irepository_find_by_gtype(NULL, parent_type);
+            if (parent_info != NULL) {
+                Handle<FunctionTemplate> parent_tpl = GetBoxedTemplate(isolate, parent_info, parent_type);
+                tpl->Inherit(parent_tpl);
+            }
+        //} else {
+            //DEBUG("Boxed no parent: %zu", gtype);
+        }
 
         return tpl;
     }

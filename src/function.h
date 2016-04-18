@@ -9,4 +9,6 @@ namespace GNodeJS {
 
 v8::Handle<v8::Function> MakeFunction(v8::Isolate *isolate, GIBaseInfo *base_info);
 
+v8::Handle<v8::String>   FunctionToString(v8::Isolate *isolate, GIFunctionInfo *func_info);
+
 };

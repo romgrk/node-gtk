@@ -1,9 +1,11 @@
 
 #pragma once
 
-#include <node.h>
-#include <nan.h>
-#include <girepository.h>
+//#include <node.h>
+//#include <nan.h>
+//#include <girepository.h>
+
+#define N(type, prop, inst)   g_##type##_get_n_##prop (inst)
 
 #define UTF8(s)         String::NewFromUtf8 (isolate, s)
 
