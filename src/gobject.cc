@@ -21,9 +21,6 @@ using Nan::New;
 
 namespace GNodeJS {
 
-static G_DEFINE_QUARK(gnode_js_object, gnode_js_object);
-static G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
-
 static bool InitGParameterFromProperty(GParameter    *parameter,
                                        void          *klass,
                                        Local<String>  name,

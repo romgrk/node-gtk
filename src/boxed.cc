@@ -26,9 +26,7 @@ struct Boxed {
     GIBaseInfo *info;
 };
 
-static G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
-
-static void InitBoxedFromStruct (Isolate *isolate, Local<Object> self, GIStructInfo *info) {
+static void InitBoxedFromStruct (Local<Object> self, GIStructInfo *info) {
     gpointer pointer = self->GetAlignedPointerFromInternalField(0);
 
     int n_fields = g_struct_info_get_n_fields(info);
