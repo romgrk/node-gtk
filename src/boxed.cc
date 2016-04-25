@@ -7,7 +7,17 @@
 #include "util.h"
 #include "value.h"
 
-using namespace v8;
+using v8::Array;
+using v8::External;
+using v8::Function;
+using v8::FunctionTemplate;
+using v8::Local;
+using v8::Number;
+using v8::Object;
+using v8::String;
+//using v8::Persistent;
+using Nan::New;
+using Nan::Persistent;
 
 namespace GNodeJS {
 

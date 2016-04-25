@@ -17,6 +17,7 @@ using v8::Number;
 using v8::String;
 using v8::Array;
 using v8::Exception;
+using Nan::New;
 
 namespace GNodeJS {
 
