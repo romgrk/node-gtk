@@ -273,21 +273,22 @@ void V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Ha
     }
 }
 
-void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Handle<Value> value, bool may_be_null) {
+bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     if (value->IsNull ()) {
         arg->v_pointer = NULL;
-
-        if (!may_be_null)
+        if (!may_be_null) {
             Nan::ThrowTypeError("Argument may not be null.");
-
-        return;
+            return false;
+        } else {
+            return true;
+        }
     }
 
     if (value->IsUndefined ()) {
-        Nan::ThrowTypeError("Argument may not be undefined.");
-        return;
+        Nan::ThrowTypeError("Trying to convert undefined value to GIArgument");
+        return false;
     }
 
     switch (type_tag) {
@@ -338,7 +339,7 @@ void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Ha
     case GI_TYPE_TAG_ARRAY:
         {
             GIArrayType array_type = g_type_info_get_array_type (type_info);
-            GArray *garray = V8ToGArray(isolate, type_info, value);
+            GArray *garray = V8ToGArray(type_info, value);
 
             switch (array_type) {
             case GI_ARRAY_TYPE_C:
@@ -359,29 +360,37 @@ void V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *arg, Ha
     case GI_TYPE_TAG_INTERFACE:
         {
             GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
-            V8ToGIArgument (isolate, interface_info, arg, value);
+            V8ToGIArgument (interface_info, arg, value);
             g_base_info_unref(interface_info);
         }
         break;
 
-    //case GI_TYPE_TAG_GLIST:  FIXME
-    //case GI_TYPE_TAG_GSLIST: FIXME
+    case GI_TYPE_TAG_GLIST:
+    case GI_TYPE_TAG_GSLIST:
+        arg->v_pointer = V8ToGList(value, type_info);
+        break;
+
     //case GI_TYPE_TAG_GHASH: FIXME
     //case GI_TYPE_TAG_ERROR: FIXME
 
     case GI_TYPE_TAG_UNICHAR: // FIXME
-        {
-            arg->v_uint32 = value->Int32Value();
-        }
+        arg->v_uint32 = value->Int32Value();
         break;
 
     default:
         g_assert_not_reached ();
     }
+
+    return true;
 }
 
 void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    // TODO determine in which case the argument is to be freed
+    // TODO correct?
+    if (G_TYPE_TAG_IS_BASIC(type_tag))
+        return;
 
     switch (type_tag) {
     case GI_TYPE_TAG_FILENAME:
@@ -392,7 +401,8 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
     case GI_TYPE_TAG_ARRAY:
         {
             GIArrayType array_type = g_type_info_get_array_type (type_info);
-
+            g_warning("FreeGIArgument: %s freed; whatsup with elements?",
+                    Util::arrayTypeToString(array_type));
             switch (array_type) {
             case GI_ARRAY_TYPE_C:
                 g_free (arg->v_pointer);
@@ -400,12 +410,73 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
             case GI_ARRAY_TYPE_ARRAY:
                 g_array_free ((GArray *) arg->v_pointer, TRUE);
                 break;
+            case GI_ARRAY_TYPE_PTR_ARRAY:
+                g_ptr_array_free ((GPtrArray *) arg->v_pointer, TRUE);
+                break;
+            case GI_ARRAY_TYPE_BYTE_ARRAY:
+                g_byte_array_free ((GByteArray *) arg->v_pointer, TRUE);
+                break;
             default:
                 g_assert_not_reached ();
             }
         }
         break;
+
+    case GI_TYPE_TAG_GLIST:
+        g_warning("FreeGIArgument: unhandled GList");
+        //g_list_free((GList *)arg->v_pointer);
+        break;
+    case GI_TYPE_TAG_GSLIST:
+        g_warning("FreeGIArgument: unhandled GSList");
+        //g_slist_free((GSList *)arg->v_pointer);
+        break;
+
+    // FIXME FIXME FIXME
+    case GI_TYPE_TAG_INTERFACE: // an extended interface object
+    {
+        GIBaseInfo *i_info = g_type_info_get_interface(type_info);
+        GIInfoType  i_type = g_base_info_get_type(i_info);
+        switch (i_type) {
+        case GI_INFO_TYPE_OBJECT:
+            //g_object_unref(G_OBJECT(arg->v_pointer));
+            g_warning("FreeGIArgument: unhandled GObject %s",
+                    g_base_info_get_name(i_info));
+            break;
+        case GI_INFO_TYPE_BOXED:
+        case GI_INFO_TYPE_STRUCT:
+        case GI_INFO_TYPE_UNION:
+        {
+            //GType gtype = g_registered_type_info_get_g_type(i_info);
+            //g_boxed_free(gtype, arg->v_pointer);
+            g_warning("FreeGIArgument: unhandled boxed %s",
+                    g_base_info_get_name(i_info));
+            break;
+        }
+        case GI_INFO_TYPE_ENUM:
+        case GI_INFO_TYPE_FLAGS: // Nothing to do (~int32 values)
+            break;
+
+        default:
+            g_warning("FreeGIArgument: unhandled (?) %s",
+                    g_base_info_get_name(i_info));
+            break;
+        }
+    }
+
+    case GI_TYPE_TAG_GHASH:
+        //g_hash_table_destroy((GHashTable *)arg->v_pointer);
+        g_warning("FreeGIArgument: unhandled GHash");
+        break;
+
+    case GI_TYPE_TAG_ERROR:
+        g_warning("FreeGIArgument: GError (wtf); msg: %s",
+                ((GError *)arg->v_pointer)->message );
+        //g_error_free((GError *)arg->v_pointer);
+        break;
+
     default:
+        g_warning("FreeGIArgument: reached default for type %s \n",
+                g_type_tag_to_string(type_tag));
         break;
     }
 }
