@@ -1,20 +1,19 @@
-
-#pragma once
+// #pragma once
+#ifndef GI_H
+#define GI_H
 
 //#include <node.h>
 //#include <nan.h>
-//#include <girepository.h>
+#include <girepository.h>
 
-#define N(type, prop, inst)   g_##type##_get_n_##prop (inst)
+#define N(type, prop, inst)   g_##type##_info_get_n_##prop (inst)
+#define UTF8(s)         Nan::New<v8::String> (s).ToLocalChecked()
+#define STRING(s)       Nan::New<v8::String> (s).ToLocalChecked()
 
-#define UTF8(s)         String::NewFromUtf8 (isolate, s)
+namespace  GNodeJS {
 
-#define UTF8_NAME(s)    String::NewFromUtf8 (isolate, g_base_info_get_name(s))
+typedef GIBaseInfo* Info;
 
-#define THROW(error,...)                    \
-        isolate->ThrowException ( error (   \
-                v8::String::NewFromUtf8 (isolate, g_strdup_printf(__VA_ARGS__))));
+} /*  GNodeJS  */
 
-#define THROW_E(error, expr)                \
-        isolate->ThrowException ( error (   \
-        v8::String::NewFromUtf8 (isolate, expr->message )));
+#endif

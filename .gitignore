@@ -2,13 +2,10 @@
 *~
 \#*\#
 build/
-test/*.js
-test/*.es
-test/*.txt
-test/*
 node_modules/
 npm-debug.log
 src/debug.h
 src/debug.cc
-.ycm_extra_conf.pyc
 .buildconfig
+*/.tags
+.ycm_extra_conf.*

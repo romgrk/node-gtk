@@ -16,8 +16,10 @@ using v8::Local;
 using v8::Number;
 using v8::Object;
 using v8::String;
-using Nan::Persistent;
+using v8::Persistent;
 using Nan::New;
+using Nan::FunctionCallbackInfo;
+using Nan::WeakCallbackType;
 
 namespace GNodeJS {
 
@@ -28,6 +30,7 @@ static bool InitGParameterFromProperty(GParameter    *parameter,
     // XXX js->c name conversion
     String::Utf8Value name_str (name);
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_CLASS (klass), *name_str);
+
     if (pspec == NULL)
         return false;
 
@@ -67,7 +70,7 @@ static void AssociateGObject(Isolate *isolate, Local<Object> object, GObject *go
     g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
 
     Persistent<Object> *persistent = new Persistent<Object>(isolate, object);
-    g_object_set_qdata (gobject, gnode_js_object_quark (), persistent);
+    g_object_set_qdata (gobject, GNodeJS::object_quark(), persistent);
 }
 
 static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
@@ -132,168 +135,188 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &ar
     GClosure *gclosure = MakeClosure (isolate, callback);
 
     // TODO return some sort of cancellation handle?
+    // TODO keep track of handlers on the original object?
     ulong handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
-    args.GetReturnValue ().Set(Integer::NewFromUnsigned (isolate, handler_id));
+    args.GetReturnValue().Set((double)handler_id);
 }
 
 NAN_METHOD(SignalConnect) {
     SignalConnectInternal(info, false);
 }
 
-NAN_METHOD(ObjectPropertyGetter) {
-    Isolate *isolate = info.GetIsolate ();
-    GObject *gobject = GNodeJS::GObjectFromWrapper (info[0]);
-    String::Utf8Value prop_name_v (info[1]->ToString ());
-    const char *prop_name = *prop_name_v;
+/* NAN_METHOD(ObjectPropertyGetter) {
+        Isolate *isolate = info.GetIsolate ();
+        GObject *gobject = GNodeJS::GObjectFromWrapper (info[0]);
 
-    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
-    GValue value = {};
-    g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+        g_assert(gobject != NULL);
 
-    g_object_get_property (gobject, prop_name, &value);
+        String::Utf8Value prop_name_v (info[1]->ToString ());
+        const char *prop_name = *prop_name_v;
 
-    info.GetReturnValue().Set(GNodeJS::GValueToV8 (isolate, &value));
-}
+        GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
 
-NAN_METHOD(ObjectPropertySetter) {
-    GObject *gobject = GNodeJS::GObjectFromWrapper(info[0]);
-    String::Utf8Value prop_name_v (info[1]->ToString ());
-    const char *prop_name = *prop_name_v;
+        if (pspec == NULL) {
+            WARN("ObjectPropertyGetter: no property %s", prop_name);
+            info.GetReturnValue().SetUndefined();
+            return;
+        }
 
-    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
-    GValue value = {};
-    g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+        GValue value = {};
+        g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+        g_object_get_property (gobject, prop_name, &value);
 
-    GNodeJS::V8ToGValue (&value, info[2]);
+        info.GetReturnValue().Set(GNodeJS::GValueToV8 (isolate, &value));
+    }
+    NAN_METHOD(ObjectPropertySetter) {
+        GObject *gobject = GNodeJS::GObjectFromWrapper(info[0]);
 
-    g_object_set_property (gobject, prop_name, &value);
-}
+        g_assert(gobject != NULL);
 
-static Local<FunctionTemplate> GetBaseClassTemplate(Isolate *isolate) {
-    Local<FunctionTemplate> tpl = FunctionTemplate::New (isolate);
+        String::Utf8Value prop_name_v (info[1]->ToString ());
+        const char *prop_name = *prop_name_v;
+
+        GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
+
+        if (pspec == NULL) {
+            WARN("ObjectPropertySetter: no property %s", prop_name);
+            info.GetReturnValue().SetUndefined();
+            return;
+        }
+
+        GValue value = {};
+        g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+        GNodeJS::V8ToGValue (&value, info[2]);
+
+        g_object_set_property (gobject, prop_name, &value);
+    } */
+
+static Local<FunctionTemplate> GetBaseClassTemplate() {
+    static int count = 0;
+    count++;
+    WARN("GetBaseClassTemplate called (%i)", count);
+    Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate> ();
     Nan::SetPrototypeMethod(tpl, "on", SignalConnect);
     Nan::SetPrototypeMethod(tpl, "connect", SignalConnect);
     Nan::SetPrototypeMethod(tpl, "addEventListener", SignalConnect);
     return tpl;
 }
 
-static Local<FunctionTemplate> GetClassTemplateFromGI(Isolate *isolate, GIBaseInfo *info);
+static Local<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info);
 
-static void ClassDestroyed(const WeakCallbackData<FunctionTemplate, GIBaseInfo> &data) {
+static void ClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &data) {
     GIBaseInfo *info = data.GetParameter ();
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
 
-    void *type_data = g_type_get_qdata (gtype, gnode_js_template_quark ());
+    void *type_data = g_type_get_qdata (gtype, GNodeJS::template_quark());
     assert (type_data != NULL);
     Persistent<FunctionTemplate> *persistent = (Persistent<FunctionTemplate> *) type_data;
     delete persistent;
 
-    g_type_set_qdata (gtype, gnode_js_template_quark (), NULL);
+    g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
     g_base_info_unref (info);
 }
 
-static Local<FunctionTemplate> GetClassTemplate(Isolate *isolate, GIBaseInfo *info, GType gtype) {
-    void *data = g_type_get_qdata (gtype, gnode_js_template_quark ());
+static Local<FunctionTemplate> NewClassTemplate (GIBaseInfo *info) {
 
-    if (data) {
-        Persistent<FunctionTemplate> *persistent = (Persistent<FunctionTemplate> *) data;
-        Local<FunctionTemplate> tpl = Local<FunctionTemplate>::New (isolate, *persistent);
-        return tpl;
+    const GType gtype = g_registered_type_info_get_g_type (info);
+
+    g_assert(gtype != G_TYPE_NONE);
+
+    const char *class_name = g_type_name (gtype);
+
+    auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External> (info));
+    tpl->Set (UTF8("gtype"), New((double)gtype));
+    tpl->SetClassName (UTF8(class_name));
+    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+    GIObjectInfo *parent_info = g_object_info_get_parent (info);
+    if (parent_info) {
+        Local<FunctionTemplate> parent_tpl = GetClassTemplateFromGI ((GIBaseInfo *) parent_info);
+        tpl->Inherit(parent_tpl);
     } else {
-        //const char *class_name = g_base_info_get_name (info);
-        const char *class_name = g_type_name (gtype);
-        if (G_TYPE_IS_INTERFACE(gtype)) {
-            WARN("GetClassTemplate: GTypeInterface: %s", g_type_name(gtype));
-        }
+        tpl->Inherit(GetBaseClassTemplate());
+    }
 
-        Local<FunctionTemplate> tpl = FunctionTemplate::New (isolate, GObjectConstructor, External::New (isolate, info));
-        tpl->SetClassName(UTF8(class_name));
-        tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    int n_methods = g_object_info_get_n_methods(info);
+    for (int i = 0; i < n_methods; ++i) {
+        GIFunctionInfo *fn_info = g_object_info_get_method(info, i);
+        InstallFunction(tpl, fn_info);
+        g_base_info_unref(fn_info);
+    }
 
-        /*tpl->PrototypeTemplate()->Set(UTF8("__signals__"), Nan::New<Object>()));
-        int n_signals = g_object_info_get_n_signals(info);
-        for (int i = 0; i < n_signals; i++) { }
-        */
-
-        GIObjectInfo *parent_info = g_object_info_get_parent (info);
-        if (parent_info) {
-            Local<FunctionTemplate> parent_tpl = GetClassTemplateFromGI (isolate, (GIBaseInfo *) parent_info);
-            tpl->Inherit(parent_tpl);
-        } else {
-            tpl->Inherit(GetBaseClassTemplate (isolate));
-        }
-
-        int n_methods = g_object_info_get_n_methods(info);
-        for (int i = 0; i < n_methods; ++i) {
-            GIFunctionInfo *fn_info = g_object_info_get_method(info, i);
-            InstallFunction(isolate, tpl, fn_info);
+    int n_interfaces = g_object_info_get_n_interfaces(info);
+    for (int i = 0; i < n_interfaces; ++i) {
+        GIInterfaceInfo *i_info = g_object_info_get_interface(info, i);
+        int i_methods = g_interface_info_get_n_methods(info);
+        for (int i = 0; i < i_methods; ++i) {
+            GIFunctionInfo *fn_info = g_interface_info_get_method(i_info, i);
+            InstallFunction(tpl, fn_info);
             g_base_info_unref(fn_info);
         }
+        g_base_info_unref(i_info);
+    }
 
-        int n_properties = g_object_info_get_n_properties(info);
-        for (int i = 0; i < n_properties; ++i) {
-            GIPropertyInfo *prop_info = g_object_info_get_property(info, i);
-            //const char *prop_name = g_base_info_get_name(prop_info);
-            //tpl->Set(UTF8("__prop"))
-            //Nan::SetAccessor(tpl->PrototypeTemplate(), Nan::New<String>(prop_name),
-                    //Nan::FunctionCallback(ObjectPropertyGetter),
-                    //Nan::FunctionCallback(ObjectPropertySetter)
-                    //));
-            g_base_info_unref(prop_info);
-        }
+    return tpl;
+}
 
-        Persistent<FunctionTemplate> *persistent = new Persistent<FunctionTemplate>(isolate, tpl);
-        persistent->SetWeak (g_base_info_ref (info), ClassDestroyed);
-        g_type_set_qdata(gtype, gnode_js_template_quark (), persistent);
+static Local<FunctionTemplate> GetClassTemplate(GIBaseInfo *info, GType gtype) {
+    void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
 
+    if (data) {
+        auto *persistent = (Persistent<FunctionTemplate> *) data;
+        auto tpl = New<FunctionTemplate> (*persistent);
+        return tpl;
+
+    } else {
+        auto tpl = NewClassTemplate(info);
+        auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
+        persistent->SetWeak (
+                g_base_info_ref (info),
+                ClassDestroyed,
+                WeakCallbackType::kParameter);
+
+        g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
         return tpl;
     }
 }
 
-static Local<FunctionTemplate> GetClassTemplateFromGI(Isolate *isolate, GIBaseInfo *info) {
+static Local<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
-    return GetClassTemplate (isolate, info, gtype);
+    return GetClassTemplate (info, gtype);
 }
 
-static Local<FunctionTemplate> GetClassTemplateFromGType(Isolate *isolate, GType gtype) {
+static Local<FunctionTemplate> GetClassTemplateFromGType(GType gtype) {
+    g_type_ensure(gtype);
     GIBaseInfo *info = g_irepository_find_by_gtype(NULL, gtype);
-    while (info == NULL) {
-        gtype = g_type_parent(gtype);
-        info = g_irepository_find_by_gtype(NULL, gtype);
-    }
-    return GetClassTemplate (isolate, info, gtype);
+    return GetClassTemplate (info, gtype);
 }
 
-Local<Function> MakeClass(Isolate *isolate, GIBaseInfo *info) {
-    Local<FunctionTemplate> tpl = GetClassTemplateFromGI (isolate, info);
-    return tpl->GetFunction ();
-}
-
-static void ObjectDestroyed(const WeakCallbackData<Object, GObject> &data) {
+static void ObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     GObject *gobject = data.GetParameter ();
 
-    void *type_data = g_object_get_qdata (gobject, gnode_js_object_quark ());
+    void *type_data = g_object_get_qdata (gobject, GNodeJS::object_quark());
     assert (type_data != NULL);
     Persistent<Object> *persistent = (Persistent<Object> *) type_data;
     delete persistent;
 
     /* We're destroying the wrapper object, so make sure to clear out
      * the qdata that points back to us. */
-    g_object_set_qdata (gobject, gnode_js_object_quark (), NULL);
+    g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
 
     g_object_unref (gobject);
 }
 
 static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down) {
-    void *data = g_object_get_qdata (gobject, gnode_js_object_quark ());
-    assert (data != NULL);
+    void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
 
-    Persistent<Object> *persistent = (Persistent<Object> *) data;
+    g_assert (data != NULL);
+
+    auto *persistent = (Persistent<Object> *) data;
 
     if (toggle_down) {
         /* We're dropping from 2 refs to 1 ref. We are the last holder. Make
          * sure that that our weak ref is installed. */
-        persistent->SetWeak (gobject, ObjectDestroyed);
+        persistent->SetWeak (gobject, ObjectDestroyed, v8::WeakCallbackType::kParameter);
     } else {
         /* We're going from 1 ref to 2 refs. We can't let our wrapper be
          * collected, so make sure that our reference is persistent */
@@ -301,63 +324,50 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
     }
 }
 
-void InstallFunction (Isolate *isolate, Local<FunctionTemplate> tpl, GIFunctionInfo *func_info) {
+void InstallFunction (Local<FunctionTemplate> tpl, GIFunctionInfo *func_info) {
     GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
-    const char *func_name = g_base_info_get_name(func_info);
-    char *camel_name = Util::toCamelCase(func_name);
+    bool is_method = ((flags & GI_FUNCTION_IS_METHOD) != 0 &&
+                      (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
 
-    Local<Function> fn = MakeFunction(isolate, func_info);
+    Local<Function> fn = GNodeJS::MakeFunction (func_info);
+    char *fn_name = Util::toCamelCase (g_base_info_get_name (func_info));
 
-    if ((flags & GI_FUNCTION_IS_METHOD) &&
-            !(flags & GI_FUNCTION_IS_CONSTRUCTOR)) {
-        tpl->PrototypeTemplate()->Set(UTF8(func_name), fn);
-        tpl->PrototypeTemplate()->Set(UTF8(camel_name), fn);
+    if (is_method)
+        Nan::SetPrototypeTemplate(tpl, fn_name, fn);
+    else
+        Nan::SetTemplate(tpl, fn_name, fn);
 
-    } else {
-        tpl->Set(UTF8(func_name), fn);
-        tpl->Set(UTF8(camel_name), fn);
-    }
-    if ((flags & GI_FUNCTION_IS_GETTER) || (flags & GI_FUNCTION_IS_SETTER)) {
-        print_info(func_info);
-    }
-
-    g_free(camel_name);
+    g_free(fn_name);
 }
 
 
-Local<Value> WrapperFromGObject(Isolate *isolate, GObject *gobject) {
-    if (gobject == NULL) {
-        printf("WrapperFromGObject: NULL gobject\n");
-        return Null(isolate);
-    }
+Local<Function> MakeClass(GIBaseInfo *info) {
+    auto tpl = GetClassTemplateFromGI (info);
+    return tpl->GetFunction ();
+}
 
-    void *data = g_object_get_qdata (gobject, gnode_js_object_quark ());
+Local<Value> WrapperFromGObject(GObject *gobject) {
+
+    if (gobject == NULL)
+        return Nan::Null();
+
+    void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
 
     if (data) {
         /* Easy case: we already have an object. */
-        Persistent<Object> *persistent = (Persistent<Object> *) data;
-        Local<Object> obj = Local<Object>::New (isolate, *persistent);
+        auto *persistent = (Persistent<Object> *) data;
+        auto obj = New<Object> (*persistent);
         return obj;
+
     } else {
-        GType        type = G_OBJECT_TYPE(gobject);
-        //const char *name  = G_OBJECT_TYPE_NAME(gobject);
-        //GTypePlugin *plugin = g_type_get_plugin(type);
-        void *klass = g_type_class_ref (type);
+        GType gtype = G_OBJECT_TYPE(gobject);
+        g_type_ensure(gtype); //void *klass = g_type_class_ref (type);
 
-        print_gobject(gobject);
-        //if (info != NULL) print_info(info);
-
-        Local<FunctionTemplate> tpl;
-
-        tpl = GetClassTemplateFromGType(isolate, type);
-
+        auto tpl = GetClassTemplateFromGType(gtype);
         Local<Function> constructor = tpl->GetFunction ();
-        Local<Value> gobject_external = External::New (isolate, gobject);
+        Local<Value> gobject_external = New<External> (gobject);
         Local<Value> args[] = { gobject_external };
         Local<Object> obj = constructor->NewInstance (1, args);
-
-        //g_base_info_unref(info);
-        g_type_class_unref (klass);
 
         return obj;
     }
@@ -365,8 +375,11 @@ Local<Value> WrapperFromGObject(Isolate *isolate, GObject *gobject) {
 
 GObject * GObjectFromWrapper(Local<Value> value) {
     Local<Object> object = value->ToObject ();
-    void *data = object->GetAlignedPointerFromInternalField (0);
-    GObject *gobject = G_OBJECT(data);
+
+    g_assert(object->InternalFieldCount() > 0);
+
+    void    *ptr     = object->GetAlignedPointerFromInternalField (0);
+    GObject *gobject = G_OBJECT (ptr);
     return gobject;
 }
 

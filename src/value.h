@@ -6,7 +6,6 @@
 #include <girepository.h>
 
 //#include "gi.h"
-#include "debug.h"
 
 using v8::Isolate;
 using v8::Value;
@@ -14,14 +13,14 @@ using v8::Local;
 
 namespace GNodeJS {
 
-Local<Value> GListToV8  (Isolate *isolate, GITypeInfo *info, GList  *glist);
-Local<Value> GSListToV8 (Isolate *isolate, GITypeInfo *info, GSList *glist);
-Local<Value> GArrayToV8 (Isolate *isolate, GITypeInfo *info, GArray *garray);
+Local<Value> GListToV8  (GITypeInfo *info, GList  *glist);
+Local<Value> GSListToV8 (GITypeInfo *info, GSList *glist);
+Local<Value> ArrayToV8  (GITypeInfo *info, gpointer data);
 
-Local<Value> GIArgumentToV8(Isolate *isolate, GITypeInfo *type_info, GIArgument *argument);
-void         V8ToGIArgument(Isolate *isolate, GIBaseInfo *base_info, GIArgument *arg, Local<Value> value);
-void         V8ToGIArgument(Isolate *isolate, GITypeInfo *type_info, GIArgument *argument, Local<Value> value, bool may_be_null);
-void         FreeGIArgument(GITypeInfo *type_info, GIArgument *argument);
+Local<Value> GIArgumentToV8 (GITypeInfo *type_info, GIArgument *argument);
+bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *arg, Local<Value> value);
+bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value, bool may_be_null);
+void         FreeGIArgument (GITypeInfo *type_info, GIArgument *argument);
 
 void         V8ToGValue(GValue *gvalue, Local<Value> value);
 Local<Value> GValueToV8(Isolate *isolate, const GValue *gvalue);

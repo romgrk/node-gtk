@@ -5,10 +5,12 @@
   "main": "lib/index.js",
   "scripts": {
     "install": "if [ \"$(uname)\" = \"Darwin\" ] && [ \"$(which brew)\" != \"\" ]; then export PKG_CONFIG_PATH=$(brew --prefix libffi)/lib/pkgconfig; fi; node-pre-gyp install --fallback-to-build",
-    "test": "npm run build-js && npm run test-js",
-    "test-js": "node test/index.js",
-    "inspect": "traceur --modules commonjs --source-maps inline --out test/inspect.js test/inspect.es && node -r ./test/inspect.js",
-    "build-js": "traceur --modules commonjs --source-maps inline --out test/index.js test/index.es"
+    "test": "npm run build && node -r ./test/index.es",
+    "test-js": "npm run build-js && npm run test",
+    "inspect": "node -r ./test/inspect.js",
+    "build-js": "traceur --modules commonjs --source-maps inline --out test/index.js test/index.es",
+    "build": "node-gyp build",
+    "rebuild": "node-gyp rebuild"
   },
   "repository": {
     "type": "git",
@@ -29,9 +31,11 @@
   },
   "homepage": "https://github.com/WebReflection/node-gtk#readme",
   "dependencies": {
+    "lodash": "4.11.1",
     "nan": "2.2.1",
-    "node-gyp": "^3.2.1",
-    "node-pre-gyp": "^0.6.x",
+    "node-gyp": "3.3.1",
+    "node-inspector": "0.12.8",
+    "node-pre-gyp": "0.6.27",
     "node-pre-gyp-github": "^1.x"
   },
   "binary": {
