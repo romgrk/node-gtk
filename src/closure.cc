@@ -30,19 +30,19 @@ void Closure::Marshal(GClosure *base,
     HandleScope scope(isolate);
 
     Closure *closure = (Closure *) base;
-    Handle<Function> func = Handle<Function>::New(isolate, closure->persistent);
+    Local<Function> func = Local<Function>::New(isolate, closure->persistent);
 
     #ifndef __linux__
-        Handle<Value>* argv = new Handle<Value>[argc];
+        Local<Value>* argv = new Local<Value>[argc];
     #else
-        Handle<Value> argv[argc];
+        Local<Value> argv[argc];
     #endif
 
     for (uint i = 0; i < argc; i++)
         argv[i] = GValueToV8 (isolate, &g_argv[i]);
 
-    Handle<Object> this_obj = func;
-    Handle<Value> return_value = func->Call (this_obj, argc, argv);
+    Local<Object> this_obj = func;
+    Local<Value> return_value = func->Call (this_obj, argc, argv);
 
     #ifndef __linux__
         delete[] argv;
@@ -57,7 +57,7 @@ void Closure::Invalidated(gpointer data, GClosure *base) {
     closure->~Closure();
 }
 
-GClosure *MakeClosure(Isolate *isolate, Handle<Function> function) {
+GClosure *MakeClosure(Isolate *isolate, Local<Function> function) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
     closure->persistent.Reset(isolate, function);
     GClosure *gclosure = &closure->base;
