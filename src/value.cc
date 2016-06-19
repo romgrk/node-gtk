@@ -24,20 +24,6 @@ using Nan::New;
 
 namespace GNodeJS {
 
-/* static bool _isContainer (GITypeInfo *type_info) {
-    GITypeTag type_tag = g_type_info_get_tag(type_info);
-    switch (type_tag) {
-        case GI_TYPE_TAG_ARRAY:
-        case GI_TYPE_TAG_GLIST:
-        case GI_TYPE_TAG_GSLIST:
-        case GI_TYPE_TAG_GHASH:
-         case GI_TYPE_TAG_INTERFACE:
-            return true;
-        default:
-            return false;
-    }
-} */
-
 Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
@@ -106,29 +92,34 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
         {
             GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
             GIInfoType interface_type = g_base_info_get_type (interface_info);
+            Local<Value> value;
 
             switch (interface_type) {
             /** from documentation:
              * GIObjectInfo represents a GObject. This doesn't represent a specific instance
              * of a GObject, instead this represent the object type (eg class).  A GObject
-             * has methods, fields, properties, signals, interfaces, constants and virtual functions.
-             */
+             * has methods, fields, properties, signals, interfaces, constants and virtual functions. */
             case GI_INFO_TYPE_OBJECT:
-                return WrapperFromGObject((GObject *)arg->v_pointer);
+                value = WrapperFromGObject((GObject *)arg->v_pointer);
                 //return WrapperFromBoxed (isolate, interface_info, arg->v_pointer);
+                break;
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
-                return WrapperFromBoxed (interface_info, arg->v_pointer);
+                value = WrapperFromBoxed (interface_info, arg->v_pointer);
+                break;
             case GI_INFO_TYPE_ENUM:
             case GI_INFO_TYPE_FLAGS:
-                return New<Number>(arg->v_long);
+                value = New<Number>(arg->v_long);
                 //return Integer::New (arg->v_int);
+                break;
             default:
                 g_assert_not_reached ();
             }
+
+            g_base_info_unref(interface_info);
+            return value;
         }
-        break;
 
     case GI_TYPE_TAG_ARRAY:
         return ArrayToV8(type_info, arg->v_pointer);
@@ -142,7 +133,6 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     default:
         DEBUG("Tag: %s", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
-
     }
 }
 
@@ -584,8 +574,8 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
         switch (i_type) {
         case GI_INFO_TYPE_OBJECT:
             //g_object_unref(G_OBJECT(arg->v_pointer));
-            g_warning("FreeGIArgument: unhandled GObject %s",
-                    g_base_info_get_name(i_info));
+            //g_warning("FreeGIArgument: unhandled GObject %s",
+                    //g_base_info_get_name(i_info));
             break;
         case GI_INFO_TYPE_BOXED:
         case GI_INFO_TYPE_STRUCT:
@@ -628,7 +618,11 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
 
 void V8ToGValue(GValue *gvalue, Local<Value> value) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
-        g_value_set_boolean (gvalue, value->BooleanValue ());
+        // FIXME handle JS crappy conversions better than this.
+        if (value->IsUndefined() || value->IsNull())
+            g_value_set_boolean (gvalue, false);
+        else
+            g_value_set_boolean (gvalue, value->BooleanValue ());
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
         g_value_set_int (gvalue, value->Int32Value ());
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
