@@ -15,7 +15,6 @@ namespace GNodeJS {
 
 /*class BoxedTemplate : public Nan::ObjectWrap {
   public:
-
     static Local<FunctionTemplate> New (GIBaseInfo *gi_info) ;
     static Local<FunctionTemplate> Get (GType       g_type) ;
     static Local<FunctionTemplate> Get (GIBaseInfo *gi_info) ;
