@@ -18,7 +18,7 @@ namespace Util {
 
 static const GRegex *camel_regex = g_regex_new("([_\\W]+)([a-zA-Z0-9]+)", COMPILE_FLAG, MATCH_FLAG, NULL);
 
-const char* arrayTypeToString (GIArrayType array_type) {
+const char* ArrayTypeToString (GIArrayType array_type) {
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             return "C-array";
@@ -33,7 +33,7 @@ const char* arrayTypeToString (GIArrayType array_type) {
 }
 
 /* some_name -> someName */
-char* toCamelCase(const char *name) {
+char* ToCamelCase(const char *name) {
     return g_regex_replace(camel_regex, name, -1, 0, "\\u\\2", MATCH_FLAG, NULL);
 }
 

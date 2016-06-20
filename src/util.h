@@ -17,8 +17,8 @@
 
 namespace Util
 {
-    const char*             arrayTypeToString (GIArrayType array_type) ;
-    char*                   toCamelCase (const char *name) ;
+    const char*             ArrayTypeToString (GIArrayType array_type) ;
+    char*                   ToCamelCase (const char *name) ;
 } /* Util */
 
 namespace GNodeJS {
