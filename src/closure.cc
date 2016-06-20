@@ -1,6 +1,6 @@
-
+#include <glib.h>
+#include "nan.h"
 #include "function.h"
-
 #include "value.h"
 
 using namespace v8;
@@ -25,31 +25,38 @@ void Closure::Marshal(GClosure *base,
                       uint argc, const GValue *g_argv,
                       gpointer  invocation_hint,
                       gpointer  marshal_data) {
-    /* XXX: Any other way to get this? */
-    Isolate *isolate = Isolate::GetCurrent ();
-    HandleScope scope(isolate);
-
     Closure *closure = (Closure *) base;
-    Handle<Function> func = Handle<Function>::New(isolate, closure->persistent);
+    Isolate *isolate = Isolate::GetCurrent ();
+
+    HandleScope scope(isolate);
+    Local<Context> context = Context::New(isolate);
+    Context::Scope context_scope(context);
+
+    TryCatch try_catch(isolate);
+
+    Local<Function> func = Local<Function>::New(isolate, closure->persistent);
 
     #ifndef __linux__
-        Handle<Value>* argv = new Handle<Value>[argc];
+        Local<Value>* argv = new Local<Value>[argc];
     #else
-        Handle<Value> argv[argc];
+        Local<Value> argv[argc];
     #endif
 
     for (uint i = 0; i < argc; i++)
         argv[i] = GValueToV8 (isolate, &g_argv[i]);
 
-    Handle<Object> this_obj = func;
-    Handle<Value> return_value = func->Call (this_obj, argc, argv);
+    Local<Object> this_obj = func;
+    Local<Value> return_value;
+
+    if (!func->Call(context, this_obj, argc, argv).ToLocal(&return_value)) {
+        g_warning("Caught: %s", *String::Utf8Value(try_catch.Exception()));
+    } else if (g_return_value) {
+        V8ToGValue (g_return_value, return_value);
+    }
 
     #ifndef __linux__
         delete[] argv;
     #endif
-
-    if (g_return_value)
-        V8ToGValue (g_return_value, return_value);
 }
 
 void Closure::Invalidated(gpointer data, GClosure *base) {
@@ -57,7 +64,7 @@ void Closure::Invalidated(gpointer data, GClosure *base) {
     closure->~Closure();
 }
 
-GClosure *MakeClosure(Isolate *isolate, Handle<Function> function) {
+GClosure *MakeClosure(Isolate *isolate, Local<Function> function) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
     closure->persistent.Reset(isolate, function);
     GClosure *gclosure = &closure->base;

@@ -4,3 +4,8 @@
 build/
 node_modules/
 npm-debug.log
+src/debug.h
+src/debug.cc
+.buildconfig
+*/.tags
+.ycm_extra_conf.*

@@ -1,35 +1,38 @@
-
-#include <node.h>
 #include <girepository.h>
+#include <node.h>
+#include <nan.h>
 
 #include "boxed.h"
+#include "debug.h"
 #include "function.h"
+#include "gi.h"
 #include "gobject.h"
 #include "loop.h"
+#include "util.h"
 #include "value.h"
 
-#include <string.h>
-
-#define _str(s) #s
-#define UTF8(s) String::NewFromUtf8 (isolate, s)
-#define FUNC(f) FunctionTemplate::New (isolate, f)->GetFunction ()
-#define EXPORT(name,value) exports->Set (String::NewFromUtf8 (isolate, name), value)
-#define EXPORT_FUNC(name) exports->Set (String::NewFromUtf8 (isolate, _str(name)), FUNC(name))
-
 using namespace v8;
+using Nan::New;
+using Nan::Set;
 
-static void DefineFunction(Isolate *isolate, Handle<Object> module_obj, GIBaseInfo *info) {
+using GNodeJS::BaseInfo;
+
+static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info) {
     const char *function_name = g_base_info_get_name ((GIBaseInfo *) info);
-    module_obj->Set (String::NewFromUtf8 (isolate, function_name), GNodeJS::MakeFunction (isolate, info));
+    Local<Function> fn = GNodeJS::MakeFunction (info);
+
+    module_obj->Set(String::NewFromUtf8(isolate, function_name), fn);
 }
 
-static void DefineFunction(Isolate *isolate, Handle<Object> module_obj, GIBaseInfo *info, const char *base_name) {
-    char *function_name = g_strdup_printf ("%s_%s", base_name, g_base_info_get_name ((GIBaseInfo *) info));
-    module_obj->Set (String::NewFromUtf8 (isolate, function_name), GNodeJS::MakeFunction (isolate, info));
+static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info, const char *base_name) {
+    Local<Function> fn = GNodeJS::MakeFunction (info);
+
+    char *function_name = g_strdup_printf ("%s_%s", base_name, g_base_info_get_name(info));
+    Nan::Set(module_obj, UTF8(function_name), fn);
     g_free (function_name);
 }
 
-static void DefineObjectFunctions(Isolate *isolate, Handle<Object> module_obj, GIBaseInfo *info) {
+static void DefineObjectFunctions(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info) {
     const char *object_name = g_base_info_get_name ((GIBaseInfo *) info);
 
     int n_methods = g_object_info_get_n_methods (info);
@@ -40,7 +43,7 @@ static void DefineObjectFunctions(Isolate *isolate, Handle<Object> module_obj, G
     }
 }
 
-static void DefineBoxedFunctions(Isolate *isolate, Handle<Object> module_obj, GIBaseInfo *info) {
+static void DefineBoxedFunctions(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info) {
     const char *object_name = g_base_info_get_name ((GIBaseInfo *) info);
 
     int n_methods = g_struct_info_get_n_methods (info);
@@ -51,7 +54,7 @@ static void DefineBoxedFunctions(Isolate *isolate, Handle<Object> module_obj, GI
     }
 }
 
-static void DefineBootstrapInfo(Isolate *isolate, Handle<Object> module_obj, GIBaseInfo *info) {
+static void DefineBootstrapInfo(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info) {
     GIInfoType type = g_base_info_get_type (info);
 
     switch (type) {
@@ -70,16 +73,18 @@ static void DefineBootstrapInfo(Isolate *isolate, Handle<Object> module_obj, GIB
     }
 }
 
-static void Bootstrap(const FunctionCallbackInfo<Value> &args) {
-    Isolate *isolate = args.GetIsolate ();
+
+NAN_METHOD(Bootstrap) {
+    Isolate *isolate = info.GetIsolate();
 
     GIRepository *repo = g_irepository_get_default ();
     GError *error = NULL;
 
     const char *ns = "GIRepository";
     g_irepository_require (repo, ns, NULL, (GIRepositoryLoadFlags) 0, &error);
+
     if (error) {
-        isolate->ThrowException (Exception::TypeError (String::NewFromUtf8 (isolate, error->message)));
+        Nan::ThrowError( error->message );
         return;
     }
 
@@ -87,79 +92,207 @@ static void Bootstrap(const FunctionCallbackInfo<Value> &args) {
 
     int n = g_irepository_get_n_infos (repo, ns);
     for (int i = 0; i < n; i++) {
-        GIBaseInfo *info = g_irepository_get_info (repo, ns, i);
-        DefineBootstrapInfo (isolate, module_obj, info);
-        g_base_info_unref (info);
+        BaseInfo baseInfo(g_irepository_get_info(repo, ns, i));
+        DefineBootstrapInfo(isolate, module_obj, baseInfo.info());
     }
 
-    args.GetReturnValue ().Set (module_obj);
+    info.GetReturnValue().Set(module_obj);
 }
 
-static void GetConstantValue(const FunctionCallbackInfo<Value> &args) {
-    Isolate *isolate = args.GetIsolate ();
-    GIBaseInfo *info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (args[0]);
-    GITypeInfo *type_info = g_constant_info_get_type ((GIConstantInfo *) info);
-    GIArgument garg;
-    g_constant_info_get_value ((GIConstantInfo *) info, &garg);
-    args.GetReturnValue ().Set (GNodeJS::GIArgumentToV8 (isolate, type_info, &garg));
+NAN_METHOD(GetConstantValue) {
+    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
+    GITypeInfo *type = g_constant_info_get_type ((GIConstantInfo *) gi_info);
+
+    if (type == NULL) {
+        info.GetReturnValue().SetNull();
+        return;
+    }
+
+    GIArgument gi_arg;
+    g_constant_info_get_value((GIConstantInfo *) gi_info, &gi_arg);
+    info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg));
 }
 
-static void MakeFunction(const FunctionCallbackInfo<Value> &args) {
-    Isolate *isolate = args.GetIsolate ();
-    GIBaseInfo *info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (args[0]);
-    args.GetReturnValue ().Set (GNodeJS::MakeFunction (isolate, info));
+NAN_METHOD(MakeFunction) {
+    //Isolate *isolate = info.GetIsolate ();
+    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper(info[0]);
+    Local<Function> fn = GNodeJS::MakeFunction(gi_info);
+    info.GetReturnValue().Set(fn);
 }
 
-static void MakeClass(const FunctionCallbackInfo<Value> &args) {
-    Isolate *isolate = args.GetIsolate ();
-    GIBaseInfo *info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (args[0]);
-    args.GetReturnValue ().Set (GNodeJS::MakeClass (isolate, info));
+NAN_METHOD(MakeObjectClass) {
+    //Isolate *isolate = info.GetIsolate ();
+    Local<Object> obj = info[0].As<Object>();
+
+    if (obj->InternalFieldCount() == 0) {
+        Nan::ThrowTypeError("Object is not a GIBaseInfo wrapper");
+        return;
+    }
+
+    GIBaseInfo *gi_info = static_cast<GIBaseInfo*>(GNodeJS::BoxedFromWrapper (obj));
+
+    info.GetReturnValue().Set(GNodeJS::MakeClass(gi_info));
 }
 
-static void ObjectPropertyGetter(const FunctionCallbackInfo<Value> &args) {
-    Isolate *isolate = args.GetIsolate ();
-    GObject *gobject = GNodeJS::GObjectFromWrapper (args[0]);
-    String::Utf8Value prop_name_v (args[1]->ToString ());
+NAN_METHOD(MakeBoxedClass) {
+    //Isolate *isolate = info.GetIsolate ();
+    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
+
+    info.GetReturnValue().Set(GNodeJS::MakeBoxed(gi_info));
+}
+
+NAN_METHOD(ObjectPropertyGetter) {
+    Isolate *isolate = info.GetIsolate ();
+
+    GObject *gobject = GNodeJS::GObjectFromWrapper (info[0]);
+
+    g_assert(gobject != NULL);
+
+    String::Utf8Value prop_name_v (info[1]->ToString ());
     const char *prop_name = *prop_name_v;
 
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
+
+    if (pspec == NULL) {
+        WARN("ObjectPropertyGetter: no property %s", prop_name);
+        info.GetReturnValue().SetUndefined();
+        return;
+    }
+
     GValue value = {};
     g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-
     g_object_get_property (gobject, prop_name, &value);
 
-    args.GetReturnValue ().Set (GNodeJS::GValueToV8 (isolate, &value));
+    info.GetReturnValue().Set(
+        GNodeJS::GValueToV8(isolate, &value));
 }
 
-static void ObjectPropertySetter(const FunctionCallbackInfo<Value> &args) {
-    GObject *gobject = GNodeJS::GObjectFromWrapper (args[0]);
-    String::Utf8Value prop_name_v (args[1]->ToString ());
+NAN_METHOD(ObjectPropertySetter) {
+    GObject *gobject = GNodeJS::GObjectFromWrapper(info[0]);
+
+    g_assert(gobject != NULL);
+
+    String::Utf8Value prop_name_v (info[1]->ToString ());
     const char *prop_name = *prop_name_v;
 
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
+
+    if (pspec == NULL) {
+        WARN("ObjectPropertySetter: no property %s", prop_name);
+        return;
+    }
+
     GValue value = {};
     g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-
-    GNodeJS::V8ToGValue (&value, args[2]);
+    GNodeJS::V8ToGValue (&value, info[2]);
 
     g_object_set_property (gobject, prop_name, &value);
 }
 
-static void StartLoop(const FunctionCallbackInfo<Value> &args) {
+NAN_METHOD(StructFieldSetter) {
+    // const Nan::FunctionCallbackInfo<v8::Value>& info
+
+    Local<Object> boxedWrapper = info[0].As<Object>();
+    Local<Object> fieldInfo    = info[1].As<Object>();
+    Local<Value>  value        = info[2];
+
+    void        *boxed = GNodeJS::BoxedFromWrapper(boxedWrapper);
+    GIFieldInfo *field = (GIFieldInfo *) GNodeJS::BoxedFromWrapper(fieldInfo);
+    GITypeInfo  *field_type = g_field_info_get_type(field);
+
+    g_assert(boxed);
+    g_assert(field);
+    g_assert(field_type);
+
+    GIArgument arg;
+
+    if (GNodeJS::V8ToGIArgument(field_type, &arg, value, true)) {
+
+        if (g_field_info_set_field(field, boxed, &arg) == FALSE)
+            DEBUG("FieldSetter: couldnt set field %s", g_base_info_get_name(field));
+
+        GNodeJS::FreeGIArgument(field_type, &arg);
+
+    } else {
+        DEBUG("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
+    }
+
+    g_base_info_unref (field_type);
+}
+
+NAN_METHOD(StructFieldGetter) {
+    // const Nan::FunctionCallbackInfo<v8::Value>& info
+    Local<Object> boxedWrapper = info[0].As<Object>();
+    Local<Object> fieldInfo    = info[1].As<Object>();
+
+    if (boxedWrapper->InternalFieldCount() == 0) {
+        Nan::ThrowReferenceError("FieldSetter: argument 1 is not a boxed.");
+        return;
+    }
+
+    if (fieldInfo->InternalFieldCount() == 0) {
+        g_warning("FieldSetter: No internal fields.");
+        return;
+    }
+
+    void        *boxed = GNodeJS::BoxedFromWrapper(boxedWrapper);
+    GIFieldInfo *field = (GIFieldInfo *) GNodeJS::BoxedFromWrapper(fieldInfo);
+
+    if (boxed == NULL) {
+        Nan::ThrowError("FieldGetter: accessing NULL boxed pointer");
+        return;
+    }
+
+    if (field == NULL) {
+        Nan::ThrowError("FieldGetter: NULL field_info pointer");
+        return;
+    }
+
+    GIArgument value;
+    if (g_field_info_get_field(field, boxed, &value)) {
+        GITypeInfo  *field_type = g_field_info_get_type(field);
+
+        RETURN(GNodeJS::GIArgumentToV8(field_type, &value));
+
+        GNodeJS::FreeGIArgument(field_type, &value);
+        g_base_info_unref (field_type);
+    } else {
+        DEBUG("StructFieldGetter: couldnt get field %s", g_base_info_get_name(field));
+        //DEBUG("StructFieldGetter: property name: %s", *Nan::Utf8String(property) );
+    }
+}
+
+NAN_METHOD(StartLoop) {
     GNodeJS::StartLoop ();
 }
 
-void InitModule(Handle<Object> exports, Handle<Value> module, void *priv) {
-    Isolate *isolate = Isolate::GetCurrent ();
+NAN_METHOD(WrapperFromBoxed) {
+    //Isolate *isolate = info.GetIsolate ();
+    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
+    void *boxed = External::Cast(*info[1])->Value();
+    info.GetReturnValue().Set(GNodeJS::WrapperFromBoxed(gi_info, boxed));
+}
 
-    //exports->Set (String::NewFromUtf8 (isolate, "Bootstrap"), FunctionTemplate::New (isolate, Bootstrap)->GetFunction ());
-    EXPORT("Bootstrap",            FUNC(Bootstrap));
-    EXPORT("GetConstantValue",     FUNC(GetConstantValue));
-    EXPORT("MakeFunction",         FUNC(MakeFunction));
-    EXPORT("MakeClass",            FUNC(MakeClass));
-    EXPORT("ObjectPropertyGetter", FUNC(ObjectPropertyGetter));
-    EXPORT("ObjectPropertySetter", FUNC(ObjectPropertySetter));
-    EXPORT("StartLoop",            FUNC(StartLoop));
+NAN_METHOD(PointerToString) {
+    void *boxed = GNodeJS::BoxedFromWrapper(info[0]);
+    char *address = g_strdup_printf("%zu", (unsigned long)boxed);
+    info.GetReturnValue().Set(UTF8(address));
+    g_free(address);
+}
+
+void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
+    NAN_EXPORT(exports, Bootstrap);
+    NAN_EXPORT(exports, GetConstantValue);
+    NAN_EXPORT(exports, MakeBoxedClass);
+    NAN_EXPORT(exports, MakeObjectClass);
+    NAN_EXPORT(exports, WrapperFromBoxed);
+    NAN_EXPORT(exports, MakeFunction);
+    NAN_EXPORT(exports, StructFieldGetter);
+    NAN_EXPORT(exports, StructFieldSetter);
+    NAN_EXPORT(exports, ObjectPropertyGetter);
+    NAN_EXPORT(exports, ObjectPropertySetter);
+    NAN_EXPORT(exports, StartLoop);
+    NAN_EXPORT(exports, PointerToString);
 }
 
 NODE_MODULE(gi, InitModule)

@@ -3,16 +3,21 @@
         {
             "target_name": "node-gtk",
             "sources": [
-                "src/loop.cc",
-                "src/gi.cc",
-                "src/value.cc",
-                "src/function.cc",
-                "src/gobject.cc",
-                "src/closure.cc",
                 "src/boxed.cc",
+                "src/closure.cc",
+                "src/debug.cc",
+                "src/function.cc",
+                "src/gi.cc",
+                "src/gobject.cc",
+                "src/loop.cc",
+                "src/util.cc",
+                "src/value.cc",
+            ],
+            "include_dirs" : [
+                "<!(node -e \"require('nan')\")"
             ],
             "cflags": [
-                "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -Werror",
+                "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -g",
             ],
             "ldflags": [
                 "-Wl,-no-as-needed",
