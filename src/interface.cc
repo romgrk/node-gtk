@@ -32,4 +32,20 @@ Local<FunctionTemplate> GetInterfaceTemplate(Isolate *isolate, GIInterfaceInfo *
     return tpl;
 }
 
+/* void InstallFunction (Local<FunctionTemplate> tpl, GIFunctionInfo *func_info) {
+ *     GIFunctionInfoFlags flags = g_function_info_get_flags(func_info);
+ *     bool is_method = ((flags & GI_FUNCTION_IS_METHOD) != 0 &&
+ *                       (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
+ *     char *fn_name = Util::toCamelCase (g_base_info_get_name (func_info));
+ *     Local<Function> fn = GNodeJS::MakeFunction (func_info);
+ * 
+ *     if (is_method)
+ *         tpl->PrototypeTemplate()->Set(UTF8(fn_name), fn);
+ *     else
+ *         tpl->Set(UTF8(fn_name), fn);
+ * 
+ *     g_free(fn_name);
+ * }
+ *  */
+
 };

@@ -618,11 +618,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
 
 void V8ToGValue(GValue *gvalue, Local<Value> value) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
-        // FIXME handle JS crappy conversions better than this.
-        if (value->IsUndefined() || value->IsNull())
-            g_value_set_boolean (gvalue, false);
-        else
-            g_value_set_boolean (gvalue, value->BooleanValue ());
+        g_value_set_boolean (gvalue, value->BooleanValue ());
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
         g_value_set_int (gvalue, value->Int32Value ());
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {

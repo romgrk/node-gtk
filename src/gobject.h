@@ -26,7 +26,6 @@ class Template : public Nan::ObjectWrap {
 
 Local<Function> MakeClass          (GIBaseInfo *info);
 Local<Value>    WrapperFromGObject (GObject *object);
-void            InstallFunction    (Local<FunctionTemplate> tpl, GIFunctionInfo *func);
 GObject *       GObjectFromWrapper (Local<Value> value);
 
 };

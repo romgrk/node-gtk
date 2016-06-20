@@ -97,15 +97,12 @@ static void InitBoxedFromUnion (Local<Object> self, GIUnionInfo *info) {
 
             g_base_info_unref(union_info);
             g_base_info_unref(union_field);
-
             g_base_info_unref(field_type);
         }
 
         g_base_info_unref(field);
-
         //if (success) break;
     }
-
 }
 
 static void BoxedClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &data) {
@@ -113,14 +110,6 @@ static void BoxedClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &data) {
     GType       gtype = g_registered_type_info_get_g_type (info);
 
     WARN("BoxedClassDestroyed: %s", g_base_info_get_name(info));
-
-    if (GI_IS_STRUCT_INFO(info)) {
-        //int n_fields = g_struct_info_get_n_fields(info);
-        //for (int i = 0; i < n_fields; ++i) {
-            //GIFieldInfo *field = g_struct_info_get_field(info, i);
-            //g_base_info_unref(field);
-        //}
-    }
 
     if (gtype != G_TYPE_NONE) {
         void *type_data = g_type_get_qdata (gtype, GNodeJS::template_quark());
@@ -145,27 +134,29 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
     }
 
     Local<Object> self = args.This ();
+    GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (
+            *args.Data ())->Value ();
 
     if (args[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
-
         void *data = External::Cast(*args[0])->Value();
 
-        GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*args.Data ())->Value ();
-
-        // FIXME ? void *boxed = g_boxed_copy(g_type, data);
+        // FIXME ?
+        // void *boxed = g_boxed_copy(g_type, data);
         self->SetAlignedPointerInInternalField (0, data);
 
         GIInfoType type = g_base_info_get_type (gi_info);
-        if (type == GI_INFO_TYPE_UNION)
-            DEBUG("union gi_info: %s", g_base_info_get_name(gi_info));
-            //InitBoxedFromUnion(self, gi_info);
+
+        if (type == GI_INFO_TYPE_UNION) //InitBoxedFromUnion(self, gi_info);
+            DEBUG("BoxedConstructor: union gi_info: %s", g_base_info_get_name(gi_info));
         else
             g_assert(type == GI_INFO_TYPE_STRUCT);
 
     } else {
-        /* TODO: Boxed construction not supported yet. */
-        g_assert_not_reached ();
+        // g_assert_not_reached ();
+        unsigned long size = g_struct_info_get_size(gi_info);
+        void *boxed = g_slice_alloc0(size);
+        self->SetAlignedPointerInInternalField (0, boxed);
     }
 }
 
@@ -174,34 +165,26 @@ NAN_GETTER(FieldGetter) {
     // Local<v8::String> property
     Local<Object> self = info.This();
     External     *data = External::Cast(*info.Data());
-
-    g_assert(self->InternalFieldCount() > 0);
-
     void *boxed = self->GetAlignedPointerFromInternalField(0);
 
     if (boxed == NULL) {
         g_warning("FieldGetter: NULL boxed pointer");
-        info.GetReturnValue().SetUndefined();
         return;
     }
 
+    GIArgument value;
     GIFieldInfo *field = static_cast<GIFieldInfo*>(data->Value());
 
     g_assert(field);
 
-    GIArgument value;
-
     if (g_field_info_get_field(field, boxed, &value)) {
         GITypeInfo  *field_type = g_field_info_get_type(field);
-        info.GetReturnValue().Set(
-                GIArgumentToV8(field_type, &value));
+        info.GetReturnValue().Set(GIArgumentToV8(field_type, &value));
         g_base_info_unref (field_type);
     } else {
         DEBUG("FieldGetter: couldnt get field %s", g_base_info_get_name(field));
         DEBUG("FieldGetter: property name: %s", *Nan::Utf8String(property) );
-        info.GetReturnValue().SetUndefined();
     }
-    // FIXME free GIArgument?
 }
 
 NAN_SETTER(FieldSetter) {
@@ -209,16 +192,9 @@ NAN_SETTER(FieldSetter) {
     // Local<v8::Value>  value
     //Isolate *isolate = info.GetIsolate();
     Local<Object> self = info.This();
-
-    g_assert(self->InternalFieldCount() > 0);
-
     void *boxed = self->GetAlignedPointerFromInternalField(0);
     GIFieldInfo *field = static_cast<GIFieldInfo*>(External::Cast(*info.Data())->Value());
     GITypeInfo  *field_type = g_field_info_get_type(field);
-
-    g_assert(boxed);
-    g_assert(field);
-    g_assert(field_type);
 
     GIArgument arg;
 
@@ -230,7 +206,6 @@ NAN_SETTER(FieldSetter) {
         DEBUG("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
     }
 
-    // FIXME free GIArgument?
     g_base_info_unref (field_type);
 }
 
@@ -249,6 +224,7 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
 
         auto tpl = New<FunctionTemplate>(
             BoxedConstructor, New<External>(info));
+        tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
         if (gtype != G_TYPE_NONE) {
             const char *class_name = g_type_name(gtype);
@@ -259,25 +235,20 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
             tpl->SetClassName( UTF8(class_name) );
         }
 
-        tpl->InstanceTemplate()->SetInternalFieldCount(1);
-
         if (GI_IS_STRUCT_INFO(info)) {
             //int n_fields = g_struct_info_get_n_fields(info);
             //for (int i = 0; i < n_fields; i++) {
                 //GIFieldInfo *field = g_struct_info_get_field(info, i);
                 //const char  *name  = g_base_info_get_name(field);
                 ////char *jsName = Util::toCamelCase(name);
-
                 //Nan::SetAccessor(
                         //tpl->InstanceTemplate(),
                         //UTF8(name), //UTF8(jsName),
                         //FieldGetter,
                         //FieldSetter,
                         //Nan::New<External>(field));
-
                 ////g_base_info_unref (field);
             //}
-
         } else if (GI_IS_UNION_INFO(info)) {
 
         } else {
@@ -304,8 +275,8 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
 static Local<FunctionTemplate> GetBoxedTemplateFromGI(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
     if (gtype == G_TYPE_NONE) {
-        g_warning("GetBoxedTemplateFromGI: gtype == G_TYPE_NONE for %s",
-                g_base_info_get_name(info));
+        // g_warning("GetBoxedTemplateFromGI: gtype == G_TYPE_NONE for %s",
+                // g_base_info_get_name(info));
     } else {
         g_type_ensure(gtype);
     }
@@ -328,12 +299,7 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
 
 void * BoxedFromWrapper(Local<Value> value) {
     Local<Object> object = value->ToObject ();
-
-    if (object->InternalFieldCount() == 0) {
-        g_warning("BoxedFromWrapper: internal field count == 0");
-        return NULL;
-    }
-
+    g_assert(object->InternalFieldCount() > 0);
     void *boxed = object->GetAlignedPointerFromInternalField(0);
     return boxed;
 }

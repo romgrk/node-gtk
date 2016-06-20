@@ -24,7 +24,6 @@ gchar * GetArgumentDisplayName(const char *arg_name, ArgumentType arg_type) {
   case ARGUMENT_ARRAY_ELEMENT:
     return g_strdup("Array element");
   }
-
   g_assert_not_reached ();
 }
 

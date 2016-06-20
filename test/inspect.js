@@ -1,9 +1,9 @@
 'use strict';
 
 //const util = require('util');
-//const low   = require('lowdb');
-//const storage = require('lowdb/file-sync');
-//const db = low('/home/romgrk/db.json', { storage: storage });
+const low   = require('lowdb');
+const storage = require('lowdb/file-sync');
+global.db = low('/home/romgrk/db.json', { storage: storage });
 
 const nodegtk = require('../lib/index');
 nodegtk.startLoop();
@@ -38,16 +38,16 @@ function gtype(info) {
 
 function BaseInfo(info) {
     def(this, "_info", info);
-    def(this, "_type", info.getType()); // info_type
-    def(this, "_ns",   info.getNamespace());
+    def(this, "_type", type(info)); // info_type
+    def(this, "_ns",   namespace(info));
     this.type = GI.info_type_to_string(this._type);
     if (this._type != InfoType.TYPE)
-        this.name = info.getName();
+        this.name = name(info);
 }
 
 function TypeInfo(info) {
     def(this, "_info", info);
-    def(this, "_ns",   info.getNamespace());
+    def(this, "_ns",   namespace(info));
     def(this, "_tag",  tag(info));
     if (this._tag == GI.TypeTag.ARRAY) {
         this.type = tag_string(this._tag);
@@ -60,8 +60,8 @@ function TypeInfo(info) {
 
     } else if (this._tag == GI.TypeTag.INTERFACE) {
         def(this, "_interface", GI.type_info_get_interface(info));
-        def(this, "_i_type", this._interface.getType());
-        this.type = this._interface.getName();
+        def(this, "_i_type", type(this._interface));
+        this.type = name(this._interface);
     } else {
         this.type = tag_string(this._tag);
     }
@@ -355,10 +355,10 @@ function CallableInfo(info) {
     var return_type = GI.callable_info_get_return_type(info);
     var return_tag = tag(return_type);
 
-    if (return_tag == TypeTag.VOID)
-        this.return = 'void';
-    else
-        this.return = new TypeInfo(return_type);
+    // if (return_tag == TypeTag.VOID)
+        // this.return = 'void';
+    // else
+        // this.return = new TypeInfo(return_type);
 
     this.return_type = new TypeInfo(return_type);
 
@@ -412,7 +412,7 @@ function parseNamespace(ns, ver) {
 }
 
 function getInfo (info) {
-    switch (info.getType()) {
+    switch (type(info)) {
         case InfoType.INVALID:
             return null;
 
@@ -466,12 +466,22 @@ function getInfo (info) {
     return new BaseInfo(info);
 }
 
+function getLibs() {
+    let path = GI.Repository_get_search_path();
+    let files = require('fs').readdirSync(path[0]);
+    files = files.map(f => [f].concat(f.split('-')) );
+    return files;
+}
+
 global.nodegtk = nodegtk;
+global.parseNamespace = parseNamespace;
+global.getLibs = getLibs;
+
 global.gi  = parseNamespace('GIRepository', '2.0');
 global.gtk = parseNamespace('Gtk', '3.0');
 global.gdk = parseNamespace('Gdk', '3.0');
 
-global.info = getInfo;
+global.g = nodegtk.importNS('GObject');
 
 exports = {BaseInfo, TypeInfo, ConstantInfo, ValueInfo, EnumInfo, ObjectInfo,
-    CallableInfo, SignalInfo, FunctionInfo, VFuncInfo};
+    CallableInfo, SignalInfo, FunctionInfo, VFuncInfo, parseNamespace};

@@ -293,12 +293,10 @@ NAN_METHOD(FunctionInfoToString) {
 Local<Function> MakeFunction(GIBaseInfo *info) {
     FunctionInfo *func = g_new0 (FunctionInfo, 1);
     func->info = g_base_info_ref (info);
-
     g_function_info_prep_invoker (func->info, &func->invoker, NULL);
+    auto tpl = New<FunctionTemplate>(FunctionInvoker, New<External>(func));
 
-    auto tpl = New<FunctionTemplate> (FunctionInvoker, New<External> (func));
-
-    Local<Function> fn = tpl->GetFunction ();
+    Local<Function> fn = tpl->GetFunction();
     fn->SetName(
         New(g_function_info_get_symbol(info)).ToLocalChecked());
 

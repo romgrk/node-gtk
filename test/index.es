@@ -42,9 +42,9 @@ var win = new Gtk.Window({
     window_position: Gtk.WindowPosition.CENTER
 });
 
-win.setDefaultSize(600, 400);
-win.addEventListener('show', Gtk.main);
-win.addEventListener('destroy', Gtk.main_quit);
+win.setDefaultSize(600, 800);
+win.on('show', Gtk.main);
+win.on('destroy', Gtk.main_quit);
 
 grid   = new Gtk.Grid();
 
@@ -177,37 +177,41 @@ const execute = function(command) {
 };
 
 
-
 textView.connect('key-press-event', function(widget, event) {
     global.e = event;
     console.log(event);
-    console.log(event.__proto__)
     console.log(event.type);
-    //console.log(event.key);
-    return;
-    let key = event.getKeyval.call(event);
-    let keyname = Gdk.keyvalName(key);
-    btn.label = Gtk.acceleratorGetLabel(event.keyval, event.state);
+    console.log(event.key);
+    event.__proto__ = Gdk.EventKey.prototype;
+    console.log(event.type);
+    console.log(event.keyval);
+    console.log(event.state);
+    //return;
+    //let key = event.keyval;
+    //let keyname = Gdk.keyvalName(event.keyval);
+    //let label = Gtk.acceleratorGetLabel(event.keyval, event.state);
+    //console.log(keyname);
     //console.log('KeyPress: ', );
-    if (keyname.match(/(semi)?colon/)) {
-        entryView.grabFocus();
-        return true;
-    }
-    if (key === Gdk.KEY_G) {
-        buffer.placeCursor(buffer.getEndIter());
-        return true;
-    }
-    if (key === Gdk.KEY_g) {
-        let start = buffer.getStartIter();
-        buffer.placeCursor(start);
-        return true;
-    }
+    //if (keyname.match(/(semi)?colon/)) {
+        //entryView.grabFocus();
+        //return true;
+    //}
+    //if (key === Gdk.KEY_G) {
+        //buffer.placeCursor(buffer.getEndIter());
+        //return true;
+    //}
+    //if (key === Gdk.KEY_g) {
+        //let start = buffer.getStartIter();
+        //buffer.placeCursor(start);
+        //return true;
+    //}
     return false;
 });
 
 entryView.history = ['pop.get_children()'];
 entryView.connect('key-press-event', function(widget, event) {
-    return;
+    //return;
+    event.__proto__ = Gdk.EventKey.prototype;
     let key = event.keyval;
     let keyname = Gdk.keyvalName(key);
     btn.label = Gtk.acceleratorGetLabel(event.keyval, event.state);

@@ -15,7 +15,7 @@ using namespace v8;
 using Nan::New;
 using Nan::Set;
 
-using GNodeJS::Info;
+using GNodeJS::BaseInfo;
 
 static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info) {
     const char *function_name = g_base_info_get_name ((GIBaseInfo *) info);
@@ -27,7 +27,7 @@ static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInf
 static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info, const char *base_name) {
     Local<Function> fn = GNodeJS::MakeFunction (info);
 
-    char *function_name = g_strdup_printf ("%s_%s", base_name, g_base_info_get_name ((GIBaseInfo *) info));
+    char *function_name = g_strdup_printf ("%s_%s", base_name, g_base_info_get_name(info));
     Nan::Set(module_obj, UTF8(function_name), fn);
     g_free (function_name);
 }
@@ -74,12 +74,6 @@ static void DefineBootstrapInfo(Isolate *isolate, Local<Object> module_obj, GIBa
 }
 
 
-NAN_METHOD(print) {
-    Info gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper(info[0]);
-    if (gi_info)
-        GNodeJS::print_info(gi_info);
-}
-
 NAN_METHOD(Bootstrap) {
     Isolate *isolate = info.GetIsolate();
 
@@ -98,9 +92,8 @@ NAN_METHOD(Bootstrap) {
 
     int n = g_irepository_get_n_infos (repo, ns);
     for (int i = 0; i < n; i++) {
-        GIBaseInfo *gi_info = g_irepository_get_info (repo, ns, i);
-        DefineBootstrapInfo (isolate, module_obj, gi_info);
-        g_base_info_unref (gi_info);
+        BaseInfo baseInfo(g_irepository_get_info(repo, ns, i));
+        DefineBootstrapInfo(isolate, module_obj, baseInfo.info());
     }
 
     info.GetReturnValue().Set(module_obj);
@@ -123,13 +116,11 @@ NAN_METHOD(GetConstantValue) {
 NAN_METHOD(MakeFunction) {
     //Isolate *isolate = info.GetIsolate ();
     GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper(info[0]);
-
     Local<Function> fn = GNodeJS::MakeFunction(gi_info);
-
     info.GetReturnValue().Set(fn);
 }
 
-NAN_METHOD(MakeClass) {
+NAN_METHOD(MakeObjectClass) {
     //Isolate *isolate = info.GetIsolate ();
     Local<Object> obj = info[0].As<Object>();
 
@@ -170,10 +161,10 @@ NAN_METHOD(ObjectPropertyGetter) {
 
     GValue value = {};
     g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-
     g_object_get_property (gobject, prop_name, &value);
 
-    info.GetReturnValue().Set(GNodeJS::GValueToV8 (isolate, &value));
+    info.GetReturnValue().Set(
+        GNodeJS::GValueToV8(isolate, &value));
 }
 
 NAN_METHOD(ObjectPropertySetter) {
@@ -188,7 +179,6 @@ NAN_METHOD(ObjectPropertySetter) {
 
     if (pspec == NULL) {
         WARN("ObjectPropertySetter: no property %s", prop_name);
-        info.GetReturnValue().SetUndefined();
         return;
     }
 
@@ -217,14 +207,16 @@ NAN_METHOD(StructFieldSetter) {
     GIArgument arg;
 
     if (GNodeJS::V8ToGIArgument(field_type, &arg, value, true)) {
+
         if (g_field_info_set_field(field, boxed, &arg) == FALSE)
             DEBUG("FieldSetter: couldnt set field %s", g_base_info_get_name(field));
+
         GNodeJS::FreeGIArgument(field_type, &arg);
+
     } else {
         DEBUG("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
     }
 
-    // FIXME free GIArgument?
     g_base_info_unref (field_type);
 }
 
@@ -234,14 +226,12 @@ NAN_METHOD(StructFieldGetter) {
     Local<Object> fieldInfo    = info[1].As<Object>();
 
     if (boxedWrapper->InternalFieldCount() == 0) {
-        g_warning("FieldSetter: No internal fields.");
-        info.GetReturnValue().SetUndefined();
+        Nan::ThrowReferenceError("FieldSetter: argument 1 is not a boxed.");
         return;
     }
 
     if (fieldInfo->InternalFieldCount() == 0) {
         g_warning("FieldSetter: No internal fields.");
-        info.GetReturnValue().SetUndefined();
         return;
     }
 
@@ -249,45 +239,28 @@ NAN_METHOD(StructFieldGetter) {
     GIFieldInfo *field = (GIFieldInfo *) GNodeJS::BoxedFromWrapper(fieldInfo);
 
     if (boxed == NULL) {
-        g_warning("FieldGetter: NULL boxed pointer");
-        info.GetReturnValue().SetNull();
+        Nan::ThrowError("FieldGetter: accessing NULL boxed pointer");
         return;
     }
 
     if (field == NULL) {
-        g_warning("FieldGetter: NULL field pointer");
-        info.GetReturnValue().SetNull();
+        Nan::ThrowError("FieldGetter: NULL field_info pointer");
         return;
     }
 
     GIArgument value;
-
     if (g_field_info_get_field(field, boxed, &value)) {
         GITypeInfo  *field_type = g_field_info_get_type(field);
-        info.GetReturnValue().Set(
-                GNodeJS::GIArgumentToV8(field_type, &value));
+
+        RETURN(GNodeJS::GIArgumentToV8(field_type, &value));
+
+        GNodeJS::FreeGIArgument(field_type, &value);
         g_base_info_unref (field_type);
     } else {
         DEBUG("StructFieldGetter: couldnt get field %s", g_base_info_get_name(field));
         //DEBUG("StructFieldGetter: property name: %s", *Nan::Utf8String(property) );
-        info.GetReturnValue().SetUndefined();
     }
-    // FIXME free GIArgument?
 }
-/*
- *NAN_METHOD(FieldGetter) {
- *    void *boxed = GNodeJS::BoxedFromWrapper(info[0]);
- *
- *    g_assert(boxed != NULL);
- *
- *    GIFieldInfo *field = (GIFieldInfo *)GNodeJS::BoxedFromWrapper(info[1]);
- *
- *    g_assert(field != NULL);
- *
- *    GIArgument arg;
- *    g_field_info_get_field(field, boxed, &arg);
- *}
- */
 
 NAN_METHOD(StartLoop) {
     GNodeJS::StartLoop ();
@@ -297,34 +270,21 @@ NAN_METHOD(WrapperFromBoxed) {
     //Isolate *isolate = info.GetIsolate ();
     GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
     void *boxed = External::Cast(*info[1])->Value();
-
     info.GetReturnValue().Set(GNodeJS::WrapperFromBoxed(gi_info, boxed));
 }
 
-NAN_METHOD(ListInterfaces) {
-    Isolate *isolate = info.GetIsolate();
-
-    GType gtype = Nan::To<double>(info[0]).FromJust();
-    g_type_ensure(gtype);
-
-    uint n_interfaces = 0;
-    GType *interfaces = g_type_interfaces(gtype, &n_interfaces);
-
-    Local<v8::Object> array = Array::New(isolate, n_interfaces);
-    for (uint i = 0; i < n_interfaces; i++) {
-        Nan::Set(array, i, Number::New(isolate, interfaces[i]));
-    }
-    g_free(interfaces);
-
-    info.GetReturnValue().Set(array);
+NAN_METHOD(PointerToString) {
+    void *boxed = GNodeJS::BoxedFromWrapper(info[0]);
+    char *address = g_strdup_printf("%zu", (unsigned long)boxed);
+    info.GetReturnValue().Set(UTF8(address));
+    g_free(address);
 }
 
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, Bootstrap);
-    NAN_EXPORT(exports, print);
     NAN_EXPORT(exports, GetConstantValue);
     NAN_EXPORT(exports, MakeBoxedClass);
-    NAN_EXPORT(exports, MakeClass);
+    NAN_EXPORT(exports, MakeObjectClass);
     NAN_EXPORT(exports, WrapperFromBoxed);
     NAN_EXPORT(exports, MakeFunction);
     NAN_EXPORT(exports, StructFieldGetter);
@@ -332,7 +292,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, ObjectPropertyGetter);
     NAN_EXPORT(exports, ObjectPropertySetter);
     NAN_EXPORT(exports, StartLoop);
-    NAN_EXPORT(exports, ListInterfaces);
+    NAN_EXPORT(exports, PointerToString);
 }
 
 NODE_MODULE(gi, InitModule)
