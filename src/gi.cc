@@ -142,8 +142,6 @@ NAN_METHOD(MakeBoxedClass) {
 }
 
 NAN_METHOD(ObjectPropertyGetter) {
-    Isolate *isolate = info.GetIsolate ();
-
     GObject *gobject = GNodeJS::GObjectFromWrapper (info[0]);
 
     g_assert(gobject != NULL);
@@ -159,12 +157,11 @@ NAN_METHOD(ObjectPropertyGetter) {
         return;
     }
 
-    GValue value = {};
+    GValue value = G_VALUE_INIT;
     g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
     g_object_get_property (gobject, prop_name, &value);
 
-    info.GetReturnValue().Set(
-        GNodeJS::GValueToV8(isolate, &value));
+    RETURN(GNodeJS::GValueToV8(&value));
 }
 
 NAN_METHOD(ObjectPropertySetter) {
