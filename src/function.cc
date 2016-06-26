@@ -77,25 +77,18 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
 
     for (int i = 0; i < n_callable_args; i++) {
         GIArgInfo arg_info;
-        g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
-
         GITypeInfo type_info;
-        g_arg_info_load_type(&arg_info, &type_info);
+        g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
+        g_arg_info_load_type (&arg_info, &type_info);
 
         int array_length_idx = g_type_info_get_array_length (&type_info);
         if (array_length_idx >= 0) {
             call_parameters[i].type = Parameter::ARRAY;
             call_parameters[array_length_idx].type = Parameter::SKIP;
         }
-    }
-
-    for (int i = 0; i < n_callable_args; i++) {
-        GIArgInfo arg_info;
 
         if (call_parameters[i].type == Parameter::SKIP)
             continue;
-
-        g_callable_info_load_arg ((GICallableInfo *) info, i, &arg_info);
 
         if (g_arg_info_get_direction (&arg_info) == GI_DIRECTION_IN ||
             g_arg_info_get_direction (&arg_info) == GI_DIRECTION_INOUT)
