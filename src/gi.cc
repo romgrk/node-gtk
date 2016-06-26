@@ -1,4 +1,4 @@
-#include <girepository.h>
+#include <gobject-introspection-1.0/girepository.h>
 #include <node.h>
 #include <nan.h>
 
@@ -226,12 +226,12 @@ NAN_METHOD(StructFieldGetter) {
     Local<Object> fieldInfo    = info[1].As<Object>();
 
     if (boxedWrapper->InternalFieldCount() == 0) {
-        Nan::ThrowReferenceError("FieldSetter: argument 1 is not a boxed.");
+        Nan::ThrowReferenceError("StructFieldGetter: argument 1 is not a boxed.");
         return;
     }
 
     if (fieldInfo->InternalFieldCount() == 0) {
-        g_warning("FieldSetter: No internal fields.");
+        g_warning("StructFieldGetter: No internal fields.");
         return;
     }
 
@@ -239,7 +239,7 @@ NAN_METHOD(StructFieldGetter) {
     GIFieldInfo *field = (GIFieldInfo *) GNodeJS::BoxedFromWrapper(fieldInfo);
 
     if (boxed == NULL) {
-        Nan::ThrowError("FieldGetter: accessing NULL boxed pointer");
+        Nan::ThrowError("StructFieldGetter: accessing NULL boxed pointer");
         return;
     }
 
@@ -274,10 +274,19 @@ NAN_METHOD(WrapperFromBoxed) {
 }
 
 NAN_METHOD(PointerToString) {
+    if (info[0]->ToObject()->InternalFieldCount() == 0) {
+        Nan::ThrowReferenceError("Object doesnt have any internal field.");
+        return;
+    }
     void *boxed = GNodeJS::BoxedFromWrapper(info[0]);
-    char *address = g_strdup_printf("%zu", (unsigned long)boxed);
+    char *address = g_strdup_printf("%#zx", (unsigned long)boxed);
     info.GetReturnValue().Set(UTF8(address));
     g_free(address);
+}
+
+NAN_METHOD(InternalFieldCount) {
+    Local<Object> obj = info[0].As<Object>();
+    RETURN(obj->InternalFieldCount());
 }
 
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
@@ -293,6 +302,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, ObjectPropertySetter);
     NAN_EXPORT(exports, StartLoop);
     NAN_EXPORT(exports, PointerToString);
+    NAN_EXPORT(exports, InternalFieldCount);
 }
 
 NODE_MODULE(gi, InitModule)
