@@ -11,16 +11,13 @@
 
 using v8::Array;
 using v8::Boolean;
-using v8::Exception;
 using v8::Integer;
-using v8::Isolate;
 using v8::Local;
 using v8::Number;
 using v8::Object;
 using v8::String;
 using v8::Value;
 using Nan::New;
-
 
 namespace GNodeJS {
 
@@ -84,7 +81,6 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
     case GI_TYPE_TAG_UTF8:
         if (arg->v_string)
             return New<String>(arg->v_string).ToLocalChecked();
-            //return String::NewFromUtf8 (isolate, (char *) arg->v_string);
         else
             return Nan::EmptyString();
 
@@ -101,7 +97,6 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
              * has methods, fields, properties, signals, interfaces, constants and virtual functions. */
             case GI_INFO_TYPE_OBJECT:
                 value = WrapperFromGObject((GObject *)arg->v_pointer);
-                //return WrapperFromBoxed (isolate, interface_info, arg->v_pointer);
                 break;
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
