@@ -652,7 +652,11 @@ Local<Value> GValueToV8(const GValue *gvalue) {
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         return New<Number>(g_value_get_double (gvalue));
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
-        return New<String>(g_value_get_string (gvalue)).ToLocalChecked();
+        auto str = g_value_get_string (gvalue);
+        if (str)
+            return New<String>(str).ToLocalChecked();
+        else
+            return Nan::EmptyString();
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return New<Integer>(g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
