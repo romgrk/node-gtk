@@ -75,7 +75,9 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
                 g_error_free(error);
                 return Nan::Null();
             }
-            return New<String>(data).ToLocalChecked();
+            auto str = New<String>(data).ToLocalChecked();
+            g_free(data);
+            return str;
         }
 
     case GI_TYPE_TAG_UTF8:
