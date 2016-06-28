@@ -5,27 +5,33 @@
 #include <node.h>
 #include <girepository.h>
 
-using v8::Local;
-using v8::Handle;
+#include "debug.h"
+
+using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
+using v8::Local;
+using v8::Number;
+using v8::Object;
+using v8::String;
 using v8::Value;
 
 namespace GNodeJS {
 
-/*class BoxedTemplate : public Nan::ObjectWrap {
-  public:
-    static Local<FunctionTemplate> New (GIBaseInfo *gi_info) ;
-    static Local<FunctionTemplate> Get (GType       g_type) ;
-    static Local<FunctionTemplate> Get (GIBaseInfo *gi_info) ;
+struct Boxed {
+    void       *data;
+    GIBaseInfo *info;
+};
 
-  private:
-    BoxedTemplate ();
-    ~BoxedTemplate ();
-};*/
+class BoxedContainer {
+public:
+    void                    *data;
+    GType                    g_type;
+    Nan::Persistent<Object> *persistent;
+};
 
+Local<Function>         MakeBoxedClass   (GIBaseInfo *info);
 Local<FunctionTemplate> GetBoxedTemplate (GIBaseInfo *info, GType gtype);
-Local<Function>         MakeBoxed        (GIBaseInfo *info);
 Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data);
 void *                  BoxedFromWrapper (Local<Value>);
 
