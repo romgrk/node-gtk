@@ -5,9 +5,6 @@
  * Distributed under terms of the MIT license.
  */
 
-#ifndef TYPE_H
-#define TYPE_H
-
 #pragma once
 
 #include <node.h>
@@ -18,14 +15,12 @@
 using v8::Function;
 using v8::FunctionTemplate;
 using v8::Local;
-using v8::Isolate;
 using v8::Value;
+using v8::WeakCallbackInfo;
 
 namespace GNodeJS {
 
-Local<Function> MakeClass (GIBaseInfo *info);
-void            ClassDestroyed (const v8::WeakCallbackInfo<GIBaseInfo> &info);
+void            ClassDestroyed (const WeakCallbackInfo<GIBaseInfo> &info);
 
 };
 
-#endif /* !TYPE_H */
