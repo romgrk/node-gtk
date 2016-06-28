@@ -16,11 +16,10 @@ using v8::Function;
 using v8::FunctionTemplate;
 using v8::Local;
 using v8::Value;
-using v8::WeakCallbackInfo;
 
 namespace GNodeJS {
 
-void            ClassDestroyed (const WeakCallbackInfo<GIBaseInfo> &info);
+void ClassDestroyed (const v8::WeakCallbackInfo<GIBaseInfo> &info);
 
 };
 
