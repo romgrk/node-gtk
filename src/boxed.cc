@@ -7,6 +7,7 @@
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
+#include "type.h"
 #include "util.h"
 #include "value.h"
 
@@ -263,7 +264,7 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
         auto *persistent = new v8::Persistent<FunctionTemplate>(isolate, tpl);
         persistent->SetWeak(
                 g_base_info_ref(info),
-                BoxedClassDestroyed,
+                GNodeJS::ClassDestroyed,
                 WeakCallbackType::kParameter);
 
         g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);

@@ -159,21 +159,6 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     g_object_unref (gobject);
 }
 
-static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &data) {
-    GIBaseInfo *info = data.GetParameter ();
-    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
-
-    void *type_data = g_type_get_qdata (gtype, GNodeJS::template_quark());
-
-    assert (type_data != NULL);
-
-    Persistent<FunctionTemplate> *persistent = (Persistent<FunctionTemplate> *) type_data;
-    delete persistent;
-
-    g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
-    g_base_info_unref (info);
-}
-
 
 static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &args, bool after) {
     Isolate *isolate = args.GetIsolate ();
@@ -261,7 +246,7 @@ static Local<FunctionTemplate> GetClassTemplate(GType gtype) {
         auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
         persistent->SetWeak (
                 g_base_info_ref (gi_info),
-                GObjectClassDestroyed,
+                GNodeJS::ClassDestroyed,
                 WeakCallbackType::kParameter);
 
         g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
