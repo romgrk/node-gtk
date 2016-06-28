@@ -1,31 +1,45 @@
 #ifndef GI_H
 #define GI_H
+
+#pragma once
+
 #include <node.h>
 #include <nan.h>
 #include <girepository.h>
 #include "boxed.h"
 
-#define N(type, prop, inst)   g_##type##_info_get_n_##prop (inst)
-
 #define UTF8(s)         Nan::New<v8::String> (s).ToLocalChecked()
 #define STRING(s)       Nan::New<v8::String> (s).ToLocalChecked()
-
 #define RETURN(s)       info.GetReturnValue().Set(s)
 
+using v8::Object;
+using v8::Local;
+using v8::Value;
+
 namespace  GNodeJS {
+
+// GQuark object_quark (void) ;
+// GQuark template_quark (void) ;
+// G_DEFINE_QUARK(gnode_js_object,   object);
+// G_DEFINE_QUARK(gnode_js_template, template);
 
 class BaseInfo {
 public:
     BaseInfo (GIBaseInfo *info) : _info(info) { };
-    BaseInfo (v8::Local<v8::Object> object) {
+    BaseInfo (Local<Value> value) {
+        Local<Object> object = value.As<Object>();
         _info = g_base_info_ref(
-                (GIBaseInfo *)GNodeJS::BoxedFromWrapper(object));
+                (GIBaseInfo *) GNodeJS::BoxedFromWrapper(object));
     };
     ~BaseInfo () {
         g_base_info_unref(_info);
     };
 
-    GIBaseInfo * info() {
+    inline GIBaseInfo * operator* () {
+        return _info;
+    }
+
+    inline GIBaseInfo * info() {
         return _info;
     }
 
@@ -40,6 +54,7 @@ public:
     inline const char* ns() {
         return g_base_info_get_namespace(_info);
     }
+
 private:
     GIBaseInfo * _info;
 };

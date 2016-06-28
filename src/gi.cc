@@ -136,9 +136,9 @@ NAN_METHOD(MakeObjectClass) {
 
 NAN_METHOD(MakeBoxedClass) {
     //Isolate *isolate = info.GetIsolate ();
-    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
+    BaseInfo gi_info(info[0]);
 
-    info.GetReturnValue().Set(GNodeJS::MakeBoxed(gi_info));
+    info.GetReturnValue().Set(GNodeJS::MakeBoxedClass(*gi_info));
 }
 
 NAN_METHOD(ObjectPropertyGetter) {
@@ -153,11 +153,10 @@ NAN_METHOD(ObjectPropertyGetter) {
 
     if (pspec == NULL) {
         WARN("ObjectPropertyGetter: no property %s", prop_name);
-        info.GetReturnValue().SetUndefined();
         return;
     }
 
-    GValue value = G_VALUE_INIT;
+    GValue value = {};
     g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
     g_object_get_property (gobject, prop_name, &value);
 
@@ -180,7 +179,7 @@ NAN_METHOD(ObjectPropertySetter) {
     }
 
     GValue value = {};
-    g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+    g_value_init(&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
     GNodeJS::V8ToGValue (&value, info[2]);
 
     g_object_set_property (gobject, prop_name, &value);
@@ -251,7 +250,7 @@ NAN_METHOD(StructFieldGetter) {
 
         RETURN(GNodeJS::GIArgumentToV8(field_type, &value));
 
-        GNodeJS::FreeGIArgument(field_type, &value);
+        // GNodeJS::FreeGIArgument(field_type, &value);
         g_base_info_unref (field_type);
     } else {
         DEBUG("StructFieldGetter: couldnt get field %s", g_base_info_get_name(field));
@@ -291,8 +290,8 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, GetConstantValue);
     NAN_EXPORT(exports, MakeBoxedClass);
     NAN_EXPORT(exports, MakeObjectClass);
-    NAN_EXPORT(exports, WrapperFromBoxed);
     NAN_EXPORT(exports, MakeFunction);
+    NAN_EXPORT(exports, WrapperFromBoxed);
     NAN_EXPORT(exports, StructFieldGetter);
     NAN_EXPORT(exports, StructFieldSetter);
     NAN_EXPORT(exports, ObjectPropertyGetter);
