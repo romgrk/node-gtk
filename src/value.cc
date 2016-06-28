@@ -229,7 +229,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, gpointer data) {
     int fixed_size         = g_type_info_get_array_fixed_size(type_info);
     bool zero_terminated   = g_type_info_is_zero_terminated(type_info);
     bool is_pointer_type   = g_type_info_is_pointer(type_info);
-    const char*   type_str = Util::arrayTypeToString(array_type);
+    const char*   type_str = Util::ArrayTypeToString(array_type);
 
     int length = 1000;
     size_t c_size;
@@ -486,7 +486,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
             //case GI_ARRAY_TYPE_PTR_ARRAY:
             //case GI_ARRAY_TYPE_BYTE_ARRAY:
             default:
-                printf("%s", Util::arrayTypeToString(array_type));
+                printf("%s", Util::ArrayTypeToString(array_type));
                 g_assert_not_reached ();
             }
         }
@@ -537,7 +537,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
         {
             GIArrayType array_type = g_type_info_get_array_type (type_info);
             g_warning("FreeGIArgument: %s freed; whatsup with elements?",
-                    Util::arrayTypeToString(array_type));
+                    Util::ArrayTypeToString(array_type));
             switch (array_type) {
             case GI_ARRAY_TYPE_C:
                 g_free (arg->v_pointer);
@@ -640,24 +640,24 @@ void V8ToGValue(GValue *gvalue, Local<Value> value) {
     }
 }
 
-Local<Value> GValueToV8(Isolate *isolate, const GValue *gvalue) {
+Local<Value> GValueToV8(const GValue *gvalue) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         if (g_value_get_boolean (gvalue))
-            return True (isolate);
+            return New<Boolean>(true);
         else
-            return False (isolate);
+            return New<Boolean>(false);
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
-        return Integer::New (isolate, g_value_get_int (gvalue));
+        return New<Integer>(g_value_get_int (gvalue));
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
-        return Integer::NewFromUnsigned (isolate, g_value_get_uint (gvalue));
+        return New<v8::Uint32>(g_value_get_uint (gvalue));
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
-        return Number::New (isolate, g_value_get_float (gvalue));
+        return New<Number>(g_value_get_float (gvalue));
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
-        return Number::New (isolate, g_value_get_double (gvalue));
+        return New<Number>(g_value_get_double (gvalue));
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
-        return String::NewFromUtf8 (isolate, g_value_get_string (gvalue));
+        return New<String>(g_value_get_string (gvalue)).ToLocalChecked();
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
-        return Integer::New (isolate, g_value_get_enum (gvalue));
+        return New<Integer>(g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
@@ -666,7 +666,6 @@ Local<Value> GValueToV8(Isolate *isolate, const GValue *gvalue) {
         GIBaseInfo *info = g_irepository_find_by_gtype(NULL, type);
         Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue));
         g_base_info_unref(info);
-
         return obj;
     } else {
         g_assert_not_reached ();
