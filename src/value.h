@@ -5,9 +5,6 @@
 #include <nan.h>
 #include <girepository.h>
 
-//#include "gi.h"
-
-using v8::Isolate;
 using v8::Value;
 using v8::Local;
 
