@@ -47,6 +47,10 @@ public:
         return g_base_info_get_type(_info);
     }
 
+    inline GITypeTag tag() {
+        return g_type_info_get_tag(_info);
+    }
+
     inline const char* name() {
         return g_base_info_get_name(_info);
     }
