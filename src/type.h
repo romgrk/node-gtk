@@ -19,7 +19,12 @@ using v8::Value;
 
 namespace GNodeJS {
 
+
 void ClassDestroyed (const v8::WeakCallbackInfo<GIBaseInfo> &info);
+
+
+gsize GetTypeSize    (GITypeInfo *type_info);
+gsize GetTypeTagSize (GITypeTag type_tag);
 
 };
 
