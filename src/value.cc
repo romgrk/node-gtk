@@ -108,7 +108,6 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
             case GI_INFO_TYPE_ENUM:
             case GI_INFO_TYPE_FLAGS:
                 value = New<Number>(arg->v_long);
-                //return Integer::New (arg->v_int);
                 break;
             default:
                 g_assert_not_reached ();
@@ -131,47 +130,6 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
         DEBUG("Tag: %s", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
     }
-}
-
-Local<Value> ListToV8 (GITypeInfo *info, gpointer p_list, GITransfer transfer = GI_TRANSFER_CONTAINER) {
-
-    if (p_list == NULL)
-        return New<Array>(0);
-
-    GITypeTag   list_type = g_type_info_get_tag(info);
-    GITypeInfo *elem_info = g_type_info_get_param_type(info, 0);
-
-    if (list_type == GI_TYPE_TAG_GLIST)
-        g_warning("ListToV8: GList!!");
-
-    g_assert(elem_info != NULL);
-
-    GIArgument arg;
-    Local<Array> obj = New<Array>();
-
-    int i = 0;
-    GSList *list = (GSList *) p_list;
-    while (list != NULL) {
-        arg.v_pointer = list->data;
-        //arg.v_pointer = ((GList *)list)->data;
-        list = list->next;
-        //list = ((GList *)list)->next;
-        Nan::Set(obj, i, GIArgumentToV8(elem_info, &arg));
-        i++;
-    };
-
-    g_base_info_unref(elem_info);
-
-    if (transfer == GI_TRANSFER_CONTAINER) {
-        if (list_type == GI_TYPE_TAG_GLIST)
-            g_list_free((GList *)p_list);
-        else if (list_type == GI_TYPE_TAG_GSLIST)
-            g_slist_free((GSList *)p_list);
-        else
-            g_assert_not_reached();
-    }
-
-    return obj;
 }
 
 Local<Value> GListToV8 (GITypeInfo *info, GList *glist) {
@@ -377,6 +335,7 @@ gpointer V8ToGList (Local<Value> value, GITypeInfo *type_info) {
     else
         list = g_slist_reverse((GSList *)list);
 
+    g_base_info_unref(elem_info);
     return list;
 }
 
@@ -535,6 +494,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
             GIArrayType array_type = g_type_info_get_array_type (type_info);
             g_warning("FreeGIArgument: %s freed; whatsup with elements?",
                     Util::ArrayTypeToString(array_type));
+
             switch (array_type) {
             case GI_ARRAY_TYPE_C:
                 g_free (arg->v_pointer);
