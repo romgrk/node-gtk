@@ -4,10 +4,11 @@
 #include "boxed.h"
 #include "gi.h"
 #include "gobject.h"
+#include "type.h"
 #include "util.h"
 #include "value.h"
-#include "debug.h"
 
+#include "debug.h"
 
 using v8::Array;
 using v8::Boolean;
