@@ -4,7 +4,6 @@
 #include "function.h"
 #include "value.h"
 #include "gobject.h"
-#include "gi.h"
 
 #include <girffi.h>
 
@@ -17,8 +16,8 @@ namespace GNodeJS {
 static void FillArgument(GIArgInfo *arg_info,
                          GIArgument *argument,
                          Local<Value> value) {
-    bool may_be_null = g_arg_info_may_be_null (arg_info);
     GITypeInfo type_info;
+    bool may_be_null = g_arg_info_may_be_null (arg_info);
     g_arg_info_load_type (arg_info, &type_info);
     V8ToGIArgument(&type_info, argument, value, may_be_null);
 }
@@ -39,12 +38,6 @@ static void AllocateArgument (GIBaseInfo *arg_info, GIArgument *argument) {
             size = g_struct_info_get_size((GIStructInfo*)i_info);
         } else if (i_type == GI_INFO_TYPE_UNION) {
             size = g_union_info_get_size((GIUnionInfo*)i_info);
-        } else if (i_type == GI_INFO_TYPE_INTERFACE) {
-            g_warning("Allocate: arg %s \t interface %s",
-                    g_base_info_get_name(arg_info),
-                    g_base_info_get_name(i_info));
-            size = g_struct_info_get_size(
-                    g_interface_info_get_iface_struct(i_info));
         } else {
             DEBUG("arg OUT && caller-allocates && not supported: %s",
                     g_type_tag_to_string(a_tag));
@@ -64,9 +57,7 @@ static void AllocateArgument (GIBaseInfo *arg_info, GIArgument *argument) {
 void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
     //Isolate   *isolate = args.GetIsolate();
     FunctionInfo *func = (FunctionInfo *) External::Cast (*args.Data ())->Value ();
-
-    GIBaseInfo *info = func->info;
-    GError *error = NULL;
+    GIBaseInfo *info = func->info; // do-not-free
 
     int n_callable_args = g_callable_info_get_n_args ((GICallableInfo *) info);
     int n_total_args = n_callable_args;
@@ -96,24 +87,28 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
     }
 
     if (args.Length() < n_in_args) {
-        Nan::ThrowTypeError(g_strdup_printf(
+        char *msg = g_strdup_printf(
             "Not enough arguments; expected %i, have %i",
-                n_in_args, args.Length()));
+            n_in_args, args.Length());
+        Nan::ThrowTypeError(msg);
+        g_free(msg);
         return;
     }
 
     GIFunctionInfoFlags flags = g_function_info_get_flags (info);
     gboolean is_method = ((flags & GI_FUNCTION_IS_METHOD) != 0 &&
                           (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
+    gboolean can_throw = g_callable_info_can_throw_gerror (info);
+
     if (is_method)
         n_total_args++;
 
-    gboolean can_throw = g_callable_info_can_throw_gerror (info);
     if (can_throw)
         n_total_args++;
 
     GIArgument total_arg_values[n_total_args];
     GIArgument *callable_arg_values;
+    GError *error = NULL;
 
     if (is_method) {
         GIBaseInfo *container = g_base_info_get_container (func->info);
@@ -123,7 +118,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
         callable_arg_values = &total_arg_values[0];
     }
 
-    int in_arg = 0, i = 0;
+    int in_arg = 0,
+        i = 0;
     for (; i < n_callable_args; i++) {
         if (call_parameters[i].type == Parameter::SKIP)
             continue;
@@ -147,10 +143,9 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
 
             if (call_parameters[i].type == Parameter::ARRAY) {
                 GITypeInfo type_info;
-                g_arg_info_load_type (&arg_info, &type_info);
-
-                int array_length_pos = g_type_info_get_array_length (&type_info);
                 GIArgInfo array_length_arg;
+                g_arg_info_load_type (&arg_info, &type_info);
+                int array_length_pos = g_type_info_get_array_length (&type_info);
                 g_callable_info_load_arg(info, array_length_pos, &array_length_arg);
 
                 int array_length;
@@ -164,11 +159,10 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
                 else
                     g_assert_not_reached();
 
-                Local<Value> array_length_value = New(array_length);
                 FillArgument(
                         &array_length_arg,
                         &callable_arg_values[array_length_pos],
-                        array_length_value);
+                        New(array_length));
             }
             in_arg++;
         }
@@ -195,10 +189,13 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
     GITypeTag  return_tag      = g_type_info_get_tag(&return_type);
     GITransfer return_transfer = g_callable_info_get_caller_owns(info);
 
-    //bool retValueLoaded = false;
     //FreeGIArgument(&return_type, &return_value);
     gboolean skip_return = g_callable_info_skip_return(info);
-    //gboolean may_return_null = g_callable_info_may_return_null(info);
+    // gboolean may_return_null = g_callable_info_may_return_null(info);
+
+    if (return_tag != GI_TYPE_TAG_VOID && (skip_return == FALSE))
+        n_out_args++;
+
     if (return_transfer == GI_TRANSFER_NOTHING) {
         //if (skip_return == FALSE)
             //g_warning("Return: (transfer none) (no-skip!) %s ",
@@ -207,13 +204,13 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
         //g_warning("Return: (transfer container) %s ",
                 //(may_return_null ? "(allow-none)" : ""));
     } else if (return_transfer == GI_TRANSFER_EVERYTHING) {
-        //g_warning("Return: (transfer full) %s ",
-            //(may_return_null ? "(allow-none)" : ""));
-        //if (!may_return_null)
+        // WARN("Return: (transfer full) %s ", g_type_tag_to_string(return_tag));
+        // g_warning(g_base_info_get_name(&return_type));
+        //if (!may_return_null)(may_return_null ? "(allow-none)" : ""),
     }
 
-    if (return_tag != GI_TYPE_TAG_VOID && (skip_return == FALSE))
-        n_out_args++;
+    if (n_out_args > 1)
+        WARN("FunctionInvoker: n_out_args == %i", n_out_args);
 
     for (int i = 0; i < n_callable_args; i++) {
         GIArgInfo  arg_info = {};
@@ -226,7 +223,6 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
         if (direction == GI_DIRECTION_OUT) { //|| direction == GI_DIRECTION_INOUT)
             args.GetReturnValue().Set(
                     GIArgumentToV8(&arg_type, &callable_arg_values[i]) );
-            //retValueLoaded = true;
         } else if (direction == GI_DIRECTION_INOUT) {
             // XXX is there something to do here?
             g_warning("INOUT: %s", g_base_info_get_name(&arg_info));
@@ -241,16 +237,20 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &args) {
         return;
     }
 
-    if (return_tag != GI_TYPE_TAG_VOID)
+    // FIXME handle more than 1 return value
+    if (return_tag != GI_TYPE_TAG_VOID) {
         args.GetReturnValue().Set(
                 GIArgumentToV8(&return_type, &return_value));
-
-    //if (return_transfer == GI_TRANSFER_CONTAINER)
-        //FreeGIArgument(&return_type, &return_value);
+        //if (return_transfer == GI_TRANSFER_CONTAINER)
+        FreeGIArgument(&return_type, &return_value);
+    }
 }
 
 void FunctionDestroyed(const v8::WeakCallbackInfo<FunctionInfo> &data) {
     FunctionInfo *func = data.GetParameter ();
+
+    WARN("FunctionDestroyed: %s", g_base_info_get_name(func->info));
+
     g_base_info_unref (func->info);
     g_function_invoker_destroy (&func->invoker);
     g_free (func);
@@ -258,8 +258,8 @@ void FunctionDestroyed(const v8::WeakCallbackInfo<FunctionInfo> &data) {
 
 NAN_METHOD(FunctionInfoToString) {
     //Isolate *isolate = info.GetIsolate();
-    FunctionInfo *func = (FunctionInfo *) External::Cast(*info.Holder());
-    GIFunctionInfo *fn = func->info;
+    FunctionInfo *func = (FunctionInfo *) External::Cast (*info.Data ())->Value ();
+    GIBaseInfo *fn = func->info; // do-not-free
     GString *args_string = g_string_new("");
 
     int n_args = g_callable_info_get_n_args(fn);
@@ -273,7 +273,7 @@ NAN_METHOD(FunctionInfoToString) {
     }
 
     gchar *args = g_string_free(args_string, FALSE);
-    gchar *string = g_strdup_printf("function %s (%s) {}",
+    gchar *string = g_strdup_printf("function %s (%s) { [GObject code] }",
             g_function_info_get_symbol(fn),
             args);
     Local<String> result = UTF8(string);
@@ -287,14 +287,22 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
     FunctionInfo *func = g_new0 (FunctionInfo, 1);
     func->info = g_base_info_ref (info);
     g_function_info_prep_invoker (func->info, &func->invoker, NULL);
-    auto tpl = New<FunctionTemplate>(FunctionInvoker, New<External>(func));
 
-    Local<Function> fn = tpl->GetFunction();
-    fn->SetName(
-        New(g_function_info_get_symbol(info)).ToLocalChecked());
+    auto external = New<External>(func);
+
+    int n_args = g_callable_info_get_n_args(info);
+    Local<String> name = New(g_function_info_get_symbol(info)).ToLocalChecked();
+    Local<Function> toString = New<FunctionTemplate>(FunctionInfoToString, external)->GetFunction();
+
+    auto tpl = New<FunctionTemplate>(FunctionInvoker, external);
+    tpl->SetLength(n_args);
+
+    auto fn = tpl->GetFunction();
+    fn->SetName(name);
+    fn->Set(UTF8("toString"), toString);
 
     Isolate *isolate = Isolate::GetCurrent();
-    v8::Persistent<v8::FunctionTemplate> persistent(isolate, tpl);
+    Persistent<FunctionTemplate> persistent(isolate, tpl);
     persistent.SetWeak(func, FunctionDestroyed, WeakCallbackType::kParameter);
 
     return fn;
