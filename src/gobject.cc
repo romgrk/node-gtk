@@ -189,6 +189,22 @@ NAN_METHOD(SignalConnect) {
     SignalConnectInternal(info, false);
 }
 
+static void GObjectToString(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+    Local<Object> self = info.This();
+    GObject* g_object = GNodeJS::GObjectFromWrapper(self);
+    GType type = G_OBJECT_TYPE (g_object);
+
+    const char* typeName = g_type_name(type);
+    char *className = *String::Utf8Value(self->GetConstructorName());
+    void *address = self->GetAlignedPointerFromInternalField(0);
+
+    char *str = g_strdup_printf(
+            "[%s:%s %#zx]", typeName, className, (unsigned long)address);
+
+    info.GetReturnValue().Set(UTF8(str));
+    g_free(str);
+}
+
 
 static Local<FunctionTemplate> GetBaseClassTemplate() {
     static int count = 0;
