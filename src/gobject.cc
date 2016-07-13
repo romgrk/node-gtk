@@ -91,8 +91,8 @@ static void AssociateGObject(Isolate *isolate, Local<Object> object, GObject *go
     g_object_set_qdata (gobject, GNodeJS::object_quark(), persistent);
 }
 
-static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
-    Isolate *isolate = args.GetIsolate ();
+static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
+    Isolate *isolate = info.GetIsolate ();
 
     /* The flow of this function is a bit twisty.
 
@@ -101,33 +101,31 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
      * internal code as part of WrapperFromGObject, where
      * the constructor is called with one external. */
 
-    if (!args.IsConstructCall ()) {
+    if (!info.IsConstructCall ()) {
         Nan::ThrowTypeError("Not a construct call.");
         return;
     }
 
-    Local<Object> self = args.This ();
+    Local<Object> self = info.This ();
 
-    if (args[0]->IsExternal ()) {
+    if (info[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromGObject is called. */
-
-        void *data = External::Cast (*args[0])->Value ();
+        void *data = External::Cast (*info[0])->Value ();
         GObject *gobject = G_OBJECT (data);
-
         AssociateGObject (isolate, self, gobject);
     } else {
         /* User code calling `new Gtk.Widget({ ... })` */
 
         GObject *gobject;
-        GIBaseInfo *info = (GIBaseInfo *) External::Cast (*args.Data ())->Value ();
-        GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
+        GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*info.Data ())->Value ();
+        GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
         void *klass = g_type_class_ref (gtype);
 
         GParameter *parameters = NULL;
         int n_parameters = 0;
 
-        if (args[0]->IsObject ()) {
-            Local<Object> property_hash = args[0]->ToObject ();
+        if (info[0]->IsObject ()) {
+            Local<Object> property_hash = info[0]->ToObject ();
 
             if (!InitGParametersFromProperty (&parameters, &n_parameters, klass, property_hash)) {
                 Nan::ThrowError("GObjectConstructor: Unable to make GParameters.");
