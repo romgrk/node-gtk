@@ -515,14 +515,18 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
         }
         break;
 
-    case GI_TYPE_TAG_GLIST:
-        g_warning("FreeGIArgument: unhandled GList");
-        //g_list_free((GList *)arg->v_pointer);
+    case GI_TYPE_TAG_GLIST: {
+        if (transfer == GI_TRANSFER_EVERYTHING)
+            g_warning("FreeArgument: unhandled GList");
+        g_list_free((GList *)arg->v_pointer);
         break;
-    case GI_TYPE_TAG_GSLIST:
-        g_warning("FreeGIArgument: unhandled GSList");
-        //g_slist_free((GSList *)arg->v_pointer);
+    }
+    case GI_TYPE_TAG_GSLIST: {
+        if (transfer == GI_TRANSFER_EVERYTHING)
+            g_warning("FreeArgument: unhandled GSList");
+        g_slist_free((GSList *)arg->v_pointer);
         break;
+    }
 
     // FIXME FIXME FIXME
     case GI_TYPE_TAG_INTERFACE: // an extended interface object
