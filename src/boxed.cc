@@ -163,11 +163,12 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     if (G_TYPE_IS_BOXED(box->g_type)) {
         g_boxed_free(box->g_type, box->data);
     } else {
-        DEBUG("BoxedDestroyed: not a boxed %zu", box->g_type);
+        //
         if (box->size != 0)
             g_slice_free1(box->size, box->data);
-        else
-            WARN("NOT FREED %#zx", (ulong)box->data);
+        //else
+        //DEBUG("BoxedDestroyed: not a boxed %zu", box->g_type);
+        //WARN("NOT FREED %#zx", (ulong)box->data);
     }
 
     delete box->persistent;

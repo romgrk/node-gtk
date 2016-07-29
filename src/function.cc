@@ -46,7 +46,7 @@ static void* AllocateArgument (GIBaseInfo *arg_info) {
     size = Boxed::GetSize (base_info);
     pointer = g_slice_alloc0 (size);
 
-    LOG("Allocated: %s", g_base_info_get_name(base_info));
+    //LOG("Allocated: %s", g_base_info_get_name(base_info));
 
     g_base_info_unref(base_info);
     return pointer;
@@ -90,15 +90,15 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         g_callable_info_load_arg ((GICallableInfo *) gi_info, i, &arg_info);
         g_arg_info_load_type (&arg_info, &type_info);
 
-        D("arg: %s", g_base_info_get_name(&arg_info))
+        //D("arg: %s", g_base_info_get_name(&arg_info))
 
         int len_idx = g_type_info_get_array_length (&type_info);
         if (len_idx >= 0) {
             call_parameters[i].type = Parameter::ARRAY;
             call_parameters[len_idx].type = Parameter::SKIP;
 
-            D("i: %i", i)
-            D("len_idx: %i", len_idx)
+            //D("i: %i", i)
+            //D("len_idx: %i", len_idx)
 
             if (IS_IN(&arg_info) && len_idx < i) {
                 n_in_args--;
@@ -110,7 +110,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
         if IS_IN(&arg_info) {
             n_in_args++;
-            D("n_in_args++: %i", n_in_args)
+            //D("n_in_args++: %i", n_in_args)
         }
     }
 
@@ -185,8 +185,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 Parameter len_param = call_parameters[len_idx];
                 len_param.value = GetV8ArrayLength(info[in_arg]);
 
-                D("---- array_length: %i", len_param.value)
-                D("in_arg: %i", in_arg)
+                //D("---- array_length: %i", len_param.value)
+                //D("in_arg: %i", in_arg)
 
                 // if IS_POINTER(&array_length_type)
                     // callable_arg_values[len_idx].v_pointer = &len_param.value;
@@ -195,15 +195,15 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
             }
 
             if (direction == GI_DIRECTION_INOUT) {
-                D("FunctionInvoker: arg INOUT: %s ", g_base_info_get_name(&arg_info))
-                D("Value: %s", json_stringify(info[in_arg]))
+                //D("FunctionInvoker: arg INOUT: %s ", g_base_info_get_name(&arg_info))
+                //D("Value: %s", json_stringify(info[in_arg]))
             }
 
             in_arg++;
         }
     }
 
-    D("n_out_args == %i", n_out_args);
+    //D("n_out_args == %i", n_out_args);
 
     if (can_throw)
         callable_arg_values[i].v_pointer = &error;
@@ -230,9 +230,9 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     if (n_out_args > 1)
         WARN("FunctionInvoker: n_out_args == %i", n_out_args);
 
-    D("-- for i in n_callable_args %i", n_callable_args)
+    //D("-- for i in n_callable_args %i", n_callable_args)
     for (int i = 0; i < n_callable_args; i++) {
-        D("i: %i", i)
+        //D("i: %i", i)
         GIArgInfo  arg_info = {};
         GITypeInfo arg_type;
         GIArgument arg_value = callable_arg_values[i];
@@ -249,35 +249,35 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         if (direction == GI_DIRECTION_OUT
                 || direction == GI_DIRECTION_INOUT) {
 
-            D("IN || INOUT \tparam = %i", param.type)
+            //D("IN || INOUT \tparam = %i", param.type)
 
             if (param.type == Parameter::ARRAY) {
                 int length;
                 int length_pos = g_type_info_get_array_length(&arg_type);
 
-                D("length_pos: %i", length_pos)
+                //D("length_pos: %i", length_pos)
 
                 // if (g_type_info_is_pointer(&arg_type))
                     // length = *((int*)callable_arg_values[length_pos].v_pointer);
                 // else
                 length = callable_arg_values[length_pos].v_int;
 
-                D("length: %i", length)
+                //D("length: %i", length)
 
                 void* array_pointer = arg_value.v_pointer;
                 Local<Value> result;
                 if (array_pointer == nullptr || length == 0) {
-                    D("array_pointer == null, %i", length)
+                    //D("array_pointer == null, %i", length)
                     result = ArrayToV8(&arg_type, NULL, length);
                     is_null = true;
                 } else {
-                    D("array_pointer == %#zx", (ulong)array_pointer)
+                    //D("array_pointer == %#zx", (ulong)array_pointer)
                     result = ArrayToV8(&arg_type, &array_pointer, length);
                 }
 
-                DEBUG("Return: out-array: %s", g_base_info_get_name(&arg_info));
-                D("Array val: %s", json_stringify(result.As<Array>()))
-                D("Array len: %i", length)
+                //DEBUG("Return: out-array: %s", g_base_info_get_name(&arg_info));
+                //D("Array val: %s", json_stringify(result.As<Array>()))
+                //D("Array len: %i", length)
 
                 info.GetReturnValue().Set(result);
 
@@ -291,17 +291,17 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
             // LOG("Return: skipped %s", g_base_info_get_name(&arg_info));
 
             if (transfer != GI_TRANSFER_NOTHING && !is_null) {
-                D("Freeing; transfer %s", (transfer == GI_TRANSFER_EVERYTHING ? "EVERYTHING" : "CONTAINER"))
+                //D("Freeing; transfer %s", (transfer == GI_TRANSFER_EVERYTHING ? "EVERYTHING" : "CONTAINER"))
                 FreeGIArgument (&arg_type, &arg_value, transfer);
             }
 
         } else {
-            D("Return: not out %s", g_base_info_get_name(&arg_info));
+            //D("Return: not out %s", g_base_info_get_name(&arg_info));
         }
 
         // XXX is there something to do here?
         if (direction == GI_DIRECTION_INOUT) {
-            D("INOUT: %s", g_base_info_get_name(&arg_info))
+            //D("INOUT: %s", g_base_info_get_name(&arg_info))
         }
     }
 
@@ -312,7 +312,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         int length_pos = g_type_info_get_array_length(&return_type);
         if (length_pos >= 0)
             length = callable_arg_values[length_pos].v_int;
-        D("Returning return_value, length = %i", length)
+        //D("Returning return_value, length = %i", length)
         RETURN (GIArgumentToV8 (&return_type, &return_value, length));
     }
 

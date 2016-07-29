@@ -3,14 +3,6 @@
 
 #include <girepository.h>
 
-//#define SUCCESS(s) printf("\x1b[1;38;5;46m%s\x1b[0m\n", s)
-#define SUCCESS(f,s) \
-    do { \
-        printf("\x1b[1;38;5;46m"); \
-        printf(f, s); \
-        printf("\x1b[0m\n"); } \
-    while (0)
-
 //#define LOG(s) printf("\x1b[1;38;5;33m%s\x1b[0m\n", s)
 #define LOG(f,s) \
     do { \
@@ -27,15 +19,13 @@
         printf("\x1b[0m\n"); } \
     while (0)
 
-#ifdef DEBUG
-#undef DEBUG
-#endif
 #define DEBUG(f,s) \
     do { \
         printf("\x1b[1;93m"); \
         printf(f, s); \
         printf("\x1b[0m\n"); } \
     while (0)
+
 
 namespace GNodeJS {
 

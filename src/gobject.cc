@@ -218,7 +218,6 @@ static void GObjectToString(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 
 static Local<FunctionTemplate> GetBaseClassTemplate() {
     static int count = 0;
-    g_warning("GetBaseClassTemplate called (%i)", count);
     count++;
     auto tpl = New<FunctionTemplate>();
     Nan::SetPrototypeMethod(tpl, "on", SignalConnect);

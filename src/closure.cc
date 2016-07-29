@@ -43,7 +43,7 @@ void Closure::Marshal(GClosure *base,
     #endif
 
     for (uint i = 0; i < argc; i++)
-        argv[i] = GValueToV8 (isolate, &g_argv[i]);
+        argv[i] = GValueToV8(&g_argv[i]);
 
     Local<Object> this_obj = func;
     Local<Value> return_value;

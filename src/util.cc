@@ -20,14 +20,14 @@ static const GRegex *camel_regex = g_regex_new("([_\\W]+)([a-zA-Z0-9]+)", COMPIL
 
 const char* ArrayTypeToString (GIArrayType array_type) {
     switch (array_type) {
-        case GI_ARRAY_TYPE_C:
-            return "C-array";
-        case GI_ARRAY_TYPE_ARRAY:
-            return "GArray";
-        case GI_ARRAY_TYPE_PTR_ARRAY:
-            return "GPtrArray";
-        case GI_ARRAY_TYPE_BYTE_ARRAY:
-            return "GByteArray";
+    case GI_ARRAY_TYPE_C:
+        return "C-array";
+    case GI_ARRAY_TYPE_ARRAY:
+        return "GArray";
+    case GI_ARRAY_TYPE_PTR_ARRAY:
+        return "GPtrArray";
+    case GI_ARRAY_TYPE_BYTE_ARRAY:
+        return "GByteArray";
     }
     g_assert_not_reached();
 }
