@@ -11,7 +11,7 @@ ngtk.startLoop();
 
   // necessary to initialize the graphic environment
   // if this fails it means the host cannot show GTK3
-  Gtk.init(null);
+  Gtk.init(null, 0);
 
   const
     // main program window
@@ -46,6 +46,7 @@ ngtk.startLoop();
     // gtkSettings.gtkApplicationPreferDarkTheme = true;
     // gtkSettings.gtkThemeName = 'Adwaita';
   }
+
   webSettings.enableDeveloperExtras = true;
   webSettings.enableCaretBrowsing = true;
   console.log('webSettings: ', webSettings);
@@ -116,6 +117,6 @@ ngtk.startLoop();
   }
 
 }(
-  ngtk.importNS('Gtk', '3.0'),
-  ngtk.importNS('WebKit2')
+  ngtk.require('Gtk', '3.0'),
+  ngtk.require('WebKit2')
 ));

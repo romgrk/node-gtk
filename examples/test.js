@@ -2,17 +2,17 @@
 const GNode = require('../lib/');
 GNode.startLoop();
 
-const GLib = GNode.importNS("GLib");
+const GLib = GNode.require("GLib");
 console.log(GLib.ascii_strup("foo", -1));
 
-const GUdev = GNode.importNS("GUdev");
+const GUdev = GNode.require("GUdev");
 var client = new GUdev.Client();
 var obj = client.query_by_device_file("/dev/dri/card0");
 console.log(obj.get_name());
 
 console.log(GLib.test_override());
 
-const Gtk = GNode.importNS("Gtk");
+const Gtk = GNode.require("Gtk");
 Gtk.init(null);
 
 var w = new Gtk.Window();

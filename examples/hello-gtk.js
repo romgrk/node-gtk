@@ -2,7 +2,7 @@
 
 var
   GNode = require('../lib/'),
-  Gtk = GNode.importNS('Gtk'),
+  Gtk = GNode.require('Gtk'),
   settings,
   win
 ;
