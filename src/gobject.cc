@@ -4,6 +4,7 @@
 #include "closure.h"
 #include "gi.h"
 #include "gobject.h"
+#include "type.h"
 #include "util.h"
 #include "value.h"
 
@@ -23,6 +24,7 @@ using Nan::WeakCallbackType;
 namespace GNodeJS {
 
 static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data);
+
 static Local<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info);
 
 static bool InitGParameterFromProperty(GParameter    *parameter,
@@ -51,11 +53,11 @@ static bool InitGParametersFromProperty(GParameter    **parameters_p,
     GParameter *parameters = g_new0 (GParameter, n_parameters);
 
     for (int i = 0; i < n_parameters; i++) {
-        Local<Value> name = properties->Get (i);
+        Local<String> name = properties->Get(i)->ToString();
         Local<Value> value = property_hash->Get (name);
 
         if (!InitGParameterFromProperty (&parameters[i], klass, name->ToString (), value))
-            return false;
+            g_warning("Couldn't initiate GParameter for property %s", *Nan::Utf8String(name));
     }
 
     *parameters_p = parameters;
@@ -146,7 +148,6 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     GObject *gobject = data.GetParameter ();
 
     void *type_data = g_object_get_qdata (gobject, GNodeJS::object_quark());
-    assert (type_data != NULL);
     Persistent<Object> *persistent = (Persistent<Object> *) type_data;
     delete persistent;
 
@@ -172,14 +173,25 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &ar
         return;
     }
 
-    String::Utf8Value signal_name (args[0]->ToString ());
     Local<Function> callback = args[1].As<Function>();
-
     GClosure *gclosure = MakeClosure (isolate, callback);
+
+    ulong handler_id;
+    if (args[0]->IsString()) {
+        String::Utf8Value signal_name (args[0]->ToString ());
+        handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
+    } else {
+        guint signal_id = args[0].As<v8::Uint32>()->Value();
+        GQuark detail = 0;
+        handler_id = g_signal_connect_closure_by_id (gobject, signal_id, detail, gclosure, after);
+    }
 
     // TODO return some sort of cancellation handle?
     // e.g.: return { disposable: function () {...}, signal_id: ID };
-    ulong handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
+    //
+    // auto fn = [&](const Nan::FunctionCallbackInfo<Value>&info) { g_signal_handler_disconnect(gobject, handler_id); };
+    // Local<Function> dispose = Nan::New<FunctionTemplate>(fn)->GetFunction();
+
     args.GetReturnValue().Set((double)handler_id);
 }
 
@@ -208,15 +220,11 @@ static Local<FunctionTemplate> GetBaseClassTemplate() {
     static int count = 0;
     g_warning("GetBaseClassTemplate called (%i)", count);
     count++;
-    auto tpl = New<FunctionTemplate> ();
+    auto tpl = New<FunctionTemplate>();
     Nan::SetPrototypeMethod(tpl, "on", SignalConnect);
     Nan::SetPrototypeMethod(tpl, "connect", SignalConnect);
     Nan::SetPrototypeMethod(tpl, "addEventListener", SignalConnect);
-    Nan::SetPrototypeMethod(tpl, "toString",
-            [](const Nan::FunctionCallbackInfo<v8::Value>& info) -> void {
-                char *str = *String::Utf8Value(info.This()->GetConstructorName());
-                info.GetReturnValue().Set(UTF8(str));
-            });
+    Nan::SetPrototypeMethod(tpl, "toString", GObjectToString);
     return tpl;
 }
 
@@ -228,7 +236,6 @@ static Local<FunctionTemplate> NewClassTemplate (GIBaseInfo *info) {
     const char *class_name = g_type_name (gtype);
 
     auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External> (info));
-    //tpl->Set (UTF8("gtype"), New((double)gtype));
     Nan::SetTemplate(tpl, "gtype", New((double)gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -245,7 +252,6 @@ static Local<FunctionTemplate> NewClassTemplate (GIBaseInfo *info) {
 }
 
 static Local<FunctionTemplate> GetClassTemplate(GType gtype) {
-    // GIBaseInfo *info,
     void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
 
     if (data) {
@@ -298,7 +304,7 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
         Local<Function> constructor = tpl->GetFunction ();
         Local<Value> gobject_external = New<External> (gobject);
         Local<Value> args[] = { gobject_external };
-        Local<Object> obj = constructor->NewInstance (1, args);
+        Local<Object> obj = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
 
         return obj;
     }
