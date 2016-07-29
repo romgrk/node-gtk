@@ -192,11 +192,11 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
             {
                 if (is_zero_terminated) {
                     length = g_strv_length ((gchar **)data);
-                    DEBUG("(zero) length: %i", length);
-                    DEBUG("(zero) elem-size: %li", elem_size);
+                    //DEBUG("(zero) length: %i", length);
+                    //DEBUG("(zero) elem-size: %li", elem_size);
                 } else {
                     length = g_type_info_get_array_fixed_size (type_info);
-                    DEBUG("(non-zero) length: %i", length);
+                    //DEBUG("(non-zero) length: %i", length);
                     if (G_UNLIKELY (length == -1)) {
                         g_critical ("Unable to determine array length for %p",
                                 data);
@@ -214,7 +214,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
                 GArray *g_array = (GArray*) data;
                 data = g_array->data;
                 length = g_array->len;
-                DEBUG("(g(byte)array) length: %i", length);
+                //DEBUG("(g(byte)array) length: %i", length);
                 break;
             }
         case GI_ARRAY_TYPE_PTR_ARRAY:
@@ -222,7 +222,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
                 GPtrArray *ptr_array = (GPtrArray*) data;
                 data = ptr_array->pdata;
                 length = ptr_array->len;
-                DEBUG("(gptrarray) length: %i", length);
+                //DEBUG("(gptrarray) length: %i", length);
                 elem_size = sizeof(gpointer);
                 break;
             }
