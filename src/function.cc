@@ -286,7 +286,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
                 info.GetReturnValue().Set(
                         GIArgumentToV8(&arg_type, &arg_value) );
-                LOG("Return: out-arg: %s", g_base_info_get_name(&arg_info));
+                //LOG("Return: out-arg: %s", g_base_info_get_name(&arg_info));
             }
             // LOG("Return: skipped %s", g_base_info_get_name(&arg_info));
 
