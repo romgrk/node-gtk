@@ -6,7 +6,12 @@
 #include <girepository.h>
 #include <girffi.h>
 
+#include "gi.h"
+
+using v8::Function;
 using v8::Local;
+using v8::String;
+using Nan::FunctionCallbackInfo;
 using Nan::WeakCallbackInfo;
 
 namespace GNodeJS {
@@ -20,14 +25,16 @@ struct Parameter {
     enum {
         NORMAL, ARRAY, SKIP,
     } type;
+
+    int value;
 };
 
-NAN_METHOD(FunctionInvoker) ;
+void            FunctionInvoker (const FunctionCallbackInfo<Value> &info);
 
-void FunctionDestroyed(const WeakCallbackInfo<FunctionInfo> &data) ;
+void            FunctionDestroyed (const WeakCallbackInfo<FunctionInfo> &data);
 
-Local<v8::Function> MakeFunction(GIBaseInfo *base_info);
+Local<Function> MakeFunction (GIBaseInfo *base_info);
 
-Local<v8::String>   FunctionToString(GIFunctionInfo *func_info);
+Local<String>   FunctionToString (GIFunctionInfo *func_info);
 
 };
