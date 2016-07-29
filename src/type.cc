@@ -48,7 +48,6 @@ gsize GetTypeSize (GITypeInfo *type_info) {
         case GI_TYPE_TAG_GTYPE:
         case GI_TYPE_TAG_UNICHAR:
             size = GetTypeTagSize (type_tag);
-            g_assert (size > 0);
             break;
         case GI_TYPE_TAG_INTERFACE:
         {
@@ -117,9 +116,11 @@ gsize GetTypeSize (GITypeInfo *type_info) {
         case GI_TYPE_TAG_GSLIST:
         case GI_TYPE_TAG_GHASH:
         case GI_TYPE_TAG_ERROR:
-            size = sizeof (gpointer);
+            size = sizeof(void*);
             break;
     }
+
+    g_assert (size > 0);
 
     return size;
 }
