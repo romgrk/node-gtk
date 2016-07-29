@@ -5,10 +5,15 @@
   "main": "lib/index.js",
   "scripts": {
     "install": "if [ \"$(uname)\" = \"Darwin\" ] && [ \"$(which brew)\" != \"\" ]; then export PKG_CONFIG_PATH=$(brew --prefix libffi)/lib/pkgconfig; fi; node-pre-gyp install --fallback-to-build",
+
     "test": "npm run build && node -r ./test/index.es",
     "test-js": "npm run build-js && npm run test",
-    "inspect": "node -r ./test/inspect.js",
-    "build-js": "traceur --modules commonjs --source-maps inline --out test/index.js test/index.es",
+
+    "mocha": "mocha test/function_call.js",
+    "mocha-watch": "nodemon -w build/Debug/node-gtk.node -w test/ --exec 'mocha test/function_call.js -w'",
+
+    "inspect": "node -r ./lib/inspect.js",
+
     "build": "node-gyp build",
     "rebuild": "node-gyp rebuild"
   },
@@ -32,16 +37,20 @@
   "homepage": "https://github.com/WebReflection/node-gtk#readme",
   "dependencies": {
     "lodash": "4.11.1",
-    "nan": "2.2.1",
+    "nan": "2.3.5",
     "node-gyp": "3.3.1",
     "node-inspector": "0.12.8",
     "node-pre-gyp": "0.6.27",
-    "node-pre-gyp-github": "^1.x"
+    "node-pre-gyp-github": "1.3.1"
   },
   "binary": {
     "module_name": "node-gtk",
     "module_path": "./build/{configuration}/{node_abi}-{platform}-{arch}/",
     "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
     "host": "https://github.com/WebReflection/node-gtk/releases/download/0.0.16"
+  },
+  "devDependencies": {
+    "chai": "3.5.0",
+    "mocha": "2.5.3"
   }
 }
