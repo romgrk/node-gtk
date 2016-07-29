@@ -1,7 +1,10 @@
 
 //#include <node.h>
 //#include <nan.h>
+#include <glib.h>
+
 #include "boxed.h"
+#include "function.h"
 #include "gi.h"
 #include "gobject.h"
 #include "type.h"
@@ -22,7 +25,7 @@ using Nan::New;
 
 namespace GNodeJS {
 
-Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
+Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
@@ -119,7 +122,7 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg) {
         }
 
     case GI_TYPE_TAG_ARRAY:
-        return ArrayToV8(type_info, arg->v_pointer);
+        return ArrayToV8(type_info, arg->v_pointer, length);
 
     case GI_TYPE_TAG_GLIST:
         return GListToV8(type_info, (GList *)arg->v_pointer);
@@ -145,7 +148,7 @@ Local<Value> GListToV8 (GITypeInfo *info, GList *glist) {
     for (; glist != NULL; glist = glist->next) {
         arg.v_pointer = glist->data;
         Nan::Set(array, i, GIArgumentToV8(param_info, &arg));
-        ++i;
+        i++;
     }
 
     g_base_info_unref(param_info);
@@ -163,84 +166,97 @@ Local<Value> GSListToV8 (GITypeInfo *info, GSList *list) {
     for (; list != NULL; list = list->next) {
         arg.v_pointer = list->data;
         Nan::Set(array, i, GIArgumentToV8(param_info, &arg));
-        ++i;
+        i++;
     }
 
     g_base_info_unref(param_info);
     return array;
 }
 
-Local<Value> ArrayToV8 (GITypeInfo *type_info, gpointer data) {
-    if (data == NULL)
-        return New<Array>(0);
+Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
 
-    //GIInfoType info_type = g_base_info_get_type(type_info);
-    GIArrayType array_type = g_type_info_get_array_type(type_info);
-    GITypeInfo *param_type = g_type_info_get_param_type(type_info, 0);
-    GITypeTag   param_tag  = g_type_info_get_tag(param_type);
+    auto array = New<Array>();
 
-    //Local<Object> array = ;
-    Local<Object> obj = New<Array>();
+    if (data == nullptr || length == 0)
+        return array;
 
-    int fixed_size         = g_type_info_get_array_fixed_size(type_info);
-    bool zero_terminated   = g_type_info_is_zero_terminated(type_info);
-    bool is_pointer_type   = g_type_info_is_pointer(type_info);
-    const char*   type_str = Util::ArrayTypeToString(array_type);
+    auto array_type = g_type_info_get_array_type (type_info);
+    auto* elem_type_info = g_type_info_get_param_type (type_info, 0);
+    auto  elem_size = GetTypeSize (elem_type_info);
+    auto is_zero_terminated = g_type_info_is_zero_terminated (type_info);
 
-    int length = 1000;
-    size_t c_size;
-    gpointer *c_array;
+    GIArgument value;
+
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
-            c_size = sizeof(gpointer); // XXX WRONG!!!!!
-            c_array = (gpointer *) data; // XXX CHECK TYPE!
-            break;
-        case GI_ARRAY_TYPE_ARRAY: {
-            length = ((GArray *)data)->len;
-            c_size = g_array_get_element_size((GArray *)data);
-            c_array = (gpointer *)((GArray *) data)->data;
-            break;
-        }
-        case GI_ARRAY_TYPE_PTR_ARRAY: {
-            length = ((GPtrArray *)data)->len;
-            c_array = (gpointer *)((GPtrArray *) data)->pdata;
-            c_size = sizeof(gpointer);
-            break;
-        }
-        case GI_ARRAY_TYPE_BYTE_ARRAY: {
-            length = ((GByteArray *)data)->len;
-            c_array = (gpointer *)((GByteArray *) data)->data;
-            c_size = sizeof(guint8);
-            break;
-        }
+            {
+                if (is_zero_terminated) {
+                    length = g_strv_length ((gchar **)data);
+                    DEBUG("(zero) length: %i", length);
+                    DEBUG("(zero) elem-size: %li", elem_size);
+                } else {
+                    length = g_type_info_get_array_fixed_size (type_info);
+                    DEBUG("(non-zero) length: %i", length);
+                    if (G_UNLIKELY (length == -1)) {
+                        g_critical ("Unable to determine array length for %p",
+                                data);
+                        length = 0;
+                        break;
+                    }
+                }
+                g_assert (length >= 0);
+                break;
+            }
+        case GI_ARRAY_TYPE_ARRAY:
+        case GI_ARRAY_TYPE_BYTE_ARRAY:
+            {
+                /* Note: GByteArray is really just a GArray */
+                GArray *g_array = (GArray*) data;
+                data = g_array->data;
+                length = g_array->len;
+                DEBUG("(g(byte)array) length: %i", length);
+                break;
+            }
+        case GI_ARRAY_TYPE_PTR_ARRAY:
+            {
+                GPtrArray *ptr_array = (GPtrArray*) data;
+                data = ptr_array->pdata;
+                length = ptr_array->len;
+                DEBUG("(gptrarray) length: %i", length);
+                elem_size = sizeof(gpointer);
+                break;
+            }
         default:
-            g_assert_not_reached();
+            g_critical ("Unexpected array type %u",
+                    g_type_info_get_array_type (type_info));
+            break;
     }
 
-    Nan::Set(obj, UTF8("fixed_size"),      New<Integer>(fixed_size));
-    Nan::Set(obj, UTF8("c_size"),          New(static_cast<uint32_t>(c_size)));
-    Nan::Set(obj, UTF8("type_string"),     New<String>(type_str).ToLocalChecked());
-    Nan::Set(obj, UTF8("param_tag"),       UTF8(g_type_tag_to_string(param_tag)));
-    Nan::Set(obj, UTF8("zero_terminated"), New<Boolean>(zero_terminated));
-    Nan::Set(obj, UTF8("pointer_type"),    New<Boolean>(is_pointer_type));
+    if (data == nullptr || length == 0)
+        goto out;
 
-    int i = 0;
-    GIArgument value;
-    while (i < length && c_array[i] != NULL) {
-        value.v_pointer = c_array[i];
-        Nan::Set(obj, i, GIArgumentToV8(param_type, &value));
-        i++;
+    if (is_zero_terminated) {
+        char** val = (char **)data;
+        for (int i = 0; i < length && (val[0] != NULL); i++) {
+            value.v_pointer = val[0];
+            Nan::Set(array, i, GIArgumentToV8(elem_type_info, &value));
+            val += elem_size / 8;
+        }
+    } else {
+        for (int i = 0; i < length; i++) {
+            value.v_pointer = (char *)data + ((elem_size/8) * i);
+            Nan::Set(array, i, GIArgumentToV8(elem_type_info, &value));
+        }
     }
 
-    g_base_info_unref(param_type);
-    return obj;
+out:
+    g_base_info_unref(elem_type_info);
+    return array;
 }
 
-
 GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
+    GArray* g_array = NULL;
     bool zero_terminated = g_type_info_is_zero_terminated(type_info);
-
-    GArray *g_array = NULL;
 
     if (value->IsString()) {
         Local<String> string = value->ToString();
@@ -254,27 +270,29 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
         return g_array_append_vals(g_array, utf8_data, length);
 
     } else if (value->IsArray ()) {
-        Local<Array> array = Local<Array>::Cast (value->ToObject ());
+        auto array = Local<Array>::Cast (value->ToObject ());
         int length = array->Length ();
 
-        GITypeInfo *elem_info = g_type_info_get_param_type (type_info, 0);
-        g_assert(elem_info != NULL);
+        GITypeInfo* elem_info = g_type_info_get_param_type (type_info, 0);
+        gsize elem_size = GetTypeSize(elem_info);
 
         // FIXME this is so wrong
-        g_array = g_array_sized_new (zero_terminated, FALSE, sizeof (GIArgument), length);
+        g_array = g_array_sized_new (zero_terminated, FALSE, elem_size, length);
 
         for (int i = 0; i < length; i++) {
-            Local<Value> value = array->Get (i);
+            auto value = array->Get(i);
             GIArgument arg;
 
-            if (V8ToGIArgument(elem_info, &arg, value, true))
+            if (V8ToGIArgument(elem_info, &arg, value, true)) {
                 g_array_append_val (g_array, arg);
-            else
+                
+            } else {
                 g_warning("V8ToGArray: couldnt convert value: %s",
                         *String::Utf8Value(value->ToString()) );
+            }
         }
 
-        g_base_info_unref ((GIBaseInfo *) elem_info);
+        g_base_info_unref (elem_info);
     } else {
         Nan::ThrowTypeError("Not an array.");
     }
@@ -367,20 +385,13 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value) 
 bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
-    if (value->IsNull ()) {
+    if (value->IsUndefined () || value->IsNull ()) {
         arg->v_pointer = NULL;
-
         if (!may_be_null) {
-            Nan::ThrowTypeError("Argument may not be null.");
+            Nan::ThrowTypeError("Trying to convert null/undefined value to GIArgument.");
             return false;
         }
-
         return true;
-    }
-
-    if (value->IsUndefined ()) {
-        Nan::ThrowTypeError("Trying to convert undefined value to GIArgument");
-        return false;
     }
 
     switch (type_tag) {
@@ -438,10 +449,10 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
                 arg->v_pointer = g_array_free (garray, FALSE);
                 break;
             case GI_ARRAY_TYPE_ARRAY:
+            case GI_ARRAY_TYPE_BYTE_ARRAY:
                 arg->v_pointer = garray;
                 break;
             //case GI_ARRAY_TYPE_PTR_ARRAY:
-            //case GI_ARRAY_TYPE_BYTE_ARRAY:
             default:
                 printf("%s", Util::ArrayTypeToString(array_type));
                 g_assert_not_reached ();
@@ -476,14 +487,19 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     return true;
 }
 
-void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
+void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
-    // TODO determine in which case the argument is to be freed
-    // TODO correct?
     if (G_TYPE_TAG_IS_BASIC(type_tag))
         return;
 
+    if (transfer == GI_TRANSFER_NOTHING) {
+        g_warning("FreeArg: transfer == nothing");
+        return;
+    }
+
+
+    // TODO determine in which cases the argument is to be freed
     switch (type_tag) {
     case GI_TYPE_TAG_FILENAME:
     case GI_TYPE_TAG_UTF8:
@@ -493,25 +509,31 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
     case GI_TYPE_TAG_ARRAY:
         {
             GIArrayType array_type = g_type_info_get_array_type (type_info);
-            g_warning("FreeGIArgument: %s freed; whatsup with elements?",
-                    Util::ArrayTypeToString(array_type));
+            gboolean free_data = (transfer == GI_TRANSFER_EVERYTHING);
 
             switch (array_type) {
-            case GI_ARRAY_TYPE_C:
-                g_free (arg->v_pointer);
-                break;
+            case GI_ARRAY_TYPE_C: {
+                if (free_data)
+                    g_strfreev ((char **)arg->v_pointer);
+                else
+                    g_free (arg->v_pointer);
+                return;
+            }
+            // FIXME really free elements for these too
             case GI_ARRAY_TYPE_ARRAY:
-                g_array_free ((GArray *) arg->v_pointer, TRUE);
+                g_array_free ((GArray *) arg->v_pointer, free_data);
                 break;
             case GI_ARRAY_TYPE_PTR_ARRAY:
-                g_ptr_array_free ((GPtrArray *) arg->v_pointer, TRUE);
+                g_ptr_array_free ((GPtrArray *) arg->v_pointer, free_data);
                 break;
             case GI_ARRAY_TYPE_BYTE_ARRAY:
-                g_byte_array_free ((GByteArray *) arg->v_pointer, TRUE);
+                g_byte_array_free ((GByteArray *) arg->v_pointer, free_data);
                 break;
             default:
                 g_assert_not_reached ();
             }
+            g_warning("%s freed; whatsup with elements?",
+                    Util::ArrayTypeToString(array_type));
         }
         break;
 
@@ -535,8 +557,9 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
         GIInfoType  i_type = g_base_info_get_type(i_info);
         switch (i_type) {
         case GI_INFO_TYPE_OBJECT:
-            //g_object_unref(G_OBJECT(arg->v_pointer));
-            //g_warning("FreeGIArgument: unhandled GObject %s",
+            // if (transfer == GI_TRANSFER_EVERYTHING)
+                // g_object_unref(G_OBJECT(arg->v_pointer));
+            //g_warning("FreeArgument: unhandled GObject %s",
                     //g_base_info_get_name(i_info));
             break;
         case GI_INFO_TYPE_BOXED:
@@ -545,7 +568,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
         {
             //GType gtype = g_registered_type_info_get_g_type(i_info);
             //g_boxed_free(gtype, arg->v_pointer);
-            //g_warning("FreeGIArgument: unhandled boxed %s",
+            //g_warning("FreeArgument: unhandled boxed %s",
                     //g_base_info_get_name(i_info));
             break;
         }
@@ -554,15 +577,17 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg) {
             break;
 
         default:
-            g_warning("FreeGIArgument: unhandled (?) %s",
+            g_warning("FreeArgument: unhandled (?) %s",
                     g_base_info_get_name(i_info));
             break;
         }
+        g_base_info_unref(i_info);
+        break;
     }
 
     case GI_TYPE_TAG_GHASH:
         //g_hash_table_destroy((GHashTable *)arg->v_pointer);
-        //g_warning("FreeGIArgument: unhandled GHash");
+        g_warning("FreeGIArgument: unhandled GHash");
         break;
 
     case GI_TYPE_TAG_ERROR:
@@ -589,6 +614,13 @@ void V8ToGValue(GValue *gvalue, Local<Value> value) {
         g_value_set_float (gvalue, value->NumberValue ());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         g_value_set_double (gvalue, value->NumberValue ());
+    } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
+        GType type;
+        if (value->IsString())
+            type = g_type_from_name(*String::Utf8Value(value));
+        else
+            type = value->NumberValue ();
+        g_value_set_gtype(gvalue, type);
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
         String::Utf8Value str (value);
         const char *data = *str;
