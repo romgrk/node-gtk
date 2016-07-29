@@ -5,8 +5,6 @@
 #include <node.h>
 #include <girepository.h>
 
-#include "debug.h"
-
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -18,16 +16,14 @@ using v8::Value;
 
 namespace GNodeJS {
 
-struct Boxed {
-    void       *data;
-    GIBaseInfo *info;
-};
-
-class BoxedContainer {
+class Boxed {
 public:
-    void                    *data;
-    GType                    g_type;
+    void* data;
+    GType g_type;
+    unsigned long size;
     Nan::Persistent<Object> *persistent;
+
+    static size_t GetSize (GIBaseInfo *boxed_info) ;
 };
 
 Local<Function>         MakeBoxedClass   (GIBaseInfo *info);
