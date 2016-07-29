@@ -10,13 +10,13 @@ var btn, buf , buffer,
 const GI = require('../lib/index');
 GI.startLoop();
 
-global.Gir          = GI.importNS('GIRepository');
-global.GLib         = GI.importNS('GLib');
-global.Gio          = GI.importNS('Gio');
-global.Gdk          = GI.importNS('Gdk', '3.0');
-global.Gtk          = GI.importNS('Gtk', '3.0');
-global.GtkSource    = GI.importNS('GtkSource', '3.0');
-global.Vte          = GI.importNS('Vte');
+global.Gir          = GI.require('GIRepository');
+global.GLib         = GI.require('GLib');
+global.Gio          = GI.require('Gio');
+global.Gdk          = GI.require('Gdk', '3.0');
+global.Gtk          = GI.require('Gtk', '3.0');
+global.GtkSource    = GI.require('GtkSource', '3.0');
+global.Vte          = GI.require('Vte');
 const Orientation  = Gtk.Orientation;
 const StyleContext = Gtk.StyleContext;
 const CssProvider  = Gtk.CssProvider;
@@ -74,8 +74,8 @@ scrollView.margin = 10;
 textView.vexpand = true;
 textView.hexpand = true;
 textView.monospace = true;
-textView.showLineNumbers = true;
-textView.highlightCurrentLine = true;
+textView.show_line_numbers = true;
+textView.highlight_current_line = true;
 //textView.get_style_context().add_provider(css, 9999);
 
 buffer = textView.getBuffer();
@@ -178,43 +178,37 @@ const execute = function(command) {
 
 
 textView.connect('key-press-event', function(widget, event) {
-    global.e = event;
-    console.log(event);
-    console.log(event.type);
-    console.log(event.key);
     event.__proto__ = Gdk.EventKey.prototype;
-    console.log(event.type);
-    console.log(event.keyval);
-    console.log(event.state);
-    //return;
-    //let key = event.keyval;
-    //let keyname = Gdk.keyvalName(event.keyval);
-    //let label = Gtk.acceleratorGetLabel(event.keyval, event.state);
-    //console.log(keyname);
+    console.log(event.type, event.keyval);
+    let key = event.keyval;
+    let keyname = Gdk.keyval_name(event.keyval);
+    let label = Gtk.accelerator_get_label(event.keyval, event.state);
+    console.log(keyname, label);
+    btn.label = label;
+
     //console.log('KeyPress: ', );
-    //if (keyname.match(/(semi)?colon/)) {
-        //entryView.grabFocus();
-        //return true;
-    //}
-    //if (key === Gdk.KEY_G) {
-        //buffer.placeCursor(buffer.getEndIter());
-        //return true;
-    //}
-    //if (key === Gdk.KEY_g) {
-        //let start = buffer.getStartIter();
-        //buffer.placeCursor(start);
-        //return true;
-    //}
+    if (keyname.match(/(semi)?colon/)) {
+        entryView.grabFocus();
+        return true;
+    }
+    if (key === Gdk.KEY_G) {
+        buffer.placeCursor(buffer.getEndIter());
+        return true;
+    }
+    if (key === Gdk.KEY_g) {
+        let start = buffer.getStartIter();
+        buffer.placeCursor(start);
+        return true;
+    }
     return false;
 });
 
 entryView.history = ['pop.get_children()'];
 entryView.connect('key-press-event', function(widget, event) {
-    //return;
     event.__proto__ = Gdk.EventKey.prototype;
     let key = event.keyval;
-    let keyname = Gdk.keyvalName(key);
-    btn.label = Gtk.acceleratorGetLabel(event.keyval, event.state);
+    let keyname = Gdk.keyval_name(key);
+    btn.label = Gtk.accelerator_get_label(event.keyval, event.state);
     switch (key) {
         case Gdk.KEY_Tab:
             entryView.setText(entryView.history[0]);
