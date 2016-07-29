@@ -8,15 +8,19 @@
 #include <girepository.h>
 #include "boxed.h"
 
-#define UTF8(s)         Nan::New<v8::String> (s).ToLocalChecked()
-#define STRING(s)       Nan::New<v8::String> (s).ToLocalChecked()
-#define RETURN(s)       info.GetReturnValue().Set(s)
 
 using v8::Object;
 using v8::Local;
 using v8::Value;
 
-namespace  GNodeJS {
+
+#define UTF8(s)         Nan::New<v8::String> (s).ToLocalChecked()
+#define STRING(s)       Nan::New<v8::String> (s).ToLocalChecked()
+#define RETURN(s)       info.GetReturnValue().Set(s)
+
+#define D(f, a)         if (debug_mode) WARN(f, a);
+
+namespace GNodeJS {
 
 // GQuark object_quark (void) ;
 // GQuark template_quark (void) ;

@@ -114,30 +114,18 @@ NAN_METHOD(GetConstantValue) {
 }
 
 NAN_METHOD(MakeFunction) {
-    //Isolate *isolate = info.GetIsolate ();
-    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper(info[0]);
-    Local<Function> fn = GNodeJS::MakeFunction(gi_info);
+    BaseInfo gi_info(info[0]);
+    Local<Function> fn = GNodeJS::MakeFunction(*gi_info);
     info.GetReturnValue().Set(fn);
 }
 
 NAN_METHOD(MakeObjectClass) {
-    //Isolate *isolate = info.GetIsolate ();
-    Local<Object> obj = info[0].As<Object>();
-
-    if (obj->InternalFieldCount() == 0) {
-        Nan::ThrowTypeError("Object is not a GIBaseInfo wrapper");
-        return;
-    }
-
-    GIBaseInfo *gi_info = static_cast<GIBaseInfo*>(GNodeJS::BoxedFromWrapper (obj));
-
-    info.GetReturnValue().Set(GNodeJS::MakeClass(gi_info));
+    BaseInfo gi_info(info[0]);
+    info.GetReturnValue().Set(GNodeJS::MakeClass(*gi_info));
 }
 
 NAN_METHOD(MakeBoxedClass) {
-    //Isolate *isolate = info.GetIsolate ();
     BaseInfo gi_info(info[0]);
-
     info.GetReturnValue().Set(GNodeJS::MakeBoxedClass(*gi_info));
 }
 
@@ -164,18 +152,22 @@ NAN_METHOD(ObjectPropertyGetter) {
 }
 
 NAN_METHOD(ObjectPropertySetter) {
-    GObject *gobject = GNodeJS::GObjectFromWrapper(info[0]);
-
-    g_assert(gobject != NULL);
-
+    GObject* gobject = GNodeJS::GObjectFromWrapper(info[0]);
     String::Utf8Value prop_name_v (info[1]->ToString ());
     const char *prop_name = *prop_name_v;
+
+    if (gobject == NULL) {
+        WARN("ObjectPropertySetter: null GObject; cant get %s", prop_name);
+        RETURN(Nan::False());
+    }
 
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
 
     if (pspec == NULL) {
         WARN("ObjectPropertySetter: no property %s", prop_name);
+        Nan::ThrowError("Unexistent property");
         return;
+        // RETURN(Nan::False());
     }
 
     GValue value = {};
@@ -183,6 +175,8 @@ NAN_METHOD(ObjectPropertySetter) {
     GNodeJS::V8ToGValue (&value, info[2]);
 
     g_object_set_property (gobject, prop_name, &value);
+
+    RETURN(Nan::True());
 }
 
 NAN_METHOD(StructFieldSetter) {
@@ -206,8 +200,14 @@ NAN_METHOD(StructFieldSetter) {
 
         if (g_field_info_set_field(field, boxed, &arg) == FALSE)
             DEBUG("FieldSetter: couldnt set field %s", g_base_info_get_name(field));
+        /* g_field_info_set_field:
+            This only handles fields of simple C types. It will fail for a field of
+            a composite type like a nested structure or union even if that is actually
+            writable. Note also that that it will refuse to write fields where memory
+            management would by required. A field with a type such as 'char *' must be
+            set with a setter function.
 
-        GNodeJS::FreeGIArgument(field_type, &arg);
+            Therefore, no need to free GIArgument.  */
 
     } else {
         DEBUG("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
@@ -250,11 +250,9 @@ NAN_METHOD(StructFieldGetter) {
 
         RETURN(GNodeJS::GIArgumentToV8(field_type, &value));
 
-        // GNodeJS::FreeGIArgument(field_type, &value);
         g_base_info_unref (field_type);
     } else {
         DEBUG("StructFieldGetter: couldnt get field %s", g_base_info_get_name(field));
-        //DEBUG("StructFieldGetter: property name: %s", *Nan::Utf8String(property) );
     }
 }
 
