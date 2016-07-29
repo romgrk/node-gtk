@@ -21,7 +21,7 @@ const Orientation  = Gtk.Orientation;
 const StyleContext = Gtk.StyleContext;
 const CssProvider  = Gtk.CssProvider;
 
-const Fs     = require('/home/romgrk/node_modules/fs-plus')
+const Fs     = require('fs-plus')
 const Path   = require('path');
 const Util   = require('util');
 const ChildP = require('child_process');
@@ -128,7 +128,7 @@ const resolvePath = function(file) {
     if (Fs.fileExistsSync(file)) {
         return file;
     } else {
-        return '/home/romgrk/coffeelint.json';
+        return 'index.es';
     }
 };
 
