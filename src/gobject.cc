@@ -5,6 +5,8 @@
 #include "value.h"
 #include "closure.h"
 
+#include <string.h>
+
 using namespace v8;
 
 namespace GNodeJS {
@@ -114,6 +116,22 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &args) {
 
 static G_DEFINE_QUARK(gnode_js_template, gnode_js_template);
 
+static gchar * SignalNameFromCamelCase (const gchar *name) {
+        gsize len = strlen (name);
+        GString *real = g_string_new (NULL);
+
+        for (gsize i = 0; i < len; i++) {
+                if (g_ascii_isupper (name[i])) {
+                        g_string_append_c (real, '-');
+                        g_string_append_c (real, g_ascii_tolower (name[i]));
+                }
+                else
+                        g_string_append_c (real, name[i]);
+        }
+
+        return g_string_free (real, FALSE);
+}
+
 static void SignalConnectInternal(const FunctionCallbackInfo<Value> &args, bool after) {
     Isolate *isolate = args.GetIsolate ();
     GObject *gobject = GObjectFromWrapper (args.This ());
@@ -122,8 +140,12 @@ static void SignalConnectInternal(const FunctionCallbackInfo<Value> &args, bool 
     Handle<Function> callback = Local<Function>::Cast (args[1]->ToObject ());
     GClosure *gclosure = MakeClosure (isolate, callback);
 
-    ulong handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
+    gchar *real_name = SignalNameFromCamelCase (*signal_name);
+
+    ulong handler_id = g_signal_connect_closure (gobject, real_name, gclosure, after);
     args.GetReturnValue ().Set(Integer::NewFromUnsigned (isolate, handler_id));
+
+    g_free (real_name);
 }
 
 static void SignalConnect(const FunctionCallbackInfo<Value> &args) {

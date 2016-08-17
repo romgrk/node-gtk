@@ -24,9 +24,9 @@ ngtk.startLoop();
     toolbar = new Gtk.Toolbar(),
     // buttons to go back, go forward, or refresh
     button = {
-      back: Gtk.ToolButton.new_from_stock(Gtk.STOCK_GO_BACK),
-      forward: Gtk.ToolButton.new_from_stock(Gtk.STOCK_GO_FORWARD),
-      refresh: Gtk.ToolButton.new_from_stock(Gtk.STOCK_REFRESH)
+      back: Gtk.Button.newFromStock(Gtk.STOCK_GO_BACK),
+      forward: Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_FORWARD),
+      refresh: Gtk.ToolButton.newFromStock(Gtk.STOCK_REFRESH)
     },
     // where the URL is written and shown
     urlBar = new Gtk.Entry(),
@@ -46,7 +46,7 @@ ngtk.startLoop();
   }
 
   // open first argument or Google
-  webView.load_uri(url(process.argv[2] || 'google.com'));
+  webView.loadUri(url(process.argv[2] || 'google.com'));
 
   // whenever a new page is loaded ...
   webView.connect('load-changed', (widget, load_event, data) => {
@@ -82,19 +82,19 @@ ngtk.startLoop();
   scrollWindow.add(webView);
 
   // pack horizontally toolbar and url bar
-  hbox.pack_start(toolbar, false, false, 0);
-  hbox.pack_start(urlBar, true, true, 8);
+  hbox.packStart(toolbar, false, false, 0);
+  hbox.packStart(urlBar, true, true, 8);
 
   // pack vertically top bar (hbox) and scrollable window
-  vbox.pack_start(hbox, false, true, 0);
-  vbox.pack_start(scrollWindow, true, true, 0);
+  vbox.packStart(hbox, false, true, 0);
+  vbox.packStart(scrollWindow, true, true, 0);
 
   // configure main window
-  window.set_default_size(1024, 720);
-  window.set_resizable(true);
+  window.setDefaultSize(1024, 720);
+  window.setResizable(true);
   window.connect('show', () => {
     // bring it on top in OSX
-    window.set_keep_above(true);
+    window.setKeepAbove(true);
     Gtk.main()
   });
   window.connect('destroy', () => Gtk.main_quit());
@@ -102,7 +102,7 @@ ngtk.startLoop();
 
   // add vertical ui and show them all
   window.add(vbox);
-  window.show_all();
+  window.showAll();
 
   // little helper
   // if link doesn't have a protocol, prefixes it via http://
