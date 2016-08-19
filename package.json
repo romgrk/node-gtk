@@ -42,6 +42,8 @@
     "node-inspector": "0.12.8",
     "node-pre-gyp": "0.6.27",
     "node-pre-gyp-github": "1.3.1"
+    "babel-cli": "latest",
+    "babel-plugin-transform-react-jsx": "latest"
   },
   "binary": {
     "module_name": "node-gtk",
@@ -52,5 +54,9 @@
   "devDependencies": {
     "chai": "3.5.0",
     "mocha": "2.5.3"
+  "babel": {
+      "plugins": [
+          [ "transform-react-jsx", { "pragma": "gir.createElement" } ]
+      ]
   }
 }
