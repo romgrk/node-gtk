@@ -1,3 +1,18 @@
+
+* This is not the original repo. Some differences:
+```javascript
+const gi = require('node-gtk');
+Gtk = gi.require('Gtk', '3.0');
+Gtk.init(); // or Gtk.init(null, 0)
+var win = new Gtk.Window();
+win.toString();
+// => '[GtkWindow: 0x37d2280]'
+win.setDefault.toString()
+// => 'function gtk_window_set_default (default_widget:interface): void { [GObject code] }'
+```
+ - Boxeds supported
+ - Unions semi-supported (you have to manually set the proto, eg `event.__proto__ = Gdk.EventKey`)
+
 # node-gtk
 GNOME Gtk+ bindings for NodeJS
 
