@@ -1,0 +1,49 @@
+{
+    "env": {
+        "node": true,
+        "es6": true
+    },
+    "extends": [
+        "eslint:recommended"
+    ],
+    "rules": {
+        "no-console": [
+            "warn"
+        ],
+        "no-unused-labels": [
+            "off"
+        ],
+        "no-unused-vars": [
+            "error",
+            { "vars": "all", "args": "none" }
+        ],
+        "indent": [
+            "off",
+            2
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "block-spacing": [
+            "error"
+        ],
+        "spaced-comment": [
+            "error",
+            "always",
+            { "exceptions": ["-", "+"] }
+        ],
+        "space-infix-ops": [
+            "error",
+            { "int32Hint": false }
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "semi": [
+            "off",
+            "always"
+        ]
+    }
+}
