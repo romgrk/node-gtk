@@ -31,8 +31,8 @@ void print_info (GIBaseInfo *base_info) {
     if (GI_IS_REGISTERED_TYPE_INFO(base_info)) {
         GType gtype = g_registered_type_info_get_g_type(base_info);
         print_gtype(gtype);
-        printf("\n");
     }
+    printf("\n");
 
     if (GI_IS_ARG_INFO(base_info))             printf("GI_IS_ARG_INFO\n");
     if (GI_IS_ENUM_INFO(base_info))            printf("GI_IS_ENUM_INFO\n");
