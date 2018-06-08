@@ -174,8 +174,9 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
         //
         if (box->size != 0)
             g_slice_free1(box->size, box->data);
-        else if (box->data)
-            g_warning("BoxedDestroyed: %s: memory not freed", g_base_info_get_name(base_info));
+        // box->data core dumps
+        /* else if (box->data)
+         *     g_warning("BoxedDestroyed: %s: memory not freed", g_base_info_get_name(base_info)); */
     }
 
     delete box->persistent;
