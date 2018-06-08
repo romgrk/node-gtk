@@ -127,12 +127,11 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
     unsigned long size = 0;
 
     Local<Object> self = args.This ();
-    GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (
-            *args.Data ())->Value ();
-    GIInfoType type = g_base_info_get_type (gi_info);
+    GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*args.Data ())->Value ();
 
     if (args[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
+
         void *data = External::Cast(*args[0])->Value();
         boxed = data;
 
@@ -144,9 +143,17 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
             // DEBUG("BoxedConstructor: union gi_info: %s", g_base_info_get_name(gi_info));
 
     } else {
+        /* User code calling `new Pango.AttrList()` */
+
         size = Boxed::GetSize(gi_info);
         boxed = g_slice_alloc0(size);
         self->SetAlignedPointerInInternalField (0, boxed);
+
+        if (size == 0) {
+            g_warning("Boxed: %s: requested size is 0", g_base_info_get_name(gi_info));
+        } else if (!boxed) {
+            g_warning("Boxed: %s: allocation returned NULL", g_base_info_get_name(gi_info));
+        }
     }
 
     auto* cont = new Boxed();
@@ -159,6 +166,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     Boxed *box = info.GetParameter();
+    GIBaseInfo *base_info = g_irepository_find_by_gtype(NULL, box->g_type);
 
     if (G_TYPE_IS_BOXED(box->g_type)) {
         g_boxed_free(box->g_type, box->data);
@@ -166,9 +174,8 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
         //
         if (box->size != 0)
             g_slice_free1(box->size, box->data);
-        //else
-        //DEBUG("BoxedDestroyed: not a boxed %zu", box->g_type);
-        //WARN("NOT FREED %#zx", (ulong)box->data);
+        else if (box->data)
+            g_warning("BoxedDestroyed: %s: memory not freed", g_base_info_get_name(base_info));
     }
 
     delete box->persistent;
