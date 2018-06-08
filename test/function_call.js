@@ -1,20 +1,16 @@
 /*
  * function_call.js
- * Copyright (C) 2016 romgrk <romgrk@Romgrk-ARCH>
- *
- * Distributed under terms of the MIT license.
  */
-'use strict';
 
 const mocha = require('mocha');
 // const {describe, before, it} = mocha;
 const assert = require('chai').assert;
 
-global.gi_inspect = require('../lib/inspect.js');
-global.gi_require = gi_inspect.nodegtk.require;
-// global.GI = gi_require('GIRepository', '2.0');
-global.Gtk = gi_require('Gtk', '3.0');
-global.Gdk = gi_require('Gdk', '3.0');
+const gi = require('../')
+
+// const GI = gi.require('GIRepository', '2.0');
+const Gtk = gi.require('Gtk', '3.0');
+const Gdk = gi.require('Gdk', '3.0');
 
 describe('Function invoking', function () {
     beforeEach(function () {

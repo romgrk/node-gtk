@@ -1,22 +1,15 @@
-'use strict';
-// ::exe [silent !traceur --modules commonjs --source-maps inline --out %<js % ]
 
-var btn, buf , buffer,
-    entryView, grid,
-    header, label,
-    pop,
-    scrollView, textView;
+const gi = require('../lib/index');
+gi.startLoop();
 
-const GI = require('../lib/index');
-GI.startLoop();
+const Gir          = gi.require('GIRepository');
+const GLib         = gi.require('GLib');
+const Gio          = gi.require('Gio');
+const Gdk          = gi.require('Gdk', '3.0');
+const Gtk          = gi.require('Gtk', '3.0');
+const GtkSource    = gi.require('GtkSource', '3.0');
+const Vte          = gi.require('Vte');
 
-global.Gir          = GI.require('GIRepository');
-global.GLib         = GI.require('GLib');
-global.Gio          = GI.require('Gio');
-global.Gdk          = GI.require('Gdk', '3.0');
-global.Gtk          = GI.require('Gtk', '3.0');
-global.GtkSource    = GI.require('GtkSource', '3.0');
-global.Vte          = GI.require('Vte');
 const Orientation  = Gtk.Orientation;
 const StyleContext = Gtk.StyleContext;
 const CssProvider  = Gtk.CssProvider;
@@ -32,6 +25,16 @@ Gtk.init(null, 0);
 const schemeManager = GtkSource.StyleSchemeManager.getDefault();
 const langManager = GtkSource.LanguageManager.getDefault();
 const scheme = schemeManager.getScheme("builder-dark");
+
+var btn,
+    buffer,
+    entryView,
+    grid,
+    header,
+    label,
+    pop,
+    scrollView,
+    textView;
 
 var css = new Gtk.CssProvider();
 css.loadFromPath(Path.join(__dirname, 'style.css'));
