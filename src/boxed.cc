@@ -232,63 +232,70 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     if (gtype != G_TYPE_NONE)
         data = g_type_get_qdata(gtype, GNodeJS::template_quark());
 
+    // Template already created
     if (data) {
         Persistent<FunctionTemplate> *persistent = (Persistent<FunctionTemplate> *) data;
         Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate> (*persistent);
         return tpl;
+    }
+
+    // Template not created yet
+
+    auto tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
+    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+    if (gtype != G_TYPE_NONE) {
+        const char *class_name = g_type_name(gtype);
+        tpl->SetClassName( UTF8(class_name) );
+        tpl->Set(UTF8("gtype"), Nan::New<Number>(gtype));
+    } else {
+        const char *class_name = g_base_info_get_name (info);
+        tpl->SetClassName( UTF8(class_name) );
+    }
+
+    if (GI_IS_STRUCT_INFO(info)) {
+        //int n_fields = g_struct_info_get_n_fields(info);
+        //for (int i = 0; i < n_fields; i++) {
+            //GIFieldInfo *field = g_struct_info_get_field(info, i);
+            //const char  *name  = g_base_info_get_name(field);
+            ////char *jsName = Util::toCamelCase(name);
+            //Nan::SetAccessor( tpl->InstanceTemplate(),
+                    //UTF8(name), //UTF8(jsName),
+                    //FieldGetter, //FieldSetter,
+                    //Nan::New<External>(field));
+            ////g_base_info_unref (field);
+        //}
+
+    } else if (GI_IS_UNION_INFO(info)) {
+        // XXX this
+
+    } else if (g_base_info_get_type (info) == GI_INFO_TYPE_BOXED) {
+        // XXX this
 
     } else {
-        auto tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
-        tpl->InstanceTemplate()->SetInternalFieldCount(1);
-
-        if (gtype != G_TYPE_NONE) {
-            const char *class_name = g_type_name(gtype);
-            tpl->SetClassName( UTF8(class_name) );
-            tpl->Set(UTF8("gtype"), Nan::New<Number>(gtype));
-        } else {
-            const char *class_name = g_base_info_get_name (info);
-            tpl->SetClassName( UTF8(class_name) );
-        }
-
-        if (GI_IS_STRUCT_INFO(info)) {
-            //int n_fields = g_struct_info_get_n_fields(info);
-            //for (int i = 0; i < n_fields; i++) {
-                //GIFieldInfo *field = g_struct_info_get_field(info, i);
-                //const char  *name  = g_base_info_get_name(field);
-                ////char *jsName = Util::toCamelCase(name);
-                //Nan::SetAccessor( tpl->InstanceTemplate(),
-                        //UTF8(name), //UTF8(jsName),
-                        //FieldGetter, //FieldSetter,
-                        //Nan::New<External>(field));
-                ////g_base_info_unref (field);
-            //}
-        } else if (GI_IS_UNION_INFO(info)) {
-            // XXX this
-        } else {
-            g_assert_not_reached ();
-        }
-
-        if (gtype == G_TYPE_NONE)
-            return tpl;
-
-        Isolate *isolate = Isolate::GetCurrent();
-        auto *persistent = new v8::Persistent<FunctionTemplate>(isolate, tpl);
-        persistent->SetWeak(
-                g_base_info_ref(info),
-                GNodeJS::ClassDestroyed,
-                WeakCallbackType::kParameter);
-
-        g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
-
-        return tpl;
+        g_assert_not_reached ();
     }
+
+    if (gtype == G_TYPE_NONE)
+        return tpl;
+
+    Isolate *isolate = Isolate::GetCurrent();
+    auto *persistent = new v8::Persistent<FunctionTemplate>(isolate, tpl);
+    persistent->SetWeak(
+            g_base_info_ref(info),
+            GNodeJS::ClassDestroyed,
+            WeakCallbackType::kParameter);
+
+    g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
+
+    return tpl;
 }
 
 static Local<FunctionTemplate> GetBoxedTemplateFromGI(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
     if (gtype == G_TYPE_NONE) {
-        // g_warning("GetBoxedTemplateFromGI: gtype == G_TYPE_NONE for %s",
-                // g_base_info_get_name(info));
+        /* g_warning("GetBoxedTemplateFromGI: gtype == G_TYPE_NONE for %s",
+         *         g_base_info_get_name(info)); */
     } else {
         g_type_ensure(gtype);
     }
