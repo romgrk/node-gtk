@@ -86,6 +86,8 @@ void print_info (GIBaseInfo *base_info) {
     GIBaseInfo *container = g_base_info_get_container(base_info);
     if (container)
         print_info(container);
+
+    printf("\x1b[0m");
 }
 
 void print_struct_info (GIStructInfo *info) {
