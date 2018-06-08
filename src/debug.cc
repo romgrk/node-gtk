@@ -33,6 +33,22 @@ void print_info (GIBaseInfo *base_info) {
         print_gtype(gtype);
         printf("\n");
     }
+
+    if (GI_IS_ARG_INFO(base_info))             printf("GI_IS_ARG_INFO\n");
+    if (GI_IS_ENUM_INFO(base_info))            printf("GI_IS_ENUM_INFO\n");
+    if (GI_IS_TYPE_INFO(base_info))            printf("GI_IS_TYPE_INFO\n");
+    if (GI_IS_FIELD_INFO(base_info))           printf("GI_IS_FIELD_INFO\n");
+    if (GI_IS_VALUE_INFO(base_info))           printf("GI_IS_VALUE_INFO\n");
+    if (GI_IS_OBJECT_INFO(base_info))          printf("GI_IS_OBJECT_INFO\n");
+    if (GI_IS_SIGNAL_INFO(base_info))          printf("GI_IS_SIGNAL_INFO\n");
+    if (GI_IS_STRUCT_INFO(base_info))          printf("GI_IS_STRUCT_INFO\n");
+    if (GI_IS_CALLABLE_INFO(base_info))        printf("GI_IS_CALLABLE_INFO\n");
+    if (GI_IS_CONSTANT_INFO(base_info))        printf("GI_IS_CONSTANT_INFO\n");
+    if (GI_IS_FUNCTION_INFO(base_info))        printf("GI_IS_FUNCTION_INFO\n");
+    if (GI_IS_PROPERTY_INFO(base_info))        printf("GI_IS_PROPERTY_INFO\n");
+    if (GI_IS_INTERFACE_INFO(base_info))       printf("GI_IS_INTERFACE_INFO\n");
+    if (GI_IS_REGISTERED_TYPE_INFO(base_info)) printf("GI_IS_REGISTERED_TYPE_INFO\n");
+
     //printf("--- Attributes: ---\n");
     //print_attributes(base_info);
     //printf("-------------------\n");
