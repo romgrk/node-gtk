@@ -156,6 +156,12 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
         }
     }
 
+    Nan::DefineOwnProperty(self,
+            Nan::New<String>("__gtype__").ToLocalChecked(),
+            Nan::New<Number>(g_registered_type_info_get_g_type(gi_info)),
+            (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
+    );
+
     auto* cont = new Boxed();
     cont->data = boxed;
     cont->size = size;

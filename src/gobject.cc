@@ -116,6 +116,12 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         void *data = External::Cast (*info[0])->Value ();
         GObject *gobject = G_OBJECT (data);
         AssociateGObject (isolate, self, gobject);
+
+        Nan::DefineOwnProperty(self,
+                Nan::New<String>("__gtype__").ToLocalChecked(),
+                Nan::New<Number>(G_OBJECT_TYPE(gobject)),
+                (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
+        );
     } else {
         /* User code calling `new Gtk.Widget({ ... })` */
 
