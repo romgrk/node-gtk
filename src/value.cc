@@ -285,7 +285,6 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
 
             if (V8ToGIArgument(elem_info, &arg, value, true)) {
                 g_array_append_val (g_array, arg);
-                
             } else {
                 g_warning("V8ToGArray: couldnt convert value: %s",
                         *String::Utf8Value(value->ToString()) );
