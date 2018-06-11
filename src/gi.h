@@ -18,8 +18,6 @@ using v8::Value;
 #define STRING(s)       Nan::New<v8::String> (s).ToLocalChecked()
 #define RETURN(s)       info.GetReturnValue().Set(s)
 
-#define D(f, a)         if (debug_mode) WARN(f, a);
-
 namespace GNodeJS {
 
 // GQuark object_quark (void) ;

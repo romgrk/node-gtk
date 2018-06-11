@@ -68,6 +68,8 @@ static char* json_stringify(Local<Value> val) {
 
 #define IS_POINTER(i) (g_type_info_is_pointer (i) == TRUE)
 
+#define _debug(f, a)  if (debug_mode) WARN("%s: " + f, g_base_info_get_name(gi_info), a);
+
 /* see: /home/romgrk/src/gjs/gi/function.cpp */
 void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     //Isolate   *isolate = info.GetIsolate();
