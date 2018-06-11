@@ -39,10 +39,20 @@ static bool InitGParameterFromProperty(GParameter    *parameter,
     if (pspec == NULL)
         return false;
 
+    GType value_type = G_PARAM_SPEC_VALUE_TYPE (pspec);
     parameter->name = pspec->name;
-    g_value_init (&parameter->value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-    V8ToGValue (&parameter->value, value);
-    return true;
+    g_value_init (&parameter->value, value_type);
+
+    if (!CanConvertV8ToGValue(&parameter->value, value)) {
+        std::string message = "Cannot convert value for property \"";
+        message += *name_str;
+        message += "\": expected type ";
+        message += g_type_name(value_type);
+        Nan::ThrowTypeError(message.c_str());
+        return false;
+    }
+
+    return V8ToGValue (&parameter->value, value);
 }
 
 static bool InitGParametersFromProperty(GParameter    **parameters_p,
@@ -145,6 +155,12 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         gobject = (GObject *) g_object_newv (gtype, n_parameters, parameters);
         AssociateGObject (isolate, self, gobject);
 
+        Nan::DefineOwnProperty(self,
+                Nan::New<String>("__gtype__").ToLocalChecked(),
+                Nan::New<Number>(g_registered_type_info_get_g_type(gi_info)),
+                v8::PropertyAttribute::ReadOnly
+        );
+
     out:
         g_free (parameters);
         g_type_class_unref (klass);
@@ -185,13 +201,18 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &ar
     Isolate *isolate = args.GetIsolate ();
     GObject *gobject = GObjectFromWrapper (args.This ());
 
+    if (!gobject) {
+        Nan::ThrowTypeError("Object is not a GObject");
+        return;
+    }
+
     if (!(args[0]->IsString() || args[0]->IsNumber())) {
-        Nan::ThrowTypeError("Signal ID invalid.");
+        Nan::ThrowTypeError("Signal ID invalid");
         return;
     }
 
     if (!args[1]->IsFunction()) {
-        Nan::ThrowTypeError("Signal callback is not a function.");
+        Nan::ThrowTypeError("Signal callback is not a function");
         return;
     }
 
@@ -229,7 +250,13 @@ NAN_METHOD(SignalConnect) {
 
 static void GObjectToString(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     Local<Object> self = info.This();
-    GObject* g_object = GNodeJS::GObjectFromWrapper(self);
+
+    if (!ValueHasInternalField(self)) {
+        Nan::ThrowTypeError("Object is not a GObject");
+        return;
+    }
+
+    GObject* g_object = GObjectFromWrapper(self);
     GType type = G_OBJECT_TYPE (g_object);
 
     const char* typeName = g_type_name(type);
@@ -338,6 +365,9 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
 }
 
 GObject * GObjectFromWrapper(Local<Value> value) {
+    if (!ValueHasInternalField(value))
+        return nullptr;
+
     Local<Object> object = value->ToObject ();
 
     void    *ptr     = object->GetAlignedPointerFromInternalField (0);

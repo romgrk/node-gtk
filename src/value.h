@@ -20,7 +20,12 @@ bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<
 bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value, bool may_be_null);
 void         FreeGIArgument (GITypeInfo *type_info, GIArgument *argument, GITransfer transfer = GI_TRANSFER_EVERYTHING);
 
-void         V8ToGValue(GValue *gvalue, Local<Value> value);
+bool         V8ToGValue(GValue *gvalue, Local<Value> value) __attribute__((warn_unused_result));
 Local<Value> GValueToV8(const GValue *gvalue);
+
+bool         CanConvertV8ToGValue(GValue *gvalue, Local<Value> value);
+
+bool         ValueHasInternalField  (Local<Value> value);
+bool         ValueIsInstanceOfGType (Local<Value> value, GType g_type);
 
 };

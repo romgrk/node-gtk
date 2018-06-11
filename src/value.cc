@@ -602,10 +602,10 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer)
     }
 }
 
-void V8ToGValue(GValue *gvalue, Local<Value> value) {
+bool V8ToGValue(GValue *gvalue, Local<Value> value) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, value->BooleanValue ());
-    } else if (G_VALUE_HOLDS_INT (gvalue)) {
+    } else if (G_VALUE_HOLDS_INT (gvalue) || G_VALUE_HOLDS_LONG (gvalue)) {
         g_value_set_int (gvalue, value->Int32Value ());
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         g_value_set_uint (gvalue, value->Uint32Value ());
@@ -627,10 +627,67 @@ void V8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         g_value_set_enum (gvalue, value->Int32Value ());
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
+        if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
+            Nan::ThrowTypeError("Value is not instance of GObject");
+            return false;
+        }
         g_value_set_object (gvalue, GObjectFromWrapper (value));
+    } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
+        if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
+            Nan::ThrowTypeError("Value is not instance of boxed");
+            return false;
+        }
+        g_value_set_boxed (gvalue, BoxedFromWrapper(value));
+    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
+        printf("G_VALUE_HOLDS_FLAGS");
+        g_assert_not_reached ();
+    } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
+        printf("G_VALUE_HOLDS_POINTER");
+        g_assert_not_reached ();
+    } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
+        printf("G_VALUE_HOLDS_VARIANT");
+        g_assert_not_reached ();
     } else {
         g_assert_not_reached ();
     }
+    return true;
+}
+
+bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
+    if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
+        return true;
+    } else if (G_VALUE_HOLDS_INT (gvalue) || G_VALUE_HOLDS_LONG (gvalue)) {
+        return true;
+    } else if (G_VALUE_HOLDS_UINT (gvalue)) {
+        return true;
+    } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
+        return true;
+    } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
+        return true;
+    } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
+        return true;
+    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+        return true;
+    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
+        return true;
+    } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
+        if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
+            return false;
+        }
+    } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
+        if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
+            return false;
+        }
+    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
+        return false;
+    } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
+        return false;
+    } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
+        return false;
+    } else {
+        return false;
+    }
+    return true;
 }
 
 Local<Value> GValueToV8(const GValue *gvalue) {
@@ -668,5 +725,28 @@ Local<Value> GValueToV8(const GValue *gvalue) {
         g_assert_not_reached ();
     }
 }
+
+bool ValueHasInternalField(Local<Value> value) {
+    if (!value->IsObject())
+        return false;
+
+    Local<Object> object = value->ToObject ();
+
+    // Wait, this is not a GObject!
+    if (object->InternalFieldCount() == 0)
+        return false;
+
+    return true;
+}
+
+bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
+    if (!ValueHasInternalField(value))
+        return false;
+
+    Local<Object> object = value->ToObject();
+    GType object_type = (GType) Nan::Get(object, UTF8("__gtype__")).ToLocalChecked()->NumberValue();
+    return g_type_is_a(object_type, g_type);
+}
+
 
 };
