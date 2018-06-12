@@ -14,8 +14,9 @@ using v8::Value;
 
 namespace GNodeJS {
 
-Local<Function> MakeClass           (GIBaseInfo *info);
-Local<Value>    WrapperFromGObject  (GObject *object);
-GObject *       GObjectFromWrapper  (Local<Value> value);
+Local<Function>         MakeClass            (GIBaseInfo *info);
+Local<Value>            WrapperFromGObject   (GObject *object);
+GObject *               GObjectFromWrapper   (Local<Value> value);
+Local<FunctionTemplate> GetBaseClassTemplate ();
 
 };

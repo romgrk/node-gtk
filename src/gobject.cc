@@ -24,6 +24,10 @@ using Nan::WeakCallbackType;
 
 namespace GNodeJS {
 
+// Our base template for all GObjects
+static Nan::Persistent<FunctionTemplate> baseTemplate;
+
+
 static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data);
 
 static Local<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info);
@@ -244,11 +248,35 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &ar
     args.GetReturnValue().Set((double)handler_id);
 }
 
+static void SignalDisconnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+    GObject *gobject = GObjectFromWrapper (info.This ());
+
+    if (!gobject) {
+        Nan::ThrowTypeError("Object is not a GObject");
+        return;
+    }
+
+    if (!info[0]->IsNumber()) {
+        Nan::ThrowTypeError("Signal ID invalid");
+        return;
+    }
+
+    gpointer instance = static_cast<gpointer>(gobject);
+    ulong handler_id = info[0]->NumberValue();
+    g_signal_handler_disconnect (instance, handler_id);
+
+    info.GetReturnValue().Set((double)handler_id);
+}
+
 NAN_METHOD(SignalConnect) {
     SignalConnectInternal(info, false);
 }
 
-static void GObjectToString(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+NAN_METHOD(SignalDisconnect) {
+    SignalDisconnectInternal(info);
+}
+
+NAN_METHOD(GObjectToString) {
     Local<Object> self = info.This();
 
     if (!ValueHasInternalField(self)) {
@@ -263,22 +291,27 @@ static void GObjectToString(const Nan::FunctionCallbackInfo<v8::Value> &info) {
     char *className = *String::Utf8Value(self->GetConstructorName());
     void *address = self->GetAlignedPointerFromInternalField(0);
 
-    char *str = g_strdup_printf(
-            "[%s:%s %#zx]", typeName, className, (unsigned long)address);
+    char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (unsigned long)address);
 
     info.GetReturnValue().Set(UTF8(str));
     g_free(str);
 }
 
+Local<FunctionTemplate> GetBaseClassTemplate() {
+    static bool isBaseClassCreated = false;
 
-static Local<FunctionTemplate> GetBaseClassTemplate() {
-    static int count = 0;
-    count++;
-    auto tpl = New<FunctionTemplate>();
-    Nan::SetPrototypeMethod(tpl, "on", SignalConnect);
-    Nan::SetPrototypeMethod(tpl, "connect", SignalConnect);
-    Nan::SetPrototypeMethod(tpl, "addEventListener", SignalConnect);
-    Nan::SetPrototypeMethod(tpl, "toString", GObjectToString);
+    if (!isBaseClassCreated) {
+        isBaseClassCreated = true;
+
+        Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>();
+        Nan::SetPrototypeMethod(tpl, "connect", SignalConnect);
+        Nan::SetPrototypeMethod(tpl, "disconnect", SignalDisconnect);
+        Nan::SetPrototypeMethod(tpl, "toString", GObjectToString);
+        baseTemplate.Reset(tpl);
+    }
+
+    // get FunctionTemplate from persistent object
+    Local<FunctionTemplate> tpl = Nan::New(baseTemplate);
     return tpl;
 }
 

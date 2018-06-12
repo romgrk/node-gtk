@@ -283,6 +283,13 @@ NAN_METHOD(InternalFieldCount) {
     RETURN(obj->InternalFieldCount());
 }
 
+NAN_METHOD(GetBaseClass) {
+    auto tpl = GNodeJS::GetBaseClassTemplate ();
+    auto fn = tpl->GetFunction();
+    info.GetReturnValue().Set(fn);
+}
+
+
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetConstantValue);
@@ -297,6 +304,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, StartLoop);
     NAN_EXPORT(exports, PointerToString);
     NAN_EXPORT(exports, InternalFieldCount);
+    NAN_EXPORT(exports, GetBaseClass);
 }
 
 NODE_MODULE(gi, InitModule)
