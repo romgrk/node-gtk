@@ -52,14 +52,6 @@ static void* AllocateArgument (GIBaseInfo *arg_info) {
     return pointer;
 }
 
-static char* json_stringify(Local<Value> val) {
-    auto JSON = Nan::GetCurrentContext()->Global()->Get(UTF8("JSON")).As<Object>();
-    auto stringify = JSON->Get(UTF8("stringify")).As<Function>();
-    Local<Value> args_js[] = { val.As<Object>() };
-    auto res = stringify->CallAsFunction(JSON, 1, args_js);
-    return *String::Utf8Value(res);
-}
-
 #define IS_OUT(i) (g_arg_info_get_direction (i) == GI_DIRECTION_OUT || \
                    g_arg_info_get_direction (i) == GI_DIRECTION_INOUT)
 #define IS_IN(i) (g_arg_info_get_direction (i) == GI_DIRECTION_IN || \
@@ -198,7 +190,6 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
             if (direction == GI_DIRECTION_INOUT) {
                 //D("FunctionInvoker: arg INOUT: %s ", g_base_info_get_name(&arg_info))
-                //D("Value: %s", json_stringify(info[in_arg]))
             }
 
             in_arg++;
@@ -278,7 +269,6 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 }
 
                 //DEBUG("Return: out-array: %s", g_base_info_get_name(&arg_info));
-                //D("Array val: %s", json_stringify(result.As<Array>()))
                 //D("Array len: %i", length)
 
                 info.GetReturnValue().Set(result);
