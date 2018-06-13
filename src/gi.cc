@@ -8,6 +8,7 @@
 #include "gi.h"
 #include "gobject.h"
 #include "loop.h"
+#include "type.h"
 #include "util.h"
 #include "value.h"
 
@@ -289,6 +290,11 @@ NAN_METHOD(GetBaseClass) {
     info.GetReturnValue().Set(fn);
 }
 
+NAN_METHOD(GetTypeSize) {
+    GITypeInfo *gi_info = (GITypeInfo *) GNodeJS::BoxedFromWrapper (info[0]);
+    auto size = GNodeJS::GetTypeSize (gi_info);
+    info.GetReturnValue().Set(Nan::New<Number>(size));
+}
 
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, Bootstrap);
@@ -305,6 +311,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, PointerToString);
     NAN_EXPORT(exports, InternalFieldCount);
     NAN_EXPORT(exports, GetBaseClass);
+    NAN_EXPORT(exports, GetTypeSize);
 }
 
 NODE_MODULE(gi, InitModule)
