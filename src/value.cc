@@ -299,6 +299,49 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
     return g_array;
 }
 
+void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
+    bool zero_terminated = g_type_info_is_zero_terminated(type_info);
+
+    if (value->IsString()) {
+        Local<String> string = value->ToString();
+        const char *utf8_data = *String::Utf8Value(string);
+        return g_strdup(utf8_data);
+
+    } else if (value->IsArray ()) {
+        auto array = Local<Array>::Cast (value->ToObject ());
+        int length = array->Length ();
+        if (zero_terminated)
+            length += 1;
+
+        GITypeInfo* elem_info = g_type_info_get_param_type (type_info, 0);
+        gsize elem_size = GetTypeSize(elem_info);
+
+        void* result = g_malloc0(elem_size * length);
+
+        for (int i = 0; i < length; i++) {
+            auto value = array->Get(i);
+            GIArgument arg;
+
+            if (V8ToGIArgument(elem_info, &arg, value, true)) {
+                memcpy(arg.v_pointer, result, elem_size);
+            } else {
+                g_warning("V8ToGArray: couldnt convert value: %s",
+                        *String::Utf8Value(value->ToString()) );
+            }
+        }
+
+        g_base_info_unref (elem_info);
+
+        char **argv = (char **)result;
+        printf("%p: %s", argv, argv[0]);
+
+        return result;
+
+    } else {
+        Nan::ThrowTypeError("Not an array");
+    }
+}
+
 /**
  * V8ToGList:
  *
@@ -441,15 +484,14 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     case GI_TYPE_TAG_ARRAY:
         {
             GIArrayType array_type = g_type_info_get_array_type (type_info);
-            GArray *garray = V8ToGArray(type_info, value);
 
             switch (array_type) {
             case GI_ARRAY_TYPE_C:
-                arg->v_pointer = g_array_free (garray, FALSE);
+                arg->v_pointer = V8ToCArray(type_info, value);
                 break;
             case GI_ARRAY_TYPE_ARRAY:
             case GI_ARRAY_TYPE_BYTE_ARRAY:
-                arg->v_pointer = garray;
+                arg->v_pointer = V8ToGArray(type_info, value);
                 break;
             //case GI_ARRAY_TYPE_PTR_ARRAY:
             default:

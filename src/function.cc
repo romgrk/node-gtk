@@ -1,11 +1,12 @@
 
+#include <string.h>
+#include <girffi.h>
+
 #include "boxed.h"
 #include "debug.h"
 #include "function.h"
 #include "value.h"
 #include "gobject.h"
-
-#include <girffi.h>
 
 using namespace v8;
 using Nan::New;
@@ -71,7 +72,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     GIBaseInfo *gi_info = func->info; // do-not-free
 
     // auto fn = info.Callee();
-    // bool debug_mode = Nan::Get(fn, UTF8("debug")).ToLocalChecked()->IsTrue();
+    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "init") == 0;
 
     int n_callable_args = g_callable_info_get_n_args (gi_info);
     int n_total_args = n_callable_args;
