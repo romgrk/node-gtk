@@ -1,6 +1,7 @@
 /*
  * function_call.js
  */
+/* global describe, beforeEach, it */
 
 const mocha = require('mocha');
 // const {describe, before, it} = mocha;
