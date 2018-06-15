@@ -5,11 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "install": "if [ \"$(uname)\" = \"Darwin\" ] && [ \"$(which brew)\" != \"\" ]; then export PKG_CONFIG_PATH=$(brew --prefix libffi)/lib/pkgconfig; fi; node-pre-gyp install --fallback-to-build",
-    "test": "npm run build && node -r ./test/index.es",
-    "test-js": "npm run build-js && npm run test",
-    "mocha": "mocha test/function_call.js",
-    "mocha-watch": "nodemon -w build/Debug/node-gtk.node -w test/ --exec 'mocha test/function_call.js -w'",
-    "inspect": "node -r ./lib/inspect.js",
+    "test": "mocha tests/__run__.js",
     "build": "node-gyp build",
     "rebuild": "node-gyp rebuild"
   },
@@ -32,8 +28,6 @@
   },
   "homepage": "https://github.com/WebReflection/node-gtk#readme",
   "dependencies": {
-    "babel-cli": "latest",
-    "babel-plugin-transform-react-jsx": "latest",
     "lodash": "4.11.1",
     "nan": "^2.10.0",
     "node-gyp": "3.3.1",
@@ -48,17 +42,7 @@
     "host": "https://github.com/WebReflection/node-gtk/releases/download/0.0.16"
   },
   "devDependencies": {
-    "chai": "3.5.0",
-    "mocha": "2.5.3"
-  },
-  "babel": {
-    "plugins": [
-      [
-        "transform-react-jsx",
-        {
-          "pragma": "gir.createElement"
-        }
-      ]
-    ]
+    "assert": "^1.4.1",
+    "mocha": "^5.2.0"
   }
 }
