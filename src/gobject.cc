@@ -185,22 +185,6 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     g_object_unref (gobject);
 }
 
-static gchar * SignalNameFromCamelCase (const gchar *name) {
-        gsize len = strlen (name);
-        GString *real = g_string_new (NULL);
-
-        for (gsize i = 0; i < len; i++) {
-                if (g_ascii_isupper (name[i])) {
-                        g_string_append_c (real, '-');
-                        g_string_append_c (real, g_ascii_tolower (name[i]));
-                }
-                else
-                        g_string_append_c (real, name[i]);
-        }
-
-        return g_string_free (real, FALSE);
-}
-
 static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &args, bool after) {
     Isolate *isolate = args.GetIsolate ();
     GObject *gobject = GObjectFromWrapper (args.This ());
@@ -226,13 +210,7 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &ar
     ulong handler_id;
     if (args[0]->IsString()) {
         String::Utf8Value signal_name (args[0]->ToString ());
-        if (strchr(*signal_name, '-') != NULL) {
-            gchar *real_name = SignalNameFromCamelCase (*signal_name);
-            handler_id = g_signal_connect_closure (gobject, real_name, gclosure, after);
-            g_free (real_name);
-        } else {
-            handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
-        }
+        handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
     } else {
         guint signal_id = args[0].As<v8::Uint32>()->Value();
         GQuark detail = 0;
