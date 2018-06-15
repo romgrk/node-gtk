@@ -1,27 +1,75 @@
 
-* This is not the original repo. Some differences:
-```javascript
-const gi = require('node-gtk');
-Gtk = gi.require('Gtk', '3.0');
-Gtk.init(); // or Gtk.init(null, 0)
-var win = new Gtk.Window();
-win.toString();
-// => '[GtkWindow: 0x37d2280]'
-win.setDefault.toString()
-// => 'function gtk_window_set_default (default_widget:interface): void { [GObject code] }'
-```
- - Boxeds supported
- - Unions semi-supported (you have to manually set the proto, eg `event.__proto__ = Gdk.EventKey`)
-
 # node-gtk
 GNOME Gtk+ bindings for NodeJS
 
 
 ### What is this
 A work in progress to bring Gtk+ usable directly from nodejs so that the environemnt would be more udated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
+It uses the GObject Introspection library (as PyGObject, for example), so any gobject-introspectable library is supported.
 
-Please note this project is currently in an _alpha_ state and it needs more contributors.
+Please note this project is currently in _alpha_ state and is being developped. Any contributors willing to help
+will be welcomed.
 
+
+## Example and documentation
+
+```javascript
+const gi = require('node-gtk')
+Gtk = gi.require('Gtk', '3.0')
+
+gi.startLoop()
+Gtk.init()
+
+const win = new Gtk.Window();
+win.connect('destroy', () => Gtk.main_quit())
+win.connect('delete_event', () => false)
+
+win.setDefaultSize(200, 80)
+win.add(new Gtk.Label({ label: 'Hello Gtk+' }))
+
+win.showAll();
+```
+
+![Hello node-gtk!](img/hello-node-gtk.png)
+
+### Documentation
+
+For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
+
+Objects returned by node-gtk have additional events functions:
+```javascript
+const input = new Gtk.Entry()
+
+/**
+ * GObject.on - associates a callback to an event
+ * @param {String} name - Name of the event
+ * @param {Function} callback - Event handler
+ */
+input.on('key-press-event', onKeyPress)
+
+/**
+ * GObject.off - dissociates callback from an event
+ * @param {String} name - Name of the event
+ * @param {Function} callback - Event handler
+ */
+input.off('key-press-event', onKeyPress)
+
+/**
+ * GObject.once - as GObject.on, but only runs once
+ * @param {String} name - Name of the event
+ * @param {Function} callback - Event handler
+ */
+input.once('key-press-event', onKeyPress)
+
+
+function onKeyPress(widget, event, data) {
+  // widget === input
+  event.__proto__ = Gdk.EventKey
+  console.log(event.keyval, event.string)
+}
+```
+
+## Installing and building
 
 ### Target Platforms (so far)
 We're planning to serve pre-built binaries in order to make this project as cross platform and easy to install as possible.
@@ -101,8 +149,6 @@ If you'll see a little window saying hello that's it: it works!
 
 Please note in OSX the window doesn't automatically open above other windows.
 Try Cmd + Tab if you don't see it.
-
-![Hello node-gtk!](img/hello-node-gtk.png)
 
 
 #### browser demo
