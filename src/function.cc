@@ -28,8 +28,9 @@ static int GetV8ArrayLength (Local<Value> value) {
         return Local<String>::Cast (value->ToObject ())->Length();
     else if (value->IsNull() || value->IsUndefined())
         return 0;
-    else
-        g_assert_not_reached();
+
+    printf("%s\n", *String::Utf8Value(value->ToString()));
+    g_assert_not_reached();
 }
 
 static void* AllocateArgument (GIBaseInfo *arg_info) {
