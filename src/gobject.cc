@@ -217,12 +217,6 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &ar
         handler_id = g_signal_connect_closure_by_id (gobject, signal_id, detail, gclosure, after);
     }
 
-    // TODO return some sort of cancellation handle?
-    // e.g.: return { disposable: function () {...}, signal_id: ID };
-    //
-    // auto fn = [&](const Nan::FunctionCallbackInfo<Value>&info) { g_signal_handler_disconnect(gobject, handler_id); };
-    // Local<Function> dispose = Nan::New<FunctionTemplate>(fn)->GetFunction();
-
     args.GetReturnValue().Set((double)handler_id);
 }
 
@@ -235,7 +229,7 @@ static void SignalDisconnectInternal(const Nan::FunctionCallbackInfo<v8::Value> 
     }
 
     if (!info[0]->IsNumber()) {
-        Nan::ThrowTypeError("Signal ID invalid");
+        Nan::ThrowTypeError("Signal ID should be a number");
         return;
     }
 
