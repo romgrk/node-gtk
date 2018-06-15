@@ -157,15 +157,7 @@ If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://
 
   * in **Ubuntu**, you can `apt-get install libwebkit2gtk-3.0` (`4.0`   works too) and try it out.
   * in **ArchLinux**, you can `pacman -S --needed webkitgtk` and try it out.
-  * in **OSX**, you can `brew install webkitgtk` and try it out. If you have problems with a linked library, it's a known issue.
-    You'll need to link the folder to the missing one.
-
-        ```sh
-        # example, the linked folder might be different
-        TO_BE_LINKED=/tmp/webkitgtk20160213-86964-wydvdb/webkitgtk-2.10.7
-        mkdir -p $TO_BE_LINKED
-        ln -s /usr/local/Cellar/webkitgtk/2.10.7_1/lib $TO_BE_LINKED/lib
-        ```
+  * in **OSX**, there is no way to run it right now because `webkitgtk` was removed from homebrew
 
 Once installed, you can `./examples/browser.js google.com` or any other page, and you might try the _dark theme_ out too:
 
