@@ -138,7 +138,7 @@ If you'd like to test everything builds and work properly, find a target to clon
 
 ```sh
 # clone and build
-git clone https://github.com/WebReflection/node-gtk.git
+git clone https://github.com/romgrk/node-gtk.git
 cd node-gtk
 npm install
 
@@ -224,7 +224,7 @@ mkdir -p ~/oss/
 cd ~/oss
 
 # clone node-gtk there
-git clone https://github.com/WebReflection/node-gtk
+git clone https://github.com/romgrk/node-gtk
 cd node-gtk
 
 # first run might take a while

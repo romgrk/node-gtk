@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/WebReflection/node-gtk.git"
+    "url": "git+https://github.com/romgrk/node-gtk.git"
   },
   "keywords": [
     "GNOME",
@@ -24,9 +24,9 @@
   "author": "Jasper St. Pierre",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/WebReflection/node-gtk/issues"
+    "url": "https://github.com/romgrk/node-gtk/issues"
   },
-  "homepage": "https://github.com/WebReflection/node-gtk#readme",
+  "homepage": "https://github.com/romgrk/node-gtk#readme",
   "dependencies": {
     "lodash": "4.11.1",
     "nan": "^2.10.0",
@@ -39,7 +39,7 @@
     "module_name": "node-gtk",
     "module_path": "./build/{configuration}/{node_abi}-{platform}-{arch}/",
     "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
-    "host": "https://github.com/WebReflection/node-gtk/releases/download/0.0.16"
+    "host": "https://github.com/romgrk/node-gtk/releases/download/0.0.16"
   },
   "devDependencies": {
     "assert": "^1.4.1",
