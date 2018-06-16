@@ -135,7 +135,7 @@ NAN_METHOD(ObjectPropertyGetter) {
 
     g_assert(gobject != NULL);
 
-    String::Utf8Value prop_name_v (info[1]->ToString ());
+    Nan::Utf8String prop_name_v (info[1]->ToString ());
     const char *prop_name = *prop_name_v;
 
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
@@ -154,7 +154,7 @@ NAN_METHOD(ObjectPropertyGetter) {
 
 NAN_METHOD(ObjectPropertySetter) {
     GObject* gobject = GNodeJS::GObjectFromWrapper(info[0]);
-    String::Utf8Value prop_name_v (info[1]->ToString ());
+    Nan::Utf8String prop_name_v (info[1]->ToString ());
     const char *prop_name = *prop_name_v;
 
     if (gobject == NULL) {

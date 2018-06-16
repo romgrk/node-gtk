@@ -30,7 +30,7 @@ static int GetV8ArrayLength (Local<Value> value) {
     else if (value->IsNull() || value->IsUndefined())
         return 0;
 
-    printf("%s\n", *String::Utf8Value(value->ToString()));
+    printf("%s\n", *Nan::Utf8String(value->ToString()));
     g_assert_not_reached();
 }
 

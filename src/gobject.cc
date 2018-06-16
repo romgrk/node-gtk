@@ -37,7 +37,7 @@ static bool InitGParameterFromProperty(GParameter    *parameter,
                                        Local<String>  name,
                                        Local<Value>   value) {
     // XXX js->c name conversion
-    String::Utf8Value name_str (name);
+    Nan::Utf8String name_str (name);
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_CLASS (klass), *name_str);
 
     if (pspec == NULL)
@@ -209,7 +209,7 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &ar
 
     ulong handler_id;
     if (args[0]->IsString()) {
-        String::Utf8Value signal_name (args[0]->ToString ());
+        Nan::Utf8String signal_name (args[0]->ToString ());
         handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
     } else {
         guint signal_id = args[0].As<v8::Uint32>()->Value();
@@ -260,7 +260,7 @@ NAN_METHOD(GObjectToString) {
     GType type = G_OBJECT_TYPE (g_object);
 
     const char* typeName = g_type_name(type);
-    char *className = *String::Utf8Value(self->GetConstructorName());
+    char *className = *Nan::Utf8String(self->GetConstructorName());
     void *address = self->GetAlignedPointerFromInternalField(0);
 
     char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (unsigned long)address);
