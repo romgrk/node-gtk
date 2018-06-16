@@ -265,7 +265,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
         if (length == 0)
             return g_array_new(zero_terminated, TRUE, sizeof(char));
 
-        const char *utf8_data = *String::Utf8Value(string);
+        const char *utf8_data = *Nan::Utf8String(string);
         g_array = g_array_sized_new (zero_terminated, FALSE, sizeof (char), length);
         return g_array_append_vals(g_array, utf8_data, length);
 
@@ -287,7 +287,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
                 g_array_append_val (g_array, arg);
             } else {
                 g_warning("V8ToGArray: couldnt convert value: %s",
-                        *String::Utf8Value(value->ToString()) );
+                        *Nan::Utf8String(value->ToString()) );
             }
         }
 
@@ -304,7 +304,7 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
 
     if (value->IsString()) {
         Local<String> string = value->ToString();
-        const char *utf8_data = *String::Utf8Value(string);
+        const char *utf8_data = *Nan::Utf8String(string);
         return g_strdup(utf8_data);
 
     } else if (value->IsArray ()) {
@@ -326,7 +326,7 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
                 memcpy(arg.v_pointer, result, elem_size);
             } else {
                 g_warning("V8ToGArray: couldnt convert value: %s",
-                        *String::Utf8Value(value->ToString()) );
+                        *Nan::Utf8String(value->ToString()) );
             }
         }
 
@@ -339,14 +339,10 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
 
     } else {
         Nan::ThrowTypeError("Not an array");
+        return NULL;
     }
 }
 
-/**
- * V8ToGList:
- *
- * Returns: #GList or #GSList
- */
 gpointer V8ToGList (Local<Value> value, GITypeInfo *type_info) {
 
     // FIXME can @value be null?
@@ -467,7 +463,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
     case GI_TYPE_TAG_UTF8:
         {
-            String::Utf8Value str (value);
+            Nan::Utf8String str (value);
             const char *data = *str;
             arg->v_pointer = g_strdup (data);
         }
@@ -475,7 +471,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
     case GI_TYPE_TAG_FILENAME:
         {
-            String::Utf8Value str (value);
+            Nan::Utf8String str (value);
             const char *utf8_data = *str;
             arg->v_pointer = g_filename_from_utf8 (utf8_data, -1, NULL, NULL, NULL);
         }
@@ -526,6 +522,106 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     }
 
     return true;
+}
+
+bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool may_be_null) {
+    /*
+     * The question we're asking here is "Can this javascript value be used as a ...?"
+     * The answer to that question is almost always yes for javascript primitives,
+     * because of javascript semantics (anything can be casted to anything).
+     * For complex values (GObject, Boxed, arrays & lists) we do a more comprehensive
+     * check.
+     */
+
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    if (value->IsUndefined () || value->IsNull ()) {
+        return may_be_null;
+    }
+
+    switch (type_tag) {
+    case GI_TYPE_TAG_VOID:
+        return true;
+    case GI_TYPE_TAG_BOOLEAN:
+        return true;
+    case GI_TYPE_TAG_INT32:
+    case GI_TYPE_TAG_UINT32:
+    case GI_TYPE_TAG_INT64:
+    case GI_TYPE_TAG_UINT64:
+    case GI_TYPE_TAG_FLOAT:
+    case GI_TYPE_TAG_DOUBLE:
+    case GI_TYPE_TAG_GTYPE:
+        return value->IsNumber ();
+
+    case GI_TYPE_TAG_UTF8:
+        return true;
+
+    case GI_TYPE_TAG_FILENAME:
+        return true;
+
+    case GI_TYPE_TAG_INTERFACE:
+        {
+            GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
+            GIInfoType type = g_base_info_get_type (interface_info);
+            GType gtype = g_registered_type_info_get_g_type (interface_info);
+
+            bool result;
+
+            switch (type) {
+            case GI_INFO_TYPE_OBJECT:
+            case GI_INFO_TYPE_BOXED:
+            case GI_INFO_TYPE_STRUCT:
+            case GI_INFO_TYPE_UNION:
+                result = ValueIsInstanceOfGType (value, gtype);
+                break;
+            case GI_INFO_TYPE_FLAGS:
+            case GI_INFO_TYPE_ENUM:
+                result = true;
+                break;
+            case GI_INFO_TYPE_INTERFACE:
+            default:
+                print_info (interface_info);
+                g_assert_not_reached ();
+            }
+            g_base_info_unref(interface_info);
+
+            return result;
+        }
+
+    case GI_TYPE_TAG_ARRAY:
+    case GI_TYPE_TAG_GLIST:
+    case GI_TYPE_TAG_GSLIST:
+        {
+            if (!value->IsArray ())
+                return false;
+
+            auto array = value->ToObject ();
+            int length = Nan::Get(array, UTF8("length")).ToLocalChecked()->Uint32Value();
+            GITypeInfo *elem_info = g_type_info_get_param_type(type_info, 0);
+
+            bool result = true;
+            for (int i = 0; i < length; i++) {
+                auto element = Nan::Get(array, i).ToLocalChecked();
+                if (!CanConvertV8ToGIArgument(elem_info, element, false)) {
+                    result = false;
+                    break;
+                }
+            }
+            g_base_info_unref(elem_info);
+            return result;
+        }
+
+    case GI_TYPE_TAG_UNICHAR:
+        return true;
+
+    //case GI_TYPE_TAG_GHASH: FIXME
+    //case GI_TYPE_TAG_ERROR: FIXME
+
+    default:
+        g_assert_not_reached ();
+    }
+
+    return false;
 }
 
 void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer) {
@@ -658,12 +754,12 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
         GType type;
         if (value->IsString())
-            type = g_type_from_name(*String::Utf8Value(value));
+            type = g_type_from_name(*Nan::Utf8String(value));
         else
             type = value->NumberValue ();
         g_value_set_gtype(gvalue, type);
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
-        String::Utf8Value str (value);
+        Nan::Utf8String str (value);
         const char *data = *str;
         g_value_set_string (gvalue, data);
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {

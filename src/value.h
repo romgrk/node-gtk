@@ -19,10 +19,10 @@ Local<Value> GIArgumentToV8 (GITypeInfo *type_info, GIArgument *argument, int le
 bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value);
 bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value, bool may_be_null);
 void         FreeGIArgument (GITypeInfo *type_info, GIArgument *argument, GITransfer transfer = GI_TRANSFER_EVERYTHING);
+bool         CanConvertV8ToGIArgument (GITypeInfo *type_info, Local<Value> value, bool may_be_null);
 
 bool         V8ToGValue(GValue *gvalue, Local<Value> value) __attribute__((warn_unused_result));
 Local<Value> GValueToV8(const GValue *gvalue);
-
 bool         CanConvertV8ToGValue(GValue *gvalue, Local<Value> value);
 
 bool         ValueHasInternalField  (Local<Value> value);

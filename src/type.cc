@@ -27,6 +27,66 @@ void ClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
 }
 
 
+char *GetTypeName (GITypeInfo *type_info) {
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    switch (type_tag) {
+        case GI_TYPE_TAG_BOOLEAN:
+            return g_strdup("Boolean");
+
+        case GI_TYPE_TAG_INT8:
+        case GI_TYPE_TAG_INT16:
+        case GI_TYPE_TAG_INT32:
+        case GI_TYPE_TAG_INT64:
+        case GI_TYPE_TAG_UINT8:
+        case GI_TYPE_TAG_UINT16:
+        case GI_TYPE_TAG_UINT32:
+        case GI_TYPE_TAG_UINT64:
+        case GI_TYPE_TAG_FLOAT:
+        case GI_TYPE_TAG_DOUBLE:
+            return g_strdup("Number");
+
+        case GI_TYPE_TAG_GTYPE:
+            return g_strdup("GType");
+
+        case GI_TYPE_TAG_UNICHAR:
+            return g_strdup("Char");
+
+        case GI_TYPE_TAG_UTF8:
+        case GI_TYPE_TAG_FILENAME:
+            return g_strdup("String");
+
+        case GI_TYPE_TAG_INTERFACE:
+        {
+            GIBaseInfo *info = g_type_info_get_interface (type_info);
+            auto result = g_strdup_printf("%s.%s",
+                    g_base_info_get_namespace(info), g_base_info_get_name(info));
+            g_base_info_unref (info);
+            return result;
+        }
+
+        case GI_TYPE_TAG_ARRAY:
+        case GI_TYPE_TAG_GLIST:
+        case GI_TYPE_TAG_GSLIST:
+        {
+            GITypeInfo *elem_info = g_type_info_get_param_type(type_info, 0);
+            auto elem_name = GetTypeName (elem_info);
+            auto result = g_strdup_printf("%s[]", elem_name);
+
+            g_base_info_unref(elem_info);
+            g_free(elem_name);
+
+            return result;
+        }
+
+        case GI_TYPE_TAG_GHASH:
+        case GI_TYPE_TAG_ERROR:
+        case GI_TYPE_TAG_VOID:
+        default:
+            return g_strdup(g_type_tag_to_string(type_tag));
+    }
+}
+
 gsize GetTypeSize (GITypeInfo *type_info) {
     gsize size = 0;
 

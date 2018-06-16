@@ -5,8 +5,9 @@
 #include "boxed.h"
 #include "debug.h"
 #include "function.h"
-#include "value.h"
 #include "gobject.h"
+#include "type.h"
+#include "value.h"
 
 using namespace v8;
 using Nan::New;
@@ -52,12 +53,29 @@ static void* AllocateArgument (GIBaseInfo *arg_info) {
     return pointer;
 }
 
-static void ThrowNotEnoughArguments(int expected, int actual) {
+static void ThrowNotEnoughArguments (int expected, int actual) {
     char *msg = g_strdup_printf(
         "Not enough arguments; expected %i, have %i",
         expected, actual);
     Nan::ThrowTypeError(msg);
     g_free(msg);
+}
+
+static void ThrowInvalidType (GIArgInfo *info, GITypeInfo *type_info) {
+    char *expected = GetTypeName (type_info);
+    char *msg = g_strdup_printf(
+        "Expected argument of type %s for parameter %s",
+        expected,
+        g_base_info_get_name(info));
+    Nan::ThrowTypeError(msg);
+    g_free(expected);
+    g_free(msg);
+}
+
+static bool IsMethod (GIBaseInfo *info) {
+    auto flags = g_function_info_get_flags (info);
+    return ((flags & GI_FUNCTION_IS_METHOD) != 0 &&
+            (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
 }
 
 #define IS_OUT(i) (g_arg_info_get_direction (i) == GI_DIRECTION_OUT || \
@@ -68,11 +86,10 @@ static void ThrowNotEnoughArguments(int expected, int actual) {
 
 /* see: /home/romgrk/src/gjs/gi/function.cpp */
 void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
-    //Isolate   *isolate = info.GetIsolate();
+
     FunctionInfo *func = (FunctionInfo *) External::Cast (*info.Data ())->Value ();
     GIBaseInfo *gi_info = func->info; // do-not-free
 
-    // auto fn = info.Callee();
     // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "init") == 0;
 
     int n_callable_args = g_callable_info_get_n_args (gi_info);
@@ -82,18 +99,23 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
     Parameter call_parameters[n_callable_args];
 
+    /*
+     * First, load parameter types and count IN-arguments
+     */
     for (int i = 0; i < n_callable_args; i++) {
         GIArgInfo arg_info;
         GITypeInfo type_info;
         g_callable_info_load_arg ((GICallableInfo *) gi_info, i, &arg_info);
         g_arg_info_load_type (&arg_info, &type_info);
 
-        int len_idx = g_type_info_get_array_length (&type_info);
-        if (len_idx >= 0) {
-            call_parameters[i].type = Parameter::ARRAY;
-            call_parameters[len_idx].type = Parameter::SKIP;
+        // If there is an array length, this is an array
+        int length_index = g_type_info_get_array_length (&type_info);
+        if (length_index >= 0) {
+            call_parameters[i].type            = Parameter::ARRAY;
+            call_parameters[length_index].type = Parameter::SKIP;
 
-            if (IS_IN(&arg_info) && len_idx < i) {
+            // If array length came before, we need to remove it from the in_args count
+            if (IS_IN(&arg_info) && length_index < i) {
                 n_in_args--;
             }
         }
@@ -111,10 +133,34 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         return;
     }
 
-    auto flags = g_function_info_get_flags (gi_info);
-    gboolean is_method = ((flags & GI_FUNCTION_IS_METHOD) != 0 &&
-                          (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
-    gboolean can_throw = g_callable_info_can_throw_gerror (gi_info);
+    /*
+     * Next, type check every IN-argument
+     */
+    for (int in_arg = 0, i = 0; i < n_callable_args; i++) {
+        Parameter param = call_parameters[i];
+
+        if (param.type == Parameter::SKIP)
+            continue;
+
+        GIArgInfo arg_info;
+        g_callable_info_load_arg (gi_info, i, &arg_info);
+        GIDirection direction = g_arg_info_get_direction (&arg_info);
+
+        if (direction == GI_DIRECTION_IN || direction == GI_DIRECTION_INOUT) {
+            GITypeInfo type_info;
+            g_arg_info_load_type (&arg_info, &type_info);
+            bool may_be_null = g_arg_info_may_be_null (&arg_info);
+
+            if (!CanConvertV8ToGIArgument(&type_info, info[in_arg], may_be_null)) {
+                ThrowInvalidType(&arg_info, &type_info);
+                return;
+            }
+            in_arg++;
+        }
+    }
+
+    bool is_method = IsMethod(gi_info);
+    bool can_throw = g_callable_info_can_throw_gerror (gi_info);
 
     if (is_method)
         n_total_args++;
@@ -166,18 +212,18 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 GITypeInfo array_length_type;
                 g_arg_info_load_type (&arg_info, &type_info);
 
-                int len_idx = g_type_info_get_array_length (&type_info);
-                g_callable_info_load_arg(gi_info, len_idx, &array_length_arg);
+                int length_index = g_type_info_get_array_length (&type_info);
+                g_callable_info_load_arg(gi_info, length_index, &array_length_arg);
                 g_arg_info_load_type (&array_length_arg, &array_length_type);
 
-                Parameter len_param = call_parameters[len_idx];
+                Parameter len_param = call_parameters[length_index];
                 len_param.value = GetV8ArrayLength(info[in_arg]);
 
                 // FIXME: is this relevant?
                 // if (g_type_info_is_pointer (&array_length_type))
-                    // callable_arg_values[len_idx].v_pointer = &len_param.value;
+                    // callable_arg_values[length_index].v_pointer = &len_param.value;
                 // else
-                callable_arg_values[len_idx].v_int = len_param.value;
+                callable_arg_values[length_index].v_int = len_param.value;
             }
 
             in_arg++;
