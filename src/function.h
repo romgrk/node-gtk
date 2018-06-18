@@ -26,7 +26,9 @@ struct Parameter {
         NORMAL, ARRAY, SKIP,
     } type;
 
-    int value;
+    GIDirection direction;
+
+    size_t *data;
 };
 
 void            FunctionInvoker (const FunctionCallbackInfo<Value> &info);

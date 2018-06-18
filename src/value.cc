@@ -316,14 +316,16 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
         GITypeInfo* elem_info = g_type_info_get_param_type (type_info, 0);
         gsize elem_size = GetTypeSize(elem_info);
 
-        void* result = g_malloc0(elem_size * length);
+        char **result = (char **)malloc(elem_size * length);
 
         for (int i = 0; i < length; i++) {
             auto value = array->Get(i);
             GIArgument arg;
 
             if (V8ToGIArgument(elem_info, &arg, value, true)) {
-                memcpy(arg.v_pointer, result, elem_size);
+                result[i] = (char *)arg.v_pointer;
+                // memcpy(arg.v_pointer, , elem_size);
+                printf("%i: %p %p: %s\n", i, arg.v_pointer, result[i], result[i]);
             } else {
                 g_warning("V8ToGArray: couldnt convert value: %s",
                         *Nan::Utf8String(value->ToString()) );
@@ -333,7 +335,14 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
         g_base_info_unref (elem_info);
 
         char **argv = (char **)result;
-        printf("%p: %s", argv, argv[0]);
+
+        if (g_type_info_is_pointer (type_info)) {
+            char ***p_result = (char***)malloc(sizeof(void*));
+            *p_result = (char**)result;
+            result = (char**)p_result;
+        }
+        printf("%p %s \n", argv, argv[0]);
+        printf("%p (result)\n", result);
 
         return result;
 
