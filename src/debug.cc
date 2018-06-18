@@ -7,6 +7,7 @@
 #include "value.h"
 #include "boxed.h"
 #include "gobject.h"
+#include "type.h"
 
 #include <cstdio>
 
@@ -146,6 +147,44 @@ void print_union_info (GIBaseInfo *info) {
         g_base_info_unref (func);
     }
 
+}
+
+void print_callable_info (GICallableInfo *info) {
+    GIFunctionInfoFlags flags = g_function_info_get_flags(info);
+
+    GITypeInfo return_info;
+    g_callable_info_load_return_type(info, &return_info);
+    auto typeName = GetTypeName(&return_info);
+    printf("%s %s (", typeName, g_base_info_get_name(info));
+    free(typeName);
+
+    int n_args = g_callable_info_get_n_args(info);
+    for (int i = 0; i < n_args; i++) {
+        GIArgInfo arg_info;
+        GITypeInfo type_info;
+        g_callable_info_load_arg(info, i, &arg_info);
+        g_arg_info_load_type(&arg_info, &type_info);
+        auto typeName = GetTypeName(&type_info);
+        printf("%s %s", typeName, g_base_info_get_name(&arg_info));
+        free(typeName);
+        if (i < n_args - 1)
+            printf(", ");
+    }
+    printf(")");
+
+    //GIPropertyInfo *prop = g_function_info_get_property(func);
+    if (flags & GI_FUNCTION_IS_GETTER)
+        printf(" GET ");
+    if (flags & GI_FUNCTION_IS_SETTER)
+        printf(" SET ");
+    if (flags & GI_FUNCTION_IS_CONSTRUCTOR)
+        printf(" CONSTRUCTOR ");
+    if (flags & GI_FUNCTION_IS_METHOD)
+        printf(" METHOD ");
+    if (flags & GI_FUNCTION_WRAPS_VFUNC)
+        printf(" VFUNC ");
+
+    printf("\n");
 }
 
 void print_func_info (GIFunctionInfo *func) {
