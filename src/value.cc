@@ -635,15 +635,16 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
 }
 
 void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer) {
+    if (transfer == GI_TRANSFER_NOTHING)
+        return;
+
+    if (arg->v_pointer == NULL)
+        return;
+
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     if (G_TYPE_TAG_IS_BASIC(type_tag))
         return;
-
-    if (transfer == GI_TRANSFER_NOTHING) {
-        g_warning("FreeArg: transfer == nothing");
-        return;
-    }
 
 
     // TODO determine in which cases the argument is to be freed

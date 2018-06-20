@@ -382,10 +382,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 RETURN (GIArgumentToV8(&arg_type, &arg_value));
             }
 
-            if (transfer != GI_TRANSFER_NOTHING && !is_null) {
-                FreeGIArgument (&arg_type, &arg_value, transfer);
-            }
-
+            FreeGIArgument (&arg_type, &arg_value, transfer);
         }
     }
 
@@ -398,9 +395,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         RETURN (GIArgumentToV8 (&return_type, &return_value, length));
     }
 
-    if (return_transfer != GI_TRANSFER_NOTHING) {
-        FreeGIArgument(&return_type, &return_value, return_transfer);
-    }
+    FreeGIArgument(&return_type, &return_value, return_transfer);
 
     if (error) {
         Nan::ThrowError(error->message);
