@@ -11,3 +11,7 @@ if (result.length !== 2) {
   console.error(result, 'expected length === 2')
   process.exit(1)
 }
+else {
+  console.log('Success')
+  console.log(result)
+}
