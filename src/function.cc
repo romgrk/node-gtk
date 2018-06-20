@@ -142,6 +142,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
             if (IS_IN(call_parameters[i].direction) && length_i < i) {
                 n_in_args--;
             }
+        } else {
+            call_parameters[i].type = Parameter::NORMAL;
         }
 
         if (call_parameters[i].type != Parameter::SKIP)
