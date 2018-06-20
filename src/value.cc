@@ -190,18 +190,17 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-                if (is_zero_terminated) {
-                    length = g_strv_length ((gchar **)data);
-                    //DEBUG("(zero) length: %i", length);
-                    //DEBUG("(zero) elem-size: %li", elem_size);
-                } else {
-                    length = g_type_info_get_array_fixed_size (type_info);
-                    //DEBUG("(non-zero) length: %i", length);
-                    if (G_UNLIKELY (length == -1)) {
-                        g_critical ("Unable to determine array length for %p",
-                                data);
-                        length = 0;
-                        break;
+                if (length == -1) {
+                    if (is_zero_terminated) {
+                        length = g_strv_length ((gchar **)data);
+                    } else {
+                        length = g_type_info_get_array_fixed_size (type_info);
+                        if (G_UNLIKELY (length == -1)) {
+                            g_critical ("Unable to determine array length for %p",
+                                    data);
+                            length = 0;
+                            break;
+                        }
                     }
                 }
                 g_assert (length >= 0);
@@ -213,16 +212,18 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
                 /* Note: GByteArray is really just a GArray */
                 GArray *g_array = (GArray*) data;
                 data = g_array->data;
+                if (length != -1)
+                    g_assert(g_array->len == length);
                 length = g_array->len;
-                //DEBUG("(g(byte)array) length: %i", length);
                 break;
             }
         case GI_ARRAY_TYPE_PTR_ARRAY:
             {
                 GPtrArray *ptr_array = (GPtrArray*) data;
                 data = ptr_array->pdata;
+                if (length != -1)
+                    g_assert(ptr_array->len == length);
                 length = ptr_array->len;
-                //DEBUG("(gptrarray) length: %i", length);
                 elem_size = sizeof(gpointer);
                 break;
             }
