@@ -135,7 +135,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         // If there is an array length, this is an array
         int length_i = g_type_info_get_array_length (&type_info);
         if (length_i >= 0) {
-            call_parameters[i].type            = Parameter::ARRAY;
+            call_parameters[i].type        = Parameter::ARRAY;
             call_parameters[length_i].type = Parameter::SKIP;
 
             // If array length came before, we need to remove it from the in_args count
@@ -162,18 +162,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
     /*
      * Second, type check every IN-argument
+     * FIXME(type check info.This())
      */
-    if (is_method) {
-/*         GIArgInfo arg_info;
- *         g_callable_info_load_arg (gi_info, 0, &arg_info);
- *         GITypeInfo type_info;
- *         g_arg_info_load_type (&arg_info, &type_info);
- * 
- *         if (!CanConvertV8ToGIArgument(&type_info, info.This(), false)) {
- *             ThrowInvalidType(&arg_info, &type_info, info.This());
- *             return;
- *         } */
-    }
     for (int in_arg = 0, i = 0; i < n_callable_args; i++) {
         Parameter param = call_parameters[i];
 
@@ -190,24 +180,10 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
             bool may_be_null = g_arg_info_may_be_null (&arg_info);
 
             if (!CanConvertV8ToGIArgument(&type_info, info[in_arg], may_be_null)) {
-                printf("i: %i, in_arg: %i, n_callable_args: %i \n",
-                        i, in_arg, n_callable_args);
-                for (int j = 0; j < n_callable_args; j++) {
-                    Parameter param = call_parameters[i];
-                    printf("%i: %s\n",
-                            j,
-                            param.type == Parameter::NORMAL ? "normal" :
-                            (param.type == Parameter::SKIP ? "skip" : "array"));
-                }
-                print_callable_info(gi_info);
                 ThrowInvalidType(&arg_info, &type_info, info[in_arg]);
                 return;
             }
-            // printf("%s ok\n", g_base_info_get_name(&arg_info));
             in_arg++;
-        }
-        else {
-            // printf("%s is OUT\n", g_base_info_get_name(&arg_info));
         }
     }
 
@@ -308,7 +284,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
  *     char **argv;
  *     int *p_argc;
  *     char ***p_argv;
- * 
+ *
  *     if (debug_mode) {
  *         argc = 4;
  *         argv = (char**)malloc(sizeof(char*) * (argc));
@@ -318,10 +294,10 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
  *         argv[2] = X("misc");
  *         argv[3] = X("last");
  * #undef X
- * 
+ *
  *         p_argc = &argc;
  *         p_argv = &argv;
- * 
+ *
  *         ffi_args[0] = &p_argc;
  *         ffi_args[1] = &p_argv;
  *         printf("argv[1]: %s\n", (***(char****)ffi_args[1]));
