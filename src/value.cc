@@ -185,8 +185,6 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
     auto  elem_size = GetTypeSize (elem_type_info);
     auto is_zero_terminated = g_type_info_is_zero_terminated (type_info);
 
-    GIArgument value;
-
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
@@ -212,17 +210,14 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
                 /* Note: GByteArray is really just a GArray */
                 GArray *g_array = (GArray*) data;
                 data = g_array->data;
-                if (length != -1)
-                    g_assert(g_array->len == length);
                 length = g_array->len;
+                elem_size = g_array_get_element_size (g_array);
                 break;
             }
         case GI_ARRAY_TYPE_PTR_ARRAY:
             {
                 GPtrArray *ptr_array = (GPtrArray*) data;
                 data = ptr_array->pdata;
-                if (length != -1)
-                    g_assert(ptr_array->len == length);
                 length = ptr_array->len;
                 elem_size = sizeof(gpointer);
                 break;
@@ -236,19 +231,19 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
     if (data == nullptr || length == 0)
         goto out;
 
-    if (is_zero_terminated) {
-        char** val = (char **)data;
-        for (int i = 0; i < length && (val[0] != NULL); i++) {
-            value.v_pointer = val[0];
-            Nan::Set(array, i, GIArgumentToV8(elem_type_info, &value));
-            val += elem_size / 8;
-        }
-    } else {
-        for (int i = 0; i < length; i++) {
-            value.v_pointer = (char *)data + ((elem_size/8) * i);
-            Nan::Set(array, i, GIArgumentToV8(elem_type_info, &value));
-        }
+
+    /*
+     * Fill array elements
+     */
+
+    GIArgument value;
+
+    for (int i = 0; i < length; i++) {
+        void** pointer = (void**)((ulong)data + i * elem_size);
+        memcpy(&value, pointer, elem_size);
+        Nan::Set(array, i, GIArgumentToV8(elem_type_info, &value));
     }
+
 
 out:
     g_base_info_unref(elem_type_info);
