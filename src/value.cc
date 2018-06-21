@@ -182,7 +182,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
 
     auto array_type = g_type_info_get_array_type (type_info);
     auto* elem_type_info = g_type_info_get_param_type (type_info, 0);
-    auto  elem_size = GetTypeSize (elem_type_info);
+    auto  element_size = GetTypeSize (elem_type_info);
     auto is_zero_terminated = g_type_info_is_zero_terminated (type_info);
 
     switch (array_type) {
@@ -211,7 +211,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
                 GArray *g_array = (GArray*) data;
                 data = g_array->data;
                 length = g_array->len;
-                elem_size = g_array_get_element_size (g_array);
+                element_size = g_array_get_element_size (g_array);
                 break;
             }
         case GI_ARRAY_TYPE_PTR_ARRAY:
@@ -219,7 +219,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
                 GPtrArray *ptr_array = (GPtrArray*) data;
                 data = ptr_array->pdata;
                 length = ptr_array->len;
-                elem_size = sizeof(gpointer);
+                element_size = sizeof(gpointer);
                 break;
             }
         default:
@@ -239,8 +239,8 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
     GIArgument value;
 
     for (int i = 0; i < length; i++) {
-        void** pointer = (void**)((ulong)data + i * elem_size);
-        memcpy(&value, pointer, elem_size);
+        void** pointer = (void**)((ulong)data + i * element_size);
+        memcpy(&value, pointer, element_size);
         Nan::Set(array, i, GIArgumentToV8(elem_type_info, &value));
     }
 
@@ -269,17 +269,17 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
         auto array = Local<Array>::Cast (value->ToObject ());
         int length = array->Length ();
 
-        GITypeInfo* elem_info = g_type_info_get_param_type (type_info, 0);
-        gsize elem_size = GetTypeSize(elem_info);
+        GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
+        gsize element_size = GetTypeSize(element_info);
 
         // FIXME this is so wrong
-        g_array = g_array_sized_new (zero_terminated, FALSE, elem_size, length);
+        g_array = g_array_sized_new (zero_terminated, FALSE, element_size, length);
 
         for (int i = 0; i < length; i++) {
             auto value = array->Get(i);
             GIArgument arg;
 
-            if (V8ToGIArgument(elem_info, &arg, value, true)) {
+            if (V8ToGIArgument(element_info, &arg, value, true)) {
                 g_array_append_val (g_array, arg);
             } else {
                 g_warning("V8ToGArray: couldnt convert value: %s",
@@ -287,7 +287,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
             }
         }
 
-        g_base_info_unref (elem_info);
+        g_base_info_unref (element_info);
     } else {
         Nan::ThrowTypeError("Not an array.");
     }
@@ -296,56 +296,48 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
 }
 
 void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
-    bool zero_terminated = g_type_info_is_zero_terminated(type_info);
+    bool is_zero_terminated = g_type_info_is_zero_terminated(type_info);
 
     if (value->IsString()) {
         Local<String> string = value->ToString();
         const char *utf8_data = *Nan::Utf8String(string);
         return g_strdup(utf8_data);
+    }
 
-    } else if (value->IsArray ()) {
-        auto array = Local<Array>::Cast (value->ToObject ());
-        int length = array->Length ();
-        if (zero_terminated)
-            length += 1;
-
-        GITypeInfo* elem_info = g_type_info_get_param_type (type_info, 0);
-        gsize elem_size = GetTypeSize(elem_info);
-
-        char **result = (char **)malloc(elem_size * length);
-
-        for (int i = 0; i < length; i++) {
-            auto value = array->Get(i);
-            GIArgument arg;
-
-            if (V8ToGIArgument(elem_info, &arg, value, true)) {
-                result[i] = (char *)arg.v_pointer;
-                // memcpy(arg.v_pointer, , elem_size);
-                printf("%i: %p %p: %s\n", i, arg.v_pointer, result[i], result[i]);
-            } else {
-                g_warning("V8ToGArray: couldnt convert value: %s",
-                        *Nan::Utf8String(value->ToString()) );
-            }
-        }
-
-        g_base_info_unref (elem_info);
-
-        char **argv = (char **)result;
-
-        if (g_type_info_is_pointer (type_info)) {
-            char ***p_result = (char***)malloc(sizeof(void*));
-            *p_result = (char**)result;
-            result = (char**)p_result;
-        }
-        printf("%p %s \n", argv, argv[0]);
-        printf("%p (result)\n", result);
-
-        return result;
-
-    } else {
-        Nan::ThrowTypeError("Not an array");
+    if (!value->IsArray()) {
+        Nan::ThrowTypeError("Expected value to be an array");
         return NULL;
     }
+
+    auto array = Local<Array>::Cast (value->ToObject());
+    int length = array->Length();
+
+    GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
+    gsize element_size = GetTypeSize(element_info);
+
+    void *result = malloc(element_size * (length + (is_zero_terminated ? 1 : 0)));
+
+    for (int i = 0; i < length; i++) {
+        auto value = array->Get(i);
+
+        GIArgument arg;
+
+        if (V8ToGIArgument(element_info, &arg, value, true)) {
+            void* pointer = (void*)((ulong)result + i * element_size);
+            memcpy(pointer, &arg, element_size);
+        } else {
+            g_warning("V8ToGArray: couldnt convert value: %s",
+                    *Nan::Utf8String(value->ToString()) );
+        }
+    }
+
+    if (is_zero_terminated) {
+        void* pointer = (void*)((ulong)result + length * element_size);
+        memset(pointer, 0, element_size);
+    }
+
+    g_base_info_unref (element_info);
+    return result;
 }
 
 gpointer V8ToGList (Local<Value> value, GITypeInfo *type_info) {
@@ -363,9 +355,9 @@ gpointer V8ToGList (Local<Value> value, GITypeInfo *type_info) {
         return NULL; // NULL is a valid empty GList
 
     GITypeTag   list_type = g_type_info_get_tag(type_info);
-    GITypeInfo *elem_info = g_type_info_get_param_type(type_info, 0);
+    GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
 
-    g_assert(elem_info != NULL);
+    g_assert(element_info != NULL);
 
     void *list;
     if (list_type == GI_TYPE_TAG_GLIST)
@@ -379,7 +371,7 @@ gpointer V8ToGList (Local<Value> value, GITypeInfo *type_info) {
         GIArgument arg;
         Local<Value> value = array->Get(i);
 
-        if (!V8ToGIArgument(elem_info, &arg, value, false)) {
+        if (!V8ToGIArgument(element_info, &arg, value, false)) {
             g_warning("V8ToGList: couldnt convert value #%i to GIArgument", i);
             continue;
         }
@@ -397,7 +389,7 @@ gpointer V8ToGList (Local<Value> value, GITypeInfo *type_info) {
     else
         list = g_slist_reverse((GSList *)list);
 
-    g_base_info_unref(elem_info);
+    g_base_info_unref(element_info);
     return list;
 }
 
@@ -468,9 +460,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
     case GI_TYPE_TAG_UTF8:
         {
-            Nan::Utf8String str (value);
-            const char *data = *str;
-            arg->v_pointer = g_strdup (data);
+            arg->v_pointer = g_strdup (*Nan::Utf8String(value));
         }
         break;
 
@@ -602,17 +592,17 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
 
             auto array = value->ToObject ();
             int length = Nan::Get(array, UTF8("length")).ToLocalChecked()->Uint32Value();
-            GITypeInfo *elem_info = g_type_info_get_param_type(type_info, 0);
+            GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
 
             bool result = true;
             for (int i = 0; i < length; i++) {
                 auto element = Nan::Get(array, i).ToLocalChecked();
-                if (!CanConvertV8ToGIArgument(elem_info, element, false)) {
+                if (!CanConvertV8ToGIArgument(element_info, element, false)) {
                     result = false;
                     break;
                 }
             }
-            g_base_info_unref(elem_info);
+            g_base_info_unref(element_info);
             return result;
         }
 
