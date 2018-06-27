@@ -36,27 +36,34 @@ static bool InitGParameterFromProperty(GParameter    *parameter,
                                        void          *klass,
                                        Local<String>  name,
                                        Local<Value>   value) {
-    // XXX js->c name conversion
-    Nan::Utf8String name_str (name);
-    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_CLASS (klass), *name_str);
+    Nan::Utf8String name_utf8 (name);
+    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_CLASS (klass), *name_utf8);
 
+    // Ignore additionnal keys in options, thus return true
     if (pspec == NULL)
-        return false;
+        return true;
 
     GType value_type = G_PARAM_SPEC_VALUE_TYPE (pspec);
     parameter->name = pspec->name;
     g_value_init (&parameter->value, value_type);
 
     if (!CanConvertV8ToGValue(&parameter->value, value)) {
-        std::string message = "Cannot convert value for property \"";
-        message += *name_str;
-        message += "\": expected type ";
-        message += g_type_name(value_type);
-        Nan::ThrowTypeError(message.c_str());
+        char* message = g_strdup_printf("Cannot convert value for property \"%s\", expected type %s",
+                *name_utf8, g_type_name(value_type));
+        Nan::ThrowTypeError(message);
+        free(message);
         return false;
     }
 
-    return V8ToGValue (&parameter->value, value);
+    if (!V8ToGValue (&parameter->value, value)) {
+        char* message = g_strdup_printf("Couldn't convert value for property \"%s\", expected type %s",
+                *name_utf8, g_type_name(value_type));
+        Nan::ThrowTypeError(message);
+        free(message);
+        return false;
+    }
+
+    return true;
 }
 
 static bool InitGParametersFromProperty(GParameter    **parameters_p,
@@ -72,7 +79,7 @@ static bool InitGParametersFromProperty(GParameter    **parameters_p,
         Local<Value> value = property_hash->Get (name);
 
         if (!InitGParameterFromProperty (&parameters[i], klass, name->ToString (), value))
-            g_warning("Couldn't initiate GParameter for property %s", *Nan::Utf8String(name));
+            return false;
     }
 
     *parameters_p = parameters;
@@ -151,7 +158,7 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
             Local<Object> property_hash = info[0]->ToObject ();
 
             if (!InitGParametersFromProperty (&parameters, &n_parameters, klass, property_hash)) {
-                Nan::ThrowError("GObjectConstructor: Unable to make GParameters.");
+                // Error will already be thrown from InitGParametersFromProperty
                 goto out;
             }
         }
