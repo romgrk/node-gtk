@@ -36,18 +36,13 @@ static int GetV8ArrayLength (Local<Value> value) {
 
 static void* AllocateArgument (GIBaseInfo *arg_info) {
     GITypeInfo arg_type;
-    GIBaseInfo *base_info;
-    size_t size;
-    void* pointer;
-
     g_arg_info_load_type(arg_info, &arg_type);
-    GITypeTag a_tag = g_type_info_get_tag(&arg_type);
 
-    g_assert(a_tag == GI_TYPE_TAG_INTERFACE);
+    g_assert(g_type_info_get_tag(&arg_type) == GI_TYPE_TAG_INTERFACE);
 
-    base_info = g_type_info_get_interface (&arg_type);
-    size = Boxed::GetSize (base_info);
-    pointer = g_slice_alloc0 (size);
+    GIBaseInfo* base_info = g_type_info_get_interface (&arg_type);
+    size_t size = Boxed::GetSize (base_info);
+    void* pointer = g_slice_alloc0 (size);
 
     g_base_info_unref(base_info);
     return pointer;
@@ -98,7 +93,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     FunctionInfo *func = (FunctionInfo *) External::Cast (*info.Data ())->Value ();
     GIBaseInfo *gi_info = func->info; // do-not-free
 
-    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "get_start_iter") == 0;
+    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "get_size_request") == 0;
     bool debug_mode = false;
 
     if (debug_mode)
@@ -130,7 +125,6 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         g_callable_info_load_arg ((GICallableInfo *) gi_info, i, &arg_info);
         g_arg_info_load_type (&arg_info, &type_info);
 
-        call_parameters[i].data = nullptr;
         call_parameters[i].direction = g_arg_info_get_direction (&arg_info);
 
         if (debug_mode) {
@@ -224,7 +218,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
      */
 
     for (int in_arg = 0, i = 0; i < n_callable_args; i++) {
-        Parameter param = call_parameters[i];
+        Parameter& param = call_parameters[i];
 
         if (param.type == Parameter::SKIP)
             continue;
@@ -240,7 +234,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
             if (g_arg_info_is_caller_allocates (&arg_info)) {
                 callable_arg_values[i].v_pointer = AllocateArgument(&arg_info);
             } else /* callee will allocate */ {
-                callable_arg_values[i].v_pointer = nullptr;
+                param.data = {};
+                callable_arg_values[i].v_pointer = &param.data;
             }
         }
         else /* (direction == GI_DIRECTION_IN || direction == GI_DIRECTION_INOUT) */ {
@@ -256,16 +251,16 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 g_callable_info_load_arg(gi_info, length_i, &array_length_arg);
                 g_arg_info_load_type (&array_length_arg, &array_length_type);
 
-                Parameter len_param = call_parameters[length_i];
+                Parameter& len_param = call_parameters[length_i];
 
                 if (len_param.direction == GI_DIRECTION_IN) {
                     callable_arg_values[length_i].v_int = GetV8ArrayLength(info[in_arg]);
                 }
                 else if (len_param.direction == GI_DIRECTION_INOUT) {
-                    len_param.data = new GIArgument();
-                    len_param.data->v_int = GetV8ArrayLength(info[in_arg]);
+                    len_param.data = {};
+                    len_param.data.v_int = GetV8ArrayLength(info[in_arg]);
 
-                    callable_arg_values[length_i].v_pointer = len_param.data;
+                    callable_arg_values[length_i].v_pointer = &len_param.data;
                 }
             }
 
@@ -276,9 +271,9 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         }
 
         if (direction == GI_DIRECTION_INOUT) {
-            param.data = new GIArgument();
-            param.data->v_pointer = callable_arg_values[i].v_pointer;
-            callable_arg_values[i].v_pointer = param.data;
+            param.data = {};
+            param.data.v_pointer = callable_arg_values[i].v_pointer;
+            callable_arg_values[i].v_pointer = &param.data;
         }
     }
 
@@ -374,10 +369,9 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
                 ADD_RETURN (result)
 
-            } else if (param.type == Parameter::NORMAL
-                    || g_arg_info_is_caller_allocates(&arg_info)) {
+            } else if (param.type == Parameter::NORMAL) {
 
-                ADD_RETURN (GIArgumentToV8(&arg_type, &arg_value))
+                ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer))
             }
         }
     }
@@ -397,7 +391,6 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         GIArgInfo  arg_info = {};
         GITypeInfo arg_type;
         GIArgument arg_value = callable_arg_values[i];
-        Parameter param = call_parameters[i];
 
         g_callable_info_load_arg ((GICallableInfo *) gi_info, i, &arg_info);
         g_arg_info_load_type (&arg_info, &arg_type);
@@ -412,9 +405,6 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         // FIXME(handle GI_DIRECTION_IN when transfer is not EVERYTHING)
         // else if (direction == GI_DIRECTION_IN)
             // FreeGIArgument (&arg_type, &arg_value, transfer);
-
-        if (param.data != nullptr)
-            delete param.data;
     }
 }
 

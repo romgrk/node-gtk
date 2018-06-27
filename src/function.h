@@ -27,8 +27,7 @@ struct Parameter {
     } type;
 
     GIDirection direction;
-
-    GIArgument *data;
+    GIArgument data;
 };
 
 void            FunctionInvoker (const FunctionCallbackInfo<Value> &info);
