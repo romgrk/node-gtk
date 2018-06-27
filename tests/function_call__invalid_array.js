@@ -6,4 +6,12 @@
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk')
 
-Gtk.init(0, null)
+try {
+  Gtk.init(0, null)
+} catch(e) {
+  console.log('Success:', e.message)
+  process.exit(0)
+}
+
+console.error('Expected error')
+process.exit(1)

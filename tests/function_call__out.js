@@ -14,12 +14,19 @@ const window = new Gtk.Window({
   type : Gtk.WindowType.TOPLEVEL
 })
 
-// configure main window
-window.setDefaultSize(400, 100)
+const button = new Gtk.Button()
+button.setSizeRequest(100, 50)
+
+window.add(button)
+window.setDefaultSize(100, 100)
 window.connect('show', () => {
   setTimeout(() => {
-    const result = window.getSizeRequest()
-    console.log(typeof result, result)
+
+    const result = button.getSizeRequest()
+    console.log('Result:', result)
+    console.assert(result[0] === 100, `result[0] === 100`)
+    console.assert(result[1] === 50,  `result[1] === 50`)
+
     Gtk.main_quit()
   }, 50)
   Gtk.main()
