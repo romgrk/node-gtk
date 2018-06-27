@@ -398,9 +398,9 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         GITransfer transfer   = g_arg_info_get_ownership_transfer (&arg_info);
 
         if (direction == GI_DIRECTION_INOUT)
-            FreeGIArgument (&arg_type, (GIArgument*)arg_value.v_pointer, transfer);
+            FreeGIArgument (&arg_type, (GIArgument*)arg_value.v_pointer, transfer, direction);
         else if (direction == GI_DIRECTION_OUT)
-            FreeGIArgument (&arg_type, &arg_value, transfer);
+            FreeGIArgument (&arg_type, &arg_value, transfer, direction);
         // FIXME(handle GI_DIRECTION_IN when transfer is not EVERYTHING)
         // else if (direction == GI_DIRECTION_IN)
             // FreeGIArgument (&arg_type, &arg_value, transfer);

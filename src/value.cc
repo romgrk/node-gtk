@@ -619,8 +619,8 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     return false;
 }
 
-void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer) {
-    if (transfer == GI_TRANSFER_NOTHING)
+void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction) {
+    if (direction == GI_DIRECTION_OUT && transfer == GI_TRANSFER_NOTHING)
         return;
 
     if (arg->v_pointer == NULL)
@@ -670,16 +670,31 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer)
         }
         break;
 
-    case GI_TYPE_TAG_GLIST: {
-        if (transfer == GI_TRANSFER_EVERYTHING)
-            g_warning("FreeArgument: unhandled GList");
-        g_list_free((GList *)arg->v_pointer);
-        break;
-    }
+    case GI_TYPE_TAG_GLIST: // GList & GSList start with the same structure layout
     case GI_TYPE_TAG_GSLIST: {
-        if (transfer == GI_TRANSFER_EVERYTHING)
-            g_warning("FreeArgument: unhandled GSList");
-        g_slist_free((GSList *)arg->v_pointer);
+
+        if (transfer == GI_TRANSFER_EVERYTHING) {
+            GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
+
+            GITransfer  element_transfer  = GI_TRANSFER_EVERYTHING;
+            GIDirection element_direction = GI_DIRECTION_OUT;
+            GIArgument  element_arg;
+
+            GSList* list = (GSList *)arg->v_pointer;
+
+            for (; list != NULL; list = list->next) {
+                element_arg.v_pointer = list->data;
+                FreeGIArgument(element_info, &element_arg, element_transfer, element_direction);
+            }
+
+            g_base_info_unref(element_info);
+        }
+
+        if (type_tag == GI_TYPE_TAG_GLIST)
+            g_list_free((GList *)arg->v_pointer);
+        else
+            g_slist_free((GSList *)arg->v_pointer);
+
         break;
     }
 
