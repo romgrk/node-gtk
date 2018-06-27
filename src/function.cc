@@ -400,7 +400,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
         if (direction == GI_DIRECTION_INOUT)
             FreeGIArgument (&arg_type, (GIArgument*)arg_value.v_pointer, transfer);
-        else if (direction == GI_DIRECTION_OUT)
+        else if (direction == GI_DIRECTION_OUT && g_arg_info_is_caller_allocates(&arg_info))
             FreeGIArgument (&arg_type, &arg_value, transfer);
         // FIXME(handle GI_DIRECTION_IN when transfer is not EVERYTHING)
         // else if (direction == GI_DIRECTION_IN)
