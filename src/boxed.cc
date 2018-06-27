@@ -212,15 +212,15 @@ void FieldGetter(Local<String> property, Nan::NAN_GETTER_ARGS_TYPE info) {
 
         // GNodeJS::reeGIArgument(field_type, &value);
     } else {
-        DEBUG("FieldGetter: couldnt get field %s", g_base_info_get_name(field));
-        DEBUG("FieldGetter: property name: %s", *Nan::Utf8String(property) );
+        g_warning ("FieldGetter: couldnt get field %s", g_base_info_get_name(field));
+        g_warning ("FieldGetter: property name: %s", *Nan::Utf8String(property) );
     }
 }
 
 void FieldSetter(Local<String> property,
                  Local<Value> value,
                  Nan::NAN_SETTER_ARGS_TYPE info) {
-    //Isolate *isolate = info.GetIsolate();
+
     Local<Object> self = info.This();
     void *boxed = self->GetAlignedPointerFromInternalField(0);
     GIFieldInfo *field = static_cast<GIFieldInfo*>(External::Cast(*info.Data())->Value());
@@ -230,10 +230,9 @@ void FieldSetter(Local<String> property,
 
     if (V8ToGIArgument(field_type, &arg, value, true)) {
         if (g_field_info_set_field(field, boxed, &arg) == FALSE)
-            DEBUG("FieldSetter: couldnt set field %s", g_base_info_get_name(field));
-        FreeGIArgument(field_type, &arg);
+            g_warning ("FieldSetter: couldnt set field %s", g_base_info_get_name(field));
     } else {
-        DEBUG("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
+        g_warning ("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
     }
 
     g_base_info_unref (field_type);
