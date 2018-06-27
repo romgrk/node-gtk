@@ -5,8 +5,16 @@
 const gi = require('../lib/')
 const soup = gi.require('Soup')
 
-const res = soup.header_parse_quality_list("Content-Type;q=1, Accept;q=0.2, X-Custom;q=0.1, 0asldk;q=0")
-console.log(res)
-console.assert(res[0] === 'Content-Type')
-console.assert(res[1] === 'Accep')
-console.assert(res[2] === 'X-Custom')
+const input = 'Content-Type;q=1, Accept;q=0.2, X-Custom;q=0.1, Zero;q=0'
+
+console.log(`Input: "${input}"`)
+const [acceptable, unacceptable] = soup.header_parse_quality_list(input)
+console.log(acceptable, unacceptable)
+
+console.assert(acceptable[0] === 'Content-Type', `acceptable[0] === 'Content-Type'`, acceptable[0])
+console.assert(acceptable[1] === 'Accept',       `acceptable[1] === 'Accept'`,       acceptable[1])
+console.assert(acceptable[2] === 'X-Custom',     `acceptable[2] === 'X-Custom'`,     acceptable[2])
+
+// soup_header_parse_quality_list out-argument doesnt seem to be correctly marked as
+// caller-allocated, thus we skip the following assertion:
+// console.assert(unacceptable[0] === 'Zero',       `unacceptable[0] === 'Zero'`,       unacceptable[0])

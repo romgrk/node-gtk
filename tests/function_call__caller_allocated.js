@@ -1,14 +1,13 @@
 /*
  * function_call__caller_allocated.js
  */
-/* global test, expect */
 
 const gi = require('../')
-const Gtk = gi.require('Gtk', '3.0');
+const Gtk = gi.require('Gtk', '3.0')
 
-test('fills caller-allocated arguments', () => {
-  const buf = new Gtk.TextBuffer();
-  const i = buf.getStartIter(/* TextIter */);
-  expect(i.__proto__ === Gtk.TextIter.prototype).toBe(true)
-  expect(i instanceof Gtk.TextIter).toBe(true)
-})
+const buffer = new Gtk.TextBuffer()
+const iter = buffer.getStartIter(/* TextIter */)
+console.assert(iter !== undefined, 'iter !== undefined')
+console.assert(iter.__proto__ === Gtk.TextIter.prototype, 'iter.__proto__ === Gtk.TextIter.prototype')
+console.assert(iter instanceof Gtk.TextIter, 'iter instanceof Gtk.TextIter')
+console.log('Success:', iter)
