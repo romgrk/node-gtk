@@ -6,5 +6,7 @@
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk')
 
-const button = new Gtk.Button()
-console.log(button.getSizeRequest())
+gi.startLoop()
+Gtk.init()
+
+throw new Error('not implemented')
