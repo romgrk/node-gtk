@@ -173,11 +173,16 @@ NAN_METHOD(ObjectPropertySetter) {
 
     GValue value = {};
     g_value_init(&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-    GNodeJS::V8ToGValue (&value, info[2]);
 
-    g_object_set_property (gobject, prop_name, &value);
+    if (GNodeJS::V8ToGValue (&value, info[2])) {
+        g_object_set_property (gobject, prop_name, &value);
 
-    RETURN(Nan::True());
+        RETURN(Nan::True());
+    } else {
+        Nan::ThrowError("ObjectPropertySetter: could not convert value");
+
+        RETURN(Nan::False());
+    }
 }
 
 NAN_METHOD(StructFieldSetter) {

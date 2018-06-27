@@ -49,12 +49,12 @@ void Closure::Marshal(GClosure *base,
     Local<Value> return_value;
 
     if (!func->Call(context, this_obj, argc, argv).ToLocal(&return_value)) {
-        g_warning("Caught: %s", *Nan::Utf8String(try_catch.Exception()));
+        g_warning ("Marshal: caught: %s", *Nan::Utf8String(try_catch.Exception()));
     } else if (g_return_value) {
         if (G_VALUE_TYPE(g_return_value) == G_TYPE_INVALID)
-            g_warning("Marshal: return value has invalid g_type");
-        else
-            V8ToGValue (g_return_value, return_value);
+            g_warning ("Marshal: return value has invalid g_type");
+        else if (!V8ToGValue (g_return_value, return_value))
+            g_warning ("Marshal: could not convert return value");
     }
 
     #ifndef __linux__

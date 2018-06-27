@@ -288,7 +288,6 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
 
     GIArgument return_value;
-    GITypeInfo return_type;
 
     ffi_call (&func->invoker.cif, FFI_FN (func->invoker.native_address),
               &return_value, ffi_args);
@@ -298,10 +297,14 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
      * Sixth, convert the return value & OUT-arguments back to JS
      */
 
-    GITransfer return_transfer;
-    bool should_skip_return;
-    int jsReturnIndex = 0;
+
+    GITypeInfo return_type;
+    g_callable_info_load_return_type(gi_info, &return_type);
+    GITransfer return_transfer = g_callable_info_get_caller_owns(gi_info);
+    bool should_skip_return = ShouldSkipReturn(gi_info);
+
     Local<Value> jsReturnValue;
+    int jsReturnIndex = 0;
 
     // If there is an error, skip to freeing resources
     if (error) {
@@ -309,10 +312,6 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         g_error_free(error);
         goto out;
     }
-
-    g_callable_info_load_return_type(gi_info, &return_type);
-    return_transfer = g_callable_info_get_caller_owns(gi_info);
-    should_skip_return = ShouldSkipReturn(gi_info);
 
     if (!should_skip_return)
         n_out_args++;

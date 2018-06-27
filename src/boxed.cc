@@ -172,7 +172,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     Boxed *box = info.GetParameter();
-    GIBaseInfo *base_info = g_irepository_find_by_gtype(NULL, box->g_type);
+    // GIBaseInfo *base_info = g_irepository_find_by_gtype(NULL, box->g_type);
 
     if (G_TYPE_IS_BOXED(box->g_type)) {
         g_boxed_free(box->g_type, box->data);
