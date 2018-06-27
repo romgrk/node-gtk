@@ -665,7 +665,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer)
             default:
                 g_assert_not_reached ();
             }
-            g_warning("%s freed; whatsup with elements?",
+            g_warning("FreeArgument: %s: elements not freed",
                     Util::ArrayTypeToString(array_type));
         }
         break;
@@ -710,7 +710,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer)
             break;
 
         default:
-            g_warning("FreeArgument: unhandled (?) %s",
+            g_warning("FreeArgument: unhandled interface type: %s",
                     g_base_info_get_name(i_info));
             break;
         }
@@ -724,13 +724,13 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer)
         break;
 
     case GI_TYPE_TAG_ERROR:
-        g_warning("FreeGIArgument: GError (wtf); msg: %s",
+        g_warning("FreeGIArgument: GError: %s",
                 ((GError *)arg->v_pointer)->message );
         //g_error_free((GError *)arg->v_pointer);
         break;
 
     default:
-        g_warning("FreeGIArgument: reached default for type %s \n",
+        g_warning("FreeGIArgument: reached default for type %s",
                 g_type_tag_to_string(type_tag));
         break;
     }
