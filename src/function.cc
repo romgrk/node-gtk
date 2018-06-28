@@ -93,7 +93,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     FunctionInfo *func = (FunctionInfo *) External::Cast (*info.Data ())->Value ();
     GIBaseInfo *gi_info = func->info; // do-not-free
 
-    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "get_size_request") == 0;
+    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "header_parse_quality_list") == 0;
     bool debug_mode = false;
 
     if (debug_mode)
@@ -407,7 +407,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 // FreeGIArgument (&arg_type, &arg_value, transfer);
         }
         else {
-            if (direction == GI_DIRECTION_INOUT)
+            if (direction == GI_DIRECTION_INOUT || (direction == GI_DIRECTION_OUT && !g_arg_info_is_caller_allocates (&arg_info)))
                 FreeGIArgument (&arg_type, (GIArgument*)arg_value.v_pointer, transfer, direction);
             else if (direction == GI_DIRECTION_OUT)
                 FreeGIArgument (&arg_type, &arg_value, transfer, direction);
