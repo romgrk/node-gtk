@@ -400,21 +400,14 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         if (param.type == Parameter::ARRAY) {
             if (direction == GI_DIRECTION_INOUT)
                 FreeGIArgumentArray (&arg_type, (GIArgument*)arg_value.v_pointer, transfer, direction, param.length);
-            else if (direction == GI_DIRECTION_OUT)
+            else
                 FreeGIArgumentArray (&arg_type, &arg_value, transfer, direction, param.length);
-            // FIXME(handle GI_DIRECTION_IN when transfer is not EVERYTHING)
-            // else if (direction == GI_DIRECTION_IN)
-                // FreeGIArgument (&arg_type, &arg_value, transfer);
         }
         else {
             if (direction == GI_DIRECTION_INOUT || (direction == GI_DIRECTION_OUT && !g_arg_info_is_caller_allocates (&arg_info)))
                 FreeGIArgument (&arg_type, (GIArgument*)arg_value.v_pointer, transfer, direction);
-            else if (direction == GI_DIRECTION_OUT)
+            else
                 FreeGIArgument (&arg_type, &arg_value, transfer, direction);
-            // FIXME(handle GI_DIRECTION_IN when transfer is not EVERYTHING)
-            // else if (direction == GI_DIRECTION_IN)
-                // FreeGIArgument (&arg_type, &arg_value, transfer);
-
         }
     }
 }
