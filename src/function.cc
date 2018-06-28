@@ -210,7 +210,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     }
 
     if (can_throw)
-        callable_arg_values[n_callable_args - 1].v_pointer = &error;
+        callable_arg_values[n_callable_args].v_pointer = &error;
 
 
     /*

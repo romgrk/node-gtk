@@ -69,16 +69,22 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) 
 
     case GI_TYPE_TAG_FILENAME:
         {
-            gsize b_read = 0,
-                  b_written = 0;
+            if (arg->v_pointer == NULL)
+                return Nan::Null();
+
+            gsize b_read    = 0;
+            gsize b_written = 0;
             GError *error = NULL;
-            char *data = g_filename_to_utf8((const char *)arg->v_pointer, -1,
-                    &b_read, &b_written, &error);
+
+            char *data = g_filename_to_utf8(
+                    (const char *)arg->v_pointer, -1, &b_read, &b_written, &error);
+
             if (error) {
                 Nan::ThrowError(error->message);
                 g_error_free(error);
                 return Nan::Null();
             }
+
             auto str = New<String>(data).ToLocalChecked();
             g_free(data);
             return str;
@@ -639,17 +645,20 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
     switch (type_tag) {
     case GI_TYPE_TAG_FILENAME:
     case GI_TYPE_TAG_UTF8:
+    {
         g_free (arg->v_pointer);
         break;
+    }
 
     case GI_TYPE_TAG_ARRAY:
-        {
-            FreeGIArgumentArray(type_info, arg, transfer, direction, -1);
-        }
+    {
+        FreeGIArgumentArray(type_info, arg, transfer, direction, -1);
         break;
+    }
 
     case GI_TYPE_TAG_GLIST: // GList & GSList start with the same structure layout
-    case GI_TYPE_TAG_GSLIST: {
+    case GI_TYPE_TAG_GSLIST:
+    {
 
         if (transfer == GI_TRANSFER_EVERYTHING) {
             GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
@@ -712,15 +721,17 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
     }
 
     case GI_TYPE_TAG_GHASH:
+    {
         //g_hash_table_destroy((GHashTable *)arg->v_pointer);
         g_warning("FreeGIArgument: unhandled GHash");
         break;
+    }
 
     case GI_TYPE_TAG_ERROR:
-        g_warning("FreeGIArgument: GError: %s",
-                ((GError *)arg->v_pointer)->message );
-        //g_error_free((GError *)arg->v_pointer);
+    {
+        g_error_free((GError *)arg->v_pointer);
         break;
+    }
 
     default:
         g_warning("FreeGIArgument: reached default for type %s",
@@ -730,11 +741,13 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
 }
 
 void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction, int length) {
-    if (direction == GI_DIRECTION_IN && transfer == GI_TRANSFER_EVERYTHING)
+    bool is_in  = direction == GI_DIRECTION_IN;
+    bool is_out = direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT;
+
+    if (is_in && transfer == GI_TRANSFER_EVERYTHING)
         return;
 
-    if ((direction == GI_DIRECTION_OUT   && transfer == GI_TRANSFER_NOTHING)
-     || (direction == GI_DIRECTION_INOUT && transfer == GI_TRANSFER_NOTHING))
+    if (is_out && transfer == GI_TRANSFER_NOTHING)
         return;
 
     if (arg->v_pointer == NULL)
@@ -743,12 +756,12 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     void* data = arg->v_pointer;
     auto array_type = g_type_info_get_array_type (type_info);
 
-
     /*
      * Free array elements
      */
 
-    if (transfer == GI_TRANSFER_EVERYTHING) {
+    if ((is_in && transfer != GI_TRANSFER_EVERYTHING)
+        || (is_out && transfer == GI_TRANSFER_EVERYTHING)) {
         auto* elem_type_info = g_type_info_get_param_type (type_info, 0);
         gsize element_size = GetTypeSize (elem_type_info);
         bool is_zero_terminated = g_type_info_is_zero_terminated (type_info);
