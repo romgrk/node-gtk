@@ -620,6 +620,9 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
 }
 
 void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction) {
+    if (direction == GI_DIRECTION_IN && transfer == GI_TRANSFER_EVERYTHING)
+        return;
+
     if (direction == GI_DIRECTION_OUT && transfer == GI_TRANSFER_NOTHING)
         return;
 
@@ -641,32 +644,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
 
     case GI_TYPE_TAG_ARRAY:
         {
-            GIArrayType array_type = g_type_info_get_array_type (type_info);
-            gboolean free_data = (transfer == GI_TRANSFER_EVERYTHING);
-
-            switch (array_type) {
-            case GI_ARRAY_TYPE_C: {
-                if (free_data)
-                    g_strfreev ((char **)arg->v_pointer);
-                else
-                    g_free (arg->v_pointer);
-                return;
-            }
-            // FIXME really free elements for these too
-            case GI_ARRAY_TYPE_ARRAY:
-                g_array_free ((GArray *) arg->v_pointer, free_data);
-                break;
-            case GI_ARRAY_TYPE_PTR_ARRAY:
-                g_ptr_array_free ((GPtrArray *) arg->v_pointer, free_data);
-                break;
-            case GI_ARRAY_TYPE_BYTE_ARRAY:
-                g_byte_array_free ((GByteArray *) arg->v_pointer, free_data);
-                break;
-            default:
-                g_assert_not_reached ();
-            }
-            g_warning("FreeArgument: %s: elements not freed",
-                    Util::ArrayTypeToString(array_type));
+            FreeGIArgumentArray(type_info, arg, transfer, direction, -1);
         }
         break;
 
@@ -748,6 +726,109 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         g_warning("FreeGIArgument: reached default for type %s",
                 g_type_tag_to_string(type_tag));
         break;
+    }
+}
+
+void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction, int length) {
+    if (direction == GI_DIRECTION_IN && transfer == GI_TRANSFER_EVERYTHING)
+        return;
+
+    if ((direction == GI_DIRECTION_OUT   && transfer == GI_TRANSFER_NOTHING)
+     || (direction == GI_DIRECTION_INOUT && transfer == GI_TRANSFER_NOTHING))
+        return;
+
+    if (arg->v_pointer == NULL)
+        return;
+
+    void* data = arg->v_pointer;
+    auto array_type = g_type_info_get_array_type (type_info);
+
+
+    /*
+     * Free array elements
+     */
+
+    if (transfer == GI_TRANSFER_EVERYTHING) {
+        auto* elem_type_info = g_type_info_get_param_type (type_info, 0);
+        gsize element_size = GetTypeSize (elem_type_info);
+        bool is_zero_terminated = g_type_info_is_zero_terminated (type_info);
+
+        switch (array_type) {
+            case GI_ARRAY_TYPE_C:
+                {
+                    if (length == -1) {
+                        if (is_zero_terminated) {
+                            length = g_strv_length ((gchar **)data);
+                        } else {
+                            length = g_type_info_get_array_fixed_size (type_info);
+                            if (G_UNLIKELY (length == -1)) {
+                                g_critical ("Unable to determine array length for %p",
+                                        data);
+                                length = 0;
+                                break;
+                            }
+                        }
+                    }
+                    g_assert (length >= 0);
+                    break;
+                }
+            case GI_ARRAY_TYPE_ARRAY:
+            case GI_ARRAY_TYPE_BYTE_ARRAY:
+                {
+                    /* Note: GByteArray is really just a GArray */
+                    GArray *g_array = (GArray*) data;
+                    data = g_array->data;
+                    length = g_array->len;
+                    element_size = g_array_get_element_size (g_array);
+                    break;
+                }
+            case GI_ARRAY_TYPE_PTR_ARRAY:
+                {
+                    GPtrArray *ptr_array = (GPtrArray*) data;
+                    data = ptr_array->pdata;
+                    length = ptr_array->len;
+                    element_size = sizeof(gpointer);
+                    break;
+                }
+            default:
+                g_critical ("Unexpected array type %u",
+                        g_type_info_get_array_type (type_info));
+                break;
+        }
+
+        auto item_transfer = direction == GI_DIRECTION_IN ? GI_TRANSFER_NOTHING : GI_TRANSFER_EVERYTHING;
+
+        for (int i = 0; i < length; i++) {
+            GIArgument item;
+            memcpy (&item, (void*)((ulong)data + element_size * i), sizeof (GIArgument));
+            FreeGIArgument (elem_type_info, &item, item_transfer, direction);
+        }
+
+        g_base_info_unref(elem_type_info);
+    }
+
+
+    /*
+     * Free the container
+     */
+
+    switch (array_type) {
+        case GI_ARRAY_TYPE_C:
+            {
+                free(data);
+                break;
+            }
+        case GI_ARRAY_TYPE_ARRAY:
+        case GI_ARRAY_TYPE_BYTE_ARRAY:
+        case GI_ARRAY_TYPE_PTR_ARRAY:
+            {
+                g_array_free ((GArray*)data, TRUE);
+                break;
+            }
+        default:
+            g_critical ("Unexpected array type %u",
+                    g_type_info_get_array_type (type_info));
+            break;
     }
 }
 
