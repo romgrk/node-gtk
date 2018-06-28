@@ -25,6 +25,37 @@ using Nan::New;
 
 namespace GNodeJS {
 
+
+static gpointer GIArgumentToHashPointer (const GIArgument *arg, GITypeInfo *type_info) {
+    GITypeTag type_tag = GetStorageType(type_info);
+
+    switch (type_tag) {
+        case GI_TYPE_TAG_INT8:
+            return GINT_TO_POINTER (arg->v_int8);
+        case GI_TYPE_TAG_UINT8:
+            return GINT_TO_POINTER (arg->v_uint8);
+        case GI_TYPE_TAG_INT16:
+            return GINT_TO_POINTER (arg->v_int16);
+        case GI_TYPE_TAG_UINT16:
+            return GINT_TO_POINTER (arg->v_uint16);
+        case GI_TYPE_TAG_INT32:
+            return GINT_TO_POINTER (arg->v_int32);
+        case GI_TYPE_TAG_UINT32:
+            return GINT_TO_POINTER (arg->v_uint32);
+        case GI_TYPE_TAG_GTYPE:
+            return GSIZE_TO_POINTER (arg->v_size);
+        case GI_TYPE_TAG_UTF8:
+        case GI_TYPE_TAG_FILENAME:
+        case GI_TYPE_TAG_INTERFACE:
+        case GI_TYPE_TAG_ARRAY:
+            return arg->v_pointer;
+        default:
+            g_critical ("Unsupported type %s", g_type_tag_to_string(type_tag));
+            return arg->v_pointer;
+    }
+}
+
+
 Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
@@ -346,7 +377,7 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
     return result;
 }
 
-gpointer V8ToGList (Local<Value> value, GITypeInfo *type_info) {
+gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value) {
 
     // FIXME can @value be null?
     if (!value->IsArray()) {
@@ -397,6 +428,80 @@ gpointer V8ToGList (Local<Value> value, GITypeInfo *type_info) {
 
     g_base_info_unref(element_info);
     return list;
+}
+
+gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
+
+    if (!value->IsObject()) {
+        Nan::ThrowTypeError("Expected object");
+        return NULL;
+    }
+
+    /* char* typeName = GetTypeName(element_info);
+     * printf("%s : %s \n", g_type_tag_to_string(tag), typeName);
+     * free(typeName); */
+
+
+    GITypeInfo *key_type_info   = g_type_info_get_param_type (type_info, 0);
+    GITypeInfo *value_type_info = g_type_info_get_param_type (type_info, 1);
+
+    GITypeTag key_type_tag = g_type_info_get_tag (key_type_info);
+
+    GHashFunc hash_func;
+    GEqualFunc equal_func;
+
+    switch (key_type_tag) {
+        case GI_TYPE_TAG_UTF8:
+        case GI_TYPE_TAG_FILENAME:
+            hash_func = g_str_hash;
+            equal_func = g_str_equal;
+            break;
+        default:
+            hash_func = NULL;
+            equal_func = NULL;
+    }
+
+    GHashTable* hash_table = g_hash_table_new (hash_func, equal_func);
+
+
+    auto object = value->ToObject();
+    auto keys = object->GetOwnPropertyNames();
+
+    for (uint32_t i = 0; i < keys->Length(); i++) {
+        auto key   = Nan::Get(keys, i).ToLocalChecked();
+        auto value = Nan::Get(object, key).ToLocalChecked();
+
+        GIArgument key_arg;
+        GIArgument value_arg;
+
+        if (!V8ToGIArgument(key_type_info, &key_arg, key, false)) {
+            char* message = g_strdup_printf("Couldn't convert key '%s'", *Nan::Utf8String(key));
+            Nan::ThrowError(message);
+            free(message);
+            goto item_error;
+        }
+
+        if (!V8ToGIArgument(value_type_info, &value_arg, value, false)) {
+            char* message = g_strdup_printf("Couldn't convert value for key '%s'", *Nan::Utf8String(key));
+            Nan::ThrowError(message);
+            free(message);
+            goto item_error;
+        }
+
+        g_hash_table_insert (hash_table, key_arg.v_pointer, GIArgumentToHashPointer (&value_arg, value_type_info));
+
+        continue;
+
+item_error:
+        /* Free everything we have converted so far. */
+        FreeGIArgument(type_info, (GIArgument *) &hash_table, GI_TRANSFER_NOTHING, GI_DIRECTION_IN);
+        hash_table = NULL;
+        break;
+    }
+
+    g_base_info_unref(key_type_info);
+    g_base_info_unref(value_type_info);
+    return hash_table;
 }
 
 bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value) {
@@ -508,10 +613,17 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
     case GI_TYPE_TAG_GLIST:
     case GI_TYPE_TAG_GSLIST:
-        arg->v_pointer = V8ToGList(value, type_info);
+        {
+            arg->v_pointer = V8ToGList(type_info, value);
+        }
         break;
 
-    //case GI_TYPE_TAG_GHASH: FIXME
+    case GI_TYPE_TAG_GHASH:
+        {
+            arg->v_pointer = V8ToGHash(type_info, value);
+        }
+        break;
+
     //case GI_TYPE_TAG_ERROR: FIXME
 
     case GI_TYPE_TAG_UNICHAR: // FIXME
@@ -615,7 +727,9 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     case GI_TYPE_TAG_UNICHAR:
         return true;
 
-    //case GI_TYPE_TAG_GHASH: FIXME
+    case GI_TYPE_TAG_GHASH:
+        return value->IsObject();
+
     //case GI_TYPE_TAG_ERROR: FIXME
 
     default:

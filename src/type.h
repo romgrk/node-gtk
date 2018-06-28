@@ -23,9 +23,10 @@ namespace GNodeJS {
 void ClassDestroyed (const v8::WeakCallbackInfo<GIBaseInfo> &info);
 
 
-char *GetTypeName    (GITypeInfo *type_info);
-gsize GetTypeSize    (GITypeInfo *type_info);
-gsize GetTypeTagSize (GITypeTag type_tag);
+char *    GetTypeName    (GITypeInfo *type_info);
+gsize     GetTypeSize    (GITypeInfo *type_info);
+gsize     GetTypeTagSize (GITypeTag type_tag);
+GITypeTag GetStorageType (GITypeInfo *type_info);
 
 };
 

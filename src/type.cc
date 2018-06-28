@@ -240,5 +240,24 @@ gsize GetTypeTagSize (GITypeTag type_tag) {
     return size;
 }
 
+GITypeTag GetStorageType (GITypeInfo *type_info) {
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    if (type_tag == GI_TYPE_TAG_INTERFACE) {
+        GIBaseInfo *interface = g_type_info_get_interface (type_info);
+        switch (g_base_info_get_type (interface)) {
+            case GI_INFO_TYPE_ENUM:
+            case GI_INFO_TYPE_FLAGS:
+                type_tag = g_enum_info_get_storage_type ((GIEnumInfo *)interface);
+                break;
+            default:
+                /* FIXME: we might have something to do for other types */
+                break;
+        }
+        g_base_info_unref (interface);
+    }
+    return type_tag;
+}
+
 };
 
