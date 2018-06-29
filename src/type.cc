@@ -8,6 +8,7 @@
 #include "gi.h"
 #include "type.h"
 #include "util.h"
+#include "debug.h"
 
 using v8::FunctionTemplate;
 using v8::Persistent;
@@ -90,9 +91,8 @@ char *GetTypeName (GITypeInfo *type_info) {
 gsize GetTypeSize (GITypeInfo *type_info) {
     gsize size = 0;
 
-    GITypeTag type_tag;
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
 
-    type_tag = g_type_info_get_tag (type_info);
     switch (type_tag) {
         case GI_TYPE_TAG_BOOLEAN:
         case GI_TYPE_TAG_INT8:
@@ -107,8 +107,11 @@ gsize GetTypeSize (GITypeInfo *type_info) {
         case GI_TYPE_TAG_DOUBLE:
         case GI_TYPE_TAG_GTYPE:
         case GI_TYPE_TAG_UNICHAR:
+        {
             size = GetTypeTagSize (type_tag);
             break;
+        }
+
         case GI_TYPE_TAG_INTERFACE:
         {
             GIBaseInfo *info;
@@ -150,7 +153,6 @@ gsize GetTypeSize (GITypeInfo *type_info) {
                     size = sizeof (gpointer);
                     break;
                 case GI_INFO_TYPE_VFUNC:
-                case GI_INFO_TYPE_INVALID:
                 case GI_INFO_TYPE_FUNCTION:
                 case GI_INFO_TYPE_CONSTANT:
                 case GI_INFO_TYPE_VALUE:
@@ -159,6 +161,7 @@ gsize GetTypeSize (GITypeInfo *type_info) {
                 case GI_INFO_TYPE_FIELD:
                 case GI_INFO_TYPE_ARG:
                 case GI_INFO_TYPE_TYPE:
+                case GI_INFO_TYPE_INVALID:
                 case GI_INFO_TYPE_UNRESOLVED:
                 default:
                     g_assert_not_reached();
@@ -180,7 +183,9 @@ gsize GetTypeSize (GITypeInfo *type_info) {
             break;
     }
 
-    g_assert (size > 0);
+    if (size <= 0) {
+        g_warning ("GetTypeSize: size == %lu for %s", size, GetTypeName(type_info));
+    }
 
     return size;
 }
