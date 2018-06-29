@@ -437,29 +437,57 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
         return NULL;
     }
 
-    /* char* typeName = GetTypeName(element_info);
-     * printf("%s : %s \n", g_type_tag_to_string(tag), typeName);
-     * free(typeName); */
-
-
     GITypeInfo *key_type_info   = g_type_info_get_param_type (type_info, 0);
     GITypeInfo *value_type_info = g_type_info_get_param_type (type_info, 1);
 
     GITypeTag key_type_tag = g_type_info_get_tag (key_type_info);
 
-    GHashFunc hash_func;
+    GHashFunc  hash_func;
     GEqualFunc equal_func;
 
     switch (key_type_tag) {
+        case GI_TYPE_TAG_GTYPE:
+        case GI_TYPE_TAG_UNICHAR:
+        case GI_TYPE_TAG_BOOLEAN:
+        case GI_TYPE_TAG_INT8:
+        case GI_TYPE_TAG_UINT8:
+        case GI_TYPE_TAG_INT16:
+        case GI_TYPE_TAG_UINT16:
+        case GI_TYPE_TAG_INT32:
+        case GI_TYPE_TAG_UINT32:
+            hash_func  = g_int_hash;
+            equal_func = g_int_equal;
+            break;
+        case GI_TYPE_TAG_INT64:
+        case GI_TYPE_TAG_UINT64:
+            hash_func  = g_int64_hash;
+            equal_func = g_int64_equal;
+            break;
+        case GI_TYPE_TAG_FLOAT:
+        case GI_TYPE_TAG_DOUBLE:
+            hash_func  = g_double_hash;
+            equal_func = g_double_equal;
+            break;
+        case GI_TYPE_TAG_ARRAY:
+        case GI_TYPE_TAG_INTERFACE:
+        case GI_TYPE_TAG_GLIST:
+        case GI_TYPE_TAG_GSLIST:
+        case GI_TYPE_TAG_GHASH:
+        case GI_TYPE_TAG_ERROR:
+            hash_func  = g_direct_hash;
+            equal_func = g_direct_equal;
+            break;
+        case GI_TYPE_TAG_VOID:
         case GI_TYPE_TAG_UTF8:
         case GI_TYPE_TAG_FILENAME:
-            hash_func = g_str_hash;
-            equal_func = g_str_equal;
-            break;
         default:
-            hash_func = NULL;
-            equal_func = NULL;
+            hash_func  = g_str_hash;
+            equal_func = g_str_equal;
     }
+
+    /* printf("key_type_tag: %s\n", g_type_tag_to_string(key_type_tag));
+     * printf("hash_func:  %p\n", hash_func);
+     * printf("equal_func: %p\n", equal_func); */
 
     GHashTable* hash_table = g_hash_table_new (hash_func, equal_func);
 
@@ -501,6 +529,16 @@ item_error:
 
     g_base_info_unref(key_type_info);
     g_base_info_unref(value_type_info);
+
+    /* printf("table %p {\n", table);
+     * g_hash_table_foreach (table,
+     *     [](gpointer key,
+     *        gpointer value,
+     *        gpointer user_data) {
+     *         printf("\t%s: %s\n", key, value);
+     *     }, NULL);
+     * printf("}\n"); */
+
     return hash_table;
 }
 
@@ -740,10 +778,13 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
 }
 
 void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction) {
-    if (direction == GI_DIRECTION_IN && transfer == GI_TRANSFER_EVERYTHING)
+    bool is_in  = direction == GI_DIRECTION_IN;
+    bool is_out = direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT;
+
+    if (is_in && transfer == GI_TRANSFER_EVERYTHING)
         return;
 
-    if (direction == GI_DIRECTION_OUT && transfer == GI_TRANSFER_NOTHING)
+    if (is_out && transfer == GI_TRANSFER_NOTHING)
         return;
 
     if (arg->v_pointer == NULL)
@@ -799,36 +840,28 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         break;
     }
 
-    // FIXME FIXME FIXME
-    case GI_TYPE_TAG_INTERFACE: // an extended interface object
+    case GI_TYPE_TAG_INTERFACE:
     {
         GIBaseInfo *i_info = g_type_info_get_interface(type_info);
         GIInfoType  i_type = g_base_info_get_type(i_info);
         switch (i_type) {
-        case GI_INFO_TYPE_OBJECT:
-            // if (transfer == GI_TRANSFER_EVERYTHING)
-                // g_object_unref(G_OBJECT(arg->v_pointer));
-            //g_warning("FreeArgument: unhandled GObject %s",
-                    //g_base_info_get_name(i_info));
-            break;
-        case GI_INFO_TYPE_BOXED:
-        case GI_INFO_TYPE_STRUCT:
-        case GI_INFO_TYPE_UNION:
-        {
-            //GType gtype = g_registered_type_info_get_g_type(i_info);
-            //g_boxed_free(gtype, arg->v_pointer);
-            //g_warning("FreeArgument: unhandled boxed %s",
-                    //g_base_info_get_name(i_info));
-            break;
-        }
-        case GI_INFO_TYPE_ENUM:
-        case GI_INFO_TYPE_FLAGS: // Nothing to do (~int32 values)
-            break;
-
-        default:
-            g_warning("FreeArgument: unhandled interface type: %s",
-                    g_base_info_get_name(i_info));
-            break;
+            case GI_INFO_TYPE_OBJECT:
+                // FIXME(check that these are handled by gobject.cc/boxed.cc)
+                break;
+            case GI_INFO_TYPE_BOXED:
+            case GI_INFO_TYPE_STRUCT:
+            case GI_INFO_TYPE_UNION:
+            {
+                // FIXME(check that these are handled by gobject.cc/boxed.cc)
+                break;
+            }
+            case GI_INFO_TYPE_ENUM:
+            case GI_INFO_TYPE_FLAGS: // Nothing to do (~int32 values)
+                break;
+            default:
+                g_warning("FreeArgument: unhandled interface: %s",
+                        g_base_info_get_name(i_info));
+                break;
         }
         g_base_info_unref(i_info);
         break;
@@ -836,8 +869,32 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
 
     case GI_TYPE_TAG_GHASH:
     {
-        //g_hash_table_destroy((GHashTable *)arg->v_pointer);
-        g_warning("FreeGIArgument: unhandled GHash");
+        GHashTable* hash = (GHashTable *)arg->v_pointer;
+
+        if (transfer == GI_TRANSFER_EVERYTHING) {
+            GITypeInfo *key_type_info   = g_type_info_get_param_type (type_info, 0);
+            GITypeInfo *value_type_info = g_type_info_get_param_type (type_info, 1);
+
+            GList* keys   = g_hash_table_get_keys (hash);
+            GList* values = g_hash_table_get_values (hash);
+            GIArgument element_arg;
+
+            g_hash_table_steal_all(hash);
+
+            for (; keys != NULL; keys = keys->next) {
+                element_arg.v_pointer = keys->data;
+                FreeGIArgument(key_type_info, &element_arg, GI_TRANSFER_EVERYTHING, GI_DIRECTION_OUT);
+            }
+            for (; values != NULL; values = values->next) {
+                element_arg.v_pointer = values->data;
+                FreeGIArgument(value_type_info, &element_arg, GI_TRANSFER_EVERYTHING, GI_DIRECTION_OUT);
+            }
+
+            g_base_info_unref(key_type_info);
+            g_base_info_unref(value_type_info);
+        }
+
+        g_hash_table_destroy(hash);
         break;
     }
 
