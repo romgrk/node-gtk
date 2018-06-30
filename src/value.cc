@@ -585,14 +585,26 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     case GI_TYPE_TAG_BOOLEAN:
         arg->v_boolean = value->BooleanValue ();
         break;
+    case GI_TYPE_TAG_INT8:
+        arg->v_int8 = value->Int32Value ();
+        break;
+    case GI_TYPE_TAG_INT16:
+        arg->v_int16 = value->Int32Value ();
+        break;
     case GI_TYPE_TAG_INT32:
         arg->v_int = value->Int32Value ();
         break;
-    case GI_TYPE_TAG_UINT32:
-        arg->v_uint = value->Uint32Value ();
-        break;
     case GI_TYPE_TAG_INT64:
         arg->v_int64 = value->NumberValue ();
+        break;
+    case GI_TYPE_TAG_UINT8:
+        arg->v_uint8 = value->Uint32Value ();
+        break;
+    case GI_TYPE_TAG_UINT16:
+        arg->v_uint16 = value->Uint32Value ();
+        break;
+    case GI_TYPE_TAG_UINT32:
+        arg->v_uint = value->Uint32Value ();
         break;
     case GI_TYPE_TAG_UINT64:
         arg->v_uint64 = value->NumberValue ();
@@ -695,9 +707,13 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
         return true;
     case GI_TYPE_TAG_BOOLEAN:
         return true;
+    case GI_TYPE_TAG_INT8:
+    case GI_TYPE_TAG_INT16:
     case GI_TYPE_TAG_INT32:
-    case GI_TYPE_TAG_UINT32:
     case GI_TYPE_TAG_INT64:
+    case GI_TYPE_TAG_UINT8:
+    case GI_TYPE_TAG_UINT16:
+    case GI_TYPE_TAG_UINT32:
     case GI_TYPE_TAG_UINT64:
     case GI_TYPE_TAG_FLOAT:
     case GI_TYPE_TAG_DOUBLE:
@@ -771,6 +787,7 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     //case GI_TYPE_TAG_ERROR: FIXME
 
     default:
+        printf("type tag: %s\n", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
     }
 
