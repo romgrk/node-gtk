@@ -74,10 +74,8 @@ static bool IsMethod (GIBaseInfo *info) {
             (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
 }
 
-static bool ShouldSkipReturn(GIBaseInfo *info) {
-    GITypeInfo return_type;
-    g_callable_info_load_return_type(info, &return_type);
-    return g_type_info_get_tag(&return_type) == GI_TYPE_TAG_VOID
+static bool ShouldSkipReturn(GIBaseInfo *info, GITypeInfo *return_type) {
+    return g_type_info_get_tag(return_type) == GI_TYPE_TAG_VOID
         || g_callable_info_skip_return(info) == TRUE;
 }
 
@@ -143,9 +141,9 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
             call_parameters[length_i].type = Parameter::SKIP;
 
             // If array length came before, we need to remove it from the in_args count
-            if (IS_IN(call_parameters[i].direction) && length_i < i) {
+            if (IS_IN(call_parameters[i].direction) && length_i < i)
                 n_in_args--;
-            }
+
         } else {
             call_parameters[i].type = Parameter::NORMAL;
         }
@@ -153,9 +151,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         if (call_parameters[i].type != Parameter::SKIP)
             continue;
 
-        if (IS_IN(call_parameters[i].direction)) {
+        if (IS_IN(call_parameters[i].direction))
             n_in_args++;
-        }
     }
 
     if (info.Length() < n_in_args) {
@@ -301,7 +298,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     GITypeInfo return_type;
     g_callable_info_load_return_type(gi_info, &return_type);
     GITransfer return_transfer = g_callable_info_get_caller_owns(gi_info);
-    bool should_skip_return = ShouldSkipReturn(gi_info);
+    bool should_skip_return = ShouldSkipReturn(gi_info, &return_type);
 
     Local<Value> jsReturnValue;
     int jsReturnIndex = 0;
@@ -420,63 +417,21 @@ void FunctionDestroyed(const v8::WeakCallbackInfo<FunctionInfo> &data) {
     g_free (func);
 }
 
-NAN_METHOD(FunctionInfoToString) {
-    FunctionInfo *func = (FunctionInfo *) External::Cast (*info.Data ())->Value ();
-    GIBaseInfo *fn = func->info; // do-not-free
-    GITypeInfo *ret_info = g_callable_info_get_return_type(fn);
-    GITypeTag ret_tag = g_type_info_get_tag(ret_info);
-    GString *args_string = g_string_new("");
-
-    int n_args = g_callable_info_get_n_args(fn);
-    for (int i = 0; i < n_args; i++) {
-        if (i != 0)
-            g_string_append(args_string, ", ");
-        GIArgInfo *arg_info = nullptr;
-        GITypeInfo *type_info = nullptr;
-        arg_info = g_callable_info_get_arg(fn, i);
-        type_info = g_arg_info_get_type(arg_info);
-        GITypeTag tag = g_type_info_get_tag(type_info);
-
-        g_string_append(args_string, g_base_info_get_name(arg_info));
-        g_string_append_c(args_string, ':');
-        g_string_append(args_string, g_type_tag_to_string(tag));
-
-        g_base_info_unref(type_info);
-        g_base_info_unref(arg_info);
-    }
-
-    gchar *args = g_string_free(args_string, FALSE);
-    gchar *string = g_strdup_printf("function %s (%s): %s { [GObject code] }",
-        g_function_info_get_symbol(fn), args, g_type_tag_to_string(ret_tag));
-    Local<String> result = UTF8(string);
-    info.GetReturnValue().Set(result);
-
-    g_free(args);
-    g_free(string);
-
-    g_base_info_unref(ret_info);
-}
-
 Local<Function> MakeFunction(GIBaseInfo *info) {
     FunctionInfo *func = g_new0 (FunctionInfo, 1);
     func->info = g_base_info_ref (info);
     g_function_info_prep_invoker (func->info, &func->invoker, NULL);
 
     auto external = New<External>(func);
-
-    int n_args = g_callable_info_get_n_args(info);
-    Local<String> name = New(g_function_info_get_symbol(info)).ToLocalChecked();
-    Local<Function> toString = New<FunctionTemplate>(FunctionInfoToString, external)->GetFunction();
+    auto name = UTF8(g_function_info_get_symbol (info));
 
     auto tpl = New<FunctionTemplate>(FunctionInvoker, external);
-    tpl->SetLength(n_args);
+    tpl->SetLength(g_callable_info_get_n_args (info));
 
     auto fn = tpl->GetFunction();
     fn->SetName(name);
-    fn->Set(UTF8("toString"), toString);
 
-    Isolate *isolate = Isolate::GetCurrent();
-    Persistent<FunctionTemplate> persistent(isolate, tpl);
+    Persistent<FunctionTemplate> persistent(Isolate::GetCurrent(), tpl);
     persistent.SetWeak(func, FunctionDestroyed, WeakCallbackType::kParameter);
 
     return fn;
