@@ -164,6 +164,7 @@ gsize GetTypeSize (GITypeInfo *type_info) {
                 case GI_INFO_TYPE_INVALID:
                 case GI_INFO_TYPE_UNRESOLVED:
                 default:
+                    printf("info type: %s\n", g_info_type_to_string(info_type));
                     g_assert_not_reached();
                     break;
             }
