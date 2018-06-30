@@ -20,7 +20,7 @@ test(`Gtk.init(45)`, () => {
 })
 
 test(`glib.random_int_range(0, 'string')`, () => {
-  glib.random_int_range(0, 'string')
+  glib.randomIntRange(0, 'string')
 })
 
 
