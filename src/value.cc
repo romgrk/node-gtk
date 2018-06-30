@@ -797,6 +797,9 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
 void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction) {
     bool is_in  = direction == GI_DIRECTION_IN;
     bool is_out = direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT;
+    bool free_elements =
+           (is_out && transfer == GI_TRANSFER_EVERYTHING)
+        || (is_in  && transfer == GI_TRANSFER_NOTHING)
 
     if (is_in && transfer == GI_TRANSFER_EVERYTHING)
         return;
@@ -832,7 +835,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
     case GI_TYPE_TAG_GSLIST:
     {
 
-        if (transfer == GI_TRANSFER_EVERYTHING) {
+        if (free_elements) {
             GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
 
             GITransfer  element_transfer  = GI_TRANSFER_EVERYTHING;
@@ -888,7 +891,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
     {
         GHashTable* hash = (GHashTable *)arg->v_pointer;
 
-        if (transfer == GI_TRANSFER_EVERYTHING) {
+        if (free_elements) {
             GITypeInfo *key_type_info   = g_type_info_get_param_type (type_info, 0);
             GITypeInfo *value_type_info = g_type_info_get_param_type (type_info, 1);
 
