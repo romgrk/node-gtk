@@ -16,7 +16,7 @@ const window = new Gtk.Window({
 const flowBox = new Gtk.FlowBox()
 
 const button = {
-  back: Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK),
+  back:    Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK),
   forward: Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_FORWARD),
   refresh: Gtk.ToolButton.newFromStock(Gtk.STOCK_REFRESH),
 }
@@ -36,12 +36,12 @@ window.connect('show', () => {
   setTimeout(() => {
     const list = flowBox.getSelectedChildren()
     console.log(list)
-    Gtk.main_quit()
+    Gtk.mainQuit()
   }, 50)
   Gtk.main()
 })
 
-window.connect('destroy', () => Gtk.main_quit())
+window.connect('destroy', () => Gtk.mainQuit())
 window.connect('delete_event', () => false)
 
 // add vertical ui and show them all

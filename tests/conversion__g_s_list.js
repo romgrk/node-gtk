@@ -8,7 +8,7 @@ const soup = gi.require('Soup')
 const input = 'Content-Type;q=1, Accept;q=0.2, X-Custom;q=0.1, Zero;q=0'
 
 console.log(`Input: "${input}"`)
-const [acceptable, unacceptable] = soup.header_parse_quality_list(input)
+const [acceptable, unacceptable] = soup.headerParseQualityList(input)
 console.log(acceptable, unacceptable)
 
 console.assert(acceptable[0] === 'Content-Type', `acceptable[0] === 'Content-Type'`, acceptable[0])
