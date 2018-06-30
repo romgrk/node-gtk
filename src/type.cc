@@ -183,10 +183,6 @@ gsize GetTypeSize (GITypeInfo *type_info) {
             break;
     }
 
-    if (size <= 0) {
-        g_warning ("GetTypeSize: size == %lu for %s", size, GetTypeName(type_info));
-    }
-
     return size;
 }
 
