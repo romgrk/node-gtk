@@ -960,9 +960,18 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
      * Free array elements
      */
 
+    GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
+    GITypeTag element_tag = g_type_info_get_tag (element_info);
+
+    /*
+     * Some arguments are marked as arrays, although they really are strings.
+     * In those cases, trying to free the elements (chars) would be bad.
+     */
+    if (G_TYPE_TAG_IS_BASIC(element_tag))
+        free_elements = false;
+
     if (free_elements) {
-        auto* elem_type_info = g_type_info_get_param_type (type_info, 0);
-        gsize element_size = GetTypeSize (elem_type_info);
+        gsize element_size = GetTypeSize (element_info);
         bool is_zero_terminated = g_type_info_is_zero_terminated (type_info);
 
         switch (array_type) {
@@ -1013,15 +1022,16 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
         for (int i = 0; i < length; i++) {
             GIArgument item;
             memcpy (&item, (void*)((ulong)data + element_size * i), sizeof (GIArgument));
-            FreeGIArgument (elem_type_info, &item, item_transfer, direction);
+            FreeGIArgument (element_info, &item, item_transfer, direction);
         }
 
-        g_base_info_unref(elem_type_info);
     }
+    g_base_info_unref(element_info);
 
     // Does this really exist?
     if (is_in && transfer == GI_TRANSFER_CONTAINER)
         return;
+
 
     /*
      * Free the container

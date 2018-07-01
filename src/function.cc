@@ -345,21 +345,16 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
             if (param.type == Parameter::ARRAY) {
 
-                void* array;
+                void* array = *(void**)arg_value.v_pointer;
                 int length_i = g_type_info_get_array_length(&arg_type);
                 GIArgInfo length_arg;
                 g_callable_info_load_arg(gi_info, length_i, &length_arg);
                 GIDirection length_direction = g_arg_info_get_direction(&length_arg);
 
-                if (length_direction == GI_DIRECTION_INOUT)
+                if (IS_OUT(length_direction))
                     param.length = *(int*)callable_arg_values[length_i].v_pointer;
                 else
                     param.length = callable_arg_values[length_i].v_int;
-
-                if (direction == GI_DIRECTION_INOUT)
-                    array = *(void**)arg_value.v_pointer;
-                else
-                    array = arg_value.v_pointer;
 
                 Local<Value> result = ArrayToV8(&arg_type, array, param.length);
 
@@ -396,7 +391,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         GITransfer transfer   = g_arg_info_get_ownership_transfer (&arg_info);
 
         if (param.type == Parameter::ARRAY) {
-            if (direction == GI_DIRECTION_INOUT)
+            if (direction == GI_DIRECTION_INOUT || direction == GI_DIRECTION_OUT)
                 FreeGIArgumentArray (&arg_type, (GIArgument*)arg_value.v_pointer, transfer, direction, param.length);
             else
                 FreeGIArgumentArray (&arg_type, &arg_value, transfer, direction, param.length);
