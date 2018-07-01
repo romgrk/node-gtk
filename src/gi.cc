@@ -168,7 +168,6 @@ NAN_METHOD(ObjectPropertySetter) {
         WARN("ObjectPropertySetter: no property %s", prop_name);
         Nan::ThrowError("Unexistent property");
         return;
-        // RETURN(Nan::False());
     }
 
     GValue value = {};
@@ -186,8 +185,6 @@ NAN_METHOD(ObjectPropertySetter) {
 }
 
 NAN_METHOD(StructFieldSetter) {
-    // const Nan::FunctionCallbackInfo<v8::Value>& info
-
     Local<Object> boxedWrapper = info[0].As<Object>();
     Local<Object> fieldInfo    = info[1].As<Object>();
     Local<Value>  value        = info[2];
@@ -205,25 +202,26 @@ NAN_METHOD(StructFieldSetter) {
     if (GNodeJS::V8ToGIArgument(field_type, &arg, value, true)) {
 
         if (g_field_info_set_field(field, boxed, &arg) == FALSE)
-            DEBUG("FieldSetter: couldnt set field %s", g_base_info_get_name(field));
-        /* g_field_info_set_field:
-            This only handles fields of simple C types. It will fail for a field of
-            a composite type like a nested structure or union even if that is actually
-            writable. Note also that that it will refuse to write fields where memory
-            management would by required. A field with a type such as 'char *' must be
-            set with a setter function.
+            g_warning ("FieldSetter: couldnt set field %s", g_base_info_get_name(field));
 
-            Therefore, no need to free GIArgument.  */
+        /*
+         * g_field_info_set_field:
+         *   This only handles fields of simple C types. It will fail for a field of
+         *   a composite type like a nested structure or union even if that is actually
+         *   writable. Note also that that it will refuse to write fields where memory
+         *   management would by required. A field with a type such as 'char *' must be
+         *   set with a setter function.
+         * Therefore, no need to free GIArgument.
+         */
 
     } else {
-        DEBUG("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
+        g_warning ("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
     }
 
     g_base_info_unref (field_type);
 }
 
 NAN_METHOD(StructFieldGetter) {
-    // const Nan::FunctionCallbackInfo<v8::Value>& info
     Local<Object> boxedWrapper = info[0].As<Object>();
     Local<Object> fieldInfo    = info[1].As<Object>();
 
@@ -258,7 +256,7 @@ NAN_METHOD(StructFieldGetter) {
 
         g_base_info_unref (field_type);
     } else {
-        DEBUG("StructFieldGetter: couldnt get field %s", g_base_info_get_name(field));
+        g_warning ("StructFieldGetter: couldnt get field %s", g_base_info_get_name(field));
     }
 }
 
@@ -267,7 +265,6 @@ NAN_METHOD(StartLoop) {
 }
 
 NAN_METHOD(WrapperFromBoxed) {
-    //Isolate *isolate = info.GetIsolate ();
     GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
     void *boxed = External::Cast(*info[1])->Value();
     info.GetReturnValue().Set(GNodeJS::WrapperFromBoxed(gi_info, boxed));

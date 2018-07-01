@@ -132,15 +132,13 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
     if (args[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
 
-        void *data = External::Cast(*args[0])->Value();
-        boxed = data;
+        boxed = External::Cast(*args[0])->Value();
 
-        // FIXME? void *boxed = g_boxed_copy(g_type, data);
-        self->SetAlignedPointerInInternalField (0, data);
+        self->SetAlignedPointerInInternalField (0, boxed);
 
         // TODO: this
         // if (type == GI_INFO_TYPE_UNION)
-            // DEBUG("BoxedConstructor: union gi_info: %s", g_base_info_get_name(gi_info));
+            // g_warning("BoxedConstructor: union gi_info: %s", g_base_info_get_name(gi_info));
 
     } else {
         /* User code calling `new Pango.AttrList()` */
