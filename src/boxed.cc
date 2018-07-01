@@ -172,17 +172,13 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     Boxed *box = info.GetParameter();
-    // GIBaseInfo *base_info = g_irepository_find_by_gtype(NULL, box->g_type);
 
     if (G_TYPE_IS_BOXED(box->g_type)) {
         g_boxed_free(box->g_type, box->data);
-    } else {
-        //
-        if (box->size != 0)
-            g_slice_free1(box->size, box->data);
-        // box->data core dumps
-        /* else if (box->data)
-         *     g_warning("BoxedDestroyed: %s: memory not freed", g_base_info_get_name(base_info)); */
+    }
+    else if (box->size != 0) {
+        // Allocated in ./function.cc @ AllocateArgument
+        g_slice_free1(box->size, box->data);
     }
 
     delete box->persistent;
