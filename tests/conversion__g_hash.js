@@ -4,21 +4,30 @@
 
 
 const gi = require('../lib/')
-const glib = gi.require('GLib')
+const soup = gi.require('Soup')
 
-// The example below doesnt work, we need an example were
-// the hashtable keys/values type is defined.
-throw new Error('not implemented')
-
-const table = { key: 'value' }
-
+/*
+ * as argument
+ */
 {
-  const result = glib.hashTableContains(table, 'key')
+  const formData = {
+    name: 'John',
+    age: '33',
+  }
+
+  const result = soup.formEncodeHash(formData)
   console.log('Result:', result)
-  console.assert(result === true, 'Table doesnt contain "key"')
+  console.assert(result === 'age=33&name=John')
 }
+
+/*
+ * as return value
+ */
 {
-  const result = glib.hashTableContains(table, 'unexistent')
+  const encodedForm = 'age=33&name=John'
+
+  const result = soup.formDecode(encodedForm)
   console.log('Result:', result)
-  console.assert(result === false, 'Table contains "unexistent"')
+  console.assert(result.name === 'John')
+  console.assert(result.age === '33')
 }

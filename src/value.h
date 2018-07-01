@@ -13,6 +13,7 @@ namespace GNodeJS {
 
 Local<Value> GListToV8  (GITypeInfo *info, GList  *glist);
 Local<Value> GSListToV8 (GITypeInfo *info, GSList *glist);
+Local<Value> GHashToV8 (GITypeInfo *info, GHashTable *hash);
 Local<Value> ArrayToV8  (GITypeInfo *info, gpointer data, int length = -1);
 Local<Value> GIArgumentToV8 (GITypeInfo *type_info, GIArgument *argument, int length = -1);
 

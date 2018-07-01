@@ -55,6 +55,40 @@ static gpointer GIArgumentToHashPointer (const GIArgument *arg, GITypeInfo *type
     }
 }
 
+static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info) {
+    GITypeTag type_tag = GetStorageType (type_info);
+
+    switch (type_tag) {
+        case GI_TYPE_TAG_INT8:
+            arg->v_int8 = (gint8)GPOINTER_TO_INT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_INT16:
+            arg->v_int16 = (gint16)GPOINTER_TO_INT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_INT32:
+            arg->v_int32 = (gint32)GPOINTER_TO_INT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_UINT8:
+            arg->v_uint8 = (guint8)GPOINTER_TO_UINT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_UINT16:
+            arg->v_uint16 = (guint16)GPOINTER_TO_UINT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_UINT32:
+            arg->v_uint32 = (guint32)GPOINTER_TO_UINT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_GTYPE:
+            arg->v_size = GPOINTER_TO_SIZE (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_UTF8:
+        case GI_TYPE_TAG_FILENAME:
+        case GI_TYPE_TAG_INTERFACE:
+        case GI_TYPE_TAG_ARRAY:
+            break;
+        default:
+            g_critical ("Unsupported type %s", g_type_tag_to_string(type_tag));
+    }
+}
 
 Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
@@ -167,14 +201,17 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) 
     case GI_TYPE_TAG_GSLIST:
         return GSListToV8(type_info, (GSList *)arg->v_pointer);
 
+    case GI_TYPE_TAG_GHASH:
+        return GHashToV8(type_info, (GHashTable *)arg->v_pointer);
+
     default:
-        DEBUG("Tag: %s", g_type_tag_to_string(type_tag));
+        g_critical("Tag: %s", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
     }
 }
 
-Local<Value> GListToV8 (GITypeInfo *info, GList *glist) {
-    GITypeInfo *param_info = g_type_info_get_param_type(info, 0);
+Local<Value> GListToV8 (GITypeInfo *type_info, GList *glist) {
+    GITypeInfo *param_info = g_type_info_get_param_type(type_info, 0);
 
     g_assert(param_info != NULL);
 
@@ -192,8 +229,8 @@ Local<Value> GListToV8 (GITypeInfo *info, GList *glist) {
     return array;
 }
 
-Local<Value> GSListToV8 (GITypeInfo *info, GSList *list) {
-    GITypeInfo *param_info = g_type_info_get_param_type(info, 0);
+Local<Value> GSListToV8 (GITypeInfo *type_info, GSList *list) {
+    GITypeInfo *param_info = g_type_info_get_param_type(type_info, 0);
     g_assert(param_info != NULL);
 
     Local<Array> array = New<Array>();
@@ -208,6 +245,32 @@ Local<Value> GSListToV8 (GITypeInfo *info, GSList *list) {
 
     g_base_info_unref(param_info);
     return array;
+}
+
+Local<Value> GHashToV8 (GITypeInfo *type_info, GHashTable *hash_table) {
+    GITypeInfo *key_info   = g_type_info_get_param_type (type_info, 0);
+    GITypeInfo *value_info = g_type_info_get_param_type (type_info, 1);
+
+    Local<Object> object = New<Object>();
+
+    GHashTableIter iter;
+    GIArgument key_arg;
+    GIArgument value_arg;
+    g_hash_table_iter_init (&iter, hash_table);
+    while (g_hash_table_iter_next (&iter, &key_arg.v_pointer, &value_arg.v_pointer))
+    {
+        HashPointerToGIArgument(&value_arg, value_info);
+
+        auto key   = GIArgumentToV8(key_info, &key_arg);
+        auto value = GIArgumentToV8(value_info, &value_arg);
+
+        Nan::Set(object, key, value);
+    }
+
+    g_base_info_unref(key_info);
+    g_base_info_unref(value_info);
+
+    return object;
 }
 
 Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
@@ -286,6 +349,7 @@ out:
     g_base_info_unref(elem_type_info);
     return array;
 }
+
 
 GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
     GArray* g_array = NULL;
@@ -485,10 +549,6 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
             equal_func = g_str_equal;
     }
 
-    /* printf("key_type_tag: %s\n", g_type_tag_to_string(key_type_tag));
-     * printf("hash_func:  %p\n", hash_func);
-     * printf("equal_func: %p\n", equal_func); */
-
     GHashTable* hash_table = g_hash_table_new (hash_func, equal_func);
 
 
@@ -529,15 +589,6 @@ item_error:
 
     g_base_info_unref(key_type_info);
     g_base_info_unref(value_type_info);
-
-    /* printf("table %p {\n", table);
-     * g_hash_table_foreach (table,
-     *     [](gpointer key,
-     *        gpointer value,
-     *        gpointer user_data) {
-     *         printf("\t%s: %s\n", key, value);
-     *     }, NULL);
-     * printf("}\n"); */
 
     return hash_table;
 }
@@ -892,17 +943,17 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
 
     case GI_TYPE_TAG_GHASH:
     {
-        GHashTable* hash = (GHashTable *)arg->v_pointer;
+        GHashTable* hash_table = (GHashTable *)arg->v_pointer;
 
         if (free_elements) {
             GITypeInfo *key_type_info   = g_type_info_get_param_type (type_info, 0);
             GITypeInfo *value_type_info = g_type_info_get_param_type (type_info, 1);
 
-            GList* keys   = g_hash_table_get_keys (hash);
-            GList* values = g_hash_table_get_values (hash);
+            GList* keys   = g_hash_table_get_keys (hash_table);
+            GList* values = g_hash_table_get_values (hash_table);
             GIArgument element_arg;
 
-            g_hash_table_steal_all(hash);
+            g_hash_table_steal_all(hash_table);
 
             for (; keys != NULL; keys = keys->next) {
                 element_arg.v_pointer = keys->data;
@@ -920,7 +971,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         if (is_in && transfer == GI_TRANSFER_CONTAINER)
             break;
 
-        g_hash_table_destroy(hash);
+        g_hash_table_destroy(hash_table);
         break;
     }
 
@@ -1057,6 +1108,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     }
 }
 
+
 bool V8ToGValue(GValue *gvalue, Local<Value> value) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, value->BooleanValue ());
@@ -1180,6 +1232,7 @@ Local<Value> GValueToV8(const GValue *gvalue) {
         g_assert_not_reached ();
     }
 }
+
 
 bool ValueHasInternalField(Local<Value> value) {
     if (!value->IsObject())
