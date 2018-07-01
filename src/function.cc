@@ -251,10 +251,11 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 Parameter& len_param = call_parameters[length_i];
 
                 if (len_param.direction == GI_DIRECTION_IN) {
-                    callable_arg_values[length_i].v_int = GetV8ArrayLength(info[in_arg]);
+                    param.length = GetV8ArrayLength(info[in_arg]);
+
+                    callable_arg_values[length_i].v_int = param.length;
                 }
                 else if (len_param.direction == GI_DIRECTION_INOUT) {
-                    len_param.data = {};
                     len_param.data.v_int = GetV8ArrayLength(info[in_arg]);
 
                     callable_arg_values[length_i].v_pointer = &len_param.data;

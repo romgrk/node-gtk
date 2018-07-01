@@ -799,7 +799,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
     bool is_out = direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT;
     bool free_elements =
            (is_out && transfer == GI_TRANSFER_EVERYTHING)
-        || (is_in  && transfer == GI_TRANSFER_NOTHING);
+        || (is_in  && transfer != GI_TRANSFER_EVERYTHING);
 
     if (is_in && transfer == GI_TRANSFER_EVERYTHING)
         return;
@@ -850,6 +850,10 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
 
             g_base_info_unref(element_info);
         }
+
+        // This really exists
+        if (is_in && transfer == GI_TRANSFER_CONTAINER)
+            break;
 
         if (type_tag == GI_TYPE_TAG_GLIST)
             g_list_free((GList *)arg->v_pointer);
@@ -913,6 +917,9 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
             g_base_info_unref(value_type_info);
         }
 
+        if (is_in && transfer == GI_TRANSFER_CONTAINER)
+            break;
+
         g_hash_table_destroy(hash);
         break;
     }
@@ -933,6 +940,9 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
 void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction, int length) {
     bool is_in  = direction == GI_DIRECTION_IN;
     bool is_out = direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT;
+    bool free_elements =
+           (is_out && transfer == GI_TRANSFER_EVERYTHING)
+        || (is_in  && transfer != GI_TRANSFER_EVERYTHING);
 
     if (is_in && transfer == GI_TRANSFER_EVERYTHING)
         return;
@@ -950,8 +960,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
      * Free array elements
      */
 
-    if ((is_in && transfer != GI_TRANSFER_EVERYTHING)
-        || (is_out && transfer == GI_TRANSFER_EVERYTHING)) {
+    if (free_elements) {
         auto* elem_type_info = g_type_info_get_param_type (type_info, 0);
         gsize element_size = GetTypeSize (elem_type_info);
         bool is_zero_terminated = g_type_info_is_zero_terminated (type_info);
@@ -1010,6 +1019,9 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
         g_base_info_unref(elem_type_info);
     }
 
+    // Does this really exist?
+    if (is_in && transfer == GI_TRANSFER_CONTAINER)
+        return;
 
     /*
      * Free the container
