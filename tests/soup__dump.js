@@ -8,6 +8,6 @@ const soup = gi.require('Soup')
 
 const input = 'Content-Type;q=1, Accept;q=0.2, X-Custom;q=0.1, Zero;q=0'
 
-const fn = () => console.log(soup.header_parse_quality_list(input))
+const fn = () => console.log(soup.headerParseQualityList(input))
 
-Array(1000000).fill(0).forEach(fn)
+Array(1000).fill(0).forEach(fn)

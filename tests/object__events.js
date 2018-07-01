@@ -25,7 +25,7 @@ window.add(flowBox)
 window.setDefaultSize(400, 100)
 window.setResizable(true)
 
-window.on('destroy', () => Gtk.main_quit())
+window.on('destroy', () => Gtk.mainQuit())
 window.on('delete_event', () => false)
 
 setTimeout(() => {
@@ -39,7 +39,7 @@ setTimeout(() => {
   button.clicked()
   if (count !== 1) {
       console.error('Expected count to be equal to 1 (after .on)')
-      Gtk.main_quit()
+      Gtk.mainQuit()
       process.exit(1)
   }
 
@@ -47,7 +47,7 @@ setTimeout(() => {
   button.clicked()
   if (count !== 1) {
       console.error('Expected count to be equal to 1 (after .off)')
-      Gtk.main_quit()
+      Gtk.mainQuit()
       process.exit(1)
   }
 
@@ -56,11 +56,11 @@ setTimeout(() => {
   button.clicked()
   if (count !== 2) {
       console.error('Expected count to be equal to 2 (after .once)')
-      Gtk.main_quit()
+      Gtk.mainQuit()
       process.exit(1)
   }
 
-  Gtk.main_quit()
+  Gtk.mainQuit()
   process.exit(0)
 
 }, 100)

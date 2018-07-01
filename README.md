@@ -21,8 +21,8 @@ gi.startLoop()
 Gtk.init()
 
 const win = new Gtk.Window();
-win.connect('destroy', () => Gtk.main_quit())
-win.connect('delete_event', () => false)
+win.on('destroy', () => Gtk.mainQuit())
+win.on('delete_event', () => false)
 
 win.setDefaultSize(200, 80)
 win.add(new Gtk.Label({ label: 'Hello Gtk+' }))

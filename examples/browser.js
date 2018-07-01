@@ -27,7 +27,7 @@ const toolbar = new Gtk.Toolbar()
 
 // buttons to go back, go forward, or refresh
 const button = {
-  back: Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK),
+  back:    Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK),
   forward: Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_FORWARD),
   refresh: Gtk.ToolButton.newFromStock(Gtk.STOCK_REFRESH),
 }
@@ -39,8 +39,8 @@ const urlBar = new Gtk.Entry()
 const scrollWindow = new Gtk.ScrolledWindow({})
 
 // horizontal and vertical boxes
-const hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL})
-const vbox = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL})
+const hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL })
+const vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
 
 
 // Setting up optional Dark theme (gotta love it!)
@@ -107,7 +107,7 @@ window.connect('show', () => {
   // window.setKeepAbove(true)
   Gtk.main()
 })
-window.connect('destroy', () => Gtk.main_quit())
+window.connect('destroy', () => Gtk.mainQuit())
 window.connect('delete_event', () => false)
 
 // add vertical ui and show them all

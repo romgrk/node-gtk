@@ -8,7 +8,7 @@ const Gtk = gi.require('Gtk', '3.0');
 let didThrow = false
 
 try {
-  Gtk.accelerator_get_label()
+  Gtk.acceleratorGetLabel()
 } catch (e) {
   didThrow = true
   console.assert(e instanceof TypeError)

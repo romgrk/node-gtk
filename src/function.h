@@ -28,6 +28,7 @@ struct Parameter {
 
     GIDirection direction;
     GIArgument data;
+    int length;
 };
 
 void            FunctionInvoker (const FunctionCallbackInfo<Value> &info);

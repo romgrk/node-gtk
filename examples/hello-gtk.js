@@ -1,30 +1,26 @@
 #!/usr/bin/env node
 
-var
-  GNode = require('../lib/'),
-  Gtk = GNode.require('Gtk'),
-  settings,
-  win
-;
+const GNode = require('../lib/')
+const Gtk = GNode.require('Gtk')
 
-GNode.startLoop();
-Gtk.init(null);
+GNode.startLoop()
+Gtk.init()
 
-settings = Gtk.Settings.getDefault(),
-settings.gtk_application_prefer_dark_theme = true;
-settings.gtk_theme_name = 'Adwaita';
 
-console.log(settings.gtk_enable_accels);
+const settings = Gtk.Settings.getDefault()
+settings.gtkApplicationPreferDarkTheme = true;
+settings.gtkThemeName = 'Adwaita';
 
-win = new Gtk.Window({
+console.log(settings.gtkEnableAccels);
+
+
+const win = new Gtk.Window({
   title: 'node-gtk',
   window_position: Gtk.WindowPosition.CENTER
 });
 
 win.connect('show', Gtk.main);
-win.connect('destroy', Gtk.main_quit);
-
+win.connect('destroy', Gtk.mainQuit);
 win.setDefaultSize(200, 80);
 win.add(new Gtk.Label({label: 'Hello Gtk+'}));
-
 win.showAll();

@@ -19,13 +19,6 @@
         printf("\x1b[0m\n"); } \
     while (0)
 
-#define DEBUG(f,s) \
-    do { \
-        printf("\x1b[1;93m"); \
-        printf(f, s); \
-        printf("\x1b[0m\n"); } \
-    while (0)
-
 
 namespace GNodeJS {
 
