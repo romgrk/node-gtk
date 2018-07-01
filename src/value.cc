@@ -799,7 +799,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
     bool is_out = direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT;
     bool free_elements =
            (is_out && transfer == GI_TRANSFER_EVERYTHING)
-        || (is_in  && transfer == GI_TRANSFER_NOTHING)
+        || (is_in  && transfer == GI_TRANSFER_NOTHING);
 
     if (is_in && transfer == GI_TRANSFER_EVERYTHING)
         return;
@@ -816,7 +816,6 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         return;
 
 
-    // TODO determine in which cases the argument is to be freed
     switch (type_tag) {
     case GI_TYPE_TAG_FILENAME:
     case GI_TYPE_TAG_UTF8:
