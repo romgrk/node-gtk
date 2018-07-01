@@ -85,7 +85,6 @@ static bool ShouldSkipReturn(GIBaseInfo *info, GITypeInfo *return_type) {
                           direction == GI_DIRECTION_INOUT)
 #define IS_INOUT(direction) (direction == GI_DIRECTION_INOUT)
 
-/* see: /home/romgrk/src/gjs/gi/function.cpp */
 void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
     FunctionInfo *func = (FunctionInfo *) External::Cast (*info.Data ())->Value ();
