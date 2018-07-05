@@ -6,3 +6,4 @@ node_modules
 Makefile
 node-gtk.doap
 npm-debug.log
+package-lock.json
