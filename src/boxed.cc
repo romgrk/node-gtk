@@ -315,6 +315,9 @@ Local<Function> MakeBoxedClass(GIBaseInfo *info) {
 }
 
 Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
+    if (data == NULL)
+        return Nan::Null();
+
     Local<Function> constructor = MakeBoxedClass (info);
 
     Local<Value> boxed_external = Nan::New<External> (data);
