@@ -432,6 +432,62 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
     return fn;
 }
 
+MaybeLocal<Function> MakeVirtualFunction(GIBaseInfo *info, GType implementor) {
+    GError* error = NULL;
+
+    gpointer address = g_vfunc_info_get_address (info, implementor, &error);
+    if (error != NULL) {
+        char* message = g_strdup_printf("Couldn't create virtual function '%s'", g_base_info_get_name(info));
+        Nan::ThrowError(message);
+        g_free(message);
+        return MaybeLocal<Function>();
+    }
+
+    FunctionInfo *func = g_new0 (FunctionInfo, 1);
+    func->info = g_base_info_ref (info);
+
+    g_function_invoker_new_for_address (address, info, &func->invoker, &error);
+
+    if (error != NULL) {
+        char* message = g_strdup_printf("Couldn't create virtual function '%s': %s",
+                g_base_info_get_name(info), error->message);
+        Nan::ThrowError(message);
+        g_free (message);
+        g_base_info_unref (func->info);
+        g_free (func);
+        g_error_free (error);
+        return MaybeLocal<Function>();
+    }
+
+    g_function_info_prep_invoker (func->info, &func->invoker, &error);
+
+    if (error != NULL) {
+        char* message = g_strdup_printf("Couldn't create virtual function '%s': %s",
+                g_base_info_get_name(info), error->message);
+        Nan::ThrowError(message);
+        g_free (message);
+        g_base_info_unref (func->info);
+        g_function_invoker_destroy (&func->invoker);
+        g_free (func);
+        g_error_free (error);
+        return MaybeLocal<Function>();
+    }
+
+    auto external = New<External>(func);
+    auto name = UTF8(g_base_info_get_name (info));
+
+    auto tpl = New<FunctionTemplate>(FunctionInvoker, external);
+    tpl->SetLength(g_callable_info_get_n_args (info));
+
+    auto fn = tpl->GetFunction();
+    fn->SetName(name);
+
+    Persistent<FunctionTemplate> persistent(Isolate::GetCurrent(), tpl);
+    persistent.SetWeak(func, FunctionDestroyed, WeakCallbackType::kParameter);
+
+    return MaybeLocal<Function>(fn);
+}
+
 
 #if 0
 class TrampolineInfo {

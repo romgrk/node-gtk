@@ -598,7 +598,8 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value) 
 
     switch (type) {
     case GI_INFO_TYPE_OBJECT:
-        arg->v_pointer = GObjectFromWrapper(value); // XXX Wrong?
+    case GI_INFO_TYPE_INTERFACE:
+        arg->v_pointer = GObjectFromWrapper(value);
         break;
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
@@ -609,7 +610,6 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value) 
     case GI_INFO_TYPE_ENUM:
         arg->v_int = value->Int32Value ();
         break;
-    case GI_INFO_TYPE_INTERFACE:
     default:
         print_info (type_info);
         g_assert_not_reached ();

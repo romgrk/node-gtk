@@ -120,6 +120,23 @@ NAN_METHOD(MakeFunction) {
     info.GetReturnValue().Set(fn);
 }
 
+NAN_METHOD(MakeVirtualFunction) {
+    if (info.Length() < 2 || !info[0]->IsObject() || !info[1]->IsNumber()) {
+        Nan::ThrowTypeError("Incorrect arguments. Expecting (GIBaseInfo, GType)");
+        return;
+    }
+
+    BaseInfo gi_info(info[0]);
+    GType implementor = (gulong) info[1]->NumberValue ();
+
+    MaybeLocal<Function> maybeFn = GNodeJS::MakeVirtualFunction(*gi_info, implementor);
+
+    if (maybeFn.IsEmpty())
+        return;
+
+    info.GetReturnValue().Set(maybeFn.ToLocalChecked());
+}
+
 NAN_METHOD(MakeObjectClass) {
     BaseInfo gi_info(info[0]);
     info.GetReturnValue().Set(GNodeJS::MakeClass(*gi_info));
@@ -304,6 +321,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, MakeBoxedClass);
     NAN_EXPORT(exports, MakeObjectClass);
     NAN_EXPORT(exports, MakeFunction);
+    NAN_EXPORT(exports, MakeVirtualFunction);
     NAN_EXPORT(exports, WrapperFromBoxed);
     NAN_EXPORT(exports, StructFieldGetter);
     NAN_EXPORT(exports, StructFieldSetter);
