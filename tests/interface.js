@@ -47,6 +47,11 @@ window.on('show', () => {
     console.assert(result !== undefined)
   }
 
+  {
+    const result = entry.editingDone()
+    console.log('Result:', result)
+  }
+
   process.exit(0)
 })
 

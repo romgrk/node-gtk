@@ -432,34 +432,92 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
     return fn;
 }
 
+bool PrepareVFuncInvoker (GIFunctionInfo *info, GIFunctionInvoker *invoker, GType implementor, GError **error) {
+    gpointer address;
+    ffi_type **atypes;
+    GITypeInfo *tinfo;
+    gint n_args, n_invoke_args, in_pos, out_pos;
+    bool success;
+
+    GITypeInfo *rinfo = g_callable_info_get_return_type ((GICallableInfo *)info);
+    ffi_type *rtype = g_type_info_get_ffi_type (rinfo);
+
+    in_pos = 0;
+    out_pos = 0;
+
+    n_args = g_callable_info_get_n_args ((GICallableInfo *)info);
+
+    n_invoke_args = n_args;
+
+    /* is_method */
+    n_invoke_args += 1;
+    in_pos++;
+
+    int n_in_args = 0;
+    int n_out_args = 0;
+
+    for (int i = 0; i < n_args; i++) {
+        GIArgInfo arg_info;
+        g_callable_info_load_arg(info, i, &arg_info);
+        auto direction = g_arg_info_get_direction(&arg_info);
+
+        if (IS_IN(direction))
+            n_in_args++;
+        if (IS_OUT(direction))
+            n_out_args++;
+    }
+
+    atypes = (ffi_type**)g_alloca (sizeof (ffi_type*) * n_invoke_args);
+
+    /* is_method */
+    atypes[0] = &ffi_type_pointer;
+
+    for (int i = 0; i < n_args; i++) {
+        int offset = 1;
+        GIArgInfo *ainfo = g_callable_info_get_arg ((GICallableInfo *)info, i);
+
+        switch (g_arg_info_get_direction (ainfo)) {
+            case GI_DIRECTION_IN:
+                tinfo = g_arg_info_get_type (ainfo);
+                atypes[i+offset] = g_type_info_get_ffi_type (tinfo);
+                g_base_info_unref ((GIBaseInfo *)tinfo);
+
+                in_pos++;
+
+                break;
+            case GI_DIRECTION_OUT:
+                atypes[i+offset] = &ffi_type_pointer;
+
+                out_pos++;
+                break;
+            case GI_DIRECTION_INOUT:
+                atypes[i+offset] = &ffi_type_pointer;
+
+                in_pos++;
+                out_pos++;
+                break;
+            default:
+                g_assert_not_reached ();
+        }
+        g_base_info_unref ((GIBaseInfo *)ainfo);
+    }
+
+    success = ffi_prep_cif (&invoker->cif, FFI_DEFAULT_ABI, n_invoke_args, rtype, atypes) == FFI_OK;
+
+    address = g_vfunc_info_get_address (info, implementor, error);
+    invoker->native_address = address;
+
+out:
+    g_base_info_unref ((GIBaseInfo *)rinfo);
+    return success;
+}
+
 MaybeLocal<Function> MakeVirtualFunction(GIBaseInfo *info, GType implementor) {
     GError* error = NULL;
 
-    gpointer address = g_vfunc_info_get_address (info, implementor, &error);
-    if (error != NULL) {
-        char* message = g_strdup_printf("Couldn't create virtual function '%s'", g_base_info_get_name(info));
-        Nan::ThrowError(message);
-        g_free(message);
-        return MaybeLocal<Function>();
-    }
-
     FunctionInfo *func = g_new0 (FunctionInfo, 1);
     func->info = g_base_info_ref (info);
-
-    g_function_invoker_new_for_address (address, info, &func->invoker, &error);
-
-    if (error != NULL) {
-        char* message = g_strdup_printf("Couldn't create virtual function '%s': %s",
-                g_base_info_get_name(info), error->message);
-        Nan::ThrowError(message);
-        g_free (message);
-        g_base_info_unref (func->info);
-        g_free (func);
-        g_error_free (error);
-        return MaybeLocal<Function>();
-    }
-
-    g_function_info_prep_invoker (func->info, &func->invoker, &error);
+    PrepareVFuncInvoker(info, &func->invoker, implementor, &error);
 
     if (error != NULL) {
         char* message = g_strdup_printf("Couldn't create virtual function '%s': %s",
