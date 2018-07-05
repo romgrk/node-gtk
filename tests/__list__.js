@@ -9,7 +9,7 @@ console.log(libs)
 
 libs.forEach((name) => {
   try {
-    inspect.parseNamespace(name)
+    global[name] = inspect.parseNamespace(name)
   } catch(e) {
     console.log(e)
     return
