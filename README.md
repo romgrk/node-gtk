@@ -7,7 +7,7 @@ GNOME Gtk+ bindings for NodeJS
 A work in progress to bring Gtk+ usable directly from nodejs so that the environemnt would be more udated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
 It uses the GObject Introspection library (as PyGObject, for example), so any gobject-introspectable library is supported.
 
-Please note this project is currently in _alpha_ state and is being developped. Any contributors willing to help
+Please note this project is currently in _beta_ state and is being developped. Any contributors willing to help
 will be welcomed.
 
 
@@ -32,7 +32,22 @@ win.showAll();
 
 ![Hello node-gtk!](img/hello-node-gtk.png)
 
+
 ### Documentation
+
+This module exports a single `require` function:
+
+```javascript
+const gi = require('node-gtk')
+
+/**
+ * gi.require:
+ * Loads a GIR module
+ * @param {String} name - name of the module
+ * @param {String} [version] - [optional] version of the module (latest by default)
+ */
+const Gtk = gi.require('Gtk', '3.0')
+```
 
 For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
 
@@ -77,18 +92,18 @@ However, right now we support only **Linux** and experimentally **OSX** but in b
 
 
 #### Common dependencies
-In order to clone, install, and build this project you'll need a working copy of _git_ CLI, _nodejs 5_, _npm_, and python2.
+In order to clone, install, and build this project you'll need a working copy of git, nodejs 8 or higher, npm, and python2.
 In the _not-working-yet_ Windows platform, all dependencies must be available under [MSYS2 shell](https://msys2.github.io).
 
 
 ### How to build on Ubuntu
 
-Be sure `node` is version **5** or higher.
-Ignore the following step iv `node --version` is already _5_ or higher.
+Be sure `node` is version **8** or higher.
+Ignore the following step iv `node --version` is already 8 or higher.
 
 ```sh
-# setup node v5
-curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
+# setup node 8
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
 ```
 
 Install basic dependencies.
