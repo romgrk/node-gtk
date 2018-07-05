@@ -2,7 +2,7 @@
  * list.js
  */
 
-const inspect = require('./lib/inspect.js')
+const inspect = require('../lib/inspect.js')
 const libs = ['Gtk', 'Gdk', 'GLib', 'Soup', 'Clutter']
 
 console.log(libs)
