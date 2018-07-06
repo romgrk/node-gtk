@@ -38,6 +38,33 @@ size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
     }
 }
 
+static bool IsNoArgsConstructor(GIFunctionInfo *info) {
+    auto flags = g_function_info_get_flags (info);
+    return ((flags & GI_FUNCTION_IS_CONSTRUCTOR) != 0
+        && g_callable_info_get_n_args (info) == 0);
+}
+
+static GIFunctionInfo* FindBoxedConstructor(GIBaseInfo* info) {
+    if (GI_IS_STRUCT_INFO (info)) {
+        int n_methods = g_struct_info_get_n_methods (info);
+        for (int i = 0; i < n_methods; i++) {
+            GIFunctionInfo* fn_info = g_struct_info_get_method (info, i);
+            if (IsNoArgsConstructor (fn_info))
+                return fn_info;
+            g_base_info_unref(fn_info);
+        }
+    }
+    else {
+        int n_methods = g_union_info_get_n_methods (info);
+        for (int i = 0; i < n_methods; i++) {
+            GIFunctionInfo* fn_info = g_union_info_get_method (info, i);
+            if (IsNoArgsConstructor (fn_info))
+                return fn_info;
+            g_base_info_unref(fn_info);
+        }
+    }
+    return NULL;
+}
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info);
 
@@ -58,24 +85,44 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
         /* The External case. This is how WrapperFromBoxed is called. */
 
         boxed = External::Cast(*args[0])->Value();
-        self->SetAlignedPointerInInternalField (0, boxed);
 
     } else {
         /* User code calling `new Pango.AttrList()` */
 
         size = Boxed::GetSize(gi_info);
-        boxed = g_slice_alloc0(size);
-        self->SetAlignedPointerInInternalField (0, boxed);
 
-        if (size == 0) {
-            g_warning("Boxed: %s: requested size is 0", g_base_info_get_name(gi_info));
-        } else if (!boxed) {
-            g_warning("Boxed: %s: allocation returned NULL", g_base_info_get_name(gi_info));
+        if (size != 0) {
+            boxed = g_slice_alloc0(size);
+        }
+        else {
+            GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info);
+
+            if (fn_info != NULL) {
+                GError *error = NULL;
+                GIArgument return_value;
+                g_function_info_invoke (fn_info,
+                        NULL, 0, NULL, 0, &return_value, &error);
+                g_base_info_unref(fn_info);
+
+                if (error != NULL) {
+                    Util::ThrowGError("Boxed allocation failed", error);
+                    return;
+                }
+
+                boxed = return_value.v_pointer;
+            }
+        }
+
+        if (!boxed) {
+            Nan::ThrowError("Boxed allocation failed");
+            return;
         }
     }
 
+    self->SetAlignedPointerInInternalField (0, boxed);
+
     Nan::DefineOwnProperty(self,
-            Nan::New<String>("__gtype__").ToLocalChecked(),
+            UTF8("__gtype__"),
             Nan::New<Number>(g_registered_type_info_get_g_type(gi_info)),
             (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
     );
@@ -97,6 +144,9 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     else if (box->size != 0) {
         // Allocated in ./function.cc @ AllocateArgument
         g_slice_free1(box->size, box->data);
+    }
+    else if (box->data != NULL) {
+        g_boxed_free(box->g_type, box->data);
     }
 
     delete box->persistent;
@@ -124,11 +174,11 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
 
     if (gtype != G_TYPE_NONE) {
         const char *class_name = g_type_name(gtype);
-        tpl->SetClassName( UTF8(class_name) );
+        tpl->SetClassName (UTF8(class_name));
         tpl->Set(UTF8("gtype"), Nan::New<Number>(gtype));
     } else {
         const char *class_name = g_base_info_get_name (info);
-        tpl->SetClassName( UTF8(class_name) );
+        tpl->SetClassName (UTF8(class_name));
     }
 
     if (gtype == G_TYPE_NONE)
