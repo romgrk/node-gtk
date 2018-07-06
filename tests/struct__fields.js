@@ -19,18 +19,3 @@ const Gdk = gi.require('Gdk')
   console.log('Result:', result)
   console.assert(result === 100)
 }
-
-/*
- * Fails for complex types
- */
-{
-  const tk = new GLib.TokenValue()
-  let didThrow = false
-  try {
-    tk.vString = 'hello'
-  } catch (err) {
-    didThrow = true
-    console.log('Got expected error:', err.message)
-  }
-  console.assert(didThrow)
-}
