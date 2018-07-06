@@ -216,10 +216,20 @@ NAN_METHOD(StructFieldSetter) {
 
     GIArgument arg;
 
-    if (GNodeJS::V8ToGIArgument(field_type, &arg, value, true)) {
+    if (!GNodeJS::V8ToGIArgument(field_type, &arg, value, true)) {
+        char *message = g_strdup_printf("Couldn't convert value for field '%s'",
+                g_base_info_get_name(field));
+        Nan::ThrowTypeError (message);
+        g_free(message);
 
-        if (g_field_info_set_field(field, boxed, &arg) == FALSE)
-            g_warning ("FieldSetter: couldnt set field %s", g_base_info_get_name(field));
+        RETURN (Nan::Undefined());
+
+    } else {
+
+        if (g_field_info_set_field(field, boxed, &arg) == FALSE) {
+            Nan::ThrowError("Unable to set field (complex types not allowed)");
+            RETURN (Nan::Undefined());
+        }
 
         /*
          * g_field_info_set_field:
@@ -231,8 +241,6 @@ NAN_METHOD(StructFieldSetter) {
          * Therefore, no need to free GIArgument.
          */
 
-    } else {
-        g_warning ("FieldSetter: couldnt convert value for field %s", g_base_info_get_name(field));
     }
 
     g_base_info_unref (field_type);
@@ -261,13 +269,13 @@ NAN_METHOD(StructFieldGetter) {
     }
 
     if (field == NULL) {
-        Nan::ThrowError("FieldGetter: field info is NULL");
+        Nan::ThrowError("StructFieldGetter: field info is NULL");
         return;
     }
 
     GIArgument value;
     if (!g_field_info_get_field(field, boxed, &value)) {
-        Nan::ThrowError("StructFieldGetter: couldn't get field");
+        Nan::ThrowError("Unable to get field (complex types not allowed)");
         return;
     }
 
