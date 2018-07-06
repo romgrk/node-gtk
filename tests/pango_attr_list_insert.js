@@ -3,9 +3,14 @@
  */
 
 const gi = require('../');
+const Gtk = gi.require('Gtk');
 const Pango = gi.require('Pango');
 
-const attrs = new Pango.AttrList();
+Gtk.init()
 
-attrs.insert.debug = true;
-attrs.insert(new Pango.AttrSize(300));
+const label = new Gtk.Label({ label: 0 })
+const attrs = new Pango.AttrList()
+const attrSize = new Pango.AttrSize()
+attrSize.size = 300
+attrs.insert(attrSize)
+label.attributes = attrs
