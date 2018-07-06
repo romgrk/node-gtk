@@ -19,7 +19,7 @@ window.setDefaultSize(400, 50)
 window.setResizable(true)
 window.on('destroy', () => { Gtk.mainQuit() })
 window.on('delete_event', () => { Gtk.mainQuit() })
-window.on('show', () => {
+window.on('show', async () => {
 
   const text = 'some text'
 
@@ -47,7 +47,18 @@ window.on('show', () => {
     console.assert(result !== undefined)
   }
 
-  process.exit(0)
+  {
+    let result = false
+    entry.on('editing-done', () => {
+      result = true
+    })
+    setTimeout(() => {
+      console.log('Result:', result)
+      console.assert(result === true)
+      process.exit(0)
+    }, 100)
+    entry.editingDone()
+  }
 })
 
 window.showAll()
