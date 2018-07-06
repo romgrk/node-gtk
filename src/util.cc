@@ -16,8 +16,6 @@ using v8::Local;
 
 namespace Util {
 
-static const GRegex *camel_regex = g_regex_new("([_\\W]+)([a-zA-Z0-9]+)", COMPILE_FLAG, MATCH_FLAG, NULL);
-
 const char* ArrayTypeToString (GIArrayType array_type) {
     switch (array_type) {
     case GI_ARRAY_TYPE_C:
@@ -32,9 +30,11 @@ const char* ArrayTypeToString (GIArrayType array_type) {
     g_assert_not_reached();
 }
 
-/* some_name -> someName */
-char* ToCamelCase(const char *name) {
-    return g_regex_replace(camel_regex, name, -1, 0, "\\u\\2", MATCH_FLAG, NULL);
+void ThrowGError(const char* domain, GError* error) {
+    char* message = g_strdup_printf("%s: %s", domain, error->message);
+    Nan::ThrowError(message);
+    g_free(message);
+    g_error_free(error);
 }
 
 }

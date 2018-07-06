@@ -10,15 +10,10 @@
 #include <node.h>
 #include <girepository.h>
 
-#define MATCH_FLAG    (GRegexMatchFlags)    0
-#define COMPILE_FLAG  (GRegexCompileFlags)  0
-#define REGEX(pattern, error) \
-    g_regex_new( pattern, (GRegexCompileFlags)0, (GRegexMatchFlags)0, &error)
-
 namespace Util
 {
-    const char*             ArrayTypeToString (GIArrayType array_type) ;
-    char*                   ToCamelCase (const char *name) ;
+    const char*             ArrayTypeToString (GIArrayType array_type);
+    void                    ThrowGError (const char* domain, GError* error);
 } /* Util */
 
 namespace GNodeJS {
