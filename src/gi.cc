@@ -243,12 +243,12 @@ NAN_METHOD(StructFieldGetter) {
     Local<Object> fieldInfo    = info[1].As<Object>();
 
     if (boxedWrapper->InternalFieldCount() == 0) {
-        Nan::ThrowReferenceError("StructFieldGetter: argument 1 is not a boxed.");
+        Nan::ThrowError("StructFieldGetter: instance is not a boxed");
         return;
     }
 
     if (fieldInfo->InternalFieldCount() == 0) {
-        g_warning("StructFieldGetter: No internal fields.");
+        Nan::ThrowError("StructFieldGetter: field info is invalid");
         return;
     }
 
@@ -256,25 +256,24 @@ NAN_METHOD(StructFieldGetter) {
     GIFieldInfo *field = (GIFieldInfo *) GNodeJS::BoxedFromWrapper(fieldInfo);
 
     if (boxed == NULL) {
-        Nan::ThrowError("StructFieldGetter: accessing NULL boxed pointer");
+        Nan::ThrowError("StructFieldGetter: instance is NULL");
         return;
     }
 
     if (field == NULL) {
-        Nan::ThrowError("FieldGetter: NULL field_info pointer");
+        Nan::ThrowError("FieldGetter: field info is NULL");
         return;
     }
 
     GIArgument value;
-    if (g_field_info_get_field(field, boxed, &value)) {
-        GITypeInfo  *field_type = g_field_info_get_type(field);
-
-        RETURN(GNodeJS::GIArgumentToV8(field_type, &value));
-
-        g_base_info_unref (field_type);
-    } else {
-        g_warning ("StructFieldGetter: couldnt get field %s", g_base_info_get_name(field));
+    if (!g_field_info_get_field(field, boxed, &value)) {
+        Nan::ThrowError("StructFieldGetter: couldn't get field");
+        return;
     }
+
+    GITypeInfo  *field_type = g_field_info_get_type(field);
+    RETURN(GNodeJS::GIArgumentToV8(field_type, &value));
+    g_base_info_unref (field_type);
 }
 
 NAN_METHOD(StartLoop) {
