@@ -288,17 +288,15 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-                if (length == -1) {
-                    if (is_zero_terminated) {
-                        length = g_strv_length ((gchar **)data);
-                    } else {
-                        length = g_type_info_get_array_fixed_size (type_info);
-                        if (G_UNLIKELY (length == -1)) {
-                            g_critical ("Unable to determine array length for %p",
-                                    data);
-                            length = 0;
-                            break;
-                        }
+                if (is_zero_terminated) {
+                    length = g_strv_length ((gchar **)data);
+                }
+                else if (length == -1) {
+                    length = g_type_info_get_array_fixed_size (type_info);
+                    if (G_UNLIKELY (length == -1)) {
+                        g_critical ("Unable to determine array length for %p", data);
+                        length = 0;
+                        break;
                     }
                 }
                 g_assert (length >= 0);
@@ -307,9 +305,8 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
         case GI_ARRAY_TYPE_ARRAY:
         case GI_ARRAY_TYPE_BYTE_ARRAY:
             {
-                /* Note: GByteArray is really just a GArray */
                 GArray *g_array = (GArray*) data;
-                data = g_array->data;
+                data   = g_array->data;
                 length = g_array->len;
                 element_size = g_array_get_element_size (g_array);
                 break;
@@ -317,14 +314,13 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
         case GI_ARRAY_TYPE_PTR_ARRAY:
             {
                 GPtrArray *ptr_array = (GPtrArray*) data;
-                data = ptr_array->pdata;
+                data   = ptr_array->pdata;
                 length = ptr_array->len;
                 element_size = sizeof(gpointer);
                 break;
             }
         default:
-            g_critical ("Unexpected array type %u",
-                    g_type_info_get_array_type (type_info));
+            g_assert_not_reached();
             break;
     }
 
@@ -1028,17 +1024,15 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
         switch (array_type) {
             case GI_ARRAY_TYPE_C:
                 {
-                    if (length == -1) {
-                        if (is_zero_terminated) {
-                            length = g_strv_length ((gchar **)data);
-                        } else {
-                            length = g_type_info_get_array_fixed_size (type_info);
-                            if (G_UNLIKELY (length == -1)) {
-                                g_critical ("Unable to determine array length for %p",
-                                        data);
-                                length = 0;
-                                break;
-                            }
+                    if (is_zero_terminated) {
+                        length = g_strv_length ((gchar **)data);
+                    }
+                    else if (length == -1) {
+                        length = g_type_info_get_array_fixed_size (type_info);
+                        if (G_UNLIKELY (length == -1)) {
+                            g_critical ("Unable to determine array length for %p", data);
+                            length = 0;
+                            break;
                         }
                     }
                     g_assert (length >= 0);
@@ -1047,9 +1041,8 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
             case GI_ARRAY_TYPE_ARRAY:
             case GI_ARRAY_TYPE_BYTE_ARRAY:
                 {
-                    /* Note: GByteArray is really just a GArray */
                     GArray *g_array = (GArray*) data;
-                    data = g_array->data;
+                    data   = g_array->data;
                     length = g_array->len;
                     element_size = g_array_get_element_size (g_array);
                     break;
@@ -1057,14 +1050,13 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
             case GI_ARRAY_TYPE_PTR_ARRAY:
                 {
                     GPtrArray *ptr_array = (GPtrArray*) data;
-                    data = ptr_array->pdata;
+                    data   = ptr_array->pdata;
                     length = ptr_array->len;
                     element_size = sizeof(gpointer);
                     break;
                 }
             default:
-                g_critical ("Unexpected array type %u",
-                        g_type_info_get_array_type (type_info));
+                g_assert_not_reached();
                 break;
         }
 
