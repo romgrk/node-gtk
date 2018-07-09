@@ -17,10 +17,13 @@ using GNodeJS::BaseInfo;
 
 namespace GNodeJS {
 
+    Nan::Persistent<Object> moduleCache(Nan::New<Object>());
+
     G_DEFINE_QUARK(gnode_js_object,   object);
     G_DEFINE_QUARK(gnode_js_template, template);
 
 }
+
 
 static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info) {
     const char *function_name = g_base_info_get_name ((GIBaseInfo *) info);
@@ -79,6 +82,7 @@ static void DefineBootstrapInfo(Isolate *isolate, Local<Object> module_obj, GIBa
 }
 
 
+
 NAN_METHOD(Bootstrap) {
     Isolate *isolate = info.GetIsolate();
 
@@ -102,6 +106,10 @@ NAN_METHOD(Bootstrap) {
     }
 
     info.GetReturnValue().Set(module_obj);
+}
+
+NAN_METHOD(GetModuleCache) {
+    info.GetReturnValue().Set(Nan::New<Object>(GNodeJS::moduleCache));
 }
 
 NAN_METHOD(GetConstantValue) {
@@ -328,6 +336,7 @@ NAN_METHOD(GetTypeSize) {
 
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, Bootstrap);
+    NAN_EXPORT(exports, GetModuleCache);
     NAN_EXPORT(exports, GetConstantValue);
     NAN_EXPORT(exports, MakeBoxedClass);
     NAN_EXPORT(exports, MakeObjectClass);

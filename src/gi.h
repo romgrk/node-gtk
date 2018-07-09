@@ -19,6 +19,8 @@ using v8::Value;
 
 namespace GNodeJS {
 
+extern Nan::Persistent<Object> moduleCache;
+
 GQuark object_quark (void);
 GQuark template_quark (void);
 
