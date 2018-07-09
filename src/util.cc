@@ -37,11 +37,13 @@ void ThrowGError(const char* domain, GError* error) {
     g_error_free(error);
 }
 
+
+template<class M, class K>
+bool Contains(M const&m, K const&k) {
+  auto it=m.find(k);
+  if (it==m.end())
+      return false;
+  return true;
 }
-
-namespace GNodeJS {
-
-G_DEFINE_QUARK(gnode_js_object,   object);
-G_DEFINE_QUARK(gnode_js_template, template);
 
 }

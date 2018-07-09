@@ -14,11 +14,8 @@ namespace Util
 {
     const char*             ArrayTypeToString (GIArrayType array_type);
     void                    ThrowGError (const char* domain, GError* error);
+
+    template<class M, class K>
+    bool Contains(M const&m, K const&k);
+
 } /* Util */
-
-namespace GNodeJS {
-
-GQuark object_quark (void) ;
-GQuark template_quark (void) ;
-
-}

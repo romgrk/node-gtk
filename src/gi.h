@@ -19,10 +19,9 @@ using v8::Value;
 
 namespace GNodeJS {
 
-// GQuark object_quark (void) ;
-// GQuark template_quark (void) ;
-// G_DEFINE_QUARK(gnode_js_object,   object);
-// G_DEFINE_QUARK(gnode_js_template, template);
+GQuark object_quark (void);
+GQuark template_quark (void);
+
 
 class BaseInfo {
 public:

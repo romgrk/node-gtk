@@ -13,10 +13,14 @@
 #include "value.h"
 
 using namespace v8;
-using Nan::New;
-using Nan::Set;
-
 using GNodeJS::BaseInfo;
+
+namespace GNodeJS {
+
+    G_DEFINE_QUARK(gnode_js_object,   object);
+    G_DEFINE_QUARK(gnode_js_template, template);
+
+}
 
 static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info) {
     const char *function_name = g_base_info_get_name ((GIBaseInfo *) info);
