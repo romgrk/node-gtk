@@ -19,12 +19,27 @@ using v8::Value;
 
 namespace GNodeJS {
 
+/*
+ * Object containing all modules loaded
+ */
+
 extern Nan::Persistent<Object> moduleCache;
+
+Local<Object> GetModuleCache();
+
+
+
+/*
+ * Quarks for GTypes
+ */
 
 GQuark object_quark (void);
 GQuark template_quark (void);
 
 
+/*
+ * Class for dealing with GIBaseInfo
+ */
 class BaseInfo {
 public:
     BaseInfo (GIBaseInfo *info) : _info(info) { };

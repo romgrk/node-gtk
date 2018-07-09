@@ -22,6 +22,9 @@ namespace GNodeJS {
     G_DEFINE_QUARK(gnode_js_object,   object);
     G_DEFINE_QUARK(gnode_js_template, template);
 
+    Local<Object> GetModuleCache() {
+        return Nan::New<Object>(GNodeJS::moduleCache);
+    }
 }
 
 

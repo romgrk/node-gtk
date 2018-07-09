@@ -27,6 +27,8 @@ using Nan::WeakCallbackType;
 namespace GNodeJS {
 
 
+
+
 size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
     GIInfoType i_type = g_base_info_get_type(boxed_info);
     if (i_type == GI_INFO_TYPE_STRUCT) {
@@ -157,14 +159,21 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
 Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     void *data = NULL;
 
-    if (gtype != G_TYPE_NONE)
+    if (gtype != G_TYPE_NONE) {
         data = g_type_get_qdata(gtype, GNodeJS::template_quark());
+    }
 
     // Template already created
     if (data) {
         Persistent<FunctionTemplate> *persistent = (Persistent<FunctionTemplate> *) data;
         Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate> (*persistent);
         return tpl;
+    }
+
+    {
+        char* name = GetInfoName(info);
+        printf("GetBoxedTemplate: creating: %s \n", name);
+        free(name);
     }
 
     // Template not created yet
@@ -196,19 +205,25 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     return tpl;
 }
 
-static Local<FunctionTemplate> GetBoxedTemplateFromGI(GIBaseInfo *info) {
-    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
-    if (gtype == G_TYPE_NONE) {
-        /* g_warning("GetBoxedTemplateFromGI: gtype == G_TYPE_NONE for %s",
-         *         g_base_info_get_name(info)); */
-    } else {
-        g_type_ensure(gtype);
-    }
-    return GetBoxedTemplate (info, gtype);
-}
-
 Local<Function> MakeBoxedClass(GIBaseInfo *info) {
-    Local<FunctionTemplate> tpl = GetBoxedTemplateFromGI (info);
+    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
+
+    if (gtype == G_TYPE_NONE) {
+        auto moduleCache = GNodeJS::GetModuleCache();
+        auto ns   = UTF8 (g_base_info_get_namespace (info));
+        auto name = UTF8 (g_base_info_get_name (info));
+
+        if (Nan::HasOwnProperty(moduleCache, ns).FromMaybe(false)) {
+            auto module = Nan::Get(moduleCache, ns).ToLocalChecked()->ToObject();
+
+            if (Nan::HasOwnProperty(module, name).FromMaybe(false)) {
+                auto constructor = Nan::Get(module, name).ToLocalChecked()->ToObject();
+                return Local<Function>::Cast (constructor);
+            }
+        }
+    }
+
+    Local<FunctionTemplate> tpl = GetBoxedTemplate (info, gtype);
     return tpl->GetFunction ();
 }
 
