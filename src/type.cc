@@ -28,6 +28,28 @@ void ClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
 }
 
 
+char *GetInfoName (GIBaseInfo* info) {
+    const char* info_name = g_base_info_get_name (info);
+
+    if (info_name == NULL)
+        return "(NULL)";
+
+    char* name = g_strdup (info_name);
+
+    GIBaseInfo *parent;
+    while ((parent = g_base_info_get_container (info)) != NULL) {
+        char *new_name = g_strconcat (g_base_info_get_name(parent), ".", name, NULL);
+        g_free (name);
+        name = new_name;
+    }
+
+    char *new_name = g_strconcat (g_base_info_get_namespace(info), ".", name, NULL);
+    g_free (name);
+    name = new_name;
+
+    return name;
+}
+
 char *GetTypeName (GITypeInfo *type_info) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
