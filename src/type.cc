@@ -32,7 +32,7 @@ char *GetInfoName (GIBaseInfo* info) {
     const char* info_name = g_base_info_get_name (info);
 
     if (info_name == NULL)
-        return "(NULL)";
+        return g_strdup ("(NULL)");
 
     char* name = g_strdup (info_name);
 
