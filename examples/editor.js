@@ -160,7 +160,6 @@ textView.on('key-press-event', function(event) {
 
     btn.label = label;
 
-    // console.log('KeyPress: ', );
     if (keyname.match(/(semi)?colon/)) {
         entryView.grabFocus();
         return true;
@@ -170,8 +169,8 @@ textView.on('key-press-event', function(event) {
         return true;
     }
     if (event.keyval === Gdk.KEY_g) {
-        let start = buffer.getStartIter();
-        buffer.placeCursor(start);
+        let start = buffer.getStartIter()
+        buffer.placeCursor(start)
         return true;
     }
     return false;
