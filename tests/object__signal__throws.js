@@ -9,14 +9,8 @@ const Gtk = gi.require('Gtk', '3.0')
 gi.startLoop()
 Gtk.init()
 
-const button = new Gtk.Button()
 
-const onClick = (widget, event) => {
-    throw new Error('ok')
-}
-
-button.on('clicked', onClick)
-button.clicked()
+// Setup
 
 let didThrow = false
 
@@ -32,3 +26,12 @@ process.on('uncaughtException', (err) => {
   didThrow = true
   process.exit(0)
 })
+
+
+// Run test
+
+const button = new Gtk.Button()
+button.on('clicked', () => {
+    throw new Error('ok')
+})
+button.clicked()
