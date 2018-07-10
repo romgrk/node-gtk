@@ -7,7 +7,7 @@ const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
 
 gi.startLoop()
-Gtk.init(null, 0)
+Gtk.init()
 
 const window = new Gtk.Window({
   type : Gtk.WindowType.TOPLEVEL
