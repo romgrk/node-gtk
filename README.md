@@ -1,7 +1,5 @@
-
 # node-gtk
 GNOME Gtk+ bindings for NodeJS
-
 
 ### What is this
 A work in progress to bring Gtk+ usable directly from nodejs so that the environemnt would be more udated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
@@ -120,40 +118,40 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
 
 #### Naming conventions
 
-**Functions, Methods & Virtual Functions**: `lowerCamelCase`
-  Methods on GObject, structs, unions and functions on namespaces.
-  Example:
-    `GLib.randomIntRange(0, 'string')`
+ - **Functions, Methods & Virtual Functions**: `lowerCamelCase`  
+    Methods on GObject, structs, unions and functions on namespaces.  
+    Example:  
+    `GLib.randomIntRange(0, 'string')`  
     `textBuffer.placeCursor(0)`
 
-**Fields & Properties**: `lowerCamelCase`
-  Fields are on structs and unions.
-  Properties are on GObjects.
-  Example:
-    `textView.showLineNumbers = true`
+ - **Fields & Properties**: `lowerCamelCase`  
+    Fields are on structs and unions.  
+    Properties are on GObjects.  
+    Example:  
+    `textView.showLineNumbers = true`  
     `new Gdk.Color().blue = 200`
 
-**Structs, Unions, GObjects & Interfaces**: `UpperCamelCase`
-  Defined on namespaces.
-  Example:
-    `Gtk.Button`
+ - **Structs, Unions, GObjects & Interfaces**: `UpperCamelCase`  
+    Defined on namespaces.  
+    Example:  
+    `Gtk.Button`  
     `Gdk.Color`
 
-**Enums, Flags**:
-  Defined on namespaces.
-  Example:
-    `Gtk.AttachOptions`
+ - **Enums, Flags**:  
+    Defined on namespaces.  
+    Example:  
+    `Gtk.AttachOptions`  
     `Gdk.EventType`
 
-**Constants & Values**: `ALL_CAPS_SNAKE_CASE`
-  Can be attached on namespaces or on specific objects.
-  Example:
-    `Gdk.KEY_g`
+ - **Constants & Values**: `ALL_CAPS_SNAKE_CASE`  
+    Can be attached on namespaces or on specific objects.  
+    Example:  
+    `Gdk.KEY_g`  
     `Gdk.EventType.KEY_PRESS`
 
-**Signals**: `dash-case`
-  Events triggered by GObjects.
-  Example:
+ - **Signals**: `dash-case`  
+    Events triggered by GObjects.  
+    Example:  
     `gtkEntry.on('key-press-event', (ev) => { ... })`
 
 
