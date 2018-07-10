@@ -17,6 +17,7 @@ will be welcomed.
     + [Exports](#exports)
     + [Signals (event handlers)](#signals-event-handlers)
     + [Gtk](#gtk)
+    + [Naming conventions](#naming-conventions)
 - [Installing and building](#installing-and-building)
   * [Target Platforms (so far)](#target-platforms-so-far)
   * [Common dependencies](#common-dependencies)
@@ -116,6 +117,44 @@ Low-level methods `.connect(name: String, callback: Function) : Number` and
 #### Gtk
 
 For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
+
+#### Naming conventions
+
+**Functions, Methods & Virtual Functions**: `lowerCamelCase`
+  Methods on GObject, structs, unions and functions on namespaces.
+  Example:
+    `GLib.randomIntRange(0, 'string')`
+    `textBuffer.placeCursor(0)`
+
+**Fields & Properties**: `lowerCamelCase`
+  Fields are on structs and unions.
+  Properties are on GObjects.
+  Example:
+    `textView.showLineNumbers = true`
+    `new Gdk.Color().blue = 200`
+
+**Structs, Unions, GObjects & Interfaces**: `UpperCamelCase`
+  Defined on namespaces.
+  Example:
+    `Gtk.Button`
+    `Gdk.Color`
+
+**Enums, Flags**:
+  Defined on namespaces.
+  Example:
+    `Gtk.AttachOptions`
+    `Gdk.EventType`
+
+**Constants & Values**: `ALL_CAPS_SNAKE_CASE`
+  Can be attached on namespaces or on specific objects.
+  Example:
+    `Gdk.KEY_g`
+    `Gdk.EventType.KEY_PRESS`
+
+**Signals**: `dash-case`
+  Events triggered by GObjects.
+  Example:
+    `gtkEntry.on('key-press-event', (ev) => { ... })`
 
 
 ## Installing and building
