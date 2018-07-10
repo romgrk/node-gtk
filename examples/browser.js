@@ -61,8 +61,8 @@ webView.loadUri(url(process.argv[2] || 'google.com'))
 // whenever a new page is loaded ...
 webView.connect('load-changed', (widget, load_event, data) => {
   switch (load_event) {
-    case 2: // XXX: where is WEBKIT_LOAD_COMMITTED ?
-      // ... update the URL bar with the current adress
+    case WebKit2.LoadEvent.COMMITTED:
+      // Update the URL bar with the current adress
       urlBar.setText(widget.getUri())
       button.back.setSensitive(webView.canGoBack())
       button.forward.setSensitive(webView.canGoForward())

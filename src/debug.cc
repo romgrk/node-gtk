@@ -13,6 +13,7 @@
 
 namespace GNodeJS {
 
+
 void print_gobject (GObject *gobject) {
     printf("\x1b[91mGObject: %s::%s \x1b[0m\n",
             G_OBJECT_TYPE_NAME (gobject),
