@@ -20,10 +20,15 @@ files.forEach(file => {
     }
 
     child_process.exec(cmd, options, (error, stdout, stderr) => {
-      if (error)
-        done(error)
-      else
-        done()
+      if (!error)
+        return done()
+
+      if (!error.message.includes('Command failed'))
+        return done(error)
+
+      const newError = new Error(stderr + stdout)
+      newError.stack = ''
+      done(newError)
     })
   })
 })
