@@ -1,5 +1,7 @@
 #include <glib.h>
-#include "nan.h"
+#include <nan.h>
+
+#include "debug.h"
 #include "function.h"
 #include "type.h"
 #include "value.h"
@@ -38,6 +40,7 @@ void Closure::Marshal(GClosure *base,
     HandleScope scope(isolate);
     Local<Context> context = Context::New(isolate);
     Context::Scope context_scope(context);
+    Nan::TryCatch try_catch;
 
     Local<Function> func = Local<Function>::New(isolate, closure->persistent);
 
@@ -64,13 +67,24 @@ void Closure::Marshal(GClosure *base,
     Local<Object> self = func;
     Local<Value> return_value;
 
-    if (func->Call(context, self, n_js_args, js_args).ToLocal(&return_value)) {
+    Nan::AsyncResource asyncResource("node-gtk.signal");
+    auto result = asyncResource.runInAsyncScope(self, func, n_js_args, js_args);
+
+    if (result.ToLocal(&return_value)) {
         if (g_return_value) {
             if (G_VALUE_TYPE(g_return_value) == G_TYPE_INVALID)
                 g_warning ("Marshal: return value has invalid g_type");
             else if (!V8ToGValue (g_return_value, return_value))
                 g_warning ("Marshal: could not convert return value");
         }
+    }
+    else {
+        auto stackTrace = try_catch.StackTrace();
+        if (!stackTrace.IsEmpty())
+            printf("%s\n", *Nan::Utf8String(stackTrace.ToLocalChecked()));
+        else
+            printf("%s\n", *Nan::Utf8String(try_catch.Exception()));
+        exit(1);
     }
 
     #ifndef __linux__

@@ -238,8 +238,9 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
 
     Local<Value> boxed_external = Nan::New<External> (data);
     Local<Value> args[] = { boxed_external };
-    Local<Object> obj = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    return obj;
+    // FIXME(we're not handling failure here)
+    MaybeLocal<Object> instance = Nan::NewInstance(constructor, 1, args);
+    return instance.ToLocalChecked();
 }
 
 void* BoxedFromWrapper(Local<Value> value) {
