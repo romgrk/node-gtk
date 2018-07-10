@@ -70,9 +70,9 @@ static GIFunctionInfo* FindBoxedConstructor(GIBaseInfo* info) {
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info);
 
-static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
+static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     /* See gobject.cc for how this works */
-    if (!args.IsConstructCall ()) {
+    if (!info.IsConstructCall ()) {
         Nan::ThrowTypeError("Not a construct call");
         return;
     }
@@ -80,13 +80,14 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
     void *boxed = NULL;
     unsigned long size = 0;
 
-    Local<Object> self = args.This ();
-    GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*args.Data ())->Value ();
+    Local<Object> self = info.This ();
+    GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*info.Data ())->Value ();
+    GType gtype = g_registered_type_info_get_g_type (gi_info);
 
-    if (args[0]->IsExternal ()) {
+    if (info[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
 
-        boxed = External::Cast(*args[0])->Value();
+        boxed = External::Cast(*info[0])->Value();
 
     } else {
         /* User code calling `new Pango.AttrList()` */
@@ -126,14 +127,15 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
 
     Nan::DefineOwnProperty(self,
             UTF8("__gtype__"),
-            Nan::New<Number>(g_registered_type_info_get_g_type(gi_info)),
+            Nan::New<Number>(gtype),
             (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
     );
 
     auto* box = new Boxed();
     box->data = boxed;
     box->size = size;
-    box->g_type = g_registered_type_info_get_g_type(gi_info);
+    box->info = g_base_info_ref (gi_info);
+    box->g_type = gtype;
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
 }
@@ -149,7 +151,10 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
         g_slice_free1(box->size, box->data);
     }
     else if (box->data != NULL) {
-        g_boxed_free(box->g_type, box->data);
+        char* name = GetInfoName(box->info);
+        printf("name: %s\n", name);
+        free(name);
+        // g_boxed_free(box->g_type, box->data);
     }
 
     delete box->persistent;
