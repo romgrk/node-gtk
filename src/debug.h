@@ -3,7 +3,12 @@
 
 #include <girepository.h>
 
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define FILE_NAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#ifdef __PRETTY_FUNCTION__
+#define FUNCTION_NAME __PRETTY_FUNCTION__
+#else
+#define FUNCTION_NAME __func__
+#endif
 
 #define WARN(f,s) \
     do { \
@@ -18,7 +23,7 @@
 #define log(...) \
     do { \
         printf("\x1b[1;38;5;33m"); \
-        printf("%s:\x1b[0m\x1b[1m %i: \x1b[0m", __FILENAME__, __LINE__); \
+        printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
         printf(__VA_ARGS__); \
         printf("\n"); \
     } while (0)
