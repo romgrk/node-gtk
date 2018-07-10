@@ -96,6 +96,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
         if (size != 0) {
             boxed = g_slice_alloc0(size);
         }
+        /* TODO(find what to do in these cases)
         else {
             GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info);
 
@@ -113,7 +114,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
 
                 boxed = return_value.v_pointer;
             }
-        }
+        } */
 
         if (!boxed) {
             Nan::ThrowError("Boxed allocation failed");
