@@ -198,14 +198,27 @@ static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *name) {
     GIBaseInfo *parent = g_base_info_ref(info);
 
     while (parent) {
+        // Find on GObject
         signal_info = g_object_info_find_signal (parent, name);
         if (signal_info)
             break;
+
+        // Find on Interfaces
+        int n_interfaces = g_object_info_get_n_interfaces (info);
+        for (int i = 0; i < n_interfaces; i++) {
+            GIBaseInfo* interface_info = g_object_info_get_interface (info, i);
+            signal_info = g_interface_info_find_signal (interface_info, name);
+            g_base_info_unref (interface_info);
+            if (signal_info)
+                goto out;
+        }
 
         GIBaseInfo* next_parent = g_object_info_get_parent(parent);
         g_base_info_unref(parent);
         parent = next_parent;
     }
+
+out:
 
     if (parent)
         g_base_info_unref(parent);
