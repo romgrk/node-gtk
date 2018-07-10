@@ -10,8 +10,24 @@ It uses the GObject Introspection library (as PyGObject, for example), so any go
 Please note this project is currently in _beta_ state and is being developped. Any contributors willing to help
 will be welcomed.
 
+### Table of contents
 
-## Example and documentation
+- [Example](#example)
+- [Documentation](#documentation)
+    + [Exports](#exports)
+    + [Signals (event handlers)](#signals-event-handlers)
+    + [Gtk](#gtk)
+- [Installing and building](#installing-and-building)
+  * [Target Platforms (so far)](#target-platforms-so-far)
+  * [Common dependencies](#common-dependencies)
+  * [How to build on Ubuntu](#how-to-build-on-ubuntu)
+  * [How to build on ArchLinux](#how-to-build-on-archlinux)
+  * [How to build on OSX](#how-to-build-on-osx)
+  * [Experimental platforms](#experimental-platforms)
+  * [Testing the project](#testing-the-project)
+    + [Browser demo](#browser-demo)
+
+## Example
 
 ```javascript
 const gi = require('node-gtk')
@@ -32,8 +48,13 @@ win.showAll();
 
 ![Hello node-gtk!](img/hello-node-gtk.png)
 
+Check the [browser demo](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
+below for a more complete example.
 
-### Documentation
+
+## Documentation
+
+#### Exports
 
 This module exports a single `require` function:
 
@@ -49,9 +70,15 @@ const gi = require('node-gtk')
 const Gtk = gi.require('Gtk', '3.0')
 ```
 
-For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
+#### Signals (event handlers)
 
-Objects returned by node-gtk have additional events functions:
+Signals (or events, in NodeJS semantics) are dispatched through the usual `.on`,
+`.off`, and `.once` methods.
+
+Returning `true` from an event handler can have the special semantic of stopping the event
+from being propagated or preventing the default value. Refer to GTK documentation for details.
+(E.g. [GtkWidget signals](https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget.signals))
+
 ```javascript
 const input = new Gtk.Entry()
 
@@ -77,12 +104,19 @@ input.off('key-press-event', onKeyPress)
 input.once('key-press-event', onKeyPress)
 
 
-function onKeyPress(widget, event, data) {
-  // widget === input
-  event.__proto__ = Gdk.EventKey
-  console.log(event.keyval, event.string)
+function onKeyPress(event) {
+  // event.__proto__ === Gdk.EventKey
+  console.log(event.string, event.keyval)
 }
 ```
+
+Low-level methods `.connect(name: String, callback: Function) : Number` and
+`.disconnect(name: String, handleID: Number) : void` are also available.
+
+#### Gtk
+
+For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
+
 
 ## Installing and building
 
@@ -91,7 +125,7 @@ We're planning to serve pre-built binaries in order to make this project as cros
 However, right now we support only **Linux** and experimentally **OSX** but in both targets _the project will falback to build_.
 
 
-#### Common dependencies
+### Common dependencies
 In order to clone, install, and build this project you'll need a working copy of git, nodejs 8 or higher, npm, and python2.
 In the _not-working-yet_ Windows platform, all dependencies must be available under [MSYS2 shell](https://msys2.github.io).
 
@@ -166,7 +200,7 @@ Please note in OSX the window doesn't automatically open above other windows.
 Try Cmd + Tab if you don't see it.
 
 
-#### browser demo
+#### Browser demo
 
 If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://webkitgtk.org/) libary.
 
@@ -188,33 +222,6 @@ Once installed, you can `./examples/browser.js google.com` or any other page, an
 ### Experimental platforms
 
 Following how to setup the configuration to at least try building this project.
-
-
-#### How to install node 5.x in Ubuntu 16 LTS
-The setup file might not recognize `xenial` platform.
-In this case you need to download the file and edit it.
-
-```bash
-# download the file
-curl -L -O https://deb.nodesource.com/setup_5.x
-
-# edit (use vi or gedit or whatever you like) 
-gedit setup_5.x
-
-# find the following line
-DISTRO=$(lsb_release -c -s)
-# and change it to
-DISTRO=jessie
-
-
-# save the file and run the following
-cat setup_5.x | sudo -E bash -
-
-# once done you can
-rm setup_5.x
-```
-
-At this point you can `apt-get install nodejs` and follow same instructions used for Ubuntu.
 
 
 #### How to build on Windows (experimental)
