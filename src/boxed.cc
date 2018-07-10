@@ -130,12 +130,12 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &args) {
             (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
     );
 
-    auto* cont = new Boxed();
-    cont->data = boxed;
-    cont->size = size;
-    cont->g_type = g_registered_type_info_get_g_type(gi_info);
-    cont->persistent = new Nan::Persistent<Object>(self);
-    cont->persistent->SetWeak(cont, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
+    auto* box = new Boxed();
+    box->data = boxed;
+    box->size = size;
+    box->g_type = g_registered_type_info_get_g_type(gi_info);
+    box->persistent = new Nan::Persistent<Object>(self);
+    box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
 }
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
