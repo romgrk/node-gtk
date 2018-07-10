@@ -163,20 +163,19 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
         data = g_type_get_qdata(gtype, GNodeJS::template_quark());
     }
 
-    // Template already created
+    /*
+     * Template already created
+     */
+
     if (data) {
         Persistent<FunctionTemplate> *persistent = (Persistent<FunctionTemplate> *) data;
         Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate> (*persistent);
         return tpl;
     }
 
-    {
-        char* name = GetInfoName(info);
-        printf("GetBoxedTemplate: creating: %s \n", name);
-        free(name);
-    }
-
-    // Template not created yet
+    /*
+     * Template not created yet
+     */
 
     auto tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -184,7 +183,6 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     if (gtype != G_TYPE_NONE) {
         const char *class_name = g_type_name(gtype);
         tpl->SetClassName (UTF8(class_name));
-        tpl->Set(UTF8("gtype"), Nan::New<Number>(gtype));
     } else {
         const char *class_name = g_base_info_get_name (info);
         tpl->SetClassName (UTF8(class_name));
