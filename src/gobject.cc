@@ -334,7 +334,6 @@ static Local<FunctionTemplate> NewClassTemplate (GIBaseInfo *info) {
     const char *class_name = g_type_name (gtype);
 
     auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External> (info));
-    Nan::SetTemplate(tpl, "gtype", New((double)gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
