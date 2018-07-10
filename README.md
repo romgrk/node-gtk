@@ -8,6 +8,8 @@ It uses the GObject Introspection library (as PyGObject, for example), so any go
 Please note this project is currently in _beta_ state and is being developped. Any contributors willing to help
 will be welcomed.
 
+Supported Node.js versions: **8**, **9**, **10** (other versions might work but are untested)
+
 ### Table of contents
 
 - [Example](#example)
@@ -160,6 +162,7 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
 ### Target Platforms (so far)
 We're planning to serve pre-built binaries in order to make this project as cross platform and easy to install as possible.
 However, right now we support only **Linux** and experimentally **OSX** but in both targets _the project will falback to build_.
+This project is tested on Node.js **8** and **10**.
 
 
 ### Common dependencies
