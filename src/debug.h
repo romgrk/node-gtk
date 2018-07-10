@@ -3,15 +3,8 @@
 
 #include <girepository.h>
 
-//#define LOG(s) printf("\x1b[1;38;5;33m%s\x1b[0m\n", s)
-#define LOG(f,s) \
-    do { \
-        printf("\x1b[1;38;5;33m"); \
-        printf(f, s); \
-        printf("\x1b[0m\n"); } \
-    while (0)
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-//#define WARN(s) printf("\x1b[1;38;5;202m%s\x1b[0m\n", s)
 #define WARN(f,s) \
     do { \
         printf("\x1b[1;38;5;202m"); \
@@ -19,6 +12,17 @@
         printf("\x1b[0m\n"); } \
     while (0)
 
+#ifdef NDEBUG
+#define log(...)
+#else
+#define log(...) \
+    do { \
+        printf("\x1b[1;38;5;33m"); \
+        printf("%s:\x1b[0m\x1b[1m %i: \x1b[0m", __FILENAME__, __LINE__); \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+    } while (0)
+#endif
 
 namespace GNodeJS {
 

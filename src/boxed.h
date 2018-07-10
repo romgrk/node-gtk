@@ -20,18 +20,8 @@ class Boxed {
 public:
     void* data;
     GType g_type;
-    GIBaseInfo* info;
     unsigned long size;
     Nan::Persistent<Object> *persistent;
-
-    Boxed() {
-        info = nullptr;
-    }
-
-    ~Boxed() {
-        if (info)
-            g_base_info_unref (info);
-    }
 
     static size_t GetSize (GIBaseInfo *boxed_info) ;
 };
