@@ -26,7 +26,7 @@ window.setDefaultSize(400, 100)
 window.setResizable(true)
 
 window.on('destroy', () => Gtk.mainQuit())
-window.on('delete_event', () => false)
+window.on('delete-event', () => false)
 
 setTimeout(() => {
   // Run our tests

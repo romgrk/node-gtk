@@ -18,7 +18,7 @@ window.add(entry)
 window.setDefaultSize(400, 50)
 window.setResizable(true)
 window.on('destroy', () => { Gtk.mainQuit() })
-window.on('delete_event', () => { Gtk.mainQuit() })
+window.on('delete-event', () => { Gtk.mainQuit() })
 window.on('show', async () => {
 
   const text = 'some text'

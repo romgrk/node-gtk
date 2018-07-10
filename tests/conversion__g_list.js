@@ -42,7 +42,7 @@ window.connect('show', () => {
 })
 
 window.connect('destroy', () => Gtk.mainQuit())
-window.connect('delete_event', () => false)
+window.connect('delete-event', () => false)
 
 // add vertical ui and show them all
 window.add(flowBox)

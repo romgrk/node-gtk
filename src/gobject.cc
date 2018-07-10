@@ -192,39 +192,71 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     g_object_unref (gobject);
 }
 
-static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &args, bool after) {
-    Isolate *isolate = args.GetIsolate ();
-    GObject *gobject = GObjectFromWrapper (args.This ());
+static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *name) {
+    GISignalInfo *signal_info = NULL;
+
+    GIBaseInfo *parent = g_base_info_ref(info);
+
+    while (parent) {
+        signal_info = g_object_info_find_signal (parent, name);
+        if (signal_info)
+            break;
+
+        GIBaseInfo* next_parent = g_object_info_get_parent(parent);
+        g_base_info_unref(parent);
+        parent = next_parent;
+    }
+
+    if (parent)
+        g_base_info_unref(parent);
+
+    return signal_info;
+}
+
+static void ThrowSignalNotFound(GIBaseInfo *object_info, const char* signal_name) {
+    char *message = g_strdup_printf("Signal \"%s\" not found for instance of %s",
+            signal_name, GetInfoName(object_info));
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
+static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &info, bool after) {
+    Isolate *isolate = info.GetIsolate ();
+    GObject *gobject = GObjectFromWrapper (info.This ());
 
     if (!gobject) {
         Nan::ThrowTypeError("Object is not a GObject");
         return;
     }
 
-    if (!(args[0]->IsString() || args[0]->IsNumber())) {
+    if (!info[0]->IsString()) {
         Nan::ThrowTypeError("Signal ID invalid");
         return;
     }
 
-    if (!args[1]->IsFunction()) {
+    if (!info[1]->IsFunction()) {
         Nan::ThrowTypeError("Signal callback is not a function");
         return;
     }
 
-    Local<Function> callback = args[1].As<Function>();
-    GClosure *gclosure = MakeClosure (isolate, callback);
+    const char *signal_name = *Nan::Utf8String (info[0]->ToString());
+    Local<Function> callback = info[1].As<Function>();
+    GType gtype = (GType) Nan::Get(info.This(), UTF8("__gtype__")).ToLocalChecked()->NumberValue();
 
-    ulong handler_id;
-    if (args[0]->IsString()) {
-        Nan::Utf8String signal_name (args[0]->ToString ());
-        handler_id = g_signal_connect_closure (gobject, *signal_name, gclosure, after);
-    } else {
-        guint signal_id = args[0].As<v8::Uint32>()->Value();
-        GQuark detail = 0;
-        handler_id = g_signal_connect_closure_by_id (gobject, signal_id, detail, gclosure, after);
+    GIBaseInfo *object_info = g_irepository_find_by_gtype (NULL, gtype);
+    GISignalInfo *signal_info = FindSignalInfo (object_info, signal_name);
+
+    if (signal_info == NULL) {
+        ThrowSignalNotFound(object_info, signal_name);
+    }
+    else {
+        GClosure *gclosure = MakeClosure (isolate, callback, signal_info);
+        ulong handler_id = g_signal_connect_closure (gobject, signal_name, gclosure, after);
+
+        info.GetReturnValue().Set((double)handler_id);
     }
 
-    args.GetReturnValue().Set((double)handler_id);
+    g_base_info_unref(object_info);
 }
 
 static void SignalDisconnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
