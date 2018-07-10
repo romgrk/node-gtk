@@ -303,12 +303,6 @@ NAN_METHOD(StartLoop) {
     GNodeJS::StartLoop ();
 }
 
-NAN_METHOD(WrapperFromBoxed) {
-    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
-    void *boxed = External::Cast(*info[1])->Value();
-    info.GetReturnValue().Set(GNodeJS::WrapperFromBoxed(gi_info, boxed));
-}
-
 NAN_METHOD(PointerToString) {
     if (info[0]->ToObject()->InternalFieldCount() == 0) {
         Nan::ThrowReferenceError("Object doesnt have any internal field.");
@@ -345,7 +339,6 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, MakeObjectClass);
     NAN_EXPORT(exports, MakeFunction);
     NAN_EXPORT(exports, MakeVirtualFunction);
-    NAN_EXPORT(exports, WrapperFromBoxed);
     NAN_EXPORT(exports, StructFieldGetter);
     NAN_EXPORT(exports, StructFieldSetter);
     NAN_EXPORT(exports, ObjectPropertyGetter);
