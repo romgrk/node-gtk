@@ -81,7 +81,7 @@ Signals (or events, in NodeJS semantics) are dispatched through the usual `.on`,
 `.off`, and `.once` methods.
 
 Returning `true` from an event handler can have the special semantic of stopping the event
-from being propagated or preventing the default value. Refer to GTK documentation for details.
+from being propagated or preventing the default behavior. Refer to GTK documentation for details.
 (E.g. [GtkWidget signals](https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget.signals))
 
 ```javascript
@@ -143,7 +143,7 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
     `Gtk.Button`  
     `Gdk.Color`
 
- - **Enums, Flags**:  
+ - **Enums, Flags**: `UpperCamelCase`  
     Defined on namespaces.  
     Example:  
     `Gtk.AttachOptions`  
