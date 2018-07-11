@@ -1,5 +1,9 @@
 # node-gtk
-GNOME Gtk+ bindings for NodeJS
+
+#### GNOME Gtk+ bindings for NodeJS
+
+![NPM version](https://img.shields.io/npm/v/node-gtk.svg)
+
 
 ### What is this
 A work in progress to bring Gtk+ usable directly from nodejs so that the environemnt would be more udated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
