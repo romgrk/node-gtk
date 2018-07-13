@@ -8,18 +8,18 @@ matrix:
     - os: linux
       node_js: 8
       env:
-        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
     # Test node v10
     - os: linux
       node_js: 10
       env:
-        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 
 before_install:
 - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 - sudo apt-get update
 - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359A14518585931BC711F9BA15703C6
-- sudo apt-get install xvfb libgirepository1.0-dev gobject-introspection build-essential g++-7
+- sudo apt-get install xvfb libgirepository1.0-dev gobject-introspection build-essential g++-8
 - eval "${MATRIX_EVAL}"
 
 install:
