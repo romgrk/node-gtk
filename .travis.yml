@@ -7,22 +7,20 @@ os: linux
 sudo: false
 
 env:
-- CC=gcc-8
-- CXX=g++-8
+  global:
+    - CC=gcc-8
+    - CXX=g++-8
 
 addons:
   apt:
     sources:
-      sourceline: 'ppa:ubuntu-toolchain-r/test'
+    - ubuntu-toolchain-r-test
     packages:
-    - xfvb
+    - xvfb
     - libgirepository1.0-dev
     - gobject-introspection
     - build-essential
     - g++-8
-
-before_install:
-- eval "${MATRIX_EVAL}"
 
 install:
 - npm install
