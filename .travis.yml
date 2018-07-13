@@ -13,7 +13,7 @@ matrix:
 
 before_install:
 - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359A14518585931BC711F9BA15703C6
-- sudo apt-get install xvfb libx11-6 libglib2.0-0 libgtk3.0-0 libgirepository1.0-dev gobject-introspection build-essential
+- sudo apt-get install xvfb libgirepository1.0-dev gobject-introspection build-essential
 
 install:
 - npm install
