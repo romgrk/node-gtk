@@ -4,14 +4,14 @@ sudo: enabled
 
 matrix:
   include:
-    # Test node v8
+    # Test LTS node
     - os: linux
-      node_js: 8
+      node_js: lts/*
       env:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
-    # Test node v10
+    # Test latest node
     - os: linux
-      node_js: 10
+      node_js: node
       env:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
 
