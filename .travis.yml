@@ -1,0 +1,40 @@
+language: node_js
+
+sudo: false
+
+matrix:
+  include:
+    # Test node v8
+    - os: linux
+      node_js: 8
+      addons:
+        apt:
+          sources: [ 'ubuntu-toolchain-r-test' ]
+          packages:
+            - 'xvfb'
+            - 'libx11-6'
+            - 'libglib2.0-0'
+            - 'libgtk3.0-0'
+            - 'libgirepository1.0-dev'
+            - 'gobject-introspection'
+            - 'build-essential'
+    # Test node v10
+    - os: linux
+      node_js: 10
+      addons:
+        apt:
+          sources: [ 'ubuntu-toolchain-r-test' ]
+          packages:
+            - 'xvfb'
+            - 'libx11-6'
+            - 'libglib2.0-0'
+            - 'libgtk3.0-0'
+            - 'libgirepository1.0-dev'
+            - 'gobject-introspection'
+            - 'build-essential'
+
+install:
+- npm install
+
+script:
+- npm run build
