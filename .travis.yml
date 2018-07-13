@@ -1,26 +1,26 @@
 language: node_js
+node_js:
+- lts/*
+- node # latest
 
-sudo: enabled
+os: linux
+sudo: false
 
-matrix:
-  include:
-    # Test LTS node
-    - os: linux
-      node_js: lts/*
-      env:
-        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
-    # Test latest node
-    - os: linux
-      node_js: node
-      env:
-        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
+env:
+  global:
+    - CC=gcc-8
+    - CXX=g++-8
 
-before_install:
-- sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-- sudo apt-get update
-- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359A14518585931BC711F9BA15703C6
-- sudo apt-get install xvfb libgirepository1.0-dev gobject-introspection build-essential g++-8
-- eval "${MATRIX_EVAL}"
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - xvfb
+    - libgirepository1.0-dev
+    - gobject-introspection
+    - build-essential
+    - g++-8
 
 install:
 - npm install
