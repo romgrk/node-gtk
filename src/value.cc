@@ -606,6 +606,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value) 
     case GI_INFO_TYPE_ENUM:
         arg->v_int = value->Int32Value ();
         break;
+    case GI_INFO_TYPE_CALLBACK:
     default:
         print_info (type_info);
         g_assert_not_reached ();
@@ -783,6 +784,7 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
 
             switch (type) {
             case GI_INFO_TYPE_OBJECT:
+            case GI_INFO_TYPE_INTERFACE:
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
@@ -792,7 +794,7 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
             case GI_INFO_TYPE_ENUM:
                 result = true;
                 break;
-            case GI_INFO_TYPE_INTERFACE:
+            case GI_INFO_TYPE_CALLBACK:
             default:
                 print_info (interface_info);
                 g_assert_not_reached ();
