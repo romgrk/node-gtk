@@ -1,5 +1,5 @@
 #include <glib.h>
-#include <nan.h>
+// #include <nan.h>
 
 #include "debug.h"
 #include "function.h"
@@ -13,9 +13,10 @@ namespace GNodeJS {
 struct Closure {
     GClosure base;
     Persistent<Function> persistent;
-    GISignalInfo* info;
+    GIBaseInfo* info;
 
     ~Closure() {
+        persistent.Reset();
         if (info)
             g_base_info_unref(info);
     }
@@ -40,7 +41,7 @@ void Closure::Marshal(GClosure *base,
     HandleScope scope(isolate);
     Local<Context> context = Context::New(isolate);
     Context::Scope context_scope(context);
-    Nan::TryCatch try_catch;
+    // Nan::TryCatch try_catch;
 
     Local<Function> func = Local<Function>::New(isolate, closure->persistent);
 
@@ -78,12 +79,14 @@ void Closure::Marshal(GClosure *base,
         }
     }
     else {
-        auto stackTrace = try_catch.StackTrace();
-        if (!stackTrace.IsEmpty())
-            printf("%s\n", *Nan::Utf8String(stackTrace.ToLocalChecked()));
-        else
-            printf("%s\n", *Nan::Utf8String(try_catch.Exception()));
-        exit(1);
+        log("did throw");
+        /* auto stackTrace = try_catch.StackTrace();
+         * if (!stackTrace.IsEmpty())
+         *     printf("%s\n", *Nan::Utf8String(stackTrace.ToLocalChecked()));
+         * else
+         *     printf("%s\n", *Nan::Utf8String(try_catch.Exception()));
+         * exit(1);  */
+        // try_catch.ReThrow();
     }
 
     #ifndef __linux__
@@ -96,7 +99,7 @@ void Closure::Invalidated(gpointer data, GClosure *base) {
     closure->~Closure();
 }
 
-GClosure *MakeClosure(Isolate *isolate, Local<Function> function, GISignalInfo* info) {
+GClosure *MakeClosure(Isolate *isolate, Local<Function> function, GIBaseInfo* info) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
     closure->persistent.Reset(isolate, function);
     closure->info = info;

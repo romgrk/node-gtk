@@ -153,6 +153,7 @@ const execute = function(command) {
 
 
 textView.on('key-press-event', function(event) {
+    Gdk.test_error()
     let keyname = Gdk.keyvalName(event.keyval);
     let label = Gtk.acceleratorGetLabel(event.keyval, event.state);
 
