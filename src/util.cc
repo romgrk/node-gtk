@@ -46,14 +46,11 @@ void ThrowGError(const char* domain, GError* error) {
  * be pending Micro-tasks from Promises or calls to 'process.nextTick()'.
  */
 void CallNextTickCallback() {
-    Local<Value> processValue = Nan::GetCurrentContext()->Global()->Get(
-            Nan::New<String>("process").ToLocalChecked());
-    if (processValue->IsObject()) {
-        Local<Object> processObject = processValue->ToObject();
-        Local<Value> tickCallbackValue = processObject->Get(Nan::New("_tickCallback").ToLocalChecked());
-        if (tickCallbackValue->IsFunction()) {
-            Nan::CallAsFunction(tickCallbackValue->ToObject(), processObject, 0, nullptr);
-        }
+    Local<Object> processObject = Nan::GetCurrentContext()->Global()->Get(
+            Nan::New<String>("process").ToLocalChecked())->ToObject();
+    Local<Value> tickCallbackValue = processObject->Get(Nan::New("_tickCallback").ToLocalChecked());
+    if (tickCallbackValue->IsFunction()) {
+        Nan::CallAsFunction(tickCallbackValue->ToObject(), processObject, 0, nullptr);
     }
 }
 
