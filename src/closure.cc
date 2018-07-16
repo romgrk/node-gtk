@@ -65,15 +65,13 @@ void Closure::Marshal(GClosure *base,
     }
 
     Local<Object> self = func;
-    Local<Value> return_value;
+    Local<Value> result = func->CallAsFunction(self, n_js_args, js_args);
 
-    auto result = Nan::Call(func, self, n_js_args, js_args);
-
-    if (result.ToLocal(&return_value)) {
+    if (!result.IsEmpty()) {
         if (g_return_value) {
             if (G_VALUE_TYPE(g_return_value) == G_TYPE_INVALID)
                 g_warning ("Marshal: return value has invalid g_type");
-            else if (!V8ToGValue (g_return_value, return_value))
+            else if (!V8ToGValue (g_return_value, result))
                 g_warning ("Marshal: could not convert return value");
         }
     }
