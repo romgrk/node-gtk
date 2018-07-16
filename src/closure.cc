@@ -67,8 +67,7 @@ void Closure::Marshal(GClosure *base,
     Local<Object> self = func;
     Local<Value> return_value;
 
-    Nan::AsyncResource asyncResource("node-gtk.signal");
-    auto result = asyncResource.runInAsyncScope(self, func, n_js_args, js_args);
+    auto result = Nan::Call(func, self, n_js_args, js_args);
 
     if (result.ToLocal(&return_value)) {
         if (g_return_value) {

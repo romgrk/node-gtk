@@ -1,0 +1,29 @@
+language: node_js
+node_js:
+- lts/*
+- node # latest
+
+os: linux
+sudo: false
+
+env:
+  global:
+    - CC=gcc-8
+    - CXX=g++-8
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - xvfb
+    - libgirepository1.0-dev
+    - gobject-introspection
+    - build-essential
+    - g++-8
+
+install:
+- npm install
+
+script:
+- npm run build
