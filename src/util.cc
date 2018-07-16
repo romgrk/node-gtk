@@ -13,6 +13,9 @@
 #include "util.h"
 
 using v8::Local;
+using v8::Value;
+using v8::Object;
+using v8::String;
 
 namespace Util {
 
@@ -37,13 +40,21 @@ void ThrowGError(const char* domain, GError* error) {
     g_error_free(error);
 }
 
-
-template<class M, class K>
-bool Contains(M const&m, K const&k) {
-  auto it=m.find(k);
-  if (it==m.end())
-      return false;
-  return true;
+/**
+ * This function is used to call "process._tickCallback()" inside NodeJS.
+ * We want to do this after we run the LibUV eventloop because there might
+ * be pending Micro-tasks from Promises or calls to 'process.nextTick()'.
+ */
+void CallNextTickCallback() {
+    Local<Value> processValue = Nan::GetCurrentContext()->Global()->Get(
+            Nan::New<String>("process").ToLocalChecked());
+    if (processValue->IsObject()) {
+        Local<Object> processObject = processValue->ToObject();
+        Local<Value> tickCallbackValue = processObject->Get(Nan::New("_tickCallback").ToLocalChecked());
+        if (tickCallbackValue->IsFunction()) {
+            Nan::CallAsFunction(tickCallbackValue->ToObject(), processObject, 0, nullptr);
+        }
+    }
 }
 
 }

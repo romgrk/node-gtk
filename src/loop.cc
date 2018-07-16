@@ -1,8 +1,8 @@
-
-#include "loop.h"
-
 #include <glib.h>
 #include <uv.h>
+
+#include "loop.h"
+#include "util.h"
 
 /* Integration for the GLib main loop and uv's main loop */
 
@@ -43,6 +43,7 @@ static gboolean uv_loop_source_prepare (GSource *base, int *timeout) {
 static gboolean uv_loop_source_dispatch (GSource *base, GSourceFunc callback, gpointer user_data) {
     struct uv_loop_source *source = (struct uv_loop_source *) base;
     uv_run (source->loop, UV_RUN_NOWAIT);
+    Util::CallNextTickCallback();
     return G_SOURCE_CONTINUE;
 }
 
