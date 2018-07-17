@@ -17,10 +17,10 @@ using GNodeJS::BaseInfo;
 
 namespace GNodeJS {
 
-    Nan::Persistent<Object> moduleCache(Nan::New<Object>());
-
     G_DEFINE_QUARK(gnode_js_object,   object);
     G_DEFINE_QUARK(gnode_js_template, template);
+
+    Nan::Persistent<Object> moduleCache(Nan::New<Object>());
 
     Local<Object> GetModuleCache() {
         return Nan::New<Object>(GNodeJS::moduleCache);
@@ -331,6 +331,11 @@ NAN_METHOD(GetTypeSize) {
     info.GetReturnValue().Set(Nan::New<Number>(size));
 }
 
+NAN_METHOD(GetLoopStack) {
+    auto stack = GNodeJS::GetLoopStack();
+    info.GetReturnValue().Set(stack);
+}
+
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetModuleCache);
@@ -348,6 +353,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, InternalFieldCount);
     NAN_EXPORT(exports, GetBaseClass);
     NAN_EXPORT(exports, GetTypeSize);
+    NAN_EXPORT(exports, GetLoopStack);
 }
 
 NODE_MODULE(gi, InitModule)

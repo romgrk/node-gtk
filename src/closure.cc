@@ -1,34 +1,15 @@
 #include <glib.h>
-// #include <nan.h>
+#include <nan.h>
 
+#include "closure.h"
 #include "debug.h"
-#include "function.h"
+#include "loop.h"
 #include "type.h"
 #include "value.h"
 
 using namespace v8;
 
 namespace GNodeJS {
-
-struct Closure {
-    GClosure base;
-    Persistent<Function> persistent;
-    GIBaseInfo* info;
-
-    ~Closure() {
-        persistent.Reset();
-        if (info)
-            g_base_info_unref(info);
-    }
-
-    static void Marshal(GClosure *closure,
-                        GValue   *g_return_value,
-                        uint argc, const GValue *g_argv,
-                        gpointer  invocation_hint,
-                        gpointer  marshal_data);
-
-    static void Invalidated(gpointer data, GClosure *closure);
-};
 
 void Closure::Marshal(GClosure *base,
                       GValue   *g_return_value,
@@ -41,7 +22,7 @@ void Closure::Marshal(GClosure *base,
     HandleScope scope(isolate);
     Local<Context> context = Context::New(isolate);
     Context::Scope context_scope(context);
-    // Nan::TryCatch try_catch;
+    Nan::TryCatch try_catch;
 
     Local<Function> func = Local<Function>::New(isolate, closure->persistent);
 
@@ -79,14 +60,11 @@ void Closure::Marshal(GClosure *base,
         }
     }
     else {
-        log("did throw");
-        /* auto stackTrace = try_catch.StackTrace();
-         * if (!stackTrace.IsEmpty())
-         *     printf("%s\n", *Nan::Utf8String(stackTrace.ToLocalChecked()));
-         * else
-         *     printf("%s\n", *Nan::Utf8String(try_catch.Exception()));
-         * exit(1);  */
-        // try_catch.ReThrow();
+        log("'%s' did throw", g_base_info_get_name (closure->info));
+
+        GNodeJS::QuitLoopStack();
+
+        try_catch.ReThrow();
     }
 
     #ifndef __linux__

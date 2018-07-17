@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <string.h>
 #include <girepository.h>
 
 #define FILE_NAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
@@ -16,6 +17,18 @@
         printf(f, s); \
         printf("\x1b[0m\n"); } \
     while (0)
+
+#ifdef NDEBUG
+#define warn(...)
+#else
+#define warn(...) \
+    do { \
+        printf("\x1b[1;38;5;202m"); \
+        printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+    } while (0)
+#endif
 
 #ifdef NDEBUG
 #define log(...)
