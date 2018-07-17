@@ -79,13 +79,6 @@ void StartLoop() {
 }
 
 Local<Array> GetLoopStack() {
-    static bool isLoopStackCreated = false;
-
-    if (!isLoopStackCreated) {
-        isLoopStackCreated = true;
-        loopStack.Reset(Nan::New<Array>());
-    }
-
     return Nan::New<Array>(loopStack);
 }
 
