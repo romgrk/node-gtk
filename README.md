@@ -14,6 +14,9 @@ will be welcomed.
 
 Supported Node.js versions: **8**, **9**, **10** (other versions might work but are untested)
 
+![Browser demo](img/browser.png)
+[Browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
+
 ### Table of contents
 
 - [Example](#example)
@@ -31,6 +34,8 @@ Supported Node.js versions: **8**, **9**, **10** (other versions might work but 
   * [Experimental platforms](#experimental-platforms)
   * [Testing the project](#testing-the-project)
     + [Browser demo](#browser-demo)
+- [Support](#support)
+
 
 ## Example
 
@@ -53,9 +58,6 @@ Gtk.main();
 ```
 
 ![Hello node-gtk!](img/hello-node-gtk.png)
-
-Check the [browser demo](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
-below for a more complete example.
 
 
 ## Documentation
@@ -128,7 +130,7 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
  - **Functions, Methods & Virtual Functions**: `lowerCamelCase`  
     Methods on GObject, structs, unions and functions on namespaces.  
     Example:  
-    `GLib.randomIntRange(0, 'string')`  
+    `GLib.randomIntRange(0, 100)`  
     `textBuffer.placeCursor(0)`
 
  - **Fields & Properties**: `lowerCamelCase`  
@@ -150,10 +152,10 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
     `Gtk.AttachOptions`  
     `Gdk.EventType`
 
- - **Constants & Values**: `ALL_CAPS_SNAKE_CASE`  
+ - **Constants & Values**: `SNAKE_CASE` (not modified, may contain lowercase)  
     Can be attached on namespaces or on specific objects.  
     Example:  
-    `Gdk.KEY_g`  
+    `Gdk.KEY_g !== Gdk.KEY_G`  
     `Gdk.EventType.KEY_PRESS`
 
  - **Signals**: `dash-case`  
@@ -259,8 +261,8 @@ Once installed, you can `./examples/browser.js google.com` or any other page, an
 # OSX needs to have the Adwaita theme installed
 # brew install adwaita-icon-theme
 
-# executable          url         theme
-./examples/browser.js google.com  dark
+# Usage: ./examples/browser.js <url> [theme]
+./examples/browser.js  google.com  dark
 ```
 
 
@@ -322,3 +324,27 @@ Please remember `python2` is the one needed.
 
 #### known issues building on Windows
 Right now there are few gotchas and the build will most likely fail. Please help with a PR if you know how to solve the issue, thank you!
+
+
+## Support
+
+There are still less used features that are not supported, but everything you should need to start building
+a working Gtk application is supported.
+
+ - [x] primitive data types (int, char, …)
+ - [x] complex data types (arrays, GArray, GList, GHashTable, …)
+ - [x] GObjects
+ - [x] Signals (`.connect('signal', cb)` or `.on('signal', cb)`)
+ - [x] Boxed (struct and union) (non-opaque)
+ - [x] Boxed (struct and union) (opaque, without `new`)
+ - [ ] Boxed (struct and union) (opaque, with `new`)
+ - [x] Interfaces
+ - [x] Error handling
+ - [ ] Callback arguments
+ - [x] Function call: IN, OUT & INOUT arguments
+ - [x] Properties (on GObjects)
+ - [x] Fields (on Boxeds)
+ - [x] Event loop
+ - [ ] GParamSpec
+ - [ ] Javascript inheritance of C classes
+ - [x] Memory management
