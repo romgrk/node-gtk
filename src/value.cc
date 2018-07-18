@@ -173,6 +173,11 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) 
              * of a GObject, instead this represent the object type (eg class).  A GObject
              * has methods, fields, properties, signals, interfaces, constants and virtual functions. */
             case GI_INFO_TYPE_OBJECT:
+                if (!G_IS_OBJECT(arg->v_pointer)) {
+                    print_info(interface_info);
+                    fflush(stdout);
+                    g_assert_not_reached();
+                }
                 value = WrapperFromGObject((GObject *)arg->v_pointer);
                 break;
             case GI_INFO_TYPE_BOXED:

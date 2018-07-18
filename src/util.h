@@ -14,6 +14,8 @@ namespace Util
 {
     const char*    ArrayTypeToString (GIArrayType array_type);
     void           ThrowGError (const char* domain, GError* error);
+    char*          GetSignalName(const char* signal_detail);
+
     void           CallNextTickCallback();
 
 } /* Util */

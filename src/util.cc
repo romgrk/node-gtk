@@ -40,6 +40,18 @@ void ThrowGError(const char* domain, GError* error) {
     g_error_free(error);
 }
 
+char* GetSignalName(const char* signal_detail) {
+    char* signal_name;
+    char* detail_start;
+    if ((detail_start = g_strrstr(signal_detail, "::")) != NULL) {
+        signal_name = g_strndup(signal_detail, reinterpret_cast<gsize>(detail_start) - reinterpret_cast<gsize>(signal_detail));
+    } else {
+        signal_name = g_strdup(signal_detail);
+    }
+    return signal_name;
+}
+
+
 /**
  * This function is used to call "process._tickCallback()" inside NodeJS.
  * We want to do this after we run the LibUV eventloop because there might

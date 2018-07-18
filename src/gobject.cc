@@ -192,14 +192,16 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     g_object_unref (gobject);
 }
 
-static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *name) {
+static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *signal_detail) {
+    char* signal_name = Util::GetSignalName(signal_detail);
+
     GISignalInfo *signal_info = NULL;
 
     GIBaseInfo *parent = g_base_info_ref(info);
 
     while (parent) {
         // Find on GObject
-        signal_info = g_object_info_find_signal (parent, name);
+        signal_info = g_object_info_find_signal (parent, signal_name);
         if (signal_info)
             break;
 
@@ -207,7 +209,7 @@ static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *name) {
         int n_interfaces = g_object_info_get_n_interfaces (info);
         for (int i = 0; i < n_interfaces; i++) {
             GIBaseInfo* interface_info = g_object_info_get_interface (info, i);
-            signal_info = g_interface_info_find_signal (interface_info, name);
+            signal_info = g_interface_info_find_signal (interface_info, signal_name);
             g_base_info_unref (interface_info);
             if (signal_info)
                 goto out;
@@ -222,6 +224,8 @@ out:
 
     if (parent)
         g_base_info_unref(parent);
+
+    g_free(signal_name);
 
     return signal_info;
 }
