@@ -6,8 +6,8 @@
   "scripts": {
     "install": "./install.sh",
     "test": "mocha tests/__run__.js",
-    "build": "node-gyp rebuild",
-    "build:incremental": "node-gyp build"
+    "build": "node-pre-gyp rebuild",
+    "build:incremental": "node-pre-gyp build"
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,9 @@
     "bindings"
   ],
   "author": "Jasper St. Pierre",
+  "contributors": [
+    "Romain Grégoire <romgrk.cc@gmail.com> (https://github.com/romgrk)"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/romgrk/node-gtk/issues"
@@ -35,16 +38,17 @@
     "node-pre-gyp": "0.10.2",
     "node-pre-gyp-github": "1.3.1"
   },
-  "binary": {
-    "module_name": "node-gtk",
-    "module_path": "./build/{configuration}/{node_abi}-{platform}-{arch}/",
-    "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
-    "host": "https://github.com/romgrk/node-gtk/releases/download/",
-    "remote_path": "{version}"
-  },
   "devDependencies": {
     "assert": "^1.4.1",
+    "aws-sdk": "^2.276.1",
     "chalk": "^2.4.1",
     "mocha": "^5.2.0"
+  },
+  "binary": {
+    "module_name": "node_gtk",
+    "module_path": "./lib/binding/{node_abi}-{platform}-{arch}/",
+    "remote_path": "./{module_name}/v{version}/",
+    "package_name": "{module_name}-{node_abi}-{platform}-{arch}.tar.gz",
+    "host": "https://node-gtk-1.s3-us-east-1.amazonaws.com"
   }
 }

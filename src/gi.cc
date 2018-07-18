@@ -356,4 +356,4 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, GetLoopStack);
 }
 
-NODE_MODULE(gi, InitModule)
+NODE_MODULE(node_gtk, InitModule)
