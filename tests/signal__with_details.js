@@ -14,8 +14,8 @@ Gtk.init()
   let didNotify = false
 
   const button = new Gtk.Button()
-  button.connect('notify::label', () => {
-    console.log('notify::label called')
+  button.connect('notify::label', (...args) => {
+    console.log('notify::label called', ...args)
     didNotify = true
   })
   button.setLabel('test')

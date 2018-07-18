@@ -10,6 +10,7 @@
                 "src/gi.cc",
                 "src/gobject.cc",
                 "src/loop.cc",
+                "src/param_spec.cc",
                 "src/type.cc",
                 "src/util.cc",
                 "src/value.cc",

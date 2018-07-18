@@ -7,6 +7,7 @@
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
+#include "param_spec.h"
 #include "type.h"
 #include "util.h"
 #include "value.h"
@@ -173,12 +174,10 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) 
              * of a GObject, instead this represent the object type (eg class).  A GObject
              * has methods, fields, properties, signals, interfaces, constants and virtual functions. */
             case GI_INFO_TYPE_OBJECT:
-                if (!G_IS_OBJECT(arg->v_pointer)) {
-                    print_info(interface_info);
-                    fflush(stdout);
-                    g_assert_not_reached();
-                }
-                value = WrapperFromGObject((GObject *)arg->v_pointer);
+                if (G_IS_PARAM_SPEC(arg->v_pointer))
+                    value = ParamSpec::FromGParamSpec((GParamSpec *)arg->v_pointer);
+                else
+                    value = WrapperFromGObject((GObject *)arg->v_pointer);
                 break;
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
@@ -594,26 +593,38 @@ item_error:
     return hash_table;
 }
 
-bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value) {
-    GIInfoType type = g_base_info_get_type (type_info);
+bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
+    GIInfoType type = g_base_info_get_type (gi_info);
 
     switch (type) {
-    case GI_INFO_TYPE_OBJECT:
-    case GI_INFO_TYPE_INTERFACE:
-        arg->v_pointer = GObjectFromWrapper(value);
-        break;
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
     case GI_INFO_TYPE_UNION:
         arg->v_pointer = BoxedFromWrapper(value);
         break;
+
     case GI_INFO_TYPE_FLAGS:
     case GI_INFO_TYPE_ENUM:
         arg->v_int = value->Int32Value ();
         break;
+
+    case GI_INFO_TYPE_OBJECT:
+    {
+        GType gtype = g_registered_type_info_get_g_type (gi_info);
+
+        if (g_type_is_a(gtype, G_TYPE_PARAM)) {
+            arg->v_pointer = ParamSpec::FromWrapper(value);
+            break;
+        }
+        // fallthrough
+    }
+    case GI_INFO_TYPE_INTERFACE:
+        arg->v_pointer = GObjectFromWrapper(value);
+        break;
+
     case GI_INFO_TYPE_CALLBACK:
     default:
-        print_info (type_info);
+        print_info (gi_info);
         g_assert_not_reached ();
     }
     return true;
@@ -1144,6 +1155,12 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
             return false;
         }
         g_value_set_boxed (gvalue, BoxedFromWrapper(value));
+    } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
+        if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
+            Nan::ThrowTypeError("Value is not instance of GParamSpec");
+            return false;
+        }
+        g_value_set_param (gvalue, ParamSpec::FromWrapper(value));
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
         printf("G_VALUE_HOLDS_FLAGS");
         g_assert_not_reached ();
