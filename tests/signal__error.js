@@ -1,5 +1,5 @@
 /*
- * object__events__throw.js
+ * signal__error.js
  */
 
 
