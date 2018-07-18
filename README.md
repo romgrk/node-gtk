@@ -14,6 +14,9 @@ will be welcomed.
 
 Supported Node.js versions: **8**, **9**, **10** (other versions might work but are untested)
 
+![Browser demo](img/browser.png)
+[Browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
+
 ### Table of contents
 
 - [Example](#example)
@@ -53,9 +56,6 @@ Gtk.main();
 ```
 
 ![Hello node-gtk!](img/hello-node-gtk.png)
-
-Check the [browser demo](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
-below for a more complete example.
 
 
 ## Documentation
@@ -259,8 +259,8 @@ Once installed, you can `./examples/browser.js google.com` or any other page, an
 # OSX needs to have the Adwaita theme installed
 # brew install adwaita-icon-theme
 
-# executable          url         theme
-./examples/browser.js google.com  dark
+# Usage: ./examples/browser.js <url> [theme]
+./examples/browser.js  google.com  dark
 ```
 
 
