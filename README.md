@@ -49,6 +49,7 @@ win.setDefaultSize(200, 80)
 win.add(new Gtk.Label({ label: 'Hello Gtk+' }))
 
 win.showAll();
+Gtk.main();
 ```
 
 ![Hello node-gtk!](img/hello-node-gtk.png)
