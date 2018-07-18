@@ -1,7 +1,7 @@
 {
     "targets": [
         {
-            "target_name": "node-gtk",
+            "target_name": "node_gtk",
             "sources": [
                 "src/boxed.cc",
                 "src/closure.cc",
@@ -52,6 +52,17 @@
                         "/msys64/mingw64/lib/glib-2.0/include",
                     ]
                 }]
+            ]
+        },
+        {
+            "target_name": "action_after_build",
+            "type": "none",
+            "dependencies": [ "<(module_name)" ],
+            "copies": [
+                {
+                    "files": [ "<(PRODUCT_DIR)/<(module_name).node" ],
+                    "destination": "<(module_path)"
+                }
             ]
         }
     ]
