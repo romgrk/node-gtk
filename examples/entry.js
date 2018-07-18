@@ -10,6 +10,20 @@ const Gdk = gi.require('Gdk')
 gi.startLoop()
 Gtk.init()
 
+
+process.on('uncaughtException', (err) => {
+  console.log('process.uncaughtException', err)
+  process.exit(1)
+})
+process.on('exit', (code) => {
+  console.log('process.exit', code)
+})
+process.on('SIGINT', () => {
+  console.log('process.SIGINT')
+  process.exit(2)
+})
+
+
   // main program window
 const window = new Gtk.Window({
   type : Gtk.WindowType.TOPLEVEL
@@ -20,17 +34,6 @@ const entry = new Gtk.Entry()
 entry.on('key-press-event', (event) => {
   console.log(event)
   console.log(event.string)
-  console.log('')
-
-  console.log(event, Object.keys(event))
-  console.log(event.__proto__, Object.keys(event.__proto__))
-
-  const e = new Gdk.EventKey()
-  console.log(e, Object.keys(e))
-  console.log(e.__proto__, Object.keys(e.__proto__))
-
-  console.log(e.__proto__ === event.__proto__)
-  console.log(e.__proto__.__proto__ === event.__proto__.__proto__)
 })
 
 
@@ -38,8 +41,6 @@ entry.on('key-press-event', (event) => {
 window.setDefaultSize(200, 50)
 window.setResizable(true)
 window.connect('show', () => {
-  // bring it on top in OSX
-  // window.setKeepAbove(true)
   Gtk.main()
 })
 window.on('destroy', () => Gtk.mainQuit())

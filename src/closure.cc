@@ -1,33 +1,15 @@
 #include <glib.h>
 #include <nan.h>
 
+#include "closure.h"
 #include "debug.h"
-#include "function.h"
+#include "loop.h"
 #include "type.h"
 #include "value.h"
 
 using namespace v8;
 
 namespace GNodeJS {
-
-struct Closure {
-    GClosure base;
-    Persistent<Function> persistent;
-    GISignalInfo* info;
-
-    ~Closure() {
-        if (info)
-            g_base_info_unref(info);
-    }
-
-    static void Marshal(GClosure *closure,
-                        GValue   *g_return_value,
-                        uint argc, const GValue *g_argv,
-                        gpointer  invocation_hint,
-                        gpointer  marshal_data);
-
-    static void Invalidated(gpointer data, GClosure *closure);
-};
 
 void Closure::Marshal(GClosure *base,
                       GValue   *g_return_value,
@@ -78,12 +60,11 @@ void Closure::Marshal(GClosure *base,
         }
     }
     else {
-        auto stackTrace = try_catch.StackTrace();
-        if (!stackTrace.IsEmpty())
-            printf("%s\n", *Nan::Utf8String(stackTrace.ToLocalChecked()));
-        else
-            printf("%s\n", *Nan::Utf8String(try_catch.Exception()));
-        exit(1);
+        log("'%s' did throw", g_base_info_get_name (closure->info));
+
+        GNodeJS::QuitLoopStack();
+
+        try_catch.ReThrow();
     }
 
     #ifndef __linux__
@@ -96,7 +77,7 @@ void Closure::Invalidated(gpointer data, GClosure *base) {
     closure->~Closure();
 }
 
-GClosure *MakeClosure(Isolate *isolate, Local<Function> function, GISignalInfo* info) {
+GClosure *MakeClosure(Isolate *isolate, Local<Function> function, GIBaseInfo* info) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
     closure->persistent.Reset(isolate, function);
     closure->info = info;

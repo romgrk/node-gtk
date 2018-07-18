@@ -1,6 +1,10 @@
 #include <glib.h>
 #include <uv.h>
+#include <nan.h>
+#include <v8.h>
 
+#include "debug.h"
+#include "gi.h"
 #include "loop.h"
 #include "util.h"
 
@@ -11,7 +15,11 @@
  * either uv allows external sources to drive prepare/check, or until GLib
  * exposes an epoll fd to wait on... */
 
+using namespace v8;
+
 namespace GNodeJS {
+
+static Nan::Persistent<Array> loopStack(Nan::New<Array> ());
 
 struct uv_loop_source {
     GSource source;
@@ -68,6 +76,25 @@ static GSource *uv_loop_source_new (uv_loop_t *loop) {
 void StartLoop() {
     GSource *source = uv_loop_source_new (uv_default_loop ());
     g_source_attach (source, NULL);
+}
+
+Local<Array> GetLoopStack() {
+    return Nan::New<Array>(loopStack);
+}
+
+void QuitLoopStack() {
+    Local<Array> stack = GetLoopStack();
+
+    for (uint32_t i = 0; i < stack->Length(); i++) {
+        Local<Object> fn = Nan::Get(stack, i).ToLocalChecked()->ToObject();
+        Local<Object> self = fn;
+
+        log("calling %s", *Nan::Utf8String(Nan::Get(fn, UTF8("name")).ToLocalChecked()));
+
+        Nan::CallAsFunction(fn, self, 0, nullptr);
+    }
+
+    loopStack.Reset(Nan::New<Array>());
 }
 
 };
