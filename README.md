@@ -130,7 +130,7 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
  - **Functions, Methods & Virtual Functions**: `lowerCamelCase`  
     Methods on GObject, structs, unions and functions on namespaces.  
     Example:  
-    `GLib.randomIntRange(0, 'string')`  
+    `GLib.randomIntRange(0, 100)`  
     `textBuffer.placeCursor(0)`
 
  - **Fields & Properties**: `lowerCamelCase`  
@@ -152,10 +152,10 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
     `Gtk.AttachOptions`  
     `Gdk.EventType`
 
- - **Constants & Values**: `ALL_CAPS_SNAKE_CASE`  
+ - **Constants & Values**: `SNAKE_CASE` (not modified, may contain lowercase)  
     Can be attached on namespaces or on specific objects.  
     Example:  
-    `Gdk.KEY_g`  
+    `Gdk.KEY_g !== Gdk.KEY_G`  
     `Gdk.EventType.KEY_PRESS`
 
  - **Signals**: `dash-case`  
