@@ -5,21 +5,21 @@
 #include <nan.h>
 #include <girepository.h>
 #include <glib-object.h>
-
-using v8::Function;
-using v8::Persistent;
+#include <ffi.h>
+#include <girffi.h>
 
 namespace GNodeJS {
 
 struct Closure {
     GClosure base;
-    Persistent<Function> persistent;
-    GIBaseInfo* info;
+    Nan::Persistent<v8::Function> persistent;
+    GICallableInfo* info;
 
     ~Closure() {
         persistent.Reset();
+
         if (info)
-            g_base_info_unref(info);
+            g_base_info_unref (info);
     }
 
     static void Marshal(GClosure *closure,
@@ -31,6 +31,6 @@ struct Closure {
     static void Invalidated(gpointer data, GClosure *closure);
 };
 
-GClosure *MakeClosure(v8::Isolate *isolate, v8::Handle<v8::Function> function, GISignalInfo* info);
+GClosure *MakeClosure(v8::Handle<v8::Function> function, GICallableInfo* info);
 
 };

@@ -7,7 +7,14 @@
 #include "type.h"
 #include "value.h"
 
-using namespace v8;
+using v8::Context;
+using v8::Function;
+using v8::HandleScope;
+using v8::Isolate;
+using v8::Local;
+using v8::Object;
+using v8::Value;
+using Nan::Persistent;
 
 namespace GNodeJS {
 
@@ -72,14 +79,14 @@ void Closure::Marshal(GClosure *base,
     #endif
 }
 
-void Closure::Invalidated(gpointer data, GClosure *base) {
+void Closure::Invalidated (gpointer data, GClosure *base) {
     Closure *closure = (Closure *) base;
     closure->~Closure();
 }
 
-GClosure *MakeClosure(Isolate *isolate, Local<Function> function, GIBaseInfo* info) {
+GClosure *MakeClosure (Local<Function> function, GICallableInfo* info) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
-    closure->persistent.Reset(isolate, function);
+    closure->persistent.Reset(function);
     closure->info = info;
     GClosure *gclosure = &closure->base;
     g_closure_set_marshal (gclosure, Closure::Marshal);

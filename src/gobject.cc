@@ -238,7 +238,6 @@ static void ThrowSignalNotFound(GIBaseInfo *object_info, const char* signal_name
 }
 
 static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &info, bool after) {
-    Isolate *isolate = info.GetIsolate ();
     GObject *gobject = GObjectFromWrapper (info.This ());
 
     if (!gobject) {
@@ -267,7 +266,7 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &in
         ThrowSignalNotFound(object_info, signal_name);
     }
     else {
-        GClosure *gclosure = MakeClosure (isolate, callback, signal_info);
+        GClosure *gclosure = MakeClosure (callback, signal_info);
         ulong handler_id = g_signal_connect_closure (gobject, signal_name, gclosure, after);
 
         info.GetReturnValue().Set((double)handler_id);
