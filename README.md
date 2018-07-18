@@ -34,6 +34,8 @@ Supported Node.js versions: **8**, **9**, **10** (other versions might work but 
   * [Experimental platforms](#experimental-platforms)
   * [Testing the project](#testing-the-project)
     + [Browser demo](#browser-demo)
+- [Support](#support)
+
 
 ## Example
 
@@ -322,3 +324,27 @@ Please remember `python2` is the one needed.
 
 #### known issues building on Windows
 Right now there are few gotchas and the build will most likely fail. Please help with a PR if you know how to solve the issue, thank you!
+
+
+## Support
+
+There are still less used features that are not supported, but everything you should need to start building
+a working Gtk application is supported.
+
+ - [x] primitive data types (int, char, …)
+ - [x] complex data types (arrays, GArray, GList, GHashTable, …)
+ - [x] GObjects
+ - [x] Signals (`.connect('signal', cb)` or `.on('signal', cb)`)
+ - [x] Boxed (struct and union) (non-opaque)
+ - [x] Boxed (struct and union) (opaque, without `new`)
+ - [ ] Boxed (struct and union) (opaque, with `new`)
+ - [x] Interfaces
+ - [x] Error handling
+ - [ ] Callback arguments
+ - [x] Function call: IN, OUT & INOUT arguments
+ - [x] Properties (on GObjects)
+ - [x] Fields (on Boxeds)
+ - [x] Event loop
+ - [ ] GParamSpec
+ - [ ] Javascript inheritance of C classes
+ - [x] Memory management
