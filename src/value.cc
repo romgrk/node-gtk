@@ -593,7 +593,44 @@ item_error:
     return hash_table;
 }
 
-bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null, GIArgInfo* arg_info) {
+bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
+    GIInfoType type = g_base_info_get_type (gi_info);
+
+    switch (type) {
+    case GI_INFO_TYPE_BOXED:
+    case GI_INFO_TYPE_STRUCT:
+    case GI_INFO_TYPE_UNION:
+        arg->v_pointer = BoxedFromWrapper(value);
+        break;
+
+    case GI_INFO_TYPE_FLAGS:
+    case GI_INFO_TYPE_ENUM:
+        arg->v_int = value->Int32Value ();
+        break;
+
+    case GI_INFO_TYPE_OBJECT:
+    {
+        GType gtype = g_registered_type_info_get_g_type (gi_info);
+
+        if (g_type_is_a(gtype, G_TYPE_PARAM)) {
+            arg->v_pointer = ParamSpec::FromWrapper(value);
+            break;
+        }
+        // fallthrough
+    }
+    case GI_INFO_TYPE_INTERFACE:
+        arg->v_pointer = GObjectFromWrapper(value);
+        break;
+
+    case GI_INFO_TYPE_CALLBACK:
+    default:
+        print_info (gi_info);
+        g_assert_not_reached ();
+    }
+    return true;
+}
+
+bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     if (value->IsUndefined () || value->IsNull ()) {
@@ -683,43 +720,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     case GI_TYPE_TAG_INTERFACE:
         {
             GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
-            GIInfoType interface_type = g_base_info_get_type (interface_info);
-
-            switch (interface_type) {
-            case GI_INFO_TYPE_BOXED:
-            case GI_INFO_TYPE_STRUCT:
-            case GI_INFO_TYPE_UNION:
-                arg->v_pointer = BoxedFromWrapper(value);
-                break;
-
-            case GI_INFO_TYPE_FLAGS:
-            case GI_INFO_TYPE_ENUM:
-                arg->v_int = value->Int32Value ();
-                break;
-
-            case GI_INFO_TYPE_OBJECT:
-            {
-                GType gtype = g_registered_type_info_get_g_type (interface_info);
-
-                if (g_type_is_a(gtype, G_TYPE_PARAM)) {
-                    arg->v_pointer = ParamSpec::FromWrapper(value);
-                    break;
-                }
-                // fallthrough
-            }
-            case GI_INFO_TYPE_INTERFACE:
-                arg->v_pointer = GObjectFromWrapper(value);
-                break;
-
-            case GI_INFO_TYPE_CALLBACK:
-                arg->v_pointer = nullptr;
-                break;
-
-            default:
-                print_info (interface_info);
-                g_assert_not_reached ();
-            }
-
+            V8ToGIArgument (interface_info, arg, value);
             g_base_info_unref(interface_info);
         }
         break;
@@ -810,8 +811,6 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
                 result = true;
                 break;
             case GI_INFO_TYPE_CALLBACK:
-                result = value->IsFunction();
-                break;
             default:
                 print_info (interface_info);
                 g_assert_not_reached ();
