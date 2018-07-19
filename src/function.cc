@@ -121,9 +121,11 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     GIArgument *callable_arg_values;
     GError *error = nullptr;
 
+    memset(total_arg_values, 0, func->n_total_args * sizeof(GIArgument));
+
     if (func->is_method) {
         GIBaseInfo *container = g_base_info_get_container (gi_info);
-        V8ToGIArgument(container, &total_arg_values[0], info.This());
+        V8ToGIArgumentInterface(container, &total_arg_values[0], info.This());
         callable_arg_values = &total_arg_values[1];
     } else {
         callable_arg_values = &total_arg_values[0];
@@ -200,11 +202,15 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
                 if (len_param.direction == GI_DIRECTION_IN) {
                     param.length = GetV8ArrayLength(info[in_arg]);
+                    log("in length: %i", param.length);
 
                     callable_arg_values[length_i].v_int = param.length;
+
+                    log("in-after length: %i", callable_arg_values[length_i].v_int);
                 }
                 else if (len_param.direction == GI_DIRECTION_INOUT) {
                     len_param.data.v_int = GetV8ArrayLength(info[in_arg]);
+                    log("inout length: %i", len_param.data.v_int);
 
                     callable_arg_values[length_i].v_pointer = &len_param.data;
                 }
@@ -384,6 +390,7 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
  */
 FunctionInfo::FunctionInfo (GIBaseInfo* gi_info) {
     info = g_base_info_ref (gi_info);
+    call_parameters = nullptr;
 }
 
 FunctionInfo::~FunctionInfo () {
