@@ -794,7 +794,6 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
         {
             GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
             GIInfoType type = g_base_info_get_type (interface_info);
-            GType gtype = g_registered_type_info_get_g_type (interface_info);
 
             bool result;
 
@@ -804,13 +803,15 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
-                result = ValueIsInstanceOfGType (value, gtype);
+                result = ValueIsInstanceOfGType (value, g_registered_type_info_get_g_type (interface_info));
                 break;
             case GI_INFO_TYPE_FLAGS:
             case GI_INFO_TYPE_ENUM:
-                result = true;
+                result = value->IsNumber();
                 break;
             case GI_INFO_TYPE_CALLBACK:
+                result = value->IsFunction();
+                break;
             default:
                 print_info (interface_info);
                 g_assert_not_reached ();
