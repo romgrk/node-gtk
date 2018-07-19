@@ -102,7 +102,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         return;
 
     /*
-     * Third, add arguments for the instance if it's a method,
+     * First, add arguments for the instance if it's a method,
      * and for error, if it can throw
      */
 
@@ -123,7 +123,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
 
     /*
-     * Fourth, allocate OUT-arguments and fill IN-arguments
+     * Second, allocate OUT-arguments and fill IN-arguments
      */
 
     for (int in_arg = 0, i = 0; i < func->n_callable_args; i++) {
@@ -190,7 +190,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
 
     /*
-     * Fifth, make the actual ffi_call
+     * Third, make the actual ffi_call
      */
 
     void *ffi_args[func->n_total_args];
@@ -205,82 +205,23 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
 
     /*
-     * Sixth, convert the return value & OUT-arguments back to JS
+     * Fourth, convert the return value & OUT-arguments back to JS
      */
 
     GITypeInfo return_type;
     g_callable_info_load_return_type(gi_info, &return_type);
     GITransfer return_transfer = g_callable_info_get_caller_owns(gi_info);
 
-    Local<Value> jsReturnValue;
-    int jsReturnIndex = 0;
-
-    // If there is an error, skip to freeing resources
-    if (error) {
+    // Return the value or throw the error, if any occured
+    if (!error) {
+        RETURN (func->GetReturnValue (&return_type, &return_value, callable_arg_values));
+    } else {
         Nan::ThrowError(error->message);
         g_error_free(error);
-        goto out;
     }
 
-    if (func->n_out_args > 1)
-        jsReturnValue = Nan::New<Array>();
-
-#define ADD_RETURN(value)   if (func->n_out_args > 1) \
-                                Nan::Set(jsReturnValue->ToObject(), jsReturnIndex++, (value)); \
-                            else \
-                                jsReturnValue = (value);
-
-    if (!ShouldSkipReturn(gi_info, &return_type)) {
-        long length = -1;
-        int length_i = g_type_info_get_array_length(&return_type);
-        if (length_i >= 0)
-            length = callable_arg_values[length_i].v_long;
-        ADD_RETURN (GIArgumentToV8 (&return_type, &return_value, length))
-    }
-
-    for (int i = 0; i < func->n_callable_args; i++) {
-        GIArgInfo  arg_info = {};
-        GITypeInfo arg_type;
-        GIArgument arg_value = callable_arg_values[i];
-        Parameter &param = func->call_parameters[i];
-
-        g_callable_info_load_arg ((GICallableInfo *) gi_info, i, &arg_info);
-        g_arg_info_load_type (&arg_info, &arg_type);
-
-        GIDirection direction = g_arg_info_get_direction (&arg_info);
-
-        if (direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT) {
-
-            if (param.type == ParameterType::ARRAY) {
-
-                int length_i = g_type_info_get_array_length(&arg_type);
-                GIArgInfo length_arg;
-                g_callable_info_load_arg(gi_info, length_i, &length_arg);
-                GIDirection length_direction = g_arg_info_get_direction(&length_arg);
-
-                if (IS_OUT(length_direction))
-                    param.length = *(long*)callable_arg_values[length_i].v_pointer;
-                else
-                    param.length = callable_arg_values[length_i].v_long;
-
-                Local<Value> result = ArrayToV8(&arg_type, *(void**)arg_value.v_pointer, param.length);
-
-                ADD_RETURN (result)
-
-            } else if (param.type == ParameterType::NORMAL) {
-
-                ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer))
-            }
-        }
-    }
-
-#undef ADD_RETURN
-
-    RETURN (jsReturnValue);
-
-    out:
     /*
-     * Seventh, free the return value and arguments
+     * Fifth, free the return value and arguments
      */
 
     FreeGIArgument(&return_type, &return_value, return_transfer);
@@ -451,6 +392,72 @@ bool FunctionInfo::TypeCheck (const Nan::FunctionCallbackInfo<Value> &arguments)
     }
 
     return true;
+}
+
+/**
+ * Creates the JS return value from the C arguments list
+ * @returns the JS return value
+ */
+Local<Value> FunctionInfo::GetReturnValue (GITypeInfo* return_type, GIArgument* return_value, GIArgument* callable_arg_values) {
+
+    Local<Value> jsReturnValue;
+    int jsReturnIndex = 0;
+
+    if (n_out_args > 1)
+        jsReturnValue = Nan::New<Array>();
+
+#define ADD_RETURN(value)   if (n_out_args > 1) \
+                                Nan::Set(jsReturnValue->ToObject(), jsReturnIndex++, (value)); \
+                            else \
+                                jsReturnValue = (value);
+
+    if (!ShouldSkipReturn(info, return_type)) {
+        long length = -1;
+        int length_i = g_type_info_get_array_length(return_type);
+        if (length_i >= 0)
+            length = callable_arg_values[length_i].v_long;
+        ADD_RETURN (GIArgumentToV8 (return_type, return_value, length))
+    }
+
+    for (int i = 0; i < n_callable_args; i++) {
+        GIArgInfo  arg_info = {};
+        GITypeInfo arg_type;
+        GIArgument arg_value = callable_arg_values[i];
+        Parameter &param = call_parameters[i];
+
+        g_callable_info_load_arg (info, i, &arg_info);
+        g_arg_info_load_type (&arg_info, &arg_type);
+
+        GIDirection direction = g_arg_info_get_direction (&arg_info);
+
+        if (direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT) {
+
+            if (param.type == ParameterType::ARRAY) {
+
+                int length_i = g_type_info_get_array_length(&arg_type);
+                GIArgInfo length_arg;
+                g_callable_info_load_arg (info, length_i, &length_arg);
+                GIDirection length_direction = g_arg_info_get_direction(&length_arg);
+
+                if (IS_OUT(length_direction))
+                    param.length = *(long*)callable_arg_values[length_i].v_pointer;
+                else
+                    param.length = callable_arg_values[length_i].v_long;
+
+                Local<Value> result = ArrayToV8(&arg_type, *(void**)arg_value.v_pointer, param.length);
+
+                ADD_RETURN (result)
+
+            } else if (param.type == ParameterType::NORMAL) {
+
+                ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer))
+            }
+        }
+    }
+
+#undef ADD_RETURN
+
+    return jsReturnValue;
 }
 
 

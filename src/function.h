@@ -49,6 +49,8 @@ struct FunctionInfo {
     void Init();
 
     bool TypeCheck (const Nan::FunctionCallbackInfo<Value> &info);
+
+    Local<Value> GetReturnValue (GITypeInfo* return_type, GIArgument* return_value, GIArgument* callable_arg_values);
 };
 
 void FunctionInvoker (const FunctionCallbackInfo<Value> &info);
