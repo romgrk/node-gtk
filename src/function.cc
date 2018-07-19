@@ -98,38 +98,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
     func->Init();
 
-    if (info.Length() < func->n_in_args) {
-        ThrowNotEnoughArguments(func->n_in_args, info.Length());
+    if (!func->TypeCheck(info))
         return;
-    }
-
-    /*
-     * Second, type check every IN-argument
-     * FIXME(type check info.This())
-     */
-    for (int in_arg = 0, i = 0; i < func->n_callable_args; i++) {
-        Parameter param = func->call_parameters[i];
-
-        if (param.type == ParameterType::SKIP)
-            continue;
-
-        GIArgInfo arg_info;
-        g_callable_info_load_arg (gi_info, i, &arg_info);
-        GIDirection direction = g_arg_info_get_direction (&arg_info);
-
-        if (direction == GI_DIRECTION_IN || direction == GI_DIRECTION_INOUT) {
-            GITypeInfo type_info;
-            g_arg_info_load_type (&arg_info, &type_info);
-            bool may_be_null = g_arg_info_may_be_null (&arg_info);
-
-            if (!CanConvertV8ToGIArgument(&type_info, info[in_arg], may_be_null)) {
-                ThrowInvalidType(&arg_info, &type_info, info[in_arg]);
-                return;
-            }
-            in_arg++;
-        }
-    }
-
 
     /*
      * Third, add arguments for the instance if it's a method,
@@ -159,13 +129,13 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     for (int in_arg = 0, i = 0; i < func->n_callable_args; i++) {
         Parameter& param = func->call_parameters[i];
 
+        if (param.type == ParameterType::SKIP)
+            continue;
+
         GIArgInfo arg_info;
         GITypeInfo type_info;
         g_callable_info_load_arg (gi_info, i, &arg_info);
         GIDirection direction = g_arg_info_get_direction (&arg_info);
-
-        if (param.type == ParameterType::SKIP)
-            continue;
 
         if (param.type == ParameterType::ARRAY) {
             GIArgInfo  array_length_arg;
@@ -442,8 +412,45 @@ void FunctionInfo::Init() {
         n_out_args++;
 }
 
-bool FunctionInfo::TypeCheck (const Nan::FunctionCallbackInfo<Value> &info) {
-    return false;
+/**
+ * Type checks the JS arguments, throwing an error.
+ * @returns true if types match
+ */
+bool FunctionInfo::TypeCheck (const Nan::FunctionCallbackInfo<Value> &arguments) {
+
+    if (arguments.Length() < n_in_args) {
+        ThrowNotEnoughArguments(n_in_args, arguments.Length());
+        return false;
+    }
+
+    /*
+     * Type check every IN-argument that is not skipped
+     */
+
+    for (int in_arg = 0, i = 0; i < n_callable_args; i++) {
+        Parameter &param = call_parameters[i];
+
+        if (param.type == ParameterType::SKIP)
+            continue;
+
+        GIArgInfo arg_info;
+        g_callable_info_load_arg (info, i, &arg_info);
+        GIDirection direction = g_arg_info_get_direction (&arg_info);
+
+        if (direction == GI_DIRECTION_IN || direction == GI_DIRECTION_INOUT) {
+            GITypeInfo type_info;
+            g_arg_info_load_type (&arg_info, &type_info);
+            bool may_be_null = g_arg_info_may_be_null (&arg_info);
+
+            if (!CanConvertV8ToGIArgument(&type_info, arguments[in_arg], may_be_null)) {
+                ThrowInvalidType(&arg_info, &type_info, arguments[in_arg]);
+                return false;
+            }
+            in_arg++;
+        }
+    }
+
+    return true;
 }
 
 
