@@ -17,11 +17,6 @@ using Nan::WeakCallbackInfo;
 
 namespace GNodeJS {
 
-struct FunctionInfo {
-    GIFunctionInfo   *info;
-    GIFunctionInvoker invoker;
-};
-
 enum ParameterType {
     NORMAL, ARRAY, SKIP, CALLBACK
 };
@@ -32,6 +27,28 @@ struct Parameter {
     GIDirection direction;
     GIArgument data;
     int length;
+};
+
+struct FunctionInfo {
+    GIFunctionInfo   *info;
+    GIFunctionInvoker invoker;
+
+    bool is_method;
+    bool can_throw;
+
+    int n_callable_args;
+    int n_total_args;
+    int n_out_args;
+    int n_in_args;
+
+    Parameter* call_parameters;
+
+    FunctionInfo(GIBaseInfo* info);
+    ~FunctionInfo();
+
+    bool TypeCheck (const Nan::FunctionCallbackInfo<Value> &info);
+
+    void Init();
 };
 
 void FunctionInvoker (const FunctionCallbackInfo<Value> &info);
