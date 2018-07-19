@@ -378,24 +378,29 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
 }
 
 
+/**
+ * The constructor just stores the GIBaseInfo ref. The rest of the
+ * initialization is done in FunctionInfo::Init, lazily.
+ */
 FunctionInfo::FunctionInfo (GIBaseInfo* gi_info) {
     info = g_base_info_ref (gi_info);
-    g_function_info_prep_invoker (info, &invoker, NULL);
-
-    call_parameters = nullptr;
 }
 
 FunctionInfo::~FunctionInfo () {
+    g_base_info_unref (info);
+
     if (call_parameters)
         delete[] call_parameters;
 }
 
 /**
- * Initializes the function calling data. Used for lazyness.
+ * Initializes the function calling data.
  */
 void FunctionInfo::Init () {
     if (call_parameters != nullptr)
         return;
+
+    g_function_info_prep_invoker (info, &invoker, NULL);
 
     is_method = IsMethod(info);
     can_throw = g_callable_info_can_throw_gerror (info);
