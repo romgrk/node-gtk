@@ -28,6 +28,6 @@ global.inspect = inspect
 global.infos = inspect.infos
 global.types = types
 global.logFn = i =>
-  i.type === 'function' ?
+  i.infoType === 'function' ?
     console.log(inspect.formatFunction(i)) :
     console.log(inspect.formatFunction(i.parent))
