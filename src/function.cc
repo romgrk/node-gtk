@@ -3,6 +3,7 @@
 #include <girffi.h>
 
 #include "boxed.h"
+#include "callback.h"
 #include "debug.h"
 #include "function.h"
 #include "gobject.h"
@@ -68,6 +69,15 @@ static void ThrowInvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Valu
     g_free(msg);
 }
 
+static void ThrowUnsupportedCallback (GIBaseInfo *info) {
+    char *msg = g_strdup_printf(
+        "Callback %s.%s has a GDestroyNotify but no user_data, not supported",
+        g_base_info_get_namespace (info),
+        g_base_info_get_name (info));
+    Nan::ThrowTypeError(msg);
+    g_free(msg);
+}
+
 static bool IsMethod (GIBaseInfo *info) {
     auto flags = g_function_info_get_flags (info);
     return ((flags & GI_FUNCTION_IS_METHOD) != 0 &&
@@ -122,7 +132,10 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         g_callable_info_load_arg ((GICallableInfo *) gi_info, i, &arg_info);
         g_arg_info_load_type (&arg_info, &type_info);
 
-        call_parameters[i].direction = g_arg_info_get_direction (&arg_info);
+        GIDirection direction = g_arg_info_get_direction(&arg_info);
+        GITypeTag type_tag    = g_type_info_get_tag(&type_info);
+
+        call_parameters[i].direction = direction;
 
         if (debug_mode) {
             auto typeName = GetTypeName(&type_info);
@@ -133,24 +146,68 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
             free(typeName);
         }
 
-        // If there is an array length, this is an array
-        int length_i = g_type_info_get_array_length (&type_info);
-        if (length_i >= 0) {
-            call_parameters[i].type        = Parameter::ARRAY;
-            call_parameters[length_i].type = Parameter::SKIP;
+        if (type_tag == GI_TYPE_TAG_ARRAY) {
+            // If there is an array length, this is an array
+            int length_i = g_type_info_get_array_length (&type_info);
 
-            // If array length came before, we need to remove it from the in_args count
-            if (IS_IN(call_parameters[i].direction) && length_i < i)
-                n_in_args--;
+            if (length_i >= 0) {
+                call_parameters[i].type        = ParameterType::ARRAY;
+                call_parameters[length_i].type = ParameterType::SKIP;
 
-        } else {
-            call_parameters[i].type = Parameter::NORMAL;
+                // If array length came before, we need to remove it from the in_args count
+                if (IS_IN(call_parameters[i].direction) && length_i < i)
+                    n_in_args--;
+
+            }
+        }
+        else if (type_tag == GI_TYPE_TAG_INTERFACE) {
+            GIBaseInfo* interface_info;
+            GIInfoType interface_type;
+
+            interface_info = g_type_info_get_interface(&type_info);
+            interface_type = g_base_info_get_type(interface_info);
+
+            if (interface_type == GI_INFO_TYPE_CALLBACK) {
+                if (strcmp(g_base_info_get_name(interface_info), "DestroyNotify") == 0 &&
+                    strcmp(g_base_info_get_namespace(interface_info), "GLib") == 0) {
+                    call_parameters[i].type = ParameterType::SKIP;
+                } else {
+                    call_parameters[i].type = ParameterType::CALLBACK;
+
+                    gint destroy_i = g_arg_info_get_destroy(&arg_info);
+                    gint closure_i = g_arg_info_get_closure(&arg_info);
+
+                    if (destroy_i >= 0 && closure_i < 0) {
+                        ThrowUnsupportedCallback (gi_info);
+                        g_base_info_unref(interface_info);
+                        return;
+                    }
+
+                    if (destroy_i >= 0 && destroy_i < n_callable_args) {
+                        call_parameters[destroy_i].type = ParameterType::SKIP;
+                        if (destroy_i < i)
+                            n_in_args--;
+                    }
+
+                    if (closure_i >= 0 && closure_i < n_callable_args) {
+                        call_parameters[closure_i].type = ParameterType::SKIP;
+                        if (closure_i < i)
+                            n_in_args--;
+                    }
+
+                }
+            }
+            g_base_info_unref(interface_info);
+        }
+        else {
+            call_parameters[i].type = ParameterType::NORMAL;
         }
 
-        if (call_parameters[i].type != Parameter::SKIP)
+
+        if (call_parameters[i].type != ParameterType::SKIP)
             continue;
 
-        if (IS_IN(call_parameters[i].direction))
+        if (IS_IN(direction))
             n_in_args++;
     }
 
@@ -167,7 +224,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     for (int in_arg = 0, i = 0; i < n_callable_args; i++) {
         Parameter param = call_parameters[i];
 
-        if (param.type == Parameter::SKIP)
+        if (param.type == ParameterType::SKIP)
             continue;
 
         GIArgInfo arg_info;
@@ -216,7 +273,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     for (int in_arg = 0, i = 0; i < n_callable_args; i++) {
         Parameter& param = call_parameters[i];
 
-        if (param.type == Parameter::SKIP)
+        if (param.type == ParameterType::SKIP)
             continue;
 
         GIArgInfo arg_info;
@@ -234,11 +291,39 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 callable_arg_values[i].v_pointer = &param.data;
             }
         }
+        else if (param.type == ParameterType::CALLBACK) {
+            Callback *callback;
+            auto current_arg = info[in_arg];
+
+            if (current_arg->IsNullOrUndefined() && g_arg_info_may_be_null(&arg_info)) {
+                callback = nullptr;
+            } else {
+                g_arg_info_load_type (&arg_info, &type_info);
+                GICallableInfo* callable_info = (GICallableInfo*) g_type_info_get_interface(&type_info);
+                callback = MakeCallback(current_arg.As<Function>(), callable_info, &arg_info);
+                g_base_info_unref(callable_info);
+            }
+
+            gint destroy_i = g_arg_info_get_destroy(&arg_info);
+            gint closure_i = g_arg_info_get_closure(&arg_info);
+
+            if (destroy_i >= 0) {
+                g_assert (call_parameters[destroy_i].type == ParameterType::SKIP);
+                callable_arg_values[closure_i].v_pointer = callback ? (void*)Callback::DestroyNotify : nullptr;
+            }
+
+            if (closure_i >= 0) {
+                g_assert (call_parameters[closure_i].type == ParameterType::SKIP);
+                callable_arg_values[closure_i].v_pointer = callback;
+            }
+
+            callable_arg_values[i].v_pointer = callback ? callback->closure : nullptr;
+        }
         else /* (direction == GI_DIRECTION_IN || direction == GI_DIRECTION_INOUT) */ {
 
             FillArgument(&arg_info, &callable_arg_values[i], info[in_arg]);
 
-            if (param.type == Parameter::ARRAY) {
+            if (param.type == ParameterType::ARRAY) {
                 GIArgInfo  array_length_arg;
                 GITypeInfo array_length_type;
                 g_arg_info_load_type (&arg_info, &type_info);
@@ -342,7 +427,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
         if (direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT) {
 
-            if (param.type == Parameter::ARRAY) {
+            if (param.type == ParameterType::ARRAY) {
 
                 void* array = *(void**)arg_value.v_pointer;
                 int length_i = g_type_info_get_array_length(&arg_type);
@@ -359,7 +444,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
                 ADD_RETURN (result)
 
-            } else if (param.type == Parameter::NORMAL) {
+            } else if (param.type == ParameterType::NORMAL) {
 
                 ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer))
             }
@@ -389,11 +474,16 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         GIDirection direction = g_arg_info_get_direction (&arg_info);
         GITransfer transfer   = g_arg_info_get_ownership_transfer (&arg_info);
 
-        if (param.type == Parameter::ARRAY) {
+        if (param.type == ParameterType::ARRAY) {
             if (direction == GI_DIRECTION_INOUT || direction == GI_DIRECTION_OUT)
                 FreeGIArgumentArray (&arg_type, (GIArgument*)arg_value.v_pointer, transfer, direction, param.length);
             else
                 FreeGIArgumentArray (&arg_type, &arg_value, transfer, direction, param.length);
+        }
+        else if (param.type == ParameterType::CALLBACK) {
+            Callback* callback = (Callback*)arg_value.v_pointer;
+            if (callback->scope_type == GI_SCOPE_TYPE_CALL)
+                delete callback;
         }
         else {
             if (direction == GI_DIRECTION_INOUT || (direction == GI_DIRECTION_OUT && !g_arg_info_is_caller_allocates (&arg_info)))

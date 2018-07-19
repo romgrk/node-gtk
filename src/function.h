@@ -22,10 +22,12 @@ struct FunctionInfo {
     GIFunctionInvoker invoker;
 };
 
+enum ParameterType {
+    NORMAL, ARRAY, SKIP, CALLBACK
+};
+
 struct Parameter {
-    enum {
-        NORMAL, ARRAY, SKIP,
-    } type;
+    ParameterType type;
 
     GIDirection direction;
     GIArgument data;
