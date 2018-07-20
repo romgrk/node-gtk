@@ -265,10 +265,11 @@ FunctionInfo::FunctionInfo (GIBaseInfo* gi_info) {
 
 FunctionInfo::~FunctionInfo () {
     g_base_info_unref (info);
-    g_function_invoker_destroy (&invoker);
 
-    if (call_parameters != nullptr)
+    if (call_parameters != nullptr) {
+        g_function_invoker_destroy (&invoker);
         delete[] call_parameters;
+    }
 }
 
 /**
