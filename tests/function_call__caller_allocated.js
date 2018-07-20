@@ -4,10 +4,11 @@
 
 const gi = require('../')
 const Gtk = gi.require('Gtk', '3.0')
+const common = require('./__common__.js')
 
 const buffer = new Gtk.TextBuffer()
 const iter = buffer.getStartIter(/* TextIter */)
-console.assert(iter !== undefined, 'iter !== undefined')
-console.assert(iter.__proto__ === Gtk.TextIter.prototype, 'iter.__proto__ === Gtk.TextIter.prototype')
-console.assert(iter instanceof Gtk.TextIter, 'iter instanceof Gtk.TextIter')
+common.assert(iter !== undefined, 'iter !== undefined')
+common.assert(iter.__proto__ === Gtk.TextIter.prototype, 'iter.__proto__ === Gtk.TextIter.prototype')
+common.assert(iter instanceof Gtk.TextIter, 'iter instanceof Gtk.TextIter')
 console.log('Success:', iter)

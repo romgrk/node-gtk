@@ -5,11 +5,12 @@
 
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
+const common = require('./__common__.js')
 
 gi.startLoop()
 Gtk.init()
 
-console.assert(
+common.assert(
   Gtk.Entry.prototype.insertText === Gtk.SearchEntry.prototype.insertText,
   'Interface methods not cached'
 )

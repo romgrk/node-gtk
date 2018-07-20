@@ -5,6 +5,7 @@
 const gi = require('../');
 const Gtk = gi.require('Gtk');
 const Pango = gi.require('Pango');
+const common = require('./__common__.js')
 
 Gtk.init()
 

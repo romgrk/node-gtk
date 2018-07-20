@@ -7,6 +7,7 @@ const gi = require('../lib/')
 const Gtk = gi.require('Gtk')
 const Soup = gi.require('Soup')
 const glib = gi.require('GLib')
+const common = require('./__common__.js')
 
 test(`Soup.Message#setUri`, () => {
   const message = new Soup.Message({

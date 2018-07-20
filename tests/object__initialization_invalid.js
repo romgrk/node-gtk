@@ -4,6 +4,7 @@
 
 const gi = require('../lib/')
 const Soup = gi.require('Soup')
+const common = require('./__common__.js')
 
 try {
   const message = new Soup.Message({
@@ -12,7 +13,7 @@ try {
   })
 }
 catch(e) {
-  console.assert(e instanceof TypeError, 'Expected error to be a TypeError')
+  common.assert(e instanceof TypeError, 'Expected error to be a TypeError')
   console.log('Success, got expected error:', e.message)
   process.exit(0)
 }

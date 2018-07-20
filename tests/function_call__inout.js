@@ -4,6 +4,7 @@
 
 const gi = require('../lib')
 const Gtk = gi.require('Gtk', '3.0');
+const common = require('./__common__.js')
 
 const result = Gtk.init(['argument1', '--gtk-debug', 'misc', 'argument2'])
 

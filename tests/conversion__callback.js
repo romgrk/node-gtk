@@ -4,14 +4,24 @@
 
 
 const gi = require('../lib/')
-const GLib = gi.require('GLib')
+const glib = gi.require('GLib')
+const common = require('./__common__.js')
 
-GLib.unixSignalAdd(GLib.PRIORITY_DEFAULT_IDLE, 2 /* SIGINT */, () => {
-    console.log('SIGINT')
-    process.exit(0)
+
+let count = 0
+
+const source = glib.timeoutAdd(glib.PRIORITY_HIGH, 100, function() {
+    console.log('called')
+
+    count += 1
+
+    return glib.SOURCE_REMOVE
 })
 
-process.kill(process.pid, 'SIGINT')
+setTimeout(() => {
+    common.assert(count > 0, 'callback was not called')
+    common.assert(count === 1, 'callback wasnt stopped (JS value not returned)')
 
-console.log('Expected to exit in callback')
-process.exit(1)
+    console.log('Done')
+    process.exit(0)
+}, 500)

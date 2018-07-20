@@ -7,6 +7,7 @@ const path = require('path')
 const gi = require('../lib/')
 const GLib = gi.require('GLib')
 const Gdk = gi.require('Gdk')
+const common = require('./__common__.js')
 
 const tk = new GLib.TokenValue()
 
@@ -17,7 +18,7 @@ const tk = new GLib.TokenValue()
   tk.vInt = Number.MAX_SAFE_INTEGER
   const result = tk.vInt
   console.log('Result:', result)
-  console.assert(result === Number.MAX_SAFE_INTEGER)
+  common.assert(result === Number.MAX_SAFE_INTEGER)
 }
 
 /*
@@ -26,7 +27,7 @@ const tk = new GLib.TokenValue()
 {
   tk.vInt = 257
   const result = tk.vChar
-  console.assert(tk.vChar === 1)
+  common.assert(tk.vChar === 1)
   console.log('Result:', result)
 }
 
@@ -41,5 +42,5 @@ const tk = new GLib.TokenValue()
     didThrow = true
     console.log('Got expected error:', err.message)
   }
-  console.assert(didThrow)
+  common.assert(didThrow)
 }

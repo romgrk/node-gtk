@@ -5,6 +5,7 @@
 
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
+const common = require('./__common__.js')
 
 gi.startLoop()
 Gtk.init()

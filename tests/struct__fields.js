@@ -7,6 +7,7 @@ const path = require('path')
 const gi = require('../lib/')
 const GLib = gi.require('GLib')
 const Gdk = gi.require('Gdk')
+const common = require('./__common__.js')
 
 /*
  * get/set works
@@ -17,5 +18,5 @@ const Gdk = gi.require('Gdk')
 
   const result = color.blue
   console.log('Result:', result)
-  console.assert(result === 100)
+  common.assert(result === 100)
 }

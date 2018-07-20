@@ -5,6 +5,7 @@
 
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
+const common = require('./__common__.js')
 
 gi.startLoop()
 Gtk.init()
@@ -25,8 +26,8 @@ promise.then(result => {
 
 setTimeout(() => {
   Gtk.mainQuit()
-  console.assert(didCallTimeout, 'did not call timeout')
-  console.assert(didCallPromise, 'did not call promise')
+  common.assert(didCallTimeout, 'did not call timeout')
+  common.assert(didCallPromise, 'did not call promise')
   console.log('done')
 }, 1000)
 
