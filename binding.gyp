@@ -7,6 +7,7 @@
                 "src/callback.cc",
                 "src/closure.cc",
                 "src/debug.cc",
+                "src/error.cc",
                 "src/function.cc",
                 "src/gi.cc",
                 "src/gobject.cc",

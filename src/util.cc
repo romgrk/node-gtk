@@ -33,13 +33,6 @@ const char* ArrayTypeToString (GIArrayType array_type) {
     g_assert_not_reached();
 }
 
-void ThrowGError(const char* domain, GError* error) {
-    char* message = g_strdup_printf("%s: %s", domain, error->message);
-    Nan::ThrowError(message);
-    g_free(message);
-    g_error_free(error);
-}
-
 char* GetSignalName(const char* signal_detail) {
     char* signal_name;
     char* detail_start;

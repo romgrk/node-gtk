@@ -5,6 +5,7 @@
 #include "boxed.h"
 #include "callback.h"
 #include "debug.h"
+#include "error.h"
 #include "function.h"
 #include "gobject.h"
 #include "type.h"
@@ -57,34 +58,6 @@ static void* AllocateArgument (GIBaseInfo *arg_info) {
     return pointer;
 }
 
-static void ThrowNotEnoughArguments (int expected, int actual) {
-    char *msg = g_strdup_printf(
-        "Not enough arguments; expected %i, have %i",
-        expected, actual);
-    Nan::ThrowTypeError(msg);
-    g_free(msg);
-}
-
-static void ThrowInvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Value> value) {
-    char *expected = GetTypeName (type_info);
-    char *msg = g_strdup_printf(
-        "Expected argument of type %s for parameter %s, got '%s'",
-        expected,
-        g_base_info_get_name(info),
-        *Nan::Utf8String(Nan::ToDetailString(value).ToLocalChecked()));
-    Nan::ThrowTypeError(msg);
-    g_free(expected);
-    g_free(msg);
-}
-
-static void ThrowUnsupportedCallback (GIBaseInfo* info) {
-    char* message = g_strdup_printf ("Function %s.%s has a GDestroyNotify but no user_data, not supported",
-                g_base_info_get_namespace (info),
-                g_base_info_get_name (info));
-    Nan::ThrowError(message);
-    g_free(message);
-}
-
 static bool IsMethod (GIBaseInfo *info) {
     auto flags = g_function_info_get_flags (info);
     return ((flags & GI_FUNCTION_IS_METHOD) != 0 &&
@@ -101,11 +74,8 @@ static bool ShouldSkipReturn(GIBaseInfo *info, GITypeInfo *return_type) {
         || g_callable_info_skip_return(info) == TRUE;
 }
 
-#define IS_OUT(direction) (direction == GI_DIRECTION_OUT || \
-                           direction == GI_DIRECTION_INOUT)
-#define IS_IN(direction) (direction == GI_DIRECTION_IN || \
-                          direction == GI_DIRECTION_INOUT)
-#define IS_INOUT(direction) (direction == GI_DIRECTION_INOUT)
+#define IS_OUT(direction) (direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT)
+#define IS_IN(direction)  (direction == GI_DIRECTION_IN  || direction == GI_DIRECTION_INOUT)
 
 void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
@@ -410,7 +380,7 @@ bool FunctionInfo::Init() {
                     int closure_i = g_arg_info_get_closure(&arg_info);
 
                     if (destroy_i >= 0 && closure_i < 0) {
-                        ThrowUnsupportedCallback (info);
+                        Throw::UnsupportedCallback (info);
                         g_base_info_unref(interface_info);
                         return false;
                     }
@@ -469,7 +439,7 @@ bool FunctionInfo::Init() {
 bool FunctionInfo::TypeCheck (const Nan::FunctionCallbackInfo<Value> &arguments) {
 
     if (arguments.Length() < n_in_args) {
-        ThrowNotEnoughArguments(n_in_args, arguments.Length());
+        Throw::NotEnoughArguments(n_in_args, arguments.Length());
         return false;
     }
 
@@ -493,7 +463,7 @@ bool FunctionInfo::TypeCheck (const Nan::FunctionCallbackInfo<Value> &arguments)
             bool may_be_null = g_arg_info_may_be_null (&arg_info);
 
             if (!CanConvertV8ToGIArgument(&type_info, arguments[in_arg], may_be_null)) {
-                ThrowInvalidType(&arg_info, &type_info, arguments[in_arg]);
+                Throw::InvalidType(&arg_info, &type_info, arguments[in_arg]);
                 return false;
             }
             in_arg++;
