@@ -943,18 +943,23 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         GIInfoType  i_type = g_base_info_get_type(i_info);
         switch (i_type) {
             case GI_INFO_TYPE_OBJECT:
-                // FIXME(check that these are handled by gobject.cc/boxed.cc)
+                // handled by gobject.cc/boxed.cc
                 break;
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
             {
-                // FIXME(check that these are handled by gobject.cc/boxed.cc)
+                // handled by gobject.cc/boxed.cc
                 break;
             }
             case GI_INFO_TYPE_ENUM:
             case GI_INFO_TYPE_FLAGS: // Nothing to do (~int32 values)
                 break;
+            case GI_INFO_TYPE_CALLBACK:
+            {
+                if (IsDestroyNotify(i_info)) // handled in Callback::DestroyNotify
+                    break;
+            }
             default:
                 g_warning("FreeArgument: unhandled interface: %s",
                         g_base_info_get_name(i_info));

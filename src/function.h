@@ -50,6 +50,8 @@ struct FunctionInfo {
     void FreeReturnValue (GIArgument *return_value);
 };
 
+bool IsDestroyNotify (GIBaseInfo *info);
+
 Local<Value> FunctionCall (FunctionInfo *func, const Nan::FunctionCallbackInfo<Value> &info, GIArgument *return_value = NULL, GError **error = NULL);
 
 void FunctionInvoker (const Nan::FunctionCallbackInfo<Value> &info);

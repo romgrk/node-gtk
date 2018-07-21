@@ -97,8 +97,9 @@ void Callback::Call(ffi_cif *cif, void *result, void **args, gpointer user_data)
         delete[] js_args;
     #endif
 
-    if (callback->scope_type == GI_SCOPE_TYPE_ASYNC)
+    if (callback->scope_type == GI_SCOPE_TYPE_ASYNC) {
         delete callback;
+    }
 }
 
 

@@ -64,11 +64,6 @@ static bool IsMethod (GIBaseInfo *info) {
             (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
 }
 
-static bool IsDestroyNotify (GIBaseInfo *info) {
-    return strcmp(g_base_info_get_name(info), "DestroyNotify") == 0
-        && strcmp(g_base_info_get_namespace(info), "GLib") == 0;
-}
-
 static bool ShouldSkipReturn(GIBaseInfo *info, GITypeInfo *return_type) {
     return g_type_info_get_tag(return_type) == GI_TYPE_TAG_VOID
         || g_callable_info_skip_return(info) == TRUE;
@@ -80,6 +75,11 @@ static inline bool IsDirectionOut (GIDirection direction) {
 
 static inline bool IsDirectionIn (GIDirection direction) {
     return (direction == GI_DIRECTION_IN  || direction == GI_DIRECTION_INOUT);
+}
+
+bool IsDestroyNotify (GIBaseInfo *info) {
+    return strcmp(g_base_info_get_name(info), "DestroyNotify") == 0
+        && strcmp(g_base_info_get_namespace(info), "GLib") == 0;
 }
 
 
@@ -206,12 +206,8 @@ Local<Value> FunctionCall (
                 callable_arg_values[closure_i].v_pointer = callback;
             }
 
-            /* if (callback && scope != GI_SCOPE_TYPE_CALL) {
-             *     // Add an extra reference that will be cleared when collecting
-             *     // async calls, or when GDestroyNotify is called
-             *     gjs_callback_trampoline_ref(callback);
-             * } */
             callable_arg_values[i].v_pointer = closure;
+            func->call_parameters[i].data.v_pointer = callback;
         }
 
         if (direction == GI_DIRECTION_OUT) {
@@ -310,6 +306,15 @@ Local<Value> FunctionCall (
                 FreeGIArgumentArray (&arg_type, (GIArgument*)arg_value.v_pointer, transfer, direction, param.length);
             else
                 FreeGIArgumentArray (&arg_type, &arg_value, transfer, direction, param.length);
+        }
+        else if (param.type == ParameterType::CALLBACK) {
+            Callback *callback = static_cast<Callback*>(func->call_parameters[i].data.v_pointer);
+
+            g_assert(direction == GI_DIRECTION_IN);
+
+            if (callback->scope_type == GI_SCOPE_TYPE_CALL) {
+                delete callback;
+            }
         }
         else {
             if (direction == GI_DIRECTION_INOUT || (direction == GI_DIRECTION_OUT && !g_arg_info_is_caller_allocates (&arg_info)))

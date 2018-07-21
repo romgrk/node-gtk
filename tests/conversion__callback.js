@@ -15,30 +15,15 @@ gi.startLoop()
 Gtk.init()
 
 
-/*
- * fails when function has GDestroyNotify but not user_data
- */
-{
-  let didThrow = false
-
-  try {
-    GLib.testAddDataFuncFull(__filename, function(...args) {
-      console.log('Called:', args)
-    })
-  } catch (e) {
-    didThrow = true
-    common.expect(e.message, 'Function GLib.test_add_data_func_full has a GDestroyNotify but no user_data, not supported')
-  }
-
-  common.assert(didThrow, 'GLib.test_add_data_func_full didnt throw')
-  console.log('Success: GLib.test_add_data_func_full did throw')
-}
+common.describe('fails when function has GDestroyNotify but not user_data',
+  common.mustThrow('Function GLib.test_add_data_func_full has a GDestroyNotify but no user_data, not supported', () => {
+      GLib.testAddDataFuncFull(__filename, function(...args) {
+        console.log('Called:', args)
+      })
+  }))
 
 
-/*
- * calls the callback (no GDestroyNotify, no user_data)
- */
-{
+common.describe('calls the callback (no GDestroyNotify, no user_data)', () => {
   let didCall = false
 
   const loop = new GLib.MainLoop(null, false);
@@ -51,8 +36,7 @@ Gtk.init()
   loop.run()
 
   common.assert(didCall, 'Gio.Task callback not called')
-  console.log('Success: callbacks are called')
-}
+})
 
 
 // common.describe('calls the callback (GDestroyNotify before, user_data)', () => {
@@ -72,7 +56,7 @@ common.describe('calls the callback (GDestroyNotify after, user_data)', () => {
   list.setHeaderFunc((row, before) => {
     console.log('Called:', [row, before])
     didCall = true
-    setImmediate(Gtk.mainQuit)
+    setImmediate(() => window.close())
   })
   const row = new Gtk.ListBoxRow()
   row.add(new Gtk.Label({ label: 'Label' }))
@@ -126,11 +110,10 @@ common.describe('return value', () => {
  * propagates exceptions
  */
 {
-  let didThrow = false
-
   process.on('uncaughtException', (error) => {
     common.expect(error.message, 'test')
-    didThrow = true
+
+    console.log('Success: exceptions in callbacks are thrown')
   })
 
   const loop = new GLib.MainLoop(null, false);
@@ -139,7 +122,4 @@ common.describe('return value', () => {
   })
   task.returnBoolean(true);
   loop.run()
-
-  common.assert(didThrow, 'exception was not thrown')
-  console.log('Success: exceptions in callbacks are thrown')
 }
