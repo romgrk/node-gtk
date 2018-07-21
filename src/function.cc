@@ -74,13 +74,34 @@ static bool ShouldSkipReturn(GIBaseInfo *info, GITypeInfo *return_type) {
         || g_callable_info_skip_return(info) == TRUE;
 }
 
-#define IS_OUT(direction) (direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT)
-#define IS_IN(direction)  (direction == GI_DIRECTION_IN  || direction == GI_DIRECTION_INOUT)
+static inline bool IsDirectionOut (GIDirection direction) {
+    return (direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT);
+}
 
-void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
+static inline bool IsDirectionIn (GIDirection direction) {
+    return (direction == GI_DIRECTION_IN  || direction == GI_DIRECTION_INOUT);
+}
 
-    FunctionInfo *func = (FunctionInfo *) External::Cast (*info.Data ())->Value ();
+
+/**
+ * Calls a function
+ * @param func the function info
+ * @param info JS call informations
+ * @param return_value (out, nullable) the C return value
+ * @param error (out, nullable) the C error - if null, can throw a JS error
+ * @returns the JS return value
+ */
+Local<Value> FunctionCall (
+        FunctionInfo *func,
+        const Nan::FunctionCallbackInfo<Value> &info,
+        GIArgument *return_value,
+        GError **error
+    ) {
+
+    Local<Value> jsReturnValue;
     GIBaseInfo *gi_info = func->info; // do-not-free
+    bool use_return_value = return_value != NULL;
+    bool use_error = error != NULL;
 
     // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "file_get_contents") == 0;
     bool debug_mode = false;
@@ -89,10 +110,10 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         print_callable_info(gi_info);
 
     if (!func->Init())
-        return;
+        return jsReturnValue;
 
     if (!func->TypeCheck(info))
-        return;
+        return jsReturnValue;
 
     /*
      * First, add arguments for the instance if it's a method,
@@ -101,7 +122,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
 
     GIArgument total_arg_values[func->n_total_args];
     GIArgument *callable_arg_values;
-    GError *error = nullptr;
+    GError *error_stack = nullptr;
 
     if (func->is_method) {
         GIBaseInfo *container = g_base_info_get_container (gi_info);
@@ -112,7 +133,7 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     }
 
     if (func->can_throw)
-        callable_arg_values[func->n_callable_args].v_pointer = &error;
+        callable_arg_values[func->n_callable_args].v_pointer = error != NULL ? error : &error_stack;
 
 
     /*
@@ -231,10 +252,10 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         ffi_args[i] = &total_arg_values[i];
 
 
-    GIArgument return_value;
+    GIArgument return_value_stack;
 
     ffi_call (&func->invoker.cif, FFI_FN (func->invoker.native_address),
-              &return_value, ffi_args);
+              use_return_value ? return_value : &return_value_stack, ffi_args);
 
 
     /*
@@ -245,19 +266,29 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     g_callable_info_load_return_type(gi_info, &return_type);
     GITransfer return_transfer = g_callable_info_get_caller_owns(gi_info);
 
+    bool didThrow = error ? *error != NULL : error_stack != NULL;
+
     // Return the value or throw the error, if any occured
-    if (!error) {
-        RETURN (func->GetReturnValue (&return_type, &return_value, callable_arg_values));
+    if (!didThrow) {
+        jsReturnValue = func->GetReturnValue (
+                &return_type,
+                use_return_value ? return_value : &return_value_stack,
+                callable_arg_values);
     } else {
-        Nan::ThrowError(error->message);
-        g_error_free(error);
+        jsReturnValue = Nan::Undefined();
+
+        if (!use_error) {
+            Nan::ThrowError(error_stack->message);
+            g_error_free(error_stack);
+        }
     }
 
     /*
      * Fifth, free the return value and arguments
      */
 
-    FreeGIArgument(&return_type, &return_value, return_transfer);
+    if (!use_return_value)
+        FreeGIArgument(&return_type, &return_value_stack, return_transfer);
 
     for (int i = 0; i < func->n_callable_args; i++) {
         GIArgInfo  arg_info = {};
@@ -284,6 +315,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 FreeGIArgument (&arg_type, &arg_value, transfer, direction);
         }
     }
+
+    return jsReturnValue;
 }
 
 
@@ -358,10 +391,10 @@ bool FunctionInfo::Init() {
 
             // If array length came before, we need to remove it from args count
 
-            if (IS_IN(call_parameters[length_i].direction) && length_i < i)
+            if (IsDirectionIn(call_parameters[length_i].direction) && length_i < i)
                 n_in_args--;
 
-            if (IS_OUT(call_parameters[length_i].direction) && length_i < i)
+            if (IsDirectionOut(call_parameters[length_i].direction) && length_i < i)
                 n_out_args--;
 
         } else if (tag == GI_TYPE_TAG_INTERFACE) {
@@ -392,16 +425,16 @@ bool FunctionInfo::Init() {
                         call_parameters[closure_i].type = ParameterType::SKIP;
 
                     if (destroy_i < i) {
-                        if (IS_IN(call_parameters[destroy_i].direction))
+                        if (IsDirectionIn(call_parameters[destroy_i].direction))
                             n_in_args--;
-                        if (IS_OUT(call_parameters[destroy_i].direction))
+                        if (IsDirectionOut(call_parameters[destroy_i].direction))
                             n_out_args--;
                     }
 
                     if (closure_i < i) {
-                        if (IS_IN(call_parameters[closure_i].direction))
+                        if (IsDirectionIn(call_parameters[closure_i].direction))
                             n_in_args--;
-                        if (IS_OUT(call_parameters[closure_i].direction))
+                        if (IsDirectionOut(call_parameters[closure_i].direction))
                             n_out_args--;
                     }
                 }
@@ -410,10 +443,10 @@ bool FunctionInfo::Init() {
             g_base_info_unref(interface_info);
         }
 
-        if (IS_IN(call_parameters[i].direction) && !may_be_null)
+        if (IsDirectionIn(call_parameters[i].direction) && !may_be_null)
             n_in_args++;
 
-        if (IS_OUT(call_parameters[i].direction))
+        if (IsDirectionOut(call_parameters[i].direction))
             n_out_args++;
 
     }
@@ -424,9 +457,8 @@ bool FunctionInfo::Init() {
 
     GITypeInfo return_type;
     g_callable_info_load_return_type(info, &return_type);
-    bool should_skip_return = ShouldSkipReturn(info, &return_type);
 
-    if (!should_skip_return)
+    if (!ShouldSkipReturn(info, &return_type))
         n_out_args++;
 
     return true;
@@ -518,7 +550,7 @@ Local<Value> FunctionInfo::GetReturnValue (GITypeInfo* return_type, GIArgument* 
                 g_callable_info_load_arg (info, length_i, &length_arg);
                 GIDirection length_direction = g_arg_info_get_direction(&length_arg);
 
-                if (IS_OUT(length_direction))
+                if (IsDirectionOut(length_direction))
                     param.length = *(long*)callable_arg_values[length_i].v_pointer;
                 else
                     param.length = callable_arg_values[length_i].v_long;
@@ -539,13 +571,19 @@ Local<Value> FunctionInfo::GetReturnValue (GITypeInfo* return_type, GIArgument* 
     return jsReturnValue;
 }
 
+/**
+ * Frees the C return value
+ * @param return_value the return value pointer
+ */
+void FunctionInfo::FreeReturnValue (GIArgument *return_value) {
+    GITypeInfo return_type;
+    g_callable_info_load_return_type(info, &return_type);
+    GITransfer return_transfer = g_callable_info_get_caller_owns(info);
 
-
-
-void FunctionDestroyed(const v8::WeakCallbackInfo<FunctionInfo> &data) {
-    FunctionInfo *func = data.GetParameter ();
-    delete func;
+    FreeGIArgument(&return_type, return_value, return_transfer);
 }
+
+
 
 Local<Function> MakeFunction(GIBaseInfo *info) {
     FunctionInfo *func = new FunctionInfo(info);
@@ -563,6 +601,21 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
     persistent.SetWeak(func, FunctionDestroyed, WeakCallbackType::kParameter);
 
     return fn;
+}
+
+void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
+    FunctionInfo *func = (FunctionInfo *) External::Cast (*info.Data ())->Value ();
+
+    Local<Value> jsReturnValue = FunctionCall (func, info);
+
+    if (!jsReturnValue.IsEmpty()) {
+        RETURN (jsReturnValue);
+    }
+}
+
+void FunctionDestroyed(const v8::WeakCallbackInfo<FunctionInfo> &data) {
+    FunctionInfo *func = data.GetParameter ();
+    delete func;
 }
 
 
@@ -595,9 +648,9 @@ bool PrepareVFuncInvoker (GIFunctionInfo *info, GIFunctionInvoker *invoker, GTyp
         g_callable_info_load_arg(info, i, &arg_info);
         auto direction = g_arg_info_get_direction(&arg_info);
 
-        if (IS_IN(direction))
+        if (IsDirectionIn(direction))
             n_in_args++;
-        if (IS_OUT(direction))
+        if (IsDirectionOut(direction))
             n_out_args++;
     }
 

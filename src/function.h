@@ -47,11 +47,12 @@ struct FunctionInfo {
     ~FunctionInfo();
 
     bool Init();
-
     bool TypeCheck (const Nan::FunctionCallbackInfo<Value> &info);
-
     Local<Value> GetReturnValue (GITypeInfo* return_type, GIArgument* return_value, GIArgument* callable_arg_values);
+    void FreeReturnValue (GIArgument *return_value);
 };
+
+Local<Value> FunctionCall (FunctionInfo *func, const Nan::FunctionCallbackInfo<Value> &info, GIArgument *return_value = NULL, GError **error = NULL);
 
 void FunctionInvoker (const FunctionCallbackInfo<Value> &info);
 void FunctionDestroyed (const WeakCallbackInfo<FunctionInfo> &data);
