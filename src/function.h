@@ -46,7 +46,7 @@ struct FunctionInfo {
     FunctionInfo(GIBaseInfo* info);
     ~FunctionInfo();
 
-    void Init();
+    bool Init();
 
     bool TypeCheck (const Nan::FunctionCallbackInfo<Value> &info);
 
@@ -58,5 +58,6 @@ void FunctionDestroyed (const WeakCallbackInfo<FunctionInfo> &data);
 
 Local<Function>      MakeFunction (GIBaseInfo *base_info);
 MaybeLocal<Function> MakeVirtualFunction(GIBaseInfo *info, GType implementor);
+
 
 };

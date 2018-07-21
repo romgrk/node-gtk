@@ -4,6 +4,7 @@
             "target_name": "node_gtk",
             "sources": [
                 "src/boxed.cc",
+                "src/callback.cc",
                 "src/closure.cc",
                 "src/debug.cc",
                 "src/function.cc",

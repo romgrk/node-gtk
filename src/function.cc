@@ -3,13 +3,22 @@
 #include <girffi.h>
 
 #include "boxed.h"
+#include "callback.h"
 #include "debug.h"
 #include "function.h"
 #include "gobject.h"
 #include "type.h"
 #include "value.h"
 
-using namespace v8;
+using v8::Array;
+using v8::External;
+using v8::Function;
+using v8::FunctionTemplate;
+using v8::Isolate;
+using v8::Local;
+using v8::Persistent;
+using v8::String;
+using v8::Value;
 using Nan::New;
 using Nan::WeakCallbackType;
 
@@ -68,10 +77,23 @@ static void ThrowInvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Valu
     g_free(msg);
 }
 
+static void ThrowUnsupportedCallback (GIBaseInfo* info) {
+    char* message = g_strdup_printf ("Function %s.%s has a GDestroyNotify but no user_data, not supported",
+                g_base_info_get_namespace (info),
+                g_base_info_get_name (info));
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
 static bool IsMethod (GIBaseInfo *info) {
     auto flags = g_function_info_get_flags (info);
     return ((flags & GI_FUNCTION_IS_METHOD) != 0 &&
             (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
+}
+
+static bool IsDestroyNotify (GIBaseInfo *info) {
+    return strcmp(g_base_info_get_name(info), "DestroyNotify") == 0
+        && strcmp(g_base_info_get_namespace(info), "GLib") == 0;
 }
 
 static bool ShouldSkipReturn(GIBaseInfo *info, GITypeInfo *return_type) {
@@ -96,7 +118,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     if (debug_mode)
         print_callable_info(gi_info);
 
-    func->Init();
+    if (!func->Init())
+        return;
 
     if (!func->TypeCheck(info))
         return;
@@ -135,12 +158,12 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         GIArgInfo arg_info;
         GITypeInfo type_info;
         g_callable_info_load_arg (gi_info, i, &arg_info);
+        g_arg_info_load_type (&arg_info, &type_info);
         GIDirection direction = g_arg_info_get_direction (&arg_info);
 
         if (param.type == ParameterType::ARRAY) {
             GIArgInfo  array_length_arg;
             GITypeInfo array_length_type;
-            g_arg_info_load_type (&arg_info, &type_info);
 
             int length_i = g_type_info_get_array_length (&type_info);
             g_callable_info_load_arg(gi_info, length_i, &array_length_arg);
@@ -164,6 +187,41 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
                 callable_arg_values[length_i].v_pointer = &len_param.data;
             }
         }
+        else if (param.type == ParameterType::CALLBACK) {
+            // GIScopeType scope = g_arg_info_get_scope(&arg_info);
+            Callback *callback;
+            ffi_closure *closure;
+
+            if (info[in_arg]->IsNullOrUndefined() && g_arg_info_may_be_null(&arg_info)) {
+                closure = nullptr;
+                callback = nullptr;
+            } else {
+                GICallableInfo *callback_info = g_type_info_get_interface (&type_info);
+                callback = new Callback(info[in_arg].As<Function>(), callback_info, &arg_info);
+                closure = callback->closure;
+                g_base_info_unref (callback_info);
+            }
+
+            int destroy_i = g_arg_info_get_destroy(&arg_info);
+            int closure_i = g_arg_info_get_closure(&arg_info);
+
+            if (destroy_i >= 0) {
+                g_assert (func->call_parameters[destroy_i].type == ParameterType::SKIP);
+                callable_arg_values[destroy_i].v_pointer = callback ? (void*) Callback::DestroyNotify : NULL;
+            }
+
+            if (closure_i >= 0) {
+                g_assert (func->call_parameters[closure_i].type == ParameterType::SKIP);
+                callable_arg_values[closure_i].v_pointer = callback;
+            }
+
+            /* if (callback && scope != GI_SCOPE_TYPE_CALL) {
+             *     // Add an extra reference that will be cleared when collecting
+             *     // async calls, or when GDestroyNotify is called
+             *     gjs_callback_trampoline_ref(callback);
+             * } */
+            callable_arg_values[i].v_pointer = closure;
+        }
 
         if (direction == GI_DIRECTION_OUT) {
             if (g_arg_info_is_caller_allocates (&arg_info)) {
@@ -175,13 +233,18 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         }
         else /* (direction == GI_DIRECTION_IN || direction == GI_DIRECTION_INOUT) */ {
 
-            // FIXME(handle failure here)
-            FillArgument(&arg_info, &callable_arg_values[i], info[in_arg]);
+            // Callback GIArgument is filled above, for the rest...
+            if (param.type != ParameterType::CALLBACK) {
 
-            if (direction == GI_DIRECTION_INOUT) {
-                param.data = {};
-                param.data.v_pointer = callable_arg_values[i].v_pointer;
-                callable_arg_values[i].v_pointer = &param.data;
+                // FIXME(handle failure here)
+                FillArgument(&arg_info, &callable_arg_values[i], info[in_arg]);
+
+                // Add a level of indirection for INOUT arguments
+                if (direction == GI_DIRECTION_INOUT) {
+                    param.data = {};
+                    param.data.v_pointer = callable_arg_values[i].v_pointer;
+                    callable_arg_values[i].v_pointer = &param.data;
+                }
             }
 
             in_arg++;
@@ -275,10 +338,10 @@ FunctionInfo::~FunctionInfo () {
 /**
  * Initializes the function calling data.
  */
-void FunctionInfo::Init() {
+bool FunctionInfo::Init() {
 
     if (call_parameters != nullptr)
-        return;
+        return true;
 
     g_function_info_prep_invoker (info, &invoker, NULL);
 
@@ -310,6 +373,7 @@ void FunctionInfo::Init() {
 
         bool may_be_null = g_arg_info_may_be_null (&arg_info);
         GIDirection direction = g_arg_info_get_direction (&arg_info);
+        GITypeTag tag = g_type_info_get_tag(&type_info);
 
         call_parameters[i].direction = direction;
 
@@ -318,7 +382,7 @@ void FunctionInfo::Init() {
 
         // If there is an array length, this is an array
         int length_i = g_type_info_get_array_length (&type_info);
-        if (length_i >= 0) {
+        if (tag == GI_TYPE_TAG_ARRAY && length_i >= 0) {
             call_parameters[i].type        = ParameterType::ARRAY;
             call_parameters[length_i].type = ParameterType::SKIP;
 
@@ -330,8 +394,50 @@ void FunctionInfo::Init() {
             if (IS_OUT(call_parameters[length_i].direction) && length_i < i)
                 n_out_args--;
 
-        } else {
-            call_parameters[i].type = ParameterType::NORMAL;
+        } else if (tag == GI_TYPE_TAG_INTERFACE) {
+
+            GIBaseInfo* interface_info = g_type_info_get_interface(&type_info);
+            GIInfoType  interface_type = g_base_info_get_type(interface_info);
+
+            if (interface_type == GI_INFO_TYPE_CALLBACK) {
+                if (IsDestroyNotify(interface_info)) {
+                    /* Skip GDestroyNotify if they appear before the respective callback */
+                    call_parameters[i].type = ParameterType::SKIP;
+                } else {
+                    call_parameters[i].type = ParameterType::CALLBACK;
+
+                    int destroy_i = g_arg_info_get_destroy(&arg_info);
+                    int closure_i = g_arg_info_get_closure(&arg_info);
+
+                    if (destroy_i >= 0 && closure_i < 0) {
+                        ThrowUnsupportedCallback (info);
+                        g_base_info_unref(interface_info);
+                        return false;
+                    }
+
+                    if (destroy_i >= 0 && destroy_i < n_callable_args)
+                        call_parameters[destroy_i].type = ParameterType::SKIP;
+
+                    if (closure_i >= 0 && closure_i < n_callable_args)
+                        call_parameters[closure_i].type = ParameterType::SKIP;
+
+                    if (destroy_i < i) {
+                        if (IS_IN(call_parameters[destroy_i].direction))
+                            n_in_args--;
+                        if (IS_OUT(call_parameters[destroy_i].direction))
+                            n_out_args--;
+                    }
+
+                    if (closure_i < i) {
+                        if (IS_IN(call_parameters[closure_i].direction))
+                            n_in_args--;
+                        if (IS_OUT(call_parameters[closure_i].direction))
+                            n_out_args--;
+                    }
+                }
+            }
+
+            g_base_info_unref(interface_info);
         }
 
         if (IS_IN(call_parameters[i].direction) && !may_be_null)
@@ -352,6 +458,8 @@ void FunctionInfo::Init() {
 
     if (!should_skip_return)
         n_out_args++;
+
+    return true;
 }
 
 /**
@@ -487,6 +595,7 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
     return fn;
 }
 
+
 bool PrepareVFuncInvoker (GIFunctionInfo *info, GIFunctionInvoker *invoker, GType implementor, GError **error) {
     gpointer address;
     ffi_type **atypes;
@@ -562,7 +671,6 @@ bool PrepareVFuncInvoker (GIFunctionInfo *info, GIFunctionInvoker *invoker, GTyp
     address = g_vfunc_info_get_address (info, implementor, error);
     invoker->native_address = address;
 
-out:
     g_base_info_unref ((GIBaseInfo *)rinfo);
     return success;
 }

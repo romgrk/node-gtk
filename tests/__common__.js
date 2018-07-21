@@ -2,10 +2,20 @@
  * __common__.js
  */
 
-exports.assert = function assert(condition, message) {
+module.exports = {
+  assert,
+  expect,
+}
+
+
+function assert(condition, message) {
   if (condition)
     return
-
   console.error(message)
   process.exit(1)
+}
+
+function expect(value, expected) {
+  assert(value === expected,
+    `Expected: "${expected}"\nActual: "${value}"`)
 }
