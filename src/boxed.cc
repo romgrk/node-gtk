@@ -55,6 +55,8 @@ static GIFunctionInfo* FindBoxedConstructor(GIBaseInfo* info) {
                 return fn_info;
             g_base_info_unref(fn_info);
         }
+
+        return g_struct_info_find_method(info, "new");
     }
     else {
         int n_methods = g_union_info_get_n_methods (info);
@@ -64,8 +66,9 @@ static GIFunctionInfo* FindBoxedConstructor(GIBaseInfo* info) {
                 return fn_info;
             g_base_info_unref(fn_info);
         }
+
+        return g_union_info_find_method(info, "new");
     }
-    return NULL;
 }
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info);
@@ -97,23 +100,26 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         if (size != 0) {
             boxed = g_slice_alloc0(size);
         }
-        /* TODO(find what to do in these cases)
-        else {
+        // TODO(find what to do in these cases)
+        /* else {
             GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info);
 
             if (fn_info != NULL) {
-                GError *error = NULL;
-                GIArgument return_value;
-                g_function_info_invoke (fn_info,
-                        NULL, 0, NULL, 0, &return_value, &error);
-                g_base_info_unref(fn_info);
 
-                if (error != NULL) {
-                    Util::ThrowGError("Boxed allocation failed", error);
-                    return;
-                }
+                auto value = CallFunctionInfo (fn_info, info);
 
-                boxed = return_value.v_pointer;
+                if (value.IsEmpty())
+                    return; // did throw
+
+                GIArgument arg;
+
+                if (V8ToGIArgument(gi_info, &arg, value))
+                    boxed = arg.v_pointer;
+                else
+                    return; // did throw
+
+            } else {
+                log("constructor not found");
             }
         } */
 
