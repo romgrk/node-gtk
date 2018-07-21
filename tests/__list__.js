@@ -3,7 +3,7 @@
  */
 
 const inspect = require('../lib/inspect.js')
-const libs = ['Gtk', 'Gdk', 'GLib', 'Soup', 'Clutter']
+const libs = ['Gtk', 'Gdk', 'GLib', 'Gio']
 
 console.log(libs)
 
@@ -32,4 +32,6 @@ global.logFn = i =>
   i.infoType === 'function' ?
     console.log(inspect.formatFunction(i)) :
     console.log(inspect.formatFunction(i.parent))
+global.logName = i =>
+  console.log(inspect.formatName(i))
 
