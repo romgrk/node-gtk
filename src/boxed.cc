@@ -4,6 +4,7 @@
 
 #include "boxed.h"
 #include "debug.h"
+#include "error.h"
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
@@ -101,27 +102,28 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             boxed = g_slice_alloc0(size);
         }
         // TODO(find what to do in these cases)
-        /* else {
+        else {
             GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info);
 
-            if (fn_info != NULL) {
-
-                auto value = CallFunctionInfo (fn_info, info);
-
-                if (value.IsEmpty())
-                    return; // did throw
-
-                GIArgument arg;
-
-                if (V8ToGIArgument(gi_info, &arg, value))
-                    boxed = arg.v_pointer;
-                else
-                    return; // did throw
-
-            } else {
-                log("constructor not found");
+            if (fn_info == NULL) {
+                Nan::ThrowError("Boxed allocation failed: no constructor found");
+                return;
             }
-        } */
+
+            FunctionInfo func(fn_info);
+            GIArgument return_value;
+            GError *error = NULL;
+
+            FunctionCall (&func, info, &return_value, &error);
+
+            if (error) {
+                Throw::GError ("Boxed constructor failed", error);
+                g_error_free (error);
+                return;
+            }
+
+            boxed = return_value.v_pointer;
+        }
 
         if (!boxed) {
             Nan::ThrowError("Boxed allocation failed");
