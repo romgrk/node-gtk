@@ -12,8 +12,6 @@ using v8::Function;
 using v8::Local;
 using v8::MaybeLocal;
 using v8::String;
-using Nan::FunctionCallbackInfo;
-using Nan::WeakCallbackInfo;
 
 namespace GNodeJS {
 
@@ -54,8 +52,8 @@ struct FunctionInfo {
 
 Local<Value> FunctionCall (FunctionInfo *func, const Nan::FunctionCallbackInfo<Value> &info, GIArgument *return_value = NULL, GError **error = NULL);
 
-void FunctionInvoker (const FunctionCallbackInfo<Value> &info);
-void FunctionDestroyed (const WeakCallbackInfo<FunctionInfo> &data);
+void FunctionInvoker (const Nan::FunctionCallbackInfo<Value> &info);
+void FunctionDestroyed (const v8::WeakCallbackInfo<FunctionInfo> &data);
 
 Local<Function>      MakeFunction (GIBaseInfo *base_info);
 MaybeLocal<Function> MakeVirtualFunction(GIBaseInfo *info, GType implementor);

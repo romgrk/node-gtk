@@ -24,6 +24,8 @@ namespace GNodeJS {
 
     void InvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Value> value);
 
+    void InvalidReturnValue (GITypeInfo *type_info, Local<Value> value);
+
     void UnsupportedCallback (GIBaseInfo* info);
 
   }; // namespace Throw

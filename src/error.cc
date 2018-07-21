@@ -43,6 +43,17 @@ void InvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Value> value) {
     g_free(msg);
 }
 
+void InvalidReturnValue (GITypeInfo *type_info, Local<Value> value) {
+    char *expected = GetTypeName (type_info);
+    char *msg = g_strdup_printf(
+        "Expected return value of type %s, got '%s'",
+        expected,
+        *Nan::Utf8String(Nan::ToDetailString(value).ToLocalChecked()));
+    Nan::ThrowTypeError(msg);
+    g_free(expected);
+    g_free(msg);
+}
+
 void UnsupportedCallback (GIBaseInfo* info) {
     char* message = g_strdup_printf ("Function %s.%s has a GDestroyNotify but no user_data, not supported",
                 g_base_info_get_namespace (info),

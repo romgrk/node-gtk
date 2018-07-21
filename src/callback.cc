@@ -4,6 +4,7 @@
 #include "callback.h"
 #include "closure.h"
 #include "debug.h"
+#include "error.h"
 #include "loop.h"
 #include "type.h"
 #include "value.h"
@@ -16,13 +17,14 @@ using v8::Local;
 using v8::Object;
 using v8::Value;
 using Nan::Persistent;
+using Nan::TryCatch;
 
 namespace GNodeJS {
 
-Callback::Callback(Local<Function> function, GICallableInfo* info, GIArgInfo* arg_info) {
-    persistent.Reset(function);
-    closure = g_callable_info_prepare_closure(info, &cif, Callback::Call, closure);
-    info = g_base_info_ref (info);
+Callback::Callback(Local<Function> fn, GICallableInfo* callback_info, GIArgInfo* arg_info) {
+    persistent.Reset(fn);
+    info = g_base_info_ref (callback_info);
+    closure = g_callable_info_prepare_closure(info, &cif, Callback::Call, this);
     scope_type = g_arg_info_get_scope (arg_info);
 }
 
@@ -57,15 +59,17 @@ void Callback::Call(ffi_cif *cif, void *result, void **args, gpointer user_data)
         g_callable_info_load_arg (callback->info, i, &arg_info);
         g_arg_info_load_type (&arg_info, &arg_type);
 
-        if (g_type_info_get_tag (&arg_type) == GI_TYPE_TAG_VOID) {
-            continue;
-        }
-
         js_args[i] = GIArgumentToV8 (&arg_type, gi_args[i]);
     }
 
     Local<Function> function = Nan::New<Function>(callback->persistent);
     Local<Object> self = Nan::GetCurrentContext()->Global();
+
+    Isolate *isolate = Isolate::GetCurrent ();
+    HandleScope scope(isolate);
+    Local<Context> context = Context::New(isolate);
+    Context::Scope context_scope(context);
+    Nan::TryCatch try_catch;
 
     auto return_value = Nan::Call(function, self, n_native_args, js_args);
 
@@ -73,11 +77,20 @@ void Callback::Call(ffi_cif *cif, void *result, void **args, gpointer user_data)
         GITypeInfo type_info;
         g_callable_info_load_return_type (callback->info, &type_info);
 
-        V8ToGIArgument (&type_info, (GIArgument *) &result, return_value.ToLocalChecked(),
+        bool didConvert = V8ToGIArgument (
+                &type_info,
+                (GIArgument *) &result,
+                return_value.ToLocalChecked(),
                 g_callable_info_may_return_null (callback->info));
+
+        if (!didConvert) {
+            Throw::InvalidReturnValue (&type_info, return_value.ToLocalChecked());
+        }
     }
-    else {
-        // TODO(error handling)
+
+    if (try_catch.HasCaught()) {
+        GNodeJS::QuitLoopStack();
+        try_catch.ReThrow();
     }
 
     #ifndef __linux__

@@ -89,7 +89,7 @@ static inline bool IsDirectionIn (GIDirection direction) {
  * @param info JS call informations
  * @param return_value (out, nullable) the C return value
  * @param error (out, nullable) the C error - if null, can throw a JS error
- * @returns the JS return value
+ * @returns the JS return value, if @return_value is null
  */
 Local<Value> FunctionCall (
         FunctionInfo *func,
@@ -183,8 +183,8 @@ Local<Value> FunctionCall (
             Callback *callback;
             ffi_closure *closure;
 
-            if (info[in_arg]->IsNullOrUndefined() && g_arg_info_may_be_null(&arg_info)) {
-                closure = nullptr;
+            if (info[in_arg]->IsNullOrUndefined()) {
+                closure  = nullptr;
                 callback = nullptr;
             } else {
                 GICallableInfo *callback_info = g_type_info_get_interface (&type_info);
@@ -269,19 +269,20 @@ Local<Value> FunctionCall (
     bool didThrow = error ? *error != NULL : error_stack != NULL;
 
     // Return the value or throw the error, if any occured
-    if (!didThrow) {
-        jsReturnValue = func->GetReturnValue (
-                &return_type,
-                use_return_value ? return_value : &return_value_stack,
-                callable_arg_values);
-    } else {
+    if (didThrow) {
         jsReturnValue = Nan::Undefined();
 
         if (!use_error) {
             Nan::ThrowError(error_stack->message);
             g_error_free(error_stack);
         }
+    } else if (!use_return_value) {
+        jsReturnValue = func->GetReturnValue (
+                &return_type,
+                use_return_value ? return_value : &return_value_stack,
+                callable_arg_values);
     }
+
 
     /*
      * Fifth, free the return value and arguments

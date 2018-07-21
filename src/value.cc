@@ -91,7 +91,7 @@ static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info) {
     }
 }
 
-Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) {
+Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
@@ -188,7 +188,12 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, int length) 
             case GI_INFO_TYPE_FLAGS:
                 value = New<Number>(arg->v_long);
                 break;
+            case GI_INFO_TYPE_INTERFACE:
+                g_warning ("GIArgumentToV8: Unsuported conversion: from interface. Using null placeholder");
+                value = Nan::Null();
+                break;
             default:
+                print_info (interface_info);
                 g_assert_not_reached ();
             }
 
@@ -277,7 +282,7 @@ Local<Value> GHashToV8 (GITypeInfo *type_info, GHashTable *hash_table) {
     return object;
 }
 
-Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, int length) {
+Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
 
     auto array = New<Array>();
 
@@ -635,7 +640,10 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
     if (value->IsUndefined () || value->IsNull ()) {
         arg->v_pointer = NULL;
-        if (!may_be_null) {
+
+        bool is_void = type_tag == GI_TYPE_TAG_VOID && !g_type_info_is_pointer (type_info);
+
+        if (!may_be_null && !is_void) {
             Nan::ThrowTypeError("Trying to convert null/undefined value to GIArgument.");
             return false;
         }
@@ -709,7 +717,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
             case GI_ARRAY_TYPE_BYTE_ARRAY:
                 arg->v_pointer = V8ToGArray(type_info, value);
                 break;
-            //case GI_ARRAY_TYPE_PTR_ARRAY:
+            case GI_ARRAY_TYPE_PTR_ARRAY:
             default:
                 printf("%s", Util::ArrayTypeToString(array_type));
                 g_assert_not_reached ();
@@ -1003,7 +1011,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
     }
 }
 
-void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction, int length) {
+void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer, GIDirection direction, long length) {
     bool is_in  = direction == GI_DIRECTION_IN;
     bool is_out = direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT;
     bool free_elements =
