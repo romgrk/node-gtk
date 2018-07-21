@@ -20,7 +20,7 @@ function assert(condition, message) {
   if (condition)
     return;
 
-  _error(message)
+  _failed(message)
 
   process.exit(1)
 }
@@ -96,7 +96,7 @@ function _getDescription() {
 function _log(...args) {
   let description = _getDescription()
   if (description)
-    console.log(`${description}:`, ...args)
+    console.log(`${description}` + (args.length > 0 ? ':' : ''), ...args)
   else
     console.log(...args)
 }
@@ -104,7 +104,7 @@ function _log(...args) {
 function _error(...args) {
   let description = _getDescription()
   if (description)
-    console.error(`${description}:`, ...args)
+    console.error(`${description}` + (args.length > 0 ? ':' : ''), ...args)
   else
     console.error(...args)
 }
@@ -112,7 +112,8 @@ function _error(...args) {
 function _failed(...args) {
   let description = _getDescription()
   if (description)
-    console.error(`${chalk.red.bold('Failed:')} ${chalk.bold(description)}:`, ...args)
+    console.error(`${chalk.red.bold('Failed:')} ${chalk.bold(description)}`,
+      + (args.length > 0 ? ':' : ''), ...args)
   else
     console.error(chalk.red.bold('Failed:'), ...args)
 }
@@ -120,7 +121,8 @@ function _failed(...args) {
 function _success(...args) {
   let description = _getDescription()
   if (description)
-    console.log(`${chalk.green.bold('Success:')} ${chalk.bold(description)}:`, ...args)
+    console.log(`${chalk.green.bold('Success:')} ${chalk.bold(description)}`
+     + (args.length > 0 ? ':' : ''), ...args)
   else
     console.log(chalk.green.bold('Success:'), ...args)
 }

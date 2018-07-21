@@ -6,7 +6,13 @@
 const gi = require('../lib/')
 const GLib = gi.require('GLib')
 const Gio = gi.require('Gio')
+const Gtk = gi.require('Gtk')
+const Gdk = gi.require('Gdk')
+const GObject = gi.require('GObject')
 const common = require('./__common__.js')
+
+gi.startLoop()
+Gtk.init()
 
 
 /*
@@ -49,53 +55,71 @@ const common = require('./__common__.js')
 }
 
 
-/*
- * calls the callback (GDestroyNotify before, user_data)
- */
-{
-  common.assert(false, 'implement me')
-}
+// common.describe('calls the callback (GDestroyNotify before, user_data)', () => {
+  // Example not found
+// })
 
 
-/*
- * calls the callback (GDestroyNotify after, user_data)
- */
-{
-  common.assert(false, 'implement me')
-}
+common.describe('calls the callback (GDestroyNotify after, user_data)', () => {
+
+  let didCall = false
+
+  const window = new Gtk.Window({ type : Gtk.WindowType.TOPLEVEL })
+  window.setDefaultSize(400, 50)
+  window.on('show', Gtk.main)
+  window.on('destroy', Gtk.mainQuit)
+  const list = new Gtk.ListBox()
+  list.setHeaderFunc((row, before) => {
+    console.log('Called:', [row, before])
+    didCall = true
+    setImmediate(Gtk.mainQuit)
+  })
+  const row = new Gtk.ListBoxRow()
+  row.add(new Gtk.Label({ label: 'Label' }))
+  list.prepend(row)
+  window.add(list)
+  window.showAll()
+
+  common.assert(didCall, 'not called')
+})
 
 
-/*
- * return value is returned
- */
-{
-  common.assert(false, 'implement return values test')
-/*   let count = 0
- * 
- *   const source = glib.timeoutAdd(glib.PRIORITY_HIGH, 100, function() {
- *       console.log('called')
- * 
- *       count += 1
- * 
- *       return glib.SOURCE_REMOVE
- *   })
- * 
- *   setTimeout(() => {
- *       common.assert(count > 0, 'callback was not called')
- *       common.assert(count === 1, 'callback wasnt stopped (JS value not returned)')
- * 
- *       console.log('Done')
- *       process.exit(0)
- *   }, 500) */
-}
+common.describe('return value', () => {
 
+  common.it('works', () => {
 
-/*
- * return value type is checked
- */
-{
-  common.assert(false, 'implement return value test')
-}
+    const group = new Gtk.AccelGroup()
+    const button = new Gtk.Button()
+    const closure = new GObject.Closure(32, button)
+    group.connect(Gdk.KEY_g, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE, closure)
+
+    let didCall = false
+    const accelKey = group.find((key, closure) => {
+      console.log('Called:', [key, closure])
+      didCall = true
+      return true
+    })
+    console.log(accelKey)
+    common.assert(didCall, 'not called')
+  })
+
+  common.it('is type checked',
+    common.mustThrow(`Expected return value of type Boolean, got 'undefined'`, () => {
+
+      const group = new Gtk.AccelGroup()
+      const button = new Gtk.Button()
+      const closure = new GObject.Closure(32, button)
+      group.connect(Gdk.KEY_g, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE, closure)
+
+      const accelKey = group.find((key, closure) => {
+        console.log('Called:', [key, closure])
+
+        return undefined
+      })
+    }))
+
+})
+
 
 
 /*

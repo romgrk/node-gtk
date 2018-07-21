@@ -19,7 +19,7 @@
     while (0)
 
 #ifdef NDEBUG
-#define warn(...)
+#define warn(...) do {} while(0)
 #else
 #define warn(...) \
     do { \
@@ -31,7 +31,7 @@
 #endif
 
 #ifdef NDEBUG
-#define log(...)
+#define log(...) do {} while(0)
 #else
 #define log(...) \
     do { \

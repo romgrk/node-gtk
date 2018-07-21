@@ -147,6 +147,8 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
             auto jsResult = FunctionCall (&func, info, &return_value, &error);
 
+            g_base_info_unref (fn_info);
+
             if (jsResult.IsEmpty()) {
                 // func->Init() or func->TypeCheck() have thrown
                 return;
@@ -157,8 +159,6 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
                 g_error_free (error);
                 return;
             }
-
-            g_base_info_unref (fn_info);
 
             boxed = return_value.v_pointer;
 
@@ -291,8 +291,13 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
 
     Local<Value> boxed_external = Nan::New<External> (data);
     Local<Value> args[] = { boxed_external };
-    // FIXME(we're not handling failure here)
+
     MaybeLocal<Object> instance = Nan::NewInstance(constructor, 1, args);
+
+    // FIXME(we should propage failure here)
+    if (instance.IsEmpty())
+        return Nan::Null();
+
     return instance.ToLocalChecked();
 }
 

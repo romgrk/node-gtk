@@ -89,7 +89,13 @@ void QuitLoopStack() {
         Local<Object> fn = Nan::Get(stack, i).ToLocalChecked()->ToObject();
         Local<Object> self = fn;
 
-        log("calling %s", *Nan::Utf8String(Nan::Get(fn, UTF8("name")).ToLocalChecked()));
+#ifndef NDEBUG
+        auto name = Nan::Get(fn, UTF8("name"));
+        if (name.IsEmpty() || name.ToLocalChecked()->ToString()->Length() == 0)
+            log("calling (anonymous)");
+        else
+            log("calling %s", *Nan::Utf8String(name.ToLocalChecked()));
+#endif
 
         Nan::CallAsFunction(fn, self, 0, nullptr);
     }

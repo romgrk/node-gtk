@@ -281,6 +281,8 @@ Local<Value> FunctionCall (
                 &return_type,
                 use_return_value ? return_value : &return_value_stack,
                 callable_arg_values);
+    } else {
+        jsReturnValue = Nan::Undefined();
     }
 
 
