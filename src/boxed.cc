@@ -47,29 +47,70 @@ static bool IsNoArgsConstructor(GIFunctionInfo *info) {
         && g_callable_info_get_n_args (info) == 0);
 }
 
+static bool IsConstructor(GIFunctionInfo *info) {
+    auto flags = g_function_info_get_flags (info);
+    return (flags & GI_FUNCTION_IS_CONSTRUCTOR) != 0;
+}
+
 static GIFunctionInfo* FindBoxedConstructor(GIBaseInfo* info) {
+    GIFunctionInfo* fn_info = NULL;
+
     if (GI_IS_STRUCT_INFO (info)) {
         int n_methods = g_struct_info_get_n_methods (info);
         for (int i = 0; i < n_methods; i++) {
-            GIFunctionInfo* fn_info = g_struct_info_get_method (info, i);
+            fn_info = g_struct_info_get_method (info, i);
+
             if (IsNoArgsConstructor (fn_info))
-                return fn_info;
+                break;
+
             g_base_info_unref(fn_info);
+            fn_info = NULL;
         }
 
-        return g_struct_info_find_method(info, "new");
+        if (fn_info == NULL)
+            fn_info = g_struct_info_find_method(info, "new");
+
+        if (fn_info == NULL) {
+            for (int i = 0; i < n_methods; i++) {
+                fn_info = g_struct_info_get_method (info, i);
+
+                if (IsConstructor (fn_info))
+                    break;
+
+                g_base_info_unref(fn_info);
+                fn_info = NULL;
+            }
+        }
     }
     else {
         int n_methods = g_union_info_get_n_methods (info);
         for (int i = 0; i < n_methods; i++) {
-            GIFunctionInfo* fn_info = g_union_info_get_method (info, i);
+            fn_info = g_union_info_get_method (info, i);
+
             if (IsNoArgsConstructor (fn_info))
-                return fn_info;
+                break;
+
             g_base_info_unref(fn_info);
+            fn_info = NULL;
         }
 
-        return g_union_info_find_method(info, "new");
+        if (fn_info == NULL)
+            fn_info = g_union_info_find_method(info, "new");
+
+        if (fn_info == NULL) {
+            for (int i = 0; i < n_methods; i++) {
+                fn_info = g_union_info_get_method (info, i);
+
+                if (IsConstructor (fn_info))
+                    break;
+
+                g_base_info_unref(fn_info);
+                fn_info = NULL;
+            }
+        }
     }
+
+    return fn_info;
 }
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info);
@@ -96,23 +137,20 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     } else {
         /* User code calling `new Pango.AttrList()` */
 
-        size = Boxed::GetSize(gi_info);
+        GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info);
 
-        if (size != 0) {
-            boxed = g_slice_alloc0(size);
-        } else {
-            GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info);
-
-            if (fn_info == NULL) {
-                Nan::ThrowError("Boxed allocation failed: no constructor found");
-                return;
-            }
+        if (fn_info != NULL) {
 
             FunctionInfo func(fn_info);
             GIArgument return_value;
             GError *error = NULL;
 
-            FunctionCall (&func, info, &return_value, &error);
+            auto jsResult = FunctionCall (&func, info, &return_value, &error);
+
+            if (jsResult.IsEmpty()) {
+                // func->Init() or func->TypeCheck() have thrown
+                return;
+            }
 
             if (error) {
                 Throw::GError ("Boxed constructor failed", error);
@@ -120,7 +158,16 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
                 return;
             }
 
+            g_base_info_unref (fn_info);
+
             boxed = return_value.v_pointer;
+
+        } else if ((size = Boxed::GetSize(gi_info)) != 0) {
+            boxed = g_slice_alloc0(size);
+
+        } else {
+            Nan::ThrowError("Boxed allocation failed: no constructor found");
+            return;
         }
 
         if (!boxed) {

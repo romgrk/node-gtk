@@ -3,7 +3,7 @@
  */
 
 const inspect = require('../lib/inspect.js')
-const libs = ['Gtk', 'Gdk', 'GLib', 'Gio']
+const libs = ['Gtk', 'Gdk', 'GLib', 'Gio', 'Pango', 'Soup']
 
 console.log(libs)
 
