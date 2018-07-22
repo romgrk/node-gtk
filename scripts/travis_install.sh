@@ -9,7 +9,11 @@
 if [[ $(uname -s) == 'Darwin' ]]; then
     brew install git node gtk+3 gobject-introspection glib libffi;
 
-    brew test -v libffi
+    brew test -v libffi;
+    clang --version;
+    pkg-config --version;
+    which pkg-config;
+
     pkg-config --cflags glib-2.0 gobject-introspection-1.0;
 fi;
 
