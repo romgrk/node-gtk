@@ -98,6 +98,8 @@ install:
 - if [[ $(uname -s) == 'Darwin' ]]; then
     brew install git node gtk+3 gobject-introspection glib libffi;
 
+    locate libffi.pc;
+
     export PKG_CONFIG_PATH="$(locate libffi.pc)";
 
     brew test -v libffi;
