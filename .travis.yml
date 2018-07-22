@@ -95,10 +95,7 @@ before_install:
 install:
 # put node-pre-gyp on path
 - export PATH=./node_modules/.bin/:$PATH
-- if [[ $(uname -s) == 'Darwin' ]]; then
-    brew install git node gtk+3
-  fi;
-- npm install --build-from-source
+- source ./scripts/travis_install.sh
 
 before_script:
 # get commit message
