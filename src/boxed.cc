@@ -41,19 +41,34 @@ size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
     }
 }
 
-static bool IsNoArgsConstructor(GIFunctionInfo *info) {
+static bool IsNoArgsConstructor (GIFunctionInfo *info) {
     auto flags = g_function_info_get_flags (info);
     return ((flags & GI_FUNCTION_IS_CONSTRUCTOR) != 0
         && g_callable_info_get_n_args (info) == 0);
 }
 
-static bool IsConstructor(GIFunctionInfo *info) {
+static bool IsConstructor (GIFunctionInfo *info) {
     auto flags = g_function_info_get_flags (info);
     return (flags & GI_FUNCTION_IS_CONSTRUCTOR) != 0;
 }
 
-static GIFunctionInfo* FindBoxedConstructor(GIBaseInfo* info) {
+static GIFunctionInfo* FindBoxedConstructorCached (GType gtype) {
+    if (gtype == G_TYPE_NONE)
+        return NULL;
+
+    GIFunctionInfo* fn_info = (GIFunctionInfo*) g_type_get_qdata(gtype, GNodeJS::constructor_quark());
+
+    if (fn_info != NULL)
+        return fn_info;
+
+    return NULL;
+}
+
+static GIFunctionInfo* FindBoxedConstructor (GIBaseInfo* info, GType gtype) {
     GIFunctionInfo* fn_info = NULL;
+
+    if ((fn_info = FindBoxedConstructorCached(gtype)) != NULL)
+        return g_base_info_ref (fn_info);
 
     if (GI_IS_STRUCT_INFO (info)) {
         int n_methods = g_struct_info_get_n_methods (info);
@@ -110,6 +125,11 @@ static GIFunctionInfo* FindBoxedConstructor(GIBaseInfo* info) {
         }
     }
 
+    if (fn_info != NULL && gtype != G_TYPE_NONE) {
+        g_type_set_qdata(gtype, GNodeJS::constructor_quark(),
+                g_base_info_ref (fn_info));
+    }
+
     return fn_info;
 }
 
@@ -137,7 +157,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     } else {
         /* User code calling `new Pango.AttrList()` */
 
-        GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info);
+        GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info, gtype);
 
         if (fn_info != NULL) {
 
