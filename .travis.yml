@@ -1,29 +1,111 @@
-language: node_js
-node_js:
-- lts/*
-- node # latest
+# language: node_js
+# node_js:
+# - lts/*
+# - node # latest
 
-os: linux
+# os: linux
+# sudo: false
+
+# env:
+  # global:
+    # - CC=gcc-8
+    # - CXX=g++-8
+
+# addons:
+  # apt:
+    # sources:
+    # - ubuntu-toolchain-r-test
+    # packages:
+    # - xvfb
+    # - libgirepository1.0-dev
+    # - gobject-introspection
+    # - build-essential
+    # - g++-8
+
+# install:
+# - npm install --build-from-source
+
+# script:
+# - npm run build
+
+##################
+
 sudo: false
 
-env:
-  global:
-    - CC=gcc-8
-    - CXX=g++-8
+language: generic
+
+git:
+  depth: 10
 
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
+      - 'ubuntu-toolchain-r-test'
     packages:
-    - xvfb
-    - libgirepository1.0-dev
-    - gobject-introspection
-    - build-essential
-    - g++-8
+      - 'xvfb'
+      - 'libgirepository1.0-dev'
+      - 'gobject-introspection'
+      - 'build-essential'
+      - 'g++-8'
+
+matrix:
+  include:
+     # Linux
+     - os: linux
+       compiler: clang
+       env: NODE_VERSION="10" CC="gcc-8" CXX="g++-8"
+       addons:
+         apt:
+            sources:  [ 'ubuntu-toolchain-r-test']
+            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
+     - os: linux
+       compiler: clang
+       env: NODE_VERSION="9" CC="gcc-8" CXX="g++-8"
+       addons:
+         apt:
+            sources:  [ 'ubuntu-toolchain-r-test']
+            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
+     - os: linux
+       compiler: clang
+       env: NODE_VERSION="8" CC="gcc-8" CXX="g++-8"
+       addons:
+         apt:
+            sources:  [ 'ubuntu-toolchain-r-test']
+            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
+
+     # OS X
+     - os: osx
+       compiler: clang
+       env: NODE_VERSION="10" node abi 64
+     - os: osx
+       compiler: clang
+       env: NODE_VERSION="9" # node abi 59
+     - os: osx
+       compiler: clang
+       env: NODE_VERSION="8" # node abi 57
+
+env:
+  global:
+    - JOBS: "8"
+
+before_install:
+# - if [[ $(uname -s) == 'Linux' ]]; then
+    # export CXX="clang++-3.5";
+    # export CC="clang-3.5";
+  # fi;
+- source ./scripts/install_node.sh ${NODE_VERSION}
 
 install:
-- npm install
+# put node-pre-gyp on path
+- export PATH=./node_modules/.bin/:$PATH
+- if [[ $(uname -s) == 'Darwin' ]]; then
+    brew install git node gtk+3
+  fi;
+- npm install --build-from-source
+
+before_script:
+# get commit message
+- export COMMIT_MESSAGE=$(git show -s --format=%B $TRAVIS_COMMIT | tr -d '\n')
 
 script:
 - npm run build
