@@ -4,6 +4,7 @@
 
 #include "boxed.h"
 #include "debug.h"
+#include "error.h"
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
@@ -40,32 +41,96 @@ size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
     }
 }
 
-static bool IsNoArgsConstructor(GIFunctionInfo *info) {
+static bool IsNoArgsConstructor (GIFunctionInfo *info) {
     auto flags = g_function_info_get_flags (info);
     return ((flags & GI_FUNCTION_IS_CONSTRUCTOR) != 0
         && g_callable_info_get_n_args (info) == 0);
 }
 
-static GIFunctionInfo* FindBoxedConstructor(GIBaseInfo* info) {
+static bool IsConstructor (GIFunctionInfo *info) {
+    auto flags = g_function_info_get_flags (info);
+    return (flags & GI_FUNCTION_IS_CONSTRUCTOR) != 0;
+}
+
+static GIFunctionInfo* FindBoxedConstructorCached (GType gtype) {
+    if (gtype == G_TYPE_NONE)
+        return NULL;
+
+    GIFunctionInfo* fn_info = (GIFunctionInfo*) g_type_get_qdata(gtype, GNodeJS::constructor_quark());
+
+    if (fn_info != NULL)
+        return fn_info;
+
+    return NULL;
+}
+
+static GIFunctionInfo* FindBoxedConstructor (GIBaseInfo* info, GType gtype) {
+    GIFunctionInfo* fn_info = NULL;
+
+    if ((fn_info = FindBoxedConstructorCached(gtype)) != NULL)
+        return g_base_info_ref (fn_info);
+
     if (GI_IS_STRUCT_INFO (info)) {
         int n_methods = g_struct_info_get_n_methods (info);
         for (int i = 0; i < n_methods; i++) {
-            GIFunctionInfo* fn_info = g_struct_info_get_method (info, i);
+            fn_info = g_struct_info_get_method (info, i);
+
             if (IsNoArgsConstructor (fn_info))
-                return fn_info;
+                break;
+
             g_base_info_unref(fn_info);
+            fn_info = NULL;
+        }
+
+        if (fn_info == NULL)
+            fn_info = g_struct_info_find_method(info, "new");
+
+        if (fn_info == NULL) {
+            for (int i = 0; i < n_methods; i++) {
+                fn_info = g_struct_info_get_method (info, i);
+
+                if (IsConstructor (fn_info))
+                    break;
+
+                g_base_info_unref(fn_info);
+                fn_info = NULL;
+            }
         }
     }
     else {
         int n_methods = g_union_info_get_n_methods (info);
         for (int i = 0; i < n_methods; i++) {
-            GIFunctionInfo* fn_info = g_union_info_get_method (info, i);
+            fn_info = g_union_info_get_method (info, i);
+
             if (IsNoArgsConstructor (fn_info))
-                return fn_info;
+                break;
+
             g_base_info_unref(fn_info);
+            fn_info = NULL;
+        }
+
+        if (fn_info == NULL)
+            fn_info = g_union_info_find_method(info, "new");
+
+        if (fn_info == NULL) {
+            for (int i = 0; i < n_methods; i++) {
+                fn_info = g_union_info_get_method (info, i);
+
+                if (IsConstructor (fn_info))
+                    break;
+
+                g_base_info_unref(fn_info);
+                fn_info = NULL;
+            }
         }
     }
-    return NULL;
+
+    if (fn_info != NULL && gtype != G_TYPE_NONE) {
+        g_type_set_qdata(gtype, GNodeJS::constructor_quark(),
+                g_base_info_ref (fn_info));
+    }
+
+    return fn_info;
 }
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info);
@@ -92,30 +157,38 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     } else {
         /* User code calling `new Pango.AttrList()` */
 
-        size = Boxed::GetSize(gi_info);
+        GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info, gtype);
 
-        if (size != 0) {
-            boxed = g_slice_alloc0(size);
-        }
-        /* TODO(find what to do in these cases)
-        else {
-            GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info);
+        if (fn_info != NULL) {
 
-            if (fn_info != NULL) {
-                GError *error = NULL;
-                GIArgument return_value;
-                g_function_info_invoke (fn_info,
-                        NULL, 0, NULL, 0, &return_value, &error);
-                g_base_info_unref(fn_info);
+            FunctionInfo func(fn_info);
+            GIArgument return_value;
+            GError *error = NULL;
 
-                if (error != NULL) {
-                    Util::ThrowGError("Boxed allocation failed", error);
-                    return;
-                }
+            auto jsResult = FunctionCall (&func, info, &return_value, &error);
 
-                boxed = return_value.v_pointer;
+            g_base_info_unref (fn_info);
+
+            if (jsResult.IsEmpty()) {
+                // func->Init() or func->TypeCheck() have thrown
+                return;
             }
-        } */
+
+            if (error) {
+                Throw::GError ("Boxed constructor failed", error);
+                g_error_free (error);
+                return;
+            }
+
+            boxed = return_value.v_pointer;
+
+        } else if ((size = Boxed::GetSize(gi_info)) != 0) {
+            boxed = g_slice_alloc0(size);
+
+        } else {
+            Nan::ThrowError("Boxed allocation failed: no constructor found");
+            return;
+        }
 
         if (!boxed) {
             Nan::ThrowError("Boxed allocation failed");
@@ -153,7 +226,7 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
         /*
          * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
          */
-        log("boxed possibly not freed");
+        warn("boxed possibly not freed");
     }
 
     delete box->persistent;
@@ -238,8 +311,13 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
 
     Local<Value> boxed_external = Nan::New<External> (data);
     Local<Value> args[] = { boxed_external };
-    // FIXME(we're not handling failure here)
+
     MaybeLocal<Object> instance = Nan::NewInstance(constructor, 1, args);
+
+    // FIXME(we should propage failure here)
+    if (instance.IsEmpty())
+        return Nan::Null();
+
     return instance.ToLocalChecked();
 }
 

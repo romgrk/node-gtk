@@ -24,10 +24,11 @@ void print_gobject (GObject *gobject) {
 void print_info (GIBaseInfo *base_info) {
     GIInfoType info_type = g_base_info_get_type (base_info);
 
-    printf("%s::\x1b[91m%s\x1b[0m: \t",
-            g_base_info_get_namespace (base_info),
-            g_base_info_get_name (base_info)
-            );
+    if (!GI_IS_TYPE_INFO (base_info))
+        printf("%s::\x1b[91m%s\x1b[0m: \t",
+                g_base_info_get_namespace (base_info),
+                g_base_info_get_name (base_info)
+                );
     printf("\x1b[0m(info_type == \x1b[93m %s\x1b[0m)\t",
             g_info_type_to_string (info_type));
     if (GI_IS_REGISTERED_TYPE_INFO(base_info)) {

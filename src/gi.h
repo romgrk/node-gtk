@@ -35,6 +35,7 @@ Local<Object> GetModuleCache();
 
 GQuark object_quark (void);
 GQuark template_quark (void);
+GQuark constructor_quark (void);
 
 
 /*

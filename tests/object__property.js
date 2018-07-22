@@ -4,6 +4,8 @@
 
 const gi = require('../lib')
 const Gtk = gi.require('Gtk', '3.0')
+const common = require('./__common__.js')
+
 Gtk.init()
 
 const win = new Gtk.Window()

@@ -5,6 +5,7 @@
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
 const Gdk = gi.require('Gdk', '3.0')
+const common = require('./__common__.js')
 
 gi.startLoop()
 Gtk.init()
@@ -20,8 +21,8 @@ Gtk.init()
   })
   button.setLabel('test')
 
-  console.assert(button.getLabel() === 'test', 'button.setLabel did not set the label, got: ' + button.getLabel())
-  console.assert(didNotify, 'notify::label not emitted')
+  common.assert(button.getLabel() === 'test', 'button.setLabel did not set the label, got: ' + button.getLabel())
+  common.assert(didNotify, 'notify::label not emitted')
 }
 
 console.log('done')

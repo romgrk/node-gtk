@@ -17,8 +17,9 @@ using GNodeJS::BaseInfo;
 
 namespace GNodeJS {
 
-    G_DEFINE_QUARK(gnode_js_object,   object);
-    G_DEFINE_QUARK(gnode_js_template, template);
+    G_DEFINE_QUARK(gnode_js_object,      object);
+    G_DEFINE_QUARK(gnode_js_template,    template);
+    G_DEFINE_QUARK(gnode_js_constructor, constructor);
 
     Nan::Persistent<Object> moduleCache(Nan::New<Object>());
 

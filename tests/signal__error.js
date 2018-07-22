@@ -5,6 +5,7 @@
 
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
+const common = require('./__common__.js')
 
 gi.startLoop()
 Gtk.init()
@@ -22,7 +23,7 @@ process.on('exit', (code) => {
 })
 process.on('uncaughtException', (err) => {
   console.log('Caught exception:', err.message)
-  console.assert(err.message === 'ok')
+  common.assert(err.message === 'ok')
   didThrow = true
   process.exit(0)
 })

@@ -3,7 +3,7 @@
  */
 
 const inspect = require('../lib/inspect.js')
-const libs = ['Gtk', 'Gdk', 'GLib', 'Soup', 'Clutter']
+const libs = ['Gtk', 'Gdk', 'GLib', 'Gio', 'Pango', 'Soup']
 
 console.log(libs)
 
@@ -24,10 +24,14 @@ typeNames.forEach(typeName => {
   types[typeName] = inspect.infos.filter(i => i.infoType === typeName)
 })
 
+global.gi = require('../lib/index.js')
 global.inspect = inspect
 global.infos = inspect.infos
 global.types = types
 global.logFn = i =>
-  i.type === 'function' ?
+  i.infoType === 'function' ?
     console.log(inspect.formatFunction(i)) :
     console.log(inspect.formatFunction(i.parent))
+global.logName = i =>
+  console.log(inspect.formatName(i))
+

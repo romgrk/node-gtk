@@ -5,6 +5,7 @@
 
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
+const common = require('./__common__.js')
 
 gi.startLoop()
 Gtk.init()
@@ -26,25 +27,25 @@ window.on('show', () => {
   {
     const result = entry.insertText(text, text.length, 0)
     console.log('Result:', result)
-    console.assert(result === 9)
+    common.assert(result === 9)
   }
 
   {
     const result = entry.getChars(0, -1)
     console.log('Result:', result)
-    console.assert(result === text)
+    common.assert(result === text)
   }
 
   {
     const result = entry.getPosition()
     console.log('Result:', result)
-    console.assert(result === 0)
+    common.assert(result === 0)
   }
 
   {
     const result = entry.editingCanceled
     console.log('Result:', result)
-    console.assert(result !== undefined)
+    common.assert(result !== undefined)
   }
 
   {
@@ -54,7 +55,7 @@ window.on('show', () => {
     })
     setTimeout(() => {
       console.log('Result:', result)
-      console.assert(result === true)
+      common.assert(result === true)
       process.exit(0)
     }, 100)
     entry.editingDone()

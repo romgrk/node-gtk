@@ -4,6 +4,7 @@
 
 const gi = require('../')
 const Gtk = gi.require('Gtk', '3.0');
+const common = require('./__common__.js')
 
 let didThrow = false
 
@@ -11,8 +12,8 @@ try {
   Gtk.acceleratorGetLabel()
 } catch (e) {
   didThrow = true
-  console.assert(e instanceof TypeError)
+  common.assert(e instanceof TypeError)
   console.log('Got expected error:', e.message)
 }
 
-console.assert(didThrow)
+common.assert(didThrow)
