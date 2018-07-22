@@ -52,21 +52,18 @@ matrix:
   include:
      # Linux
      - os: linux
-       compiler: clang
        env: NODE_VERSION="10" CC="gcc-8" CXX="g++-8"
        addons:
          apt:
             sources:  [ 'ubuntu-toolchain-r-test']
             packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
      - os: linux
-       compiler: clang
        env: NODE_VERSION="9" CC="gcc-8" CXX="g++-8"
        addons:
          apt:
             sources:  [ 'ubuntu-toolchain-r-test']
             packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
      - os: linux
-       compiler: clang
        env: NODE_VERSION="8" CC="gcc-8" CXX="g++-8"
        addons:
          apt:
@@ -76,7 +73,7 @@ matrix:
      # OS X
      - os: osx
        compiler: clang
-       env: NODE_VERSION="10" node abi 64
+       env: NODE_VERSION="10" # node abi 64
      - os: osx
        compiler: clang
        env: NODE_VERSION="9" # node abi 59
