@@ -1,8 +1,10 @@
 
 #include <string.h>
+
 #include "boxed.h"
-#include "function.h"
 #include "closure.h"
+#include "debug.h"
+#include "function.h"
 #include "gi.h"
 #include "gobject.h"
 #include "type.h"

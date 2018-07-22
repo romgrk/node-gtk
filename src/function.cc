@@ -619,6 +619,9 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     if (!jsReturnValue.IsEmpty()) {
         RETURN (jsReturnValue);
     }
+
+    // see src/callback.cc
+    Callback::AsyncFree();
 }
 
 void FunctionDestroyed(const v8::WeakCallbackInfo<FunctionInfo> &data) {

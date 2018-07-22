@@ -641,12 +641,11 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     if (value->IsUndefined () || value->IsNull ()) {
         arg->v_pointer = NULL;
 
-        bool is_void = type_tag == GI_TYPE_TAG_VOID && !g_type_info_is_pointer (type_info);
-
-        if (!may_be_null && !is_void) {
+        if (!may_be_null && type_tag != GI_TYPE_TAG_VOID) {
             Nan::ThrowTypeError("Trying to convert null/undefined value to GIArgument.");
             return false;
         }
+
         return true;
     }
 

@@ -52,17 +52,25 @@ common.describe('calls the callback (GDestroyNotify after, user_data)', () => {
   window.setDefaultSize(400, 50)
   window.on('show', Gtk.main)
   window.on('destroy', Gtk.mainQuit)
+
   const list = new Gtk.ListBox()
   list.setHeaderFunc((row, before) => {
     console.log('Called:', [row, before])
     didCall = true
     setImmediate(() => window.close())
   })
+
   const row = new Gtk.ListBoxRow()
   row.add(new Gtk.Label({ label: 'Label' }))
+
   list.prepend(row)
+
   window.add(list)
   window.showAll()
+
+  list.setHeaderFunc((row, before) => {
+    // Should free the previous callback now
+  })
 
   common.assert(didCall, 'not called')
 })
@@ -103,7 +111,6 @@ common.describe('return value', () => {
     }))
 
 })
-
 
 
 /*

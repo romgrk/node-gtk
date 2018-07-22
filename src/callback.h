@@ -24,8 +24,9 @@ struct Callback {
     Callback(Local<Function> function, GICallableInfo* info, GIArgInfo* arg_info);
     ~Callback();
 
-    static void DestroyNotify(void* user_data);
-    static void Call(ffi_cif *cif, void *result, void **args, gpointer user_data);
+    static void DestroyNotify (void* user_data);
+    static void AsyncFree ();
+    static void Call (ffi_cif *cif, void *result, void **args, gpointer user_data);
 };
 
 };

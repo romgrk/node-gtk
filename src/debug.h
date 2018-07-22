@@ -19,11 +19,23 @@
     while (0)
 
 #ifdef NDEBUG
+#define debug(...) do {} while(0)
+#else
+#define debug(...) \
+    do { \
+        printf("\x1b[1;38;5;226m[DEBUG] "); \
+        printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+    } while (0)
+#endif
+
+#ifdef NDEBUG
 #define warn(...) do {} while(0)
 #else
 #define warn(...) \
     do { \
-        printf("\x1b[1;38;5;202m"); \
+        printf("\x1b[1;38;5;202m[WARN] "); \
         printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
         printf(__VA_ARGS__); \
         printf("\n"); \
@@ -35,7 +47,7 @@
 #else
 #define log(...) \
     do { \
-        printf("\x1b[1;38;5;33m"); \
+        printf("\x1b[1;38;5;33m[INFO] "); \
         printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
         printf(__VA_ARGS__); \
         printf("\n"); \

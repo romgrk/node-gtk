@@ -21,6 +21,11 @@ using Nan::TryCatch;
 
 namespace GNodeJS {
 
+static bool isInsideCallback = false;
+
+static GSList* notifiedCallbacks = NULL;
+
+
 Callback::Callback(Local<Function> fn, GICallableInfo* callback_info, GIArgInfo* arg_info) {
     persistent.Reset(fn);
     info = g_base_info_ref (callback_info);
@@ -31,16 +36,44 @@ Callback::Callback(Local<Function> fn, GICallableInfo* callback_info, GIArgInfo*
 Callback::~Callback() {
     persistent.Reset();
     g_callable_info_free_closure (this->info, this->closure);
-    g_base_info_unref (info);
+    g_base_info_unref (this->info);
 }
 
 
-void Callback::DestroyNotify(void* user_data) {
-    Callback* callback = static_cast<Callback*>(user_data);
-    delete callback;
+/**
+ * Destroy notifier function. Might be called from within the callback, therefore
+ * we can't free the resources here. They'll be freed in Callback::AsyncFree.
+ */
+void Callback::DestroyNotify (void* user_data) {
+    if (isInsideCallback)
+        notifiedCallbacks = g_slist_prepend (notifiedCallbacks, user_data);
+    else
+        delete static_cast<Callback*>(user_data);
 }
 
-void Callback::Call(ffi_cif *cif, void *result, void **args, gpointer user_data) {
+/**
+ * Frees the callbacks that have been destroy-notified
+ */
+void Callback::AsyncFree () {
+    if (isInsideCallback || notifiedCallbacks == NULL)
+        return;
+
+    GSList* current = notifiedCallbacks;
+
+    while (current != NULL) {
+        Callback* callback = static_cast<Callback*>(current->data);
+        delete callback;
+
+        current = current->next;
+    }
+
+    notifiedCallbacks = NULL;
+}
+
+/**
+ * FFI closure callback
+ */
+void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data) {
     Callback *callback = static_cast<Callback *>(user_data);
 
     int n_native_args = g_callable_info_get_n_args(callback->info);
@@ -71,7 +104,9 @@ void Callback::Call(ffi_cif *cif, void *result, void **args, gpointer user_data)
     Context::Scope context_scope(context);
     Nan::TryCatch try_catch;
 
+    isInsideCallback = true;
     auto return_value = Nan::Call(function, self, n_native_args, js_args);
+    isInsideCallback = false;
 
     if (!return_value.IsEmpty()) {
         GITypeInfo type_info;
