@@ -95,7 +95,19 @@ before_install:
 install:
 # put node-pre-gyp on path
 - export PATH=./node_modules/.bin/:$PATH
-- source ./scripts/travis_install.sh
+- if [[ $(uname -s) == 'Darwin' ]]; then
+    brew install git node gtk+3 gobject-introspection glib libffi;
+
+    export PKG_CONFIG_PATH="$(locate libffi.pc)";
+
+    brew test -v libffi;
+    clang --version;
+    pkg-config --version;
+    which pkg-config;
+
+    pkg-config --cflags glib-2.0 gobject-introspection-1.0;
+  fi;
+- npm install --build-from-source
 
 before_script:
 # get commit message
