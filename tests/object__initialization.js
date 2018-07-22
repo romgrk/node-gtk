@@ -1,5 +1,5 @@
 /*
- * property_initialization__object.js
+ * object__initialization.js
  */
 
 
@@ -11,5 +11,8 @@ const message = new Soup.Message({
   method: 'GET',
   uri: new Soup.URI('http://google.com'),
 })
+
+common.expect(message.method, 'GET')
+common.assert(message.uri instanceof Soup.URI, 'message.uri not instanceof Soup.URI')
 
 console.log(message)
