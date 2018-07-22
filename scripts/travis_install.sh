@@ -7,7 +7,7 @@
 #
 
 if [[ $(uname -s) == 'Darwin' ]]; then
-    brew install git node gtk+3 gobject-introspection;
+    brew install git node gtk+3 gobject-introspection glib;
 fi;
 
 npm install --build-from-source
