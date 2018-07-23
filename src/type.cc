@@ -142,37 +142,29 @@ gsize GetTypeSize (GITypeInfo *type_info) {
             info = g_type_info_get_interface (type_info);
             info_type = g_base_info_get_type (info);
 
+            size = sizeof (gpointer);
+
             switch (info_type) {
                 case GI_INFO_TYPE_STRUCT:
-                    if (g_type_info_is_pointer (type_info)) {
-                        size = sizeof (gpointer);
-                    } else {
+                    if (!g_type_info_is_pointer (type_info)) {
                         size = g_struct_info_get_size ( (GIStructInfo *) info);
                     }
                     break;
                 case GI_INFO_TYPE_UNION:
-                    if (g_type_info_is_pointer (type_info)) {
-                        size = sizeof (gpointer);
-                    } else {
+                    if (!g_type_info_is_pointer (type_info)) {
                         size = g_union_info_get_size ( (GIUnionInfo *) info);
                     }
                     break;
                 case GI_INFO_TYPE_ENUM:
                 case GI_INFO_TYPE_FLAGS:
-                    if (g_type_info_is_pointer (type_info)) {
-                        size = sizeof (gpointer);
-                    } else {
-                        GITypeTag type_tag;
-
-                        type_tag = g_enum_info_get_storage_type ( (GIEnumInfo *) info);
-                        size = GetTypeTagSize (type_tag);
+                    if (!g_type_info_is_pointer (type_info)) {
+                        size = GetTypeTagSize (g_enum_info_get_storage_type ( (GIEnumInfo *) info));
                     }
                     break;
                 case GI_INFO_TYPE_BOXED:
                 case GI_INFO_TYPE_OBJECT:
                 case GI_INFO_TYPE_INTERFACE:
                 case GI_INFO_TYPE_CALLBACK:
-                    size = sizeof (gpointer);
                     break;
                 case GI_INFO_TYPE_VFUNC:
                 case GI_INFO_TYPE_FUNCTION:
@@ -202,7 +194,7 @@ gsize GetTypeSize (GITypeInfo *type_info) {
         case GI_TYPE_TAG_GSLIST:
         case GI_TYPE_TAG_GHASH:
         case GI_TYPE_TAG_ERROR:
-            size = sizeof(void*);
+            size = sizeof(gpointer);
             break;
     }
 
@@ -210,39 +202,37 @@ gsize GetTypeSize (GITypeInfo *type_info) {
 }
 
 gsize GetTypeTagSize (GITypeTag type_tag) {
-    gsize size = 0;
-
     switch (type_tag) {
         case GI_TYPE_TAG_BOOLEAN:
-            size = sizeof (gboolean);
+            return sizeof (gboolean);
             break;
         case GI_TYPE_TAG_INT8:
         case GI_TYPE_TAG_UINT8:
-            size = sizeof (gint8);
+            return sizeof (gint8);
             break;
         case GI_TYPE_TAG_INT16:
         case GI_TYPE_TAG_UINT16:
-            size = sizeof (gint16);
+            return sizeof (gint16);
             break;
         case GI_TYPE_TAG_INT32:
         case GI_TYPE_TAG_UINT32:
-            size = sizeof (gint32);
+            return sizeof (gint32);
             break;
         case GI_TYPE_TAG_INT64:
         case GI_TYPE_TAG_UINT64:
-            size = sizeof (gint64);
+            return sizeof (gint64);
             break;
         case GI_TYPE_TAG_FLOAT:
-            size = sizeof (gfloat);
+            return sizeof (gfloat);
             break;
         case GI_TYPE_TAG_DOUBLE:
-            size = sizeof (gdouble);
+            return sizeof (gdouble);
             break;
         case GI_TYPE_TAG_GTYPE:
-            size = sizeof (GType);
+            return sizeof (GType);
             break;
         case GI_TYPE_TAG_UNICHAR:
-            size = sizeof (gunichar);
+            return sizeof (gunichar);
             break;
         case GI_TYPE_TAG_VOID:
         case GI_TYPE_TAG_UTF8:
@@ -256,7 +246,7 @@ gsize GetTypeTagSize (GITypeTag type_tag) {
             g_assert_not_reached ();
     }
 
-    return size;
+    return 0;
 }
 
 GITypeTag GetStorageType (GITypeInfo *type_info) {
@@ -264,17 +254,14 @@ GITypeTag GetStorageType (GITypeInfo *type_info) {
 
     if (type_tag == GI_TYPE_TAG_INTERFACE) {
         GIBaseInfo *interface = g_type_info_get_interface (type_info);
-        switch (g_base_info_get_type (interface)) {
-            case GI_INFO_TYPE_ENUM:
-            case GI_INFO_TYPE_FLAGS:
-                type_tag = g_enum_info_get_storage_type ((GIEnumInfo *)interface);
-                break;
-            default:
-                /* FIXME: we might have something to do for other types */
-                break;
-        }
+        GIInfoType interface_type = g_base_info_get_type (interface);
+
+        if (interface_type == GI_INFO_TYPE_ENUM || interface_type == GI_INFO_TYPE_FLAGS)
+            type_tag = g_enum_info_get_storage_type ((GIEnumInfo *)interface);
+
         g_base_info_unref (interface);
     }
+
     return type_tag;
 }
 
