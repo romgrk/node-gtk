@@ -27,7 +27,7 @@ function assert(condition, message) {
 
 function expect(value, expected) {
   assert(value === expected,
-    `Expected: "${expected}"\nActual: "${value}"`)
+    `Expected: "${expected}", got: "${value}"`)
 }
 
 function describe(message, fn) {
@@ -112,7 +112,7 @@ function _error(...args) {
 function _failed(...args) {
   let description = _getDescription()
   if (description)
-    console.error(`${chalk.red.bold('Failed:')} ${chalk.bold(description)}`,
+    console.error(`${chalk.red.bold('Failed:')} ${chalk.bold(description)}`
       + (args.length > 0 ? ':' : ''), ...args)
   else
     console.error(chalk.red.bold('Failed:'), ...args)
