@@ -24,6 +24,7 @@ common.describe('with constructor (arguments)', () => {
 
   common.it('works', () => {
     const gradient = new Gtk.Gradient(0.1, 0.5, 2, 3)
+    console.log(gradient.toString())
   })
 
   common.it('fails when missing arguments',
@@ -34,8 +35,13 @@ common.describe('with constructor (arguments)', () => {
 
 common.describe('without constructor, size > 0', () => {
   const rgba = new Gdk.RGBA()
+  rgba.red = 200 / 255
+  const string = rgba.toString()
 
   console.log('Result:', rgba)
+  console.log(string)
+
+  common.expect(string, 'rgba(200,0,0,0)')
   common.assert(rgba instanceof Gdk.RGBA, 'result not instanceof Gdk.RGBA')
 })
 
