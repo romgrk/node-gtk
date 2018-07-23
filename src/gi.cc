@@ -112,10 +112,6 @@ NAN_METHOD(Bootstrap) {
     info.GetReturnValue().Set(module_obj);
 }
 
-NAN_METHOD(GetModuleCache) {
-    info.GetReturnValue().Set(Nan::New<Object>(GNodeJS::moduleCache));
-}
-
 NAN_METHOD(GetConstantValue) {
     GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
     GITypeInfo *type = g_constant_info_get_type ((GIConstantInfo *) gi_info);
@@ -304,17 +300,6 @@ NAN_METHOD(StartLoop) {
     GNodeJS::StartLoop ();
 }
 
-NAN_METHOD(PointerToString) {
-    if (info[0]->ToObject()->InternalFieldCount() == 0) {
-        Nan::ThrowReferenceError("Object doesnt have any internal field.");
-        return;
-    }
-    void *boxed = GNodeJS::BoxedFromWrapper(info[0]);
-    char *address = g_strdup_printf("%#zx", (unsigned long)boxed);
-    info.GetReturnValue().Set(UTF8(address));
-    g_free(address);
-}
-
 NAN_METHOD(InternalFieldCount) {
     Local<Object> obj = info[0].As<Object>();
     RETURN(obj->InternalFieldCount());
@@ -337,6 +322,10 @@ NAN_METHOD(GetLoopStack) {
     info.GetReturnValue().Set(stack);
 }
 
+NAN_METHOD(GetModuleCache) {
+    info.GetReturnValue().Set(Nan::New<Object>(GNodeJS::moduleCache));
+}
+
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetModuleCache);
@@ -350,7 +339,6 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, ObjectPropertyGetter);
     NAN_EXPORT(exports, ObjectPropertySetter);
     NAN_EXPORT(exports, StartLoop);
-    NAN_EXPORT(exports, PointerToString);
     NAN_EXPORT(exports, InternalFieldCount);
     NAN_EXPORT(exports, GetBaseClass);
     NAN_EXPORT(exports, GetTypeSize);
