@@ -170,7 +170,7 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
 
         Nan::DefineOwnProperty(self,
                 UTF8("__gtype__"),
-                Nan::New<Number>(g_registered_type_info_get_g_type(gi_info)),
+                Nan::New<Number>(gtype),
                 (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
         );
 
