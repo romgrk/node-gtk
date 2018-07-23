@@ -7,6 +7,7 @@
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
+#include "macros.h"
 #include "type.h"
 #include "util.h"
 #include "value.h"
@@ -344,9 +345,7 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
     return tpl;
 }
 
-static Local<FunctionTemplate> NewClassTemplate (GIBaseInfo *info) {
-    const GType gtype = g_registered_type_info_get_g_type (info);
-
+static Local<FunctionTemplate> NewClassTemplate (GIBaseInfo *info, GType gtype) {
     g_assert(gtype != G_TYPE_NONE);
 
     const char *class_name = g_type_name (gtype);
@@ -366,32 +365,34 @@ static Local<FunctionTemplate> NewClassTemplate (GIBaseInfo *info) {
     return tpl;
 }
 
-static Local<FunctionTemplate> GetClassTemplate(GType gtype) {
+static Local<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType gtype) {
     void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
 
     if (data) {
         auto *persistent = (Persistent<FunctionTemplate> *) data;
         auto tpl = New<FunctionTemplate> (*persistent);
         return tpl;
-
-    } else {
-        GIBaseInfo *gi_info = g_irepository_find_by_gtype(NULL, gtype);
-
-        auto tpl = NewClassTemplate(gi_info);
-        auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
-        persistent->SetWeak (
-                g_base_info_ref (gi_info),
-                GNodeJS::ClassDestroyed,
-                WeakCallbackType::kParameter);
-
-        g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
-        return tpl;
     }
+
+    if (gi_info == NULL)
+        gi_info = g_irepository_find_by_gtype(NULL, gtype);
+
+    assert_printf (gi_info != NULL, "Missing GIR info for: %s\n", g_type_name (gtype));
+
+    auto tpl = NewClassTemplate(gi_info, gtype);
+    auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
+    persistent->SetWeak (
+            g_base_info_ref (gi_info),
+            GNodeJS::ClassDestroyed,
+            WeakCallbackType::kParameter);
+
+    g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
+    return tpl;
 }
 
 static Local<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
-    return GetClassTemplate(gtype);
+    return GetClassTemplate(info, gtype);
 }
 
 Local<Function> MakeClass(GIBaseInfo *info) {
@@ -413,9 +414,9 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
 
     } else {
         GType gtype = G_OBJECT_TYPE(gobject);
-        g_type_ensure(gtype); //void *klass = g_type_class_ref (type);
+        g_type_ensure (gtype); //void *klass = g_type_class_ref (type);
 
-        auto tpl = GetClassTemplate(gtype);
+        auto tpl = GetClassTemplate(NULL, gtype);
         Local<Function> constructor = tpl->GetFunction ();
         Local<Value> gobject_external = New<External> (gobject);
         Local<Value> args[] = { gobject_external };
