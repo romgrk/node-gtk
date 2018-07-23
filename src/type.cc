@@ -253,12 +253,7 @@ gsize GetTypeTagSize (GITypeTag type_tag) {
         case GI_TYPE_TAG_GSLIST:
         case GI_TYPE_TAG_GHASH:
         case GI_TYPE_TAG_ERROR:
-            char * msg = g_strdup_printf(
-                    "Unable to know the size (assuming %s is not a pointer)",
-                    g_type_tag_to_string (type_tag));
-            Nan::ThrowTypeError(msg);
-            g_free(msg);
-            break;
+            g_assert_not_reached ();
     }
 
     return size;
