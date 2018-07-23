@@ -169,9 +169,9 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         AssociateGObject (isolate, self, gobject);
 
         Nan::DefineOwnProperty(self,
-                Nan::New<String>("__gtype__").ToLocalChecked(),
+                UTF8("__gtype__"),
                 Nan::New<Number>(g_registered_type_info_get_g_type(gi_info)),
-                v8::PropertyAttribute::ReadOnly
+                (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
         );
 
     out:
