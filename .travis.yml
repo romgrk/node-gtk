@@ -100,7 +100,7 @@ install:
 
     locate libffi.pc;
 
-    export PKG_CONFIG_PATH="$(locate libffi.pc)";
+    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/Cellar/libffi/3.2.1/lib/pkgconfig/libffi.pc
 
     brew test -v libffi;
     clang --version;
