@@ -1,35 +1,3 @@
-# language: node_js
-# node_js:
-# - lts/*
-# - node # latest
-
-# os: linux
-# sudo: false
-
-# env:
-  # global:
-    # - CC=gcc-8
-    # - CXX=g++-8
-
-# addons:
-  # apt:
-    # sources:
-    # - ubuntu-toolchain-r-test
-    # packages:
-    # - xvfb
-    # - libgirepository1.0-dev
-    # - gobject-introspection
-    # - build-essential
-    # - g++-8
-
-# install:
-# - npm install --build-from-source
-
-# script:
-# - npm run build
-
-##################
-
 sudo: false
 
 language: generic
@@ -52,29 +20,33 @@ matrix:
   include:
      # Linux
      - os: linux
+       dist: trusty
        env: NODE_VERSION="10" CC="gcc-8" CXX="g++-8"
        addons:
          apt:
             sources:  [ 'ubuntu-toolchain-r-test']
-            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
+            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8', 'gtk+3.0' ]
      - os: linux
+       dist: trusty
        env: NODE_VERSION="9" CC="gcc-8" CXX="g++-8"
        addons:
          apt:
             sources:  [ 'ubuntu-toolchain-r-test']
-            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
+            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8', 'gtk+3.0' ]
      - os: linux
+       dist: trusty
        env: NODE_VERSION="8" CC="gcc-8" CXX="g++-8"
        addons:
          apt:
             sources:  [ 'ubuntu-toolchain-r-test']
-            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
+            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8', 'gtk+3.0' ]
      - os: linux
+       dist: trusty
        env: NODE_VERSION="7" CC="gcc-8" CXX="g++-8"
        addons:
          apt:
             sources:  [ 'ubuntu-toolchain-r-test']
-            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8' ]
+            packages: [ 'xvfb', 'libgirepository1.0-dev', 'gobject-introspection', 'build-essential', 'g++-8', 'gtk+3.0' ]
 
      # OS X
      - os: osx
