@@ -106,6 +106,9 @@ install:
     clang --version;
     pkg-config --version;
     which pkg-config;
+    echo $PKG_CONFIG_PATH
+
+    find /usr/local/Cellar/libffi/3.2.1/ -type f
 
     pkg-config --cflags glib-2.0 gobject-introspection-1.0;
   fi;
