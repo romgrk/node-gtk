@@ -30,9 +30,12 @@ function publish() {
 # test installing from source
 if [[ $PUBLISH_BINARIES == false ]] && [[ $REPUBLISH_BINARIES == false ]]; then
     npm install --build-from-source
+    find ./lib -type f
+    find ./build -type f
     npm test
 else
     echo "Building binaries for publishing"
     npm install --build-from-source
     npm test
+    publish
 fi

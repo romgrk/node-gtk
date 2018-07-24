@@ -103,6 +103,7 @@ install:
 - export PATH=./node_modules/.bin/:$PATH
 - if [[ $(uname -s) == 'Darwin' ]]; then
     brew install git node gtk+3 gobject-introspection glib;
+    clang --version;
   fi;
 
 before_script:
