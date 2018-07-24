@@ -96,11 +96,11 @@ install:
 # put node-pre-gyp on path
 - export PATH=./node_modules/.bin/:$PATH
 - if [[ $(uname -s) == 'Darwin' ]]; then
-    brew install git node gtk+3 gobject-introspection glib libffi;
+    brew install git node gtk+3 gobject-introspection glib;
 
     locate libffi.pc;
 
-    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/Cellar/libffi/3.2.1/lib/pkgconfig/libffi.pc
+    export PKG_CONFIG_PATH=/usr/local/Cellar/libffi/3.2.1/lib/pkgconfig/
 
     brew test -v libffi;
     clang --version;
@@ -108,7 +108,7 @@ install:
     which pkg-config;
     echo $PKG_CONFIG_PATH
 
-    find /usr/local/Cellar/libffi/3.2.1/ -type f
+    find /usr/local/Cellar/libffi/3.2.1 -type f
 
     pkg-config --cflags glib-2.0 gobject-introspection-1.0;
   fi;
