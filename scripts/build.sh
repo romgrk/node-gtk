@@ -46,6 +46,7 @@ if [[ $PUBLISH_BINARIES == false ]] && [[ $REPUBLISH_BINARIES == false ]]; then
     find ./lib -type f
     find ./build -type f
     node -p 'process.platform'
+    node -p '(gi=require("."), gi.require("Gtk"))' || true
     npm_test
 else
     echo "### Building binaries for publishing ###"
