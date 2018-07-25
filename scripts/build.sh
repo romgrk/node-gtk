@@ -16,6 +16,7 @@ fi;
 
 
 function publish() {
+    echo "### Publish ###"
     if [[ $PUBLISH_BINARIES == true ]]; then
         node-pre-gyp package testpackage;
         node-pre-gyp publish;
@@ -27,16 +28,28 @@ function publish() {
     fi;
 }
 
+function npm_test() {
+    echo "### Running tests ###";
+
+    node -p 'console.log(require("./lib/native.js").Bootstrap())'
+
+    if [[ $(uname -s) == 'Darwin' ]]; then
+        npm test;
+    else
+        xvfb-run -a npm test;
+    fi;
+}
+
 # test installing from source
 if [[ $PUBLISH_BINARIES == false ]] && [[ $REPUBLISH_BINARIES == false ]]; then
     npm install --build-from-source
     find ./lib -type f
     find ./build -type f
     node -p 'process.platform'
-    xvfb-run -a npm test
+    npm_test
 else
-    echo "Building binaries for publishing"
+    echo "### Building binaries for publishing ###"
     npm install --build-from-source
-    xvfb-run -a npm test
+    npm_test
     publish
 fi
