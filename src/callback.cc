@@ -21,7 +21,7 @@ using Nan::TryCatch;
 
 namespace GNodeJS {
 
-static bool isInsideCallback = false;
+static unsigned int callbackLevel = 0;
 
 static GSList* notifiedCallbacks = NULL;
 
@@ -45,17 +45,14 @@ Callback::~Callback() {
  * we can't free the resources here. They'll be freed in Callback::AsyncFree.
  */
 void Callback::DestroyNotify (void* user_data) {
-    if (isInsideCallback)
-        notifiedCallbacks = g_slist_prepend (notifiedCallbacks, user_data);
-    else
-        delete static_cast<Callback*>(user_data);
+    notifiedCallbacks = g_slist_prepend (notifiedCallbacks, user_data);
 }
 
 /**
  * Frees the callbacks that have been destroy-notified
  */
 void Callback::AsyncFree () {
-    if (isInsideCallback || notifiedCallbacks == NULL)
+    if (notifiedCallbacks == NULL || callbackLevel > 0)
         return;
 
     GSList* current = notifiedCallbacks;
@@ -104,9 +101,9 @@ void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data
     Context::Scope context_scope(context);
     Nan::TryCatch try_catch;
 
-    isInsideCallback = true;
+    callbackLevel++;
     auto return_value = Nan::Call(function, self, n_native_args, js_args);
-    isInsideCallback = false;
+    callbackLevel--;
 
     if (!return_value.IsEmpty()) {
         GITypeInfo type_info;
