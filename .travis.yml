@@ -80,8 +80,8 @@ install:
     clang --version;
   fi;
 - if [[ $(uname -s) == 'Linux' ]]; then
-    apt-cache policy gtk+3.0
-    apt-cache policy gir1.2-gtk-3.0
+    apt-cache policy gtk+3.0;
+    apt-cache policy gir1.2-gtk-3.0;
   fi;
 
 before_script:
