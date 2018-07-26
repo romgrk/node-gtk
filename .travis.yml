@@ -82,6 +82,27 @@ install:
 - if [[ $(uname -s) == 'Linux' ]]; then
     sudo echo 'deb http://mirror.servers.com/ubuntu/ xenial main restricted universe' >> /etc/apt/sources.list;
     sudo echo 'deb http://security.ubuntu.com/ubuntu/ xenial-security main restricted universe' >> /etc/apt/sources.list;
+
+    sudo add-apt-repository ppa:ubuntu-toolchain-r/test;
+
+    sudo echo 'Package: *' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+    sudo echo 'Pin: release n=xenial' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+    sudo echo 'Pin-Priority: -10' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+
+    sudo echo 'Package: gtk+3.0' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+    sudo echo 'Pin: release n=xenial' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+    sudo echo 'Pin-Priority: 500' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+
+    sudo echo 'Package: libgtk-3-dev' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+    sudo echo 'Pin: release n=xenial' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+    sudo echo 'Pin-Priority: 500' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+
+    sudo echo 'Package: gir1.2-gtk-3.0' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+    sudo echo 'Pin: release n=xenial' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+    sudo echo 'Pin-Priority: 500' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
+
+    sudo apt-get update;
+    sudo apt-get install xvfb libgirepository1.0-dev gobject-introspection build-essential g++-8 gtk+3.0 libgtk-3-dev gir1.2-gtk-3.0 libsoup2.4 gir1.2-soup-2.4;
   fi;
 
 before_script:
