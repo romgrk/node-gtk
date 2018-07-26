@@ -69,7 +69,7 @@ install:
       sudo echo 'deb http://mirror.servers.com/ubuntu/ xenial main restricted universe' >> /etc/apt/sources.list;
       sudo echo 'deb http://security.ubuntu.com/ubuntu/ xenial-security main restricted universe' >> /etc/apt/sources.list;
 
-      sudo add-apt-repository ppa:ubuntu-toolchain-r/test;
+      sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y;
 
       sudo echo 'Package: *' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
       sudo echo 'Pin: release n=xenial' >> /etc/apt/preferences.d/xenial-gtk-pinning.pref;
