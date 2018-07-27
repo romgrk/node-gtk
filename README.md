@@ -12,7 +12,7 @@ It uses the GObject Introspection library (as PyGObject, for example), so any go
 Please note this project is currently in _beta_ state and is being developped. Any contributors willing to help
 will be welcomed.
 
-Supported Node.js versions: **8**, **9**, **10** (other versions might work but are untested)
+Supported Node.js versions: **8**, **9**, **10**
 
 ![Browser demo](img/browser.png)
 [Browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)

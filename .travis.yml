@@ -33,9 +33,6 @@ matrix:
      - os: linux
        dist: trusty
        env: NODE_VERSION="8" CC="gcc-8" CXX="g++-8"
-     - os: linux
-       dist: trusty
-       env: NODE_VERSION="7" CC="gcc-8" CXX="g++-8"
 
      # OS X
      - os: osx
@@ -47,9 +44,6 @@ matrix:
      - os: osx
        compiler: clang
        env: NODE_VERSION="8" # node abi 57
-     - os: osx
-       compiler: clang
-       env: NODE_VERSION="7" # node abi 51
 
 
 env:
