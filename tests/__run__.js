@@ -14,7 +14,7 @@ files.forEach(file => {
   it(file, function(done) {
     this.timeout(15000)
 
-    const cmd = `node ${path.join(__dirname, file)}`
+    const cmd = `node --expose-gc ${path.join(__dirname, file)}`
     const options = {
       maxBuffer: 10 * 1024 * 1024,
     }
