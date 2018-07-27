@@ -3,47 +3,31 @@
  */
 
 const gi = require('../lib/')
+const Soup = gi.require('Soup')
 const Gtk = gi.require('Gtk', '3.0')
+const Gdk = gi.require('Gdk', '3.0')
+const GdkPixbuf = gi.require('GdkPixbuf')
 const common = require('./__common__.js')
 
 gi.startLoop()
-Gtk.init(null, 0)
+Gtk.init()
 
-const window = new Gtk.Window({
-  type : Gtk.WindowType.TOPLEVEL
+common.describe('GSList conversion', () => {
+  common.it('works for arguments and return values', () => {
+
+    const icons = [
+      new GdkPixbuf.Pixbuf(),
+      new GdkPixbuf.Pixbuf(),
+      new GdkPixbuf.Pixbuf(),
+    ]
+
+    const window = new Gtk.Window()
+    window.setIconList(icons)
+    const result = window.getIconList()
+    console.log('Result:', result)
+    common.assert(result.length === 3, 'result.length is not 3')
+    common.assert(result[0] instanceof GdkPixbuf.Pixbuf, 'result[0] not instanceof GdkPixbuf.Pixbuf')
+    common.assert(result[1] instanceof GdkPixbuf.Pixbuf, 'result[1] not instanceof GdkPixbuf.Pixbuf')
+    common.assert(result[2] instanceof GdkPixbuf.Pixbuf, 'result[2] not instanceof GdkPixbuf.Pixbuf')
+  })
 })
-
-const flowBox = new Gtk.FlowBox()
-
-const button = {
-  back:    Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK),
-  forward: Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_FORWARD),
-  refresh: Gtk.ToolButton.newFromStock(Gtk.STOCK_REFRESH),
-}
-
-// where the URL is written and shown
-const urlBar = new Gtk.Entry()
-
-flowBox.add(button.back)
-flowBox.add(button.forward)
-flowBox.add(button.refresh)
-flowBox.add(urlBar)
-
-// configure main window
-window.setDefaultSize(400, 100)
-window.setResizable(true)
-window.connect('show', () => {
-  setTimeout(() => {
-    const list = flowBox.getSelectedChildren()
-    console.log(list)
-    Gtk.mainQuit()
-  }, 50)
-  Gtk.main()
-})
-
-window.connect('destroy', () => Gtk.mainQuit())
-window.connect('delete-event', () => false)
-
-// add vertical ui and show them all
-window.add(flowBox)
-window.showAll()
