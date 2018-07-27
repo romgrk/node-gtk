@@ -13,14 +13,14 @@ Gtk.init()
 const window = new Gtk.Window({
   type : Gtk.WindowType.TOPLEVEL
 })
-const flowBox = new Gtk.FlowBox()
+const hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL })
 const button = new Gtk.Button()
 const urlBar = new Gtk.Entry()
 
-flowBox.add(button)
-flowBox.add(urlBar)
+hbox.packStart(button, false, false, 0)
+hbox.packStart(urlBar, true,  true,  0)
 
-window.add(flowBox)
+window.add(hbox)
 
 // configure main window
 window.setDefaultSize(400, 100)
@@ -28,8 +28,7 @@ window.setResizable(true)
 
 window.on('destroy', () => Gtk.mainQuit())
 window.on('delete-event', () => false)
-
-setTimeout(() => {
+window.on('show', () => {
   // Run our tests
   let count = 0
   const onClick = (widget, event) => {
@@ -40,7 +39,6 @@ setTimeout(() => {
   button.clicked()
   if (count !== 1) {
       console.error('Expected count to be equal to 1 (after .on)')
-      Gtk.mainQuit()
       process.exit(1)
   }
 
@@ -48,7 +46,6 @@ setTimeout(() => {
   button.clicked()
   if (count !== 1) {
       console.error('Expected count to be equal to 1 (after .off)')
-      Gtk.mainQuit()
       process.exit(1)
   }
 
@@ -57,13 +54,12 @@ setTimeout(() => {
   button.clicked()
   if (count !== 2) {
       console.error('Expected count to be equal to 2 (after .once)')
-      Gtk.mainQuit()
       process.exit(1)
   }
 
-  Gtk.mainQuit()
+  console.log('Done')
   process.exit(0)
+})
 
-}, 100)
-
+window.showAll()
 Gtk.main()

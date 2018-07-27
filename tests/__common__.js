@@ -10,6 +10,7 @@ module.exports = {
   describe,
   it,
   mustThrow,
+  skip,
 }
 
 let calledIt
@@ -65,7 +66,11 @@ function mustThrow(message, fn) {
     try {
       fn()
     } catch(e) {
-      if (e.message !== message) {
+      const isExpectedMessage = typeof message === 'string' ?
+        e.message === message :
+        message.test(e.message)
+
+      if (!isExpectedMessage) {
         _failed(`Expected message to be "${message}", got "${e.message}"`)
         process.exit(1)
       }
@@ -76,6 +81,10 @@ function mustThrow(message, fn) {
       process.exit(1)
     }
   }
+}
+
+function skip() {
+  process.exit(222)
 }
 
 
