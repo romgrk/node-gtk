@@ -12,7 +12,8 @@ const files = fs.readdirSync(__dirname).filter(f => !path.basename(f).startsWith
 files.forEach(file => {
 
   it(file, function(done) {
-    this.timeout(15000)
+    const currentTest = this
+    currentTest.timeout(15000)
 
     const cmd = `node --expose-gc ${path.join(__dirname, file)}`
     const options = {
@@ -22,6 +23,9 @@ files.forEach(file => {
     child_process.exec(cmd, options, (error, stdout, stderr) => {
       if (!error)
         return done()
+
+      if (error.code === 222)
+        return currentTest.skip()
 
       if (!error.message.includes('Command failed'))
         return done(error)

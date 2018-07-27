@@ -9,6 +9,10 @@ const common = require('./__common__.js')
 
 Gtk.init()
 
+
+common.skip()
+
+
 const label = new Gtk.Label({ label: 0 })
 
 const attrs = new Pango.AttrList()
@@ -18,4 +22,3 @@ attrSize.size = 300
 attrs.insert(attrSize)
 
 label.attributes = attrs
-// label.setAttributes(attrs)
