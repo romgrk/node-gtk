@@ -32,7 +32,6 @@
   "homepage": "https://github.com/romgrk/node-gtk#readme",
   "dependencies": {
     "lodash.camelcase": "4.3.0",
-    "lodash.snakecase": "4.1.1",
     "nan": "^2.10.0",
     "node-gyp": "3.3.1",
     "node-pre-gyp": "0.10.2",

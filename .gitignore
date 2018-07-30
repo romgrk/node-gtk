@@ -6,7 +6,6 @@
 \#*\#
 
 npm-debug.log
-package-lock.json
 
 build/
 node_modules/
