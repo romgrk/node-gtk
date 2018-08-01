@@ -31,11 +31,10 @@ function publish() {
 function npm_test() {
     echo "### Running tests ###";
 
-    node ./tests/conversion__callback.js
-
     if [[ $(uname -s) == 'Darwin' ]]; then
         npm test;
     else
+        xvfb-run -a node ./tests/conversion__callback.js
         xvfb-run -a npm test;
     fi;
 }
