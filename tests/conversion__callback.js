@@ -57,7 +57,10 @@ common.describe('calls the callback (GDestroyNotify after, user_data)', () => {
   list.setHeaderFunc((row, before) => {
     console.log('Called:', [row, before])
     didCall = true
-    setImmediate(() => window.close())
+    setTimeout(() => {
+      window.close()
+      Gtk.mainQuit()
+    }, 10)
   })
 
   const row = new Gtk.ListBoxRow()
