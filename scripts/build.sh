@@ -34,7 +34,6 @@ function npm_test() {
     if [[ $(uname -s) == 'Darwin' ]]; then
         npm test;
     else
-        xvfb-run -a node ./tests/conversion__callback.js
         xvfb-run -a npm test;
     fi;
 }
