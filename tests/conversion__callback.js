@@ -57,7 +57,10 @@ common.describe('calls the callback (GDestroyNotify after, user_data)', () => {
   list.setHeaderFunc((row, before) => {
     console.log('Called:', [row, before])
     didCall = true
-    setImmediate(() => window.close())
+    setTimeout(() => {
+      window.close()
+      Gtk.mainQuit()
+    }, 10)
   })
 
   const row = new Gtk.ListBoxRow()
@@ -117,16 +120,28 @@ common.describe('return value', () => {
  * propagates exceptions
  */
 {
+
+  const loop = new GLib.MainLoop(null, false);
+
+  const timeout = setTimeout(() => {
+    console.log('Timeout quitting loop')
+    loop.quit()
+    process.exit(1)
+  }, 500)
+  timeout.unref()
+
   process.on('uncaughtException', (error) => {
     common.expect(error.message, 'test')
 
     console.log('Success: exceptions in callbacks are thrown')
+    clearTimeout(timeout)
+    process.exit(0)
   })
 
-  const loop = new GLib.MainLoop(null, false);
   const task = Gio.Task.new(undefined, undefined, (object, result, user_data) => {
     throw new Error('test')
   })
   task.returnBoolean(true);
+
   loop.run()
 }

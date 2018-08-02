@@ -31,8 +31,6 @@ function publish() {
 function npm_test() {
     echo "### Running tests ###";
 
-    node -p 'console.log(require("./lib/native.js").Bootstrap())'
-
     if [[ $(uname -s) == 'Darwin' ]]; then
         npm test;
     else
@@ -43,10 +41,6 @@ function npm_test() {
 # test installing from source
 if [[ $PUBLISH_BINARIES == false ]] && [[ $REPUBLISH_BINARIES == false ]]; then
     npm install --build-from-source
-    find ./lib -type f
-    find ./build -type f
-    node -p 'process.platform'
-    node -e 'const gi=require("."); const gtk = gi.require("Gtk"); console.log(gtk);' || true
     npm_test
 else
     echo "### Building binaries for publishing ###"
