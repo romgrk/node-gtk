@@ -23,7 +23,8 @@ function publish() {
         node-pre-gyp info;
     elif [[ $REPUBLISH_BINARIES == true ]]; then
         node-pre-gyp package testpackage;
-        node-pre-gyp republish;
+        node-pre-gyp unpublish;
+        node-pre-gyp publish;
         node-pre-gyp info;
     fi;
 }
