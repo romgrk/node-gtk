@@ -13,6 +13,7 @@ Please note this project is currently in _beta_ state and is being developped. A
 will be welcomed.
 
 Supported Node.js versions: **8**, **9**, **10**
+Pre-built binaries available for: Linux, OS X
 
 ![Browser demo](img/browser.png)
 [Browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
