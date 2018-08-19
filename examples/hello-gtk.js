@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const GNode = require('../lib/')
-const Gtk = GNode.require('Gtk')
+const Gtk = GNode.require('Gtk', '3.0')
 
 GNode.startLoop()
 Gtk.init()
