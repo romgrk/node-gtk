@@ -22,10 +22,10 @@ Pre-built binaries available for: **Linux**, **OS X**
 
 - [Example](#example)
 - [Documentation](#documentation)
-    + [Exports](#exports)
-    + [Signals (event handlers)](#signals-event-handlers)
-    + [Gtk](#gtk)
-    + [Naming conventions](#naming-conventions)
+  * [Exports](#exports)
+  * [Signals (event handlers)](#signals-event-handlers)
+  * [Gtk](#gtk)
+  * [Naming conventions](#naming-conventions)
 - [Installing and building](#installing-and-building)
   * [Target Platforms (so far)](#target-platforms-so-far)
   * [Common dependencies](#common-dependencies)
@@ -63,23 +63,54 @@ Gtk.main();
 
 ## Documentation
 
-#### Exports
+### Exports
 
-This module exports a single `require` function:
+<dl>
+<dt><a href="#require">require(ns, [version])</a> ⇒ <code>Object</code></dt>
+<dd><p>Requires a module. Automatically loads dependencies.</p></dd>
+<dt><a href="#prependSearchPath">prependSearchPath(path)</a></dt>
+<dd><p>Prepends a path to GObject-Introspection search path (for typelibs)</p>
+</dd>
+<dt><a href="#prependLibraryPath">prependLibraryPath(path)</a></dt>
+<dd><p>Prepends a path to GObject-Introspection library path (for shared libraries)</p>
+</dd>
+</dl>
 
-```javascript
-const gi = require('node-gtk')
+#### require(ns, [version]) ⇒ <code>Object</code>
+Requires a module. Automatically loads dependencies.
 
-/**
- * gi.require:
- * Loads a GIR module
- * @param {String} name - name of the module
- * @param {String} [version] - [optional] version of the module (latest by default)
- */
-const Gtk = gi.require('Gtk', '3.0')
-```
+**Returns**: <code>Object</code> - the loaded module  
 
-#### Signals (event handlers)
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| ns | <code>string</code> |  | namespace to load |
+| [version] | <code>string</code> | <code>null</code> | version to load (default: null for latest) |
+
+<a name="loadDependencies"></a>
+
+#### loadDependencies()
+Loads dependencies of a library
+
+<a name="prependSearchPath"></a>
+
+#### prependSearchPath(path)
+Prepends a path to GObject-Introspection search path (for typelibs)
+
+| Param | Type |
+| --- | --- |
+| path | <code>string</code> | 
+
+<a name="prependLibraryPath"></a>
+
+#### prependLibraryPath(path)
+Prepends a path to GObject-Introspection library path (for shared libraries)
+
+| Param | Type |
+| --- | --- |
+| path | <code>string</code> | 
+
+
+### Signals (event handlers)
 
 Signals (or events, in NodeJS semantics) are dispatched through the usual `.on`,
 `.off`, and `.once` methods.
@@ -122,11 +153,11 @@ function onKeyPress(event) {
 Low-level methods `.connect(name: String, callback: Function) : Number` and
 `.disconnect(name: String, handleID: Number) : void` are also available.
 
-#### Gtk
+### Gtk
 
 For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
 
-#### Naming conventions
+### Naming conventions
 
  - **Functions, Methods & Virtual Functions**: `lowerCamelCase`  
     Methods on GObject, structs, unions and functions on namespaces.  
