@@ -84,12 +84,7 @@ Requires a module. Automatically loads dependencies.
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | ns | <code>string</code> |  | namespace to load |
-| [version] | <code>string</code> | <code>null</code> | version to load (default: null for latest) |
-
-<a name="loadDependencies"></a>
-
-#### loadDependencies()
-Loads dependencies of a library
+| version | <code>string</code> | <code>null</code> | version to load (null for latest) |
 
 <a name="prependSearchPath"></a>
 
