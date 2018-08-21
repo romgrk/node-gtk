@@ -160,6 +160,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info, gtype);
 
         if (fn_info != NULL) {
+            printf("constructor: %s \n", g_base_info_get_name(fn_info));
 
             FunctionInfo func(fn_info);
             GIArgument return_value;
@@ -183,6 +184,8 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             boxed = return_value.v_pointer;
 
         } else if ((size = Boxed::GetSize(gi_info)) != 0) {
+            printf("slice allocation of boxed \n");
+
             boxed = g_slice_alloc0(size);
 
         } else {

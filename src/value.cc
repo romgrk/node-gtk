@@ -1113,7 +1113,9 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
             Nan::ThrowTypeError("Value is not instance of boxed");
             return false;
         }
-        g_value_set_boxed (gvalue, BoxedFromWrapper(value));
+        void* boxed = BoxedFromWrapper(value);
+        printf("boxed: %p \n", boxed);
+        g_value_set_boxed (gvalue, boxed);
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Nan::ThrowTypeError("Value is not instance of GParamSpec");

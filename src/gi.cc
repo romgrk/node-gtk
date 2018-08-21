@@ -1,6 +1,7 @@
 #include <gobject-introspection-1.0/girepository.h>
 #include <node.h>
 #include <nan.h>
+#include <gtk/gtk.h>
 
 #include "boxed.h"
 #include "debug.h"
@@ -326,7 +327,66 @@ NAN_METHOD(GetModuleCache) {
     info.GetReturnValue().Set(Nan::New<Object>(GNodeJS::moduleCache));
 }
 
+GIBaseInfo* find_name(GIRepository *repo, const char *ns, const char *needle) {
+
+  int n = g_irepository_get_n_infos (repo, ns);
+
+  for (int i = 0; i < n; i++) {
+
+      GIBaseInfo *info = g_irepository_get_info(repo, ns, i);
+      const char *name = g_base_info_get_name(info);
+
+      if (strcmp(needle, name) == 0) {
+        return info;
+      }
+  }
+
+  return NULL;
+}
+
+void print_debug_info() {
+  GError *error = NULL;
+
+  GIRepository *repo = g_irepository_get_default ();
+  g_irepository_require (repo, "Gtk", "3.0", (GIRepositoryLoadFlags) 0, &error);
+
+  GIBaseInfo* text_buffer_info = find_name(repo, "Gtk", "TextBuffer");
+  printf("\n\n");
+
+  int n_methods = g_object_info_get_n_methods (text_buffer_info);
+
+  for (int i = 0; i < n_methods; i++) {
+      GIFunctionInfo *info = g_object_info_get_method (text_buffer_info, i);
+
+      const char *name = g_base_info_get_name(info);
+
+      /* printf("TextBuffer.%s \n", name); */
+
+      if (strcmp(name, "place_cursor") == 0
+          || strcmp(name, "select_range") == 0) {
+
+
+        const char *symbol = g_function_info_get_symbol ((GIFunctionInfo*) info);
+        void* addr;
+
+        if (!g_typelib_symbol (g_base_info_get_typelib((GIBaseInfo *) info),
+                              symbol, &addr)) {
+          printf("Failed to get symbol for %s \n", name);
+        }
+        else {
+          printf("%s: %p \n", name, addr);
+        }
+      }
+
+      g_base_info_unref ((GIBaseInfo *) info);
+  }
+}
+
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
+
+    gtk_init(NULL, 0);
+    print_debug_info();
+
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetModuleCache);
     NAN_EXPORT(exports, GetConstantValue);
