@@ -43,6 +43,8 @@ GQuark constructor_quark (void);
  */
 class BaseInfo {
 public:
+    GIBaseInfo * _info;
+
     BaseInfo (GIBaseInfo *info) : _info(info) { };
     BaseInfo (Local<Value> value) {
         Local<Object> object = value.As<Object>();
@@ -76,9 +78,6 @@ public:
     inline const char* ns() {
         return g_base_info_get_namespace(_info);
     }
-
-private:
-    GIBaseInfo * _info;
 };
 
 } /*  GNodeJS  */

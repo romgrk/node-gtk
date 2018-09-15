@@ -26,70 +26,12 @@ using Nan::New;
 
 namespace GNodeJS {
 
+static gpointer GIArgumentToHashPointer (const GIArgument *arg, GITypeInfo *type_info);
 
-static gpointer GIArgumentToHashPointer (const GIArgument *arg, GITypeInfo *type_info) {
-    GITypeTag type_tag = GetStorageType(type_info);
+static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info);
 
-    switch (type_tag) {
-        case GI_TYPE_TAG_INT8:
-            return GINT_TO_POINTER (arg->v_int8);
-        case GI_TYPE_TAG_UINT8:
-            return GINT_TO_POINTER (arg->v_uint8);
-        case GI_TYPE_TAG_INT16:
-            return GINT_TO_POINTER (arg->v_int16);
-        case GI_TYPE_TAG_UINT16:
-            return GINT_TO_POINTER (arg->v_uint16);
-        case GI_TYPE_TAG_INT32:
-            return GINT_TO_POINTER (arg->v_int32);
-        case GI_TYPE_TAG_UINT32:
-            return GINT_TO_POINTER (arg->v_uint32);
-        case GI_TYPE_TAG_GTYPE:
-            return GSIZE_TO_POINTER (arg->v_size);
-        case GI_TYPE_TAG_UTF8:
-        case GI_TYPE_TAG_FILENAME:
-        case GI_TYPE_TAG_INTERFACE:
-        case GI_TYPE_TAG_ARRAY:
-            return arg->v_pointer;
-        default:
-            g_critical ("Unsupported type %s", g_type_tag_to_string(type_tag));
-            return arg->v_pointer;
-    }
-}
+static bool IsUint8Array (GITypeInfo *type_info);
 
-static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info) {
-    GITypeTag type_tag = GetStorageType (type_info);
-
-    switch (type_tag) {
-        case GI_TYPE_TAG_INT8:
-            arg->v_int8 = (gint8)GPOINTER_TO_INT (arg->v_pointer);
-            break;
-        case GI_TYPE_TAG_INT16:
-            arg->v_int16 = (gint16)GPOINTER_TO_INT (arg->v_pointer);
-            break;
-        case GI_TYPE_TAG_INT32:
-            arg->v_int32 = (gint32)GPOINTER_TO_INT (arg->v_pointer);
-            break;
-        case GI_TYPE_TAG_UINT8:
-            arg->v_uint8 = (guint8)GPOINTER_TO_UINT (arg->v_pointer);
-            break;
-        case GI_TYPE_TAG_UINT16:
-            arg->v_uint16 = (guint16)GPOINTER_TO_UINT (arg->v_pointer);
-            break;
-        case GI_TYPE_TAG_UINT32:
-            arg->v_uint32 = (guint32)GPOINTER_TO_UINT (arg->v_pointer);
-            break;
-        case GI_TYPE_TAG_GTYPE:
-            arg->v_size = GPOINTER_TO_SIZE (arg->v_pointer);
-            break;
-        case GI_TYPE_TAG_UTF8:
-        case GI_TYPE_TAG_FILENAME:
-        case GI_TYPE_TAG_INTERFACE:
-        case GI_TYPE_TAG_ARRAY:
-            break;
-        default:
-            g_critical ("Unsupported type %s", g_type_tag_to_string(type_tag));
-    }
-}
 
 Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
@@ -832,12 +774,15 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     case GI_TYPE_TAG_GLIST:
     case GI_TYPE_TAG_GSLIST:
         {
+            if (value->IsString () && IsUint8Array(type_info))
+                return true;
+
             if (!value->IsArray ())
                 return false;
 
             auto array = value->ToObject ();
             int length = Nan::Get(array, UTF8("length")).ToLocalChecked()->Uint32Value();
-            GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
+            GIBaseInfo *element_info = g_type_info_get_param_type(type_info, 0);
 
             bool result = true;
             for (int i = 0; i < length; i++) {
@@ -847,6 +792,7 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
                     break;
                 }
             }
+
             g_base_info_unref(element_info);
             return result;
         }
@@ -1283,6 +1229,86 @@ bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
     Local<Object> object = value->ToObject();
     GType object_type = (GType) Nan::Get(object, UTF8("__gtype__")).ToLocalChecked()->NumberValue();
     return g_type_is_a(object_type, g_type);
+}
+
+
+static gpointer GIArgumentToHashPointer (const GIArgument *arg, GITypeInfo *type_info) {
+    GITypeTag type_tag = GetStorageType(type_info);
+
+    switch (type_tag) {
+        case GI_TYPE_TAG_INT8:
+            return GINT_TO_POINTER (arg->v_int8);
+        case GI_TYPE_TAG_UINT8:
+            return GINT_TO_POINTER (arg->v_uint8);
+        case GI_TYPE_TAG_INT16:
+            return GINT_TO_POINTER (arg->v_int16);
+        case GI_TYPE_TAG_UINT16:
+            return GINT_TO_POINTER (arg->v_uint16);
+        case GI_TYPE_TAG_INT32:
+            return GINT_TO_POINTER (arg->v_int32);
+        case GI_TYPE_TAG_UINT32:
+            return GINT_TO_POINTER (arg->v_uint32);
+        case GI_TYPE_TAG_GTYPE:
+            return GSIZE_TO_POINTER (arg->v_size);
+        case GI_TYPE_TAG_UTF8:
+        case GI_TYPE_TAG_FILENAME:
+        case GI_TYPE_TAG_INTERFACE:
+        case GI_TYPE_TAG_ARRAY:
+            return arg->v_pointer;
+        default:
+            g_critical ("Unsupported type %s", g_type_tag_to_string(type_tag));
+            return arg->v_pointer;
+    }
+}
+
+static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info) {
+    GITypeTag type_tag = GetStorageType (type_info);
+
+    switch (type_tag) {
+        case GI_TYPE_TAG_INT8:
+            arg->v_int8 = (gint8)GPOINTER_TO_INT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_INT16:
+            arg->v_int16 = (gint16)GPOINTER_TO_INT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_INT32:
+            arg->v_int32 = (gint32)GPOINTER_TO_INT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_UINT8:
+            arg->v_uint8 = (guint8)GPOINTER_TO_UINT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_UINT16:
+            arg->v_uint16 = (guint16)GPOINTER_TO_UINT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_UINT32:
+            arg->v_uint32 = (guint32)GPOINTER_TO_UINT (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_GTYPE:
+            arg->v_size = GPOINTER_TO_SIZE (arg->v_pointer);
+            break;
+        case GI_TYPE_TAG_UTF8:
+        case GI_TYPE_TAG_FILENAME:
+        case GI_TYPE_TAG_INTERFACE:
+        case GI_TYPE_TAG_ARRAY:
+            break;
+        default:
+            g_critical ("Unsupported type %s", g_type_tag_to_string(type_tag));
+    }
+}
+
+static bool IsUint8Array (GITypeInfo *type_info) {
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+    GIBaseInfo *element_info = g_type_info_get_param_type(type_info, 0);
+    GIArrayType array_type = g_type_info_get_array_type (type_info);
+
+    bool result =
+        type_tag == GI_TYPE_TAG_ARRAY
+        && array_type == GI_ARRAY_TYPE_C
+        && g_type_info_get_tag (element_info) == GI_TYPE_TAG_UINT8;
+
+    g_base_info_unref(element_info);
+
+    return result;
 }
 
 
