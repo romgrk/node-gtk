@@ -36,7 +36,7 @@ static int GetV8ArrayLength (Local<Value> value) {
     if (value->IsArray())
         return Local<Array>::Cast (value->ToObject ())->Length();
     else if (value->IsString())
-        return Local<String>::Cast (value->ToObject ())->Length();
+        return value->ToString ()->Length();
     else if (value->IsNull() || value->IsUndefined())
         return 0;
 
