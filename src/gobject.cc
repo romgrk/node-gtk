@@ -375,14 +375,35 @@ static Local<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType gtype
     }
 
     if (gi_info == NULL)
-        gi_info = g_irepository_find_by_gtype(NULL, gtype);
+        gi_info = g_irepository_find_by_gtype (NULL, gtype);
+
+    /*
+     * It's possible that a non-introspected subclass is used. In that case,
+     * we should fall back to the first known base class.
+     */
+    if (gi_info == NULL) {
+        while (gi_info == NULL && gtype != 0) {
+            gtype = g_type_parent (gtype);
+            gi_info = g_irepository_find_by_gtype (NULL, gtype);
+        }
+
+        if (gi_info != NULL) {
+            void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
+
+            if (data) {
+                auto *persistent = (Persistent<FunctionTemplate> *) data;
+                auto tpl = New<FunctionTemplate> (*persistent);
+                return tpl;
+            }
+        }
+    }
 
     assert_printf (gi_info != NULL, "Missing GIR info for: %s\n", g_type_name (gtype));
 
     auto tpl = NewClassTemplate(gi_info, gtype);
     auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
     persistent->SetWeak (
-            g_base_info_ref (gi_info),
+            gi_info,
             GNodeJS::ClassDestroyed,
             WeakCallbackType::kParameter);
 
