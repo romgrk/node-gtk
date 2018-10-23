@@ -400,7 +400,7 @@ Local<Function> MakeClass(GIBaseInfo *info) {
     return tpl->GetFunction ();
 }
 
-Local<Value> WrapperFromGObject(GObject *gobject) {
+Local<Value> WrapperFromGObject(GObject *gobject, GIBaseInfo *object_info) {
     if (gobject == NULL)
         return Nan::Null();
 
@@ -416,7 +416,8 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
         GType gtype = G_OBJECT_TYPE(gobject);
         g_type_ensure (gtype); //void *klass = g_type_class_ref (type);
 
-        auto tpl = GetClassTemplate(NULL, gtype);
+        // We don't use the gtype above, but maybe we can register that type using the type's interface's object_info.
+        auto tpl = GetClassTemplateFromGI(object_info);
         Local<Function> constructor = tpl->GetFunction ();
         Local<Value> gobject_external = New<External> (gobject);
         Local<Value> args[] = { gobject_external };

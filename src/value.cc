@@ -119,7 +119,7 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length)
                 if (G_IS_PARAM_SPEC(arg->v_pointer))
                     value = ParamSpec::FromGParamSpec((GParamSpec *)arg->v_pointer);
                 else
-                    value = WrapperFromGObject((GObject *)arg->v_pointer);
+                    value = WrapperFromGObject((GObject *)arg->v_pointer, interface_info);
                 break;
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
@@ -1195,7 +1195,7 @@ Local<Value> GValueToV8(const GValue *gvalue) {
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return New<Integer>(g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
-        return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
+        return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)), NULL);
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         GType type = G_VALUE_TYPE (gvalue);
         g_type_ensure(type);
