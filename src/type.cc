@@ -1,9 +1,3 @@
-/*
- * type.cc
- * Copyright (C) 2016 romgrk <romgrk@Romgrk-ARCH>
- *
- * Distributed under terms of the GPL license.
- */
 
 #include "gi.h"
 #include "type.h"
