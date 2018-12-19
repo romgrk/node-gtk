@@ -28,7 +28,7 @@ Pre-built binaries available for: **Linux**, **OS X**
   * [Naming conventions](#naming-conventions)
 - [Installing and building](#installing-and-building)
   * [Target Platforms (so far)](#target-platforms-so-far)
-  * [Common dependencies](#common-dependencies)
+  * [Requirements](#requirements)
   * [How to build on Ubuntu](#how-to-build-on-ubuntu)
   * [How to build on ArchLinux](#how-to-build-on-archlinux)
   * [How to build on OSX](#how-to-build-on-osx)
@@ -194,13 +194,14 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
 ## Installing and building
 
 ### Target Platforms (so far)
-We're planning to serve pre-built binaries in order to make this project as cross platform and easy to install as possible.
-However, right now we support only **Linux** and experimentally **OSX** but in both targets _the project will falback to build_.
-This project is tested on Node.js **8** and **10**.
+We're planning to serve pre-built binaries in order to make this project as cross platform and easy to install
+as possible.  However, right now we support only **Linux** and experimentally **OSX** but in both targets
+_the project will falback to build_.
 
 
-### Common dependencies
-In order to clone, install, and build this project you'll need a working copy of git, nodejs 8 or higher, npm, and python2.
+### Requirements
+In order to clone, install, and build this project you'll need a working copy of git, nodejs 8 or higher, npm,
+python2, and either gcc 8 (other versions may fail) or clang.
 In the _not-working-yet_ Windows platform, all dependencies must be available under [MSYS2 shell](https://msys2.github.io).
 
 
@@ -210,8 +211,8 @@ Be sure `node` is version **8** or higher.
 Ignore the following step iv `node --version` is already 8 or higher.
 
 ```sh
-# setup node 8
-curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+# setup node 10
+curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
 ```
 
 Install basic dependencies.
