@@ -34,7 +34,7 @@ function publish() {
 }
 
 function npm_test() {
-    if [[ $SKIP_TESTS == false ]]; then
+    if [[ $SKIP_TESTS == true ]]; then
         return;
     fi;
 
