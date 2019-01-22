@@ -48,6 +48,6 @@
     "module_path": "./lib/binding/{node_abi}-{platform}-{arch}/",
     "remote_path": "./{module_name}/v{version}/",
     "package_name": "{module_name}-{node_abi}-{platform}-{arch}.tar.gz",
-    "host": "https://node-gtk-1.s3-us-east-1.amazonaws.com"
+    "host": "https://node-gtk-1.s3.amazonaws.com"
   }
 }
