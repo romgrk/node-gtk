@@ -6,12 +6,16 @@ set -e -u
 
 PUBLISH_BINARIES=false;
 REPUBLISH_BINARIES=false;
+SKIP_TESTS=false;
 
 if [[ ${COMMIT_MESSAGE} =~ "[publish binary]" ]]; then
     PUBLISH_BINARIES=true;
 fi;
 if [[ ${COMMIT_MESSAGE} =~ "[republish binary]" ]]; then
     REPUBLISH_BINARIES=true;
+fi;
+if [[ ${COMMIT_MESSAGE} =~ "[skip tests]" ]]; then
+    SKIP_TESTS=true;
 fi;
 
 
@@ -30,6 +34,10 @@ function publish() {
 }
 
 function npm_test() {
+    if [[ $SKIP_TESTS == false ]]; then
+        return;
+    fi;
+
     echo "### Running tests ###";
 
     if [[ $(uname -s) == 'Darwin' ]]; then
