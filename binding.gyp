@@ -16,6 +16,7 @@
                 "src/type.cc",
                 "src/util.cc",
                 "src/value.cc",
+                "src/modules/system.cc",
             ],
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"
