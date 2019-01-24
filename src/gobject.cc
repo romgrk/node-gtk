@@ -195,6 +195,17 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     g_object_unref (gobject);
 }
 
+static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
+    GIBaseInfo *gi_info = info.GetParameter ();
+    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
+
+    auto *persistent = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::template_quark());
+    delete persistent;
+
+    g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
+    g_base_info_unref (gi_info);
+}
+
 static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *signal_detail) {
     char* signal_name = Util::GetSignalName(signal_detail);
 
@@ -383,7 +394,7 @@ static Local<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType gtype
     auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
     persistent->SetWeak (
             g_base_info_ref (gi_info),
-            GNodeJS::ClassDestroyed,
+            GObjectClassDestroyed,
             WeakCallbackType::kParameter);
 
     g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);

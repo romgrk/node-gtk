@@ -239,7 +239,32 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     delete box;
 }
 
+static void BoxedClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
+    GIBaseInfo *gi_info = info.GetParameter ();
+    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
 
+    auto *persistent_template = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::template_quark());
+    auto *persistent_function = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::function_quark());
+    delete persistent_template;
+    delete persistent_function;
+
+    auto fn_info = (GIFunctionInfo *) g_type_get_qdata (gtype, GNodeJS::constructor_quark());
+    if (fn_info != NULL)
+        g_base_info_unref (fn_info);
+
+    g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
+    g_type_set_qdata (gtype, GNodeJS::function_quark(), NULL);
+    g_type_set_qdata (gtype, GNodeJS::constructor_quark(), NULL);
+
+    g_base_info_unref (gi_info);
+}
+
+/**
+ * Get the constructor FunctionTemplate for the given type, cached.
+ * @param info GIBaseInfo of the type
+ * @param gtype GType of the type
+ * @retuns the constructor FunctionTemplate
+ */
 Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     void *data = NULL;
 
@@ -252,8 +277,8 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
      */
 
     if (data) {
-        Persistent<FunctionTemplate> *persistent = (Persistent<FunctionTemplate> *) data;
-        Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate> (*persistent);
+        auto *persistent = (Persistent<FunctionTemplate> *) data;
+        auto tpl = Nan::New<FunctionTemplate> (*persistent);
         return tpl;
     }
 
@@ -275,16 +300,49 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     if (gtype == G_TYPE_NONE)
         return tpl;
 
-    Isolate *isolate = Isolate::GetCurrent();
-    auto *persistent = new v8::Persistent<FunctionTemplate>(isolate, tpl);
+    auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
     persistent->SetWeak(
             g_base_info_ref(info),
-            GNodeJS::ClassDestroyed,
+            BoxedClassDestroyed,
             WeakCallbackType::kParameter);
 
     g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
 
     return tpl;
+}
+
+/**
+ * Get the constructor function for the given type, cached.
+ * Added because FunctionTemplate->GetFunction() seems to return a
+ * different instance on each call.
+ * @param info GIBaseInfo of the type
+ * @param gtype GType of the type
+ * @retuns the constructor function
+ */
+Local<Function> GetBoxedFunction(GIBaseInfo *info, GType gtype) {
+    void *data = NULL;
+
+    if (gtype != G_TYPE_NONE) {
+        data = g_type_get_qdata(gtype, GNodeJS::function_quark());
+    }
+
+    if (data) {
+        auto *persistent = (Persistent<Function> *) data;
+        auto tpl = Nan::New<Function> (*persistent);
+        return tpl;
+    }
+
+    Local<FunctionTemplate> tpl = GetBoxedTemplate (info, gtype);
+    Local<Function> fn = tpl->GetFunction ();
+
+    if (gtype == G_TYPE_NONE)
+        return fn;
+
+    auto *persistent = new Persistent<Function>(Isolate::GetCurrent(), fn);
+
+    g_type_set_qdata(gtype, GNodeJS::function_quark(), persistent);
+
+    return fn;
 }
 
 Local<Function> MakeBoxedClass(GIBaseInfo *info) {
@@ -305,8 +363,7 @@ Local<Function> MakeBoxedClass(GIBaseInfo *info) {
         }
     }
 
-    Local<FunctionTemplate> tpl = GetBoxedTemplate (info, gtype);
-    return tpl->GetFunction ();
+    return GetBoxedFunction (info, gtype);
 }
 
 Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
