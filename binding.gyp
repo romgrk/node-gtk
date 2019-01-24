@@ -22,11 +22,11 @@
                 "<!(node -e \"require('nan')\")"
             ],
             "cflags": [
-                "<!@(pkg-config --cflags gobject-introspection-1.0) -Wall -g",
+                "<!@(pkg-config --cflags gobject-introspection-1.0 cairo) -Wall -g",
             ],
             "ldflags": [
                 "-Wl,-no-as-needed",
-                "<!@(pkg-config --libs gobject-introspection-1.0)",
+                "<!@(pkg-config --libs gobject-introspection-1.0 cairo)",
             ],
             "conditions": [
                 ['OS != "linux"', {
@@ -37,10 +37,10 @@
                 ['OS == "mac"', {
                     "xcode_settings": {
                         "OTHER_CFLAGS": [
-                            "<!@(pkg-config --cflags glib-2.0 gobject-introspection-1.0)",
+                            "<!@(pkg-config --cflags glib-2.0 gobject-introspection-1.0 cairo)",
                         ],
                         "OTHER_LDFLAGS": [
-                            "<!@(pkg-config --libs gobject-introspection-1.0)",
+                            "<!@(pkg-config --libs gobject-introspection-1.0 cairo)",
                         ]
                     },
                 }],
