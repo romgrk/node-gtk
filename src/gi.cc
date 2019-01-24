@@ -11,6 +11,7 @@
 #include "type.h"
 #include "util.h"
 #include "value.h"
+#include "modules/system.h"
 
 using namespace v8;
 using GNodeJS::BaseInfo;
@@ -300,11 +301,6 @@ NAN_METHOD(StartLoop) {
     GNodeJS::StartLoop ();
 }
 
-NAN_METHOD(InternalFieldCount) {
-    Local<Object> obj = info[0].As<Object>();
-    RETURN(obj->InternalFieldCount());
-}
-
 NAN_METHOD(GetBaseClass) {
     auto tpl = GNodeJS::GetBaseClassTemplate ();
     auto fn = tpl->GetFunction();
@@ -339,10 +335,11 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, ObjectPropertyGetter);
     NAN_EXPORT(exports, ObjectPropertySetter);
     NAN_EXPORT(exports, StartLoop);
-    NAN_EXPORT(exports, InternalFieldCount);
     NAN_EXPORT(exports, GetBaseClass);
     NAN_EXPORT(exports, GetTypeSize);
     NAN_EXPORT(exports, GetLoopStack);
+
+    Nan::Set(exports, UTF8("System"), GNodeJS::System::GetModule());
 }
 
 NODE_MODULE(node_gtk, InitModule)
