@@ -339,7 +339,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, GetTypeSize);
     NAN_EXPORT(exports, GetLoopStack);
 
-    Nan::Set(exports, UTF8("system"), GNodeJS::System::GetModule());
+    Nan::Set(exports, UTF8("System"), GNodeJS::System::GetModule());
 }
 
 NODE_MODULE(node_gtk, InitModule)
