@@ -1,181 +1,5 @@
 
-#include <cairo.h>
-
-#include "cairo-context.h"
-#include "../../debug.h"
-#include "../../gi.h"
-#include "../../gobject.h"
-#include "../../value.h"
-
-using v8::Function;
-using v8::Local;
-using v8::Object;
-using v8::String;
-
-
-namespace GNodeJS {
-
-namespace Cairo {
-
-NAN_METHOD(setSourceRGB) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto red   = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto green = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto blue  = Nan::To<double>(info[2].As<Number>()).ToChecked();
-
-    cairo_set_source_rgb ((cairo_t *)cr,
-                       red,
-                       green,
-                       blue);
-}
-
-NAN_METHOD(setSourceRGBA) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto red   = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto green = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto blue  = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto alpha = Nan::To<double>(info[3].As<Number>()).ToChecked();
-
-    cairo_set_source_rgba ((cairo_t *)cr,
-                       red,
-                       green,
-                       blue,
-                       alpha);
-}
-
-NAN_METHOD(setOperator) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto op = Nan::To<uint32_t>(info[0].As<Number>()).ToChecked();
-
-    cairo_set_operator ((cairo_t *)cr,
-                    (cairo_operator_t) op);
-}
-
-NAN_METHOD(selectFontFace) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto family = *Nan::Utf8String (info[0].As<String>());
-    auto slant = Nan::To<uint32_t>(info[1].As<Number>()).ToChecked();
-    auto weight = Nan::To<uint32_t>(info[2].As<Number>()).ToChecked();
-
-    cairo_select_font_face ((cairo_t *)cr,
-                        (const char *)family,
-                        (cairo_font_slant_t) slant,
-                        (cairo_font_weight_t) weight);
-}
-
-NAN_METHOD(setFontSize) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto size = Nan::To<double>(info[0].As<Number>()).ToChecked();
-
-    cairo_set_font_size ((cairo_t *)cr,
-            size);
-}
-
-NAN_METHOD(setLineWidth) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto width = Nan::To<double>(info[0].As<Number>()).ToChecked();
-
-    cairo_set_line_width ((cairo_t *)cr,
-            width);
-}
-
-NAN_METHOD(moveTo) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto x     = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto y     = Nan::To<double>(info[1].As<Number>()).ToChecked();
-
-    cairo_move_to ((cairo_t *)cr,
-            x,
-            y);
-}
-
-NAN_METHOD(lineTo) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto x     = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto y     = Nan::To<double>(info[1].As<Number>()).ToChecked();
-
-    cairo_line_to ((cairo_t *)cr,
-            x,
-            y);
-}
-
-NAN_METHOD(showText) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto text = *Nan::Utf8String (info[0].As<String>());
-
-    cairo_show_text ((cairo_t *)cr,
-            text);
-}
-
-NAN_METHOD(arc) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-    auto xc     = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto yc     = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto radius = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto angle1 = Nan::To<double>(info[3].As<Number>()).ToChecked();
-    auto angle2 = Nan::To<double>(info[4].As<Number>()).ToChecked();
-
-    cairo_arc ((cairo_t *)cr,
-            xc,
-            yc,
-            radius,
-            angle1,
-            angle2);
-}
-
-NAN_METHOD(fill) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-
-    cairo_fill ((cairo_t *)cr);
-}
-
-NAN_METHOD(stroke) {
-    auto self = info.This();
-    auto cr = self->GetAlignedPointerFromInternalField (0);
-
-    cairo_stroke ((cairo_t *)cr);
-}
-
-#define SET_METHOD(target, name) Nan::SetMethod(target, #name, name)
-
-void SetupCairoContext(Local<Function> cairoContext) {
-    Local<Object> prototype = Local<Object>::Cast (Nan::Get(cairoContext, UTF8("prototype")).ToLocalChecked());
-
-    SET_METHOD(prototype, setSourceRGBA);
-    SET_METHOD(prototype, setSourceRGB);
-    SET_METHOD(prototype, setOperator);
-    SET_METHOD(prototype, selectFontFace);
-    SET_METHOD(prototype, setFontSize);
-    SET_METHOD(prototype, setLineWidth);
-    SET_METHOD(prototype, moveTo);
-    SET_METHOD(prototype, lineTo);
-    SET_METHOD(prototype, showText);
-    SET_METHOD(prototype, arc);
-    SET_METHOD(prototype, fill);
-    SET_METHOD(prototype, stroke);
-}
-
-#undef SET_METHOD
-
-}; // System
-
-}; // GnodeJS
-
-/*
-
-CairoContext:
-
+```c
 cairo_t * cairo_create (cairo_surface_t *target);
 cairo_t * cairo_reference (cairo_t *cr);
 void cairo_destroy (cairo_t *cr);
@@ -263,47 +87,22 @@ void cairo_rel_move_to (cairo_t *cr, double dx, double dy);
 void cairo_path_extents (cairo_t *cr, double *x1, double *y1, double *x2, double *y2);
 typedef struct { cairo_status_t status; cairo_path_data_t *data; int num_data; } cairo_path_t;
 
+void cairo_select_font_face (cairo_t *cr, const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
+void cairo_set_font_size (cairo_t *cr, double size);
+void cairo_set_font_matrix (cairo_t *cr, const cairo_matrix_t *matrix);
+void cairo_get_font_matrix (cairo_t *cr, cairo_matrix_t *matrix);
+void cairo_set_font_options (cairo_t *cr, const cairo_font_options_t *options);
+void cairo_get_font_options (cairo_t *cr, cairo_font_options_t *options);
+void cairo_set_font_face (cairo_t *cr, cairo_font_face_t *font_face);
+cairo_font_face_t * cairo_get_font_face (cairo_t *cr);
+void cairo_set_scaled_font (cairo_t *cr, const cairo_scaled_font_t *scaled_font);
+cairo_scaled_font_t * cairo_get_scaled_font (cairo_t *cr);
 void cairo_show_text (cairo_t *cr, const char *utf8);
 void cairo_show_glyphs (cairo_t *cr, const cairo_glyph_t *glyphs, int num_glyphs);
 void cairo_show_text_glyphs (cairo_t *cr, const char *utf8, int utf8_len, const cairo_glyph_t *glyphs, int num_glyphs, const cairo_text_cluster_t *clusters, int num_clusters, cairo_text_cluster_flags_t cluster_flags);
 void cairo_font_extents (cairo_t *cr, cairo_font_extents_t *extents);
 void cairo_text_extents (cairo_t *cr, const char *utf8, cairo_text_extents_t *extents);
 void cairo_glyph_extents (cairo_t *cr, const cairo_glyph_t *glyphs, int num_glyphs, cairo_text_extents_t *extents);
-void cairo_select_font_face (cairo_t *cr, const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
-void cairo_set_font_size (cairo_t *cr, double size);
-
-void cairo_set_font_matrix (cairo_t *cr, const cairo_matrix_t *matrix);
-void cairo_get_font_matrix (cairo_t *cr, cairo_matrix_t *matrix);
-
-void cairo_set_font_options (cairo_t *cr, const cairo_font_options_t *options);
-void cairo_get_font_options (cairo_t *cr, cairo_font_options_t *options);
-
-void cairo_set_font_face (cairo_t *cr, cairo_font_face_t *font_face);
-cairo_font_face_t * cairo_get_font_face (cairo_t *cr);
-
-void cairo_set_scaled_font (cairo_t *cr, const cairo_scaled_font_t *scaled_font);
-cairo_scaled_font_t * cairo_get_scaled_font (cairo_t *cr);
-
-void cairo_translate (cairo_t *cr, double tx, double ty);
-void cairo_scale (cairo_t *cr, double sx, double sy);
-void cairo_rotate (cairo_t *cr, double angle);
-void cairo_transform (cairo_t *cr, const cairo_matrix_t *matrix);
-void cairo_set_matrix (cairo_t *cr, const cairo_matrix_t *matrix);
-void cairo_get_matrix (cairo_t *cr, cairo_matrix_t *matrix);
-void cairo_identity_matrix (cairo_t *cr);
-void cairo_user_to_device (cairo_t *cr, double *x, double *y);
-void cairo_user_to_device_distance (cairo_t *cr, double *dx, double *dy);
-void cairo_device_to_user (cairo_t *cr, double *x, double *y);
-void cairo_device_to_user_distance (cairo_t *cr, double *dx, double *dy);
-
-void cairo_tag_begin (cairo_t *cr, const char *tag_name, const char *attributes);
-void cairo_tag_end (cairo_t *cr, const char *tag_name);
-#define CAIRO_TAG_DEST "cairo.dest"
-#define CAIRO_TAG_LINK "Link"
-
-
-FontFace:
-
 cairo_font_face_t * cairo_toy_font_face_create (const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
 const char * cairo_toy_font_face_get_family (cairo_font_face_t *font_face);
 cairo_font_slant_t cairo_toy_font_face_get_slant (cairo_font_face_t *font_face);
@@ -381,6 +180,18 @@ cairo_status_t cairo_region_xor (cairo_region_t *dst, const cairo_region_t *othe
 cairo_status_t cairo_region_xor_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
 typedef struct _cairo_region cairo_region_t;
 
+void cairo_translate (cairo_t *cr, double tx, double ty);
+void cairo_scale (cairo_t *cr, double sx, double sy);
+void cairo_rotate (cairo_t *cr, double angle);
+void cairo_transform (cairo_t *cr, const cairo_matrix_t *matrix);
+void cairo_set_matrix (cairo_t *cr, const cairo_matrix_t *matrix);
+void cairo_get_matrix (cairo_t *cr, cairo_matrix_t *matrix);
+void cairo_identity_matrix (cairo_t *cr);
+void cairo_user_to_device (cairo_t *cr, double *x, double *y);
+void cairo_user_to_device_distance (cairo_t *cr, double *dx, double *dy);
+void cairo_device_to_user (cairo_t *cr, double *x, double *y);
+void cairo_device_to_user_distance (cairo_t *cr, double *dx, double *dy);
+
 cairo_pattern_t * cairo_pattern_create_raster_source (void *user_data, cairo_content_t content, int width, int height);
 void cairo_raster_source_pattern_set_callback_data (cairo_pattern_t *pattern, void *data);
 void * cairo_raster_source_pattern_get_callback_data (cairo_pattern_t *pattern);
@@ -397,6 +208,11 @@ void (*cairo_raster_source_release_func_t) (cairo_pattern_t *pattern, void *call
 cairo_status_t (*cairo_raster_source_snapshot_func_t) (cairo_pattern_t *pattern, void *callback_data);
 cairo_status_t (*cairo_raster_source_copy_func_t) (cairo_pattern_t *pattern, void *callback_data, const cairo_pattern_t *other);
 void (*cairo_raster_source_finish_func_t) (cairo_pattern_t *pattern, void *callback_data);
+
+void cairo_tag_begin (cairo_t *cr, const char *tag_name, const char *attributes);
+void cairo_tag_end (cairo_t *cr, const char *tag_name);
+#define CAIRO_TAG_DEST "cairo.dest"
+#define CAIRO_TAG_LINK "Link"
 
 cairo_font_face_t * cairo_font_face_reference (cairo_font_face_t *font_face);
 void cairo_font_face_destroy (cairo_font_face_t *font_face);
@@ -531,4 +347,4 @@ typedef int cairo_bool_t;
 typedef struct { int unused; } cairo_user_data_key_t;
 typedef struct { int x, y; int width, height; } cairo_rectangle_int_t;
 
-*/
+```
