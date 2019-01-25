@@ -22,17 +22,22 @@ drawingArea.on('draw', (context) => {
   const width = drawingArea.getAllocatedWidth()
   const height = drawingArea.getAllocatedHeight()
 
-  console.log(['draw', context, { width, height }])
+  console.log(['draw', { width, height }])
 
   // Cairo in GJS uses camelCase function names
   context.setSourceRgba(1, 0.0, 0.0, 1)
   context.arc(16, 16, 16, 0, 2 * Math.PI);
   context.fill()
 
+  context.setSourceRgba(0.1, 0.1, 0.1, 1)
+  context.rectangle(10, 40, 100, 20)
+  context.fill()
+
   context.selectFontFace("Fantasque Sans Mono", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
   context.setFontSize(12)
 
   context.moveTo(10, 50)
+  context.setSourceRgba(1, 0.0, 0.0, 1)
   context.showText("Disziplin ist Macht.")
 
   context.setLineWidth (2)
