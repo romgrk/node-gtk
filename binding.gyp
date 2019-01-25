@@ -17,6 +17,8 @@
                 "src/util.cc",
                 "src/value.cc",
                 "src/modules/system.cc",
+                "src/modules/cairo/cairo.cc",
+                "src/modules/cairo/cairo-context.cc",
             ],
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"

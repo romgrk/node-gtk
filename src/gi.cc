@@ -13,6 +13,7 @@
 #include "util.h"
 #include "value.h"
 #include "modules/system.h"
+#include "modules/cairo/cairo.h"
 
 using namespace v8;
 using GNodeJS::BaseInfo;
@@ -342,6 +343,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, GetLoopStack);
 
     Nan::Set(exports, UTF8("System"), GNodeJS::System::GetModule());
+    Nan::Set(exports, UTF8("Cairo"),  GNodeJS::Cairo::GetModule());
 }
 
 NODE_MODULE(node_gtk, InitModule)

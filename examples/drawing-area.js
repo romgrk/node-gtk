@@ -13,31 +13,50 @@ const window = new Gtk.Window({
   type : Gtk.WindowType.TOPLEVEL
 })
 
+// Button
+const button = Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK)
+
 // Draw area
 const drawingArea = new Gtk.DrawingArea()
 drawingArea.on('draw', (context) => {
   const width = drawingArea.getAllocatedWidth()
   const height = drawingArea.getAllocatedHeight()
 
-  console.log({ width, height })
-  console.log(context.__proto__)
-  console.log(context.__proto__.prototype)
+  console.log(['draw', context, { width, height }])
 
   // Cairo in GJS uses camelCase function names
-  // cr.setSourceRGB(1.0, 0.0, 0.0);
-  // cr.setOperator(Cairo.Operator.DEST_OVER);
-  // cr.arc(16, 16, 16, 0, 2*Math.PI);
-  // cr.fill();
+  context.setSourceRGB(1.0, 0.0, 0.0);
+  context.setOperator(Cairo.Operator.DEST_OVER);
+  context.arc(16, 16, 16, 0, 2 * Math.PI);
 
-  console.log(['draw', context])
+  context.selectFontFace("Sans", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
+  context.setFontSize(40)
+
+  context.moveTo(10, 50)
+  context.showText("Disziplin ist Macht.")
+
+  context.fill()
+
+  /*   cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+   *       CAIRO_FONT_WEIGHT_NORMAL);
+   *   cairo_set_font_size(cr, 40.0);
+   * 
+   *   cairo_move_to(cr, 10.0, 50.0);
+   *   cairo_show_text(cr, "Disziplin ist Macht."); */
 
   return true
 })
 
+// Containing box
+const vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
+vbox.packStart(button,      false, true, 0)
+vbox.packStart(drawingArea, true, true, 0)
+
+
 // configure main window
 window.setDefaultSize(1200, 720)
 window.setResizable(true)
-window.add(drawingArea)
+window.add(vbox)
 
 // window show event
 window.on('show', () => {
