@@ -25,7 +25,7 @@ drawingArea.on('draw', (context) => {
   console.log(['draw', context, { width, height }])
 
   // Cairo in GJS uses camelCase function names
-  context.setSourceRGBA(1, 0.0, 0.0, 1)
+  context.setSourceRgba(1, 0.0, 0.0, 1)
   context.arc(16, 16, 16, 0, 2 * Math.PI);
   context.fill()
 
