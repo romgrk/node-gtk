@@ -12,6 +12,7 @@
 #include "type.h"
 #include "util.h"
 #include "value.h"
+#include "modules/cairo/cairo.h"
 
 using v8::Array;
 using v8::External;
@@ -27,7 +28,6 @@ using Nan::New;
 using Nan::WeakCallbackType;
 
 namespace GNodeJS {
-
 
 
 
@@ -287,7 +287,14 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
      * Template not created yet
      */
 
-    auto tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
+    Local<FunctionTemplate> tpl;
+    MaybeLocal<FunctionTemplate> cairoTpl = Cairo::GetTemplate (info);
+
+    if (!cairoTpl.IsEmpty())
+        tpl = cairoTpl.ToLocalChecked();
+    else
+        tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
+
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
     if (gtype != G_TYPE_NONE) {
@@ -329,8 +336,8 @@ Local<Function> GetBoxedFunction(GIBaseInfo *info, GType gtype) {
 
     if (data) {
         auto *persistent = (Persistent<Function> *) data;
-        auto tpl = Nan::New<Function> (*persistent);
-        return tpl;
+        auto fn = Nan::New<Function> (*persistent);
+        return fn;
     }
 
     Local<FunctionTemplate> tpl = GetBoxedTemplate (info, gtype);

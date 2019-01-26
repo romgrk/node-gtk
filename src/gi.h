@@ -39,6 +39,7 @@ GQuark function_quark (void);
 /*
  * Class for dealing with GIBaseInfo
  */
+
 class BaseInfo {
 public:
     GIBaseInfo * _info;

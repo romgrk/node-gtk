@@ -18,12 +18,16 @@ namespace GNodeJS {
 
 namespace Cairo {
 
+namespace Context {
+
 NAN_METHOD(destroy) {
     auto self = info.This();
     auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
     // function call
     cairo_destroy (cr);
+
+    self->SetAlignedPointerInInternalField (0, NULL);
 }
 
 NAN_METHOD(status) {
@@ -1041,98 +1045,151 @@ NAN_METHOD(tagEnd) {
     cairo_tag_end (cr, tag_name);
 }
 
-#define SET_METHOD(target, name) Nan::SetMethod(target, #name, name)
+#define SET_METHOD(tpl, name) Nan::SetPrototypeMethod(tpl, #name, name)
 
-void SetupCairoContext(Local<Function> object) {
-    Local<Object> prototype = Local<Object>::Cast (Nan::Get(object, UTF8("prototype")).ToLocalChecked());
-
-    SET_METHOD(prototype, destroy);
-    SET_METHOD(prototype, status);
-    SET_METHOD(prototype, save);
-    SET_METHOD(prototype, restore);
-    SET_METHOD(prototype, getTarget);
-    SET_METHOD(prototype, pushGroup);
-    SET_METHOD(prototype, popGroup);
-    SET_METHOD(prototype, popGroupToSource);
-    SET_METHOD(prototype, getGroupTarget);
-    SET_METHOD(prototype, setSourceRgb);
-    SET_METHOD(prototype, setSourceRgba);
-    SET_METHOD(prototype, getSource);
-    SET_METHOD(prototype, setAntialias);
-    SET_METHOD(prototype, getAntialias);
-    SET_METHOD(prototype, getDashCount);
-    SET_METHOD(prototype, getDash);
-    SET_METHOD(prototype, setFillRule);
-    SET_METHOD(prototype, getFillRule);
-    SET_METHOD(prototype, setLineCap);
-    SET_METHOD(prototype, getLineCap);
-    SET_METHOD(prototype, setLineJoin);
-    SET_METHOD(prototype, getLineJoin);
-    SET_METHOD(prototype, setLineWidth);
-    SET_METHOD(prototype, getLineWidth);
-    SET_METHOD(prototype, setMiterLimit);
-    SET_METHOD(prototype, getMiterLimit);
-    SET_METHOD(prototype, setOperator);
-    SET_METHOD(prototype, getOperator);
-    SET_METHOD(prototype, setTolerance);
-    SET_METHOD(prototype, getTolerance);
-    SET_METHOD(prototype, clip);
-    SET_METHOD(prototype, clipPreserve);
-    SET_METHOD(prototype, clipExtents);
-    SET_METHOD(prototype, inClip);
-    SET_METHOD(prototype, resetClip);
-    SET_METHOD(prototype, copyClipRectangleList);
-    SET_METHOD(prototype, fill);
-    SET_METHOD(prototype, fillPreserve);
-    SET_METHOD(prototype, fillExtents);
-    SET_METHOD(prototype, inFill);
-    SET_METHOD(prototype, paint);
-    SET_METHOD(prototype, paintWithAlpha);
-    SET_METHOD(prototype, stroke);
-    SET_METHOD(prototype, strokePreserve);
-    SET_METHOD(prototype, strokeExtents);
-    SET_METHOD(prototype, inStroke);
-    SET_METHOD(prototype, copyPage);
-    SET_METHOD(prototype, showPage);
-    SET_METHOD(prototype, getReferenceCount);
-    SET_METHOD(prototype, copyPath);
-    SET_METHOD(prototype, copyPathFlat);
-    SET_METHOD(prototype, hasCurrentPoint);
-    SET_METHOD(prototype, getCurrentPoint);
-    SET_METHOD(prototype, newPath);
-    SET_METHOD(prototype, newSubPath);
-    SET_METHOD(prototype, closePath);
-    SET_METHOD(prototype, arc);
-    SET_METHOD(prototype, arcNegative);
-    SET_METHOD(prototype, curveTo);
-    SET_METHOD(prototype, lineTo);
-    SET_METHOD(prototype, moveTo);
-    SET_METHOD(prototype, rectangle);
-    SET_METHOD(prototype, textPath);
-    SET_METHOD(prototype, relCurveTo);
-    SET_METHOD(prototype, relLineTo);
-    SET_METHOD(prototype, relMoveTo);
-    SET_METHOD(prototype, pathExtents);
-    SET_METHOD(prototype, showText);
-    SET_METHOD(prototype, textExtents);
-    SET_METHOD(prototype, selectFontFace);
-    SET_METHOD(prototype, setFontSize);
-    SET_METHOD(prototype, getFontFace);
-    SET_METHOD(prototype, getScaledFont);
-    SET_METHOD(prototype, translate);
-    SET_METHOD(prototype, scale);
-    SET_METHOD(prototype, rotate);
-    SET_METHOD(prototype, identityMatrix);
-    SET_METHOD(prototype, userToDevice);
-    SET_METHOD(prototype, userToDeviceDistance);
-    SET_METHOD(prototype, deviceToUser);
-    SET_METHOD(prototype, deviceToUserDistance);
-    SET_METHOD(prototype, tagBegin);
-    SET_METHOD(prototype, tagEnd);
+static void AttachMethods(Local<FunctionTemplate> tpl) {
+    SET_METHOD(tpl, destroy);
+    SET_METHOD(tpl, status);
+    SET_METHOD(tpl, save);
+    SET_METHOD(tpl, restore);
+    SET_METHOD(tpl, getTarget);
+    SET_METHOD(tpl, pushGroup);
+    SET_METHOD(tpl, popGroup);
+    SET_METHOD(tpl, popGroupToSource);
+    SET_METHOD(tpl, getGroupTarget);
+    SET_METHOD(tpl, setSourceRgb);
+    SET_METHOD(tpl, setSourceRgba);
+    SET_METHOD(tpl, getSource);
+    SET_METHOD(tpl, setAntialias);
+    SET_METHOD(tpl, getAntialias);
+    SET_METHOD(tpl, getDashCount);
+    SET_METHOD(tpl, getDash);
+    SET_METHOD(tpl, setFillRule);
+    SET_METHOD(tpl, getFillRule);
+    SET_METHOD(tpl, setLineCap);
+    SET_METHOD(tpl, getLineCap);
+    SET_METHOD(tpl, setLineJoin);
+    SET_METHOD(tpl, getLineJoin);
+    SET_METHOD(tpl, setLineWidth);
+    SET_METHOD(tpl, getLineWidth);
+    SET_METHOD(tpl, setMiterLimit);
+    SET_METHOD(tpl, getMiterLimit);
+    SET_METHOD(tpl, setOperator);
+    SET_METHOD(tpl, getOperator);
+    SET_METHOD(tpl, setTolerance);
+    SET_METHOD(tpl, getTolerance);
+    SET_METHOD(tpl, clip);
+    SET_METHOD(tpl, clipPreserve);
+    SET_METHOD(tpl, clipExtents);
+    SET_METHOD(tpl, inClip);
+    SET_METHOD(tpl, resetClip);
+    SET_METHOD(tpl, copyClipRectangleList);
+    SET_METHOD(tpl, fill);
+    SET_METHOD(tpl, fillPreserve);
+    SET_METHOD(tpl, fillExtents);
+    SET_METHOD(tpl, inFill);
+    SET_METHOD(tpl, paint);
+    SET_METHOD(tpl, paintWithAlpha);
+    SET_METHOD(tpl, stroke);
+    SET_METHOD(tpl, strokePreserve);
+    SET_METHOD(tpl, strokeExtents);
+    SET_METHOD(tpl, inStroke);
+    SET_METHOD(tpl, copyPage);
+    SET_METHOD(tpl, showPage);
+    SET_METHOD(tpl, getReferenceCount);
+    SET_METHOD(tpl, copyPath);
+    SET_METHOD(tpl, copyPathFlat);
+    SET_METHOD(tpl, hasCurrentPoint);
+    SET_METHOD(tpl, getCurrentPoint);
+    SET_METHOD(tpl, newPath);
+    SET_METHOD(tpl, newSubPath);
+    SET_METHOD(tpl, closePath);
+    SET_METHOD(tpl, arc);
+    SET_METHOD(tpl, arcNegative);
+    SET_METHOD(tpl, curveTo);
+    SET_METHOD(tpl, lineTo);
+    SET_METHOD(tpl, moveTo);
+    SET_METHOD(tpl, rectangle);
+    SET_METHOD(tpl, textPath);
+    SET_METHOD(tpl, relCurveTo);
+    SET_METHOD(tpl, relLineTo);
+    SET_METHOD(tpl, relMoveTo);
+    SET_METHOD(tpl, pathExtents);
+    SET_METHOD(tpl, showText);
+    SET_METHOD(tpl, textExtents);
+    SET_METHOD(tpl, selectFontFace);
+    SET_METHOD(tpl, setFontSize);
+    SET_METHOD(tpl, getFontFace);
+    SET_METHOD(tpl, getScaledFont);
+    SET_METHOD(tpl, translate);
+    SET_METHOD(tpl, scale);
+    SET_METHOD(tpl, rotate);
+    SET_METHOD(tpl, identityMatrix);
+    SET_METHOD(tpl, userToDevice);
+    SET_METHOD(tpl, userToDeviceDistance);
+    SET_METHOD(tpl, deviceToUser);
+    SET_METHOD(tpl, deviceToUserDistance);
+    SET_METHOD(tpl, tagBegin);
+    SET_METHOD(tpl, tagEnd);
 }
 
 #undef SET_METHOD
 
+static void InstanceDestroyed(const Nan::WeakCallbackInfo<ContextInfo> &info);
+
+static void InstanceConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
+    /* See gobject.cc for how this works */
+    if (!info.IsConstructCall ()) {
+        Nan::ThrowTypeError("Not a construct call");
+        return;
+    }
+
+    cairo_t *context = NULL;
+    Local<Object> self = info.This ();
+
+    if (info[0]->IsExternal ()) {
+        /* The External case. This is how WrapperFromBoxed is called. */
+
+        context = cairo_reference ((cairo_t *) External::Cast(*info[0])->Value());
+
+    } else {
+        /* User code calling `new Cairo.Context(surface)` */
+        /* TODO: use cairo_create (cairo_surface_t *) */
+
+        Nan::ThrowTypeError("Not supported yet");
+
+        return;
+    }
+
+    self->SetAlignedPointerInInternalField (0, context);
+
+
+    auto* contextInfo = new ContextInfo();
+    contextInfo->context = context;
+    contextInfo->persistent = new Nan::Persistent<Object>(self);
+    contextInfo->persistent->SetWeak(contextInfo, InstanceDestroyed, Nan::WeakCallbackType::kParameter);
+}
+
+static void InstanceDestroyed(const Nan::WeakCallbackInfo<ContextInfo> &info) {
+    auto contextInfo = info.GetParameter();
+
+    if (contextInfo->context != NULL) {
+        cairo_destroy (contextInfo->context);
+    }
+
+    delete contextInfo->persistent;
+    delete contextInfo;
+}
+
+Local<FunctionTemplate> GetTemplate() {
+    auto tpl = Nan::New<FunctionTemplate> (InstanceConstructor);
+    AttachMethods (tpl);
+    return tpl;
+}
+
+
+
+}; // Context
 
 }; // Cairo
 

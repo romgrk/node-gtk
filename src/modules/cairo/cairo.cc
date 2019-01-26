@@ -13,23 +13,30 @@
 
 using v8::Function;
 using v8::Local;
+using v8::MaybeLocal;
 using v8::Object;
 
 namespace GNodeJS {
 
 namespace Cairo {
 
-static Local<Function> GetFunction(Local<Object> object, const char* name) {
-    auto value = Nan::Get(object, UTF8(name)).ToLocalChecked();
-    return Local<Function>::Cast (value);
+MaybeLocal<FunctionTemplate> GetTemplate(GIBaseInfo *info) {
+    auto ns = g_base_info_get_namespace (info);
+
+    if (strcmp(ns, "cairo") != 0)
+        return MaybeLocal<FunctionTemplate> ();
+
+    auto name = g_base_info_get_name (info);
+
+    if (strcmp(name, "Context") == 0)
+        return MaybeLocal<FunctionTemplate> (Cairo::Context::GetTemplate ());
+
+    return MaybeLocal<FunctionTemplate> ();
 }
 
 
 NAN_METHOD(Init) {
     Local<Object> cairoModule = info[0].As<Object>();
-
-    Local<Function> cairoContext = GetFunction(cairoModule, "Context");
-    SetupCairoContext(cairoContext);
 
     TextExtent::Initialize(cairoModule);
 }
