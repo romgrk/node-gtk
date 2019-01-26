@@ -2,6 +2,7 @@
 #include <cairo.h>
 
 #include "cairo-context.h"
+#include "cairo-text-extent.h"
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../gobject.h"
@@ -833,6 +834,27 @@ NAN_METHOD(showText) {
     cairo_show_text (cr, utf8);
 }
 
+NAN_METHOD(textExtents) {
+    auto self = info.This();
+    auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+    // in-arguments
+    auto utf8 = *Nan::Utf8String (info[0].As<String>());
+
+    // out-arguments
+    auto extents = Nan::NewInstance(
+            Nan::New<FunctionTemplate>(TextExtent::constructor)->GetFunction(),
+            0,
+            NULL).ToLocalChecked();
+
+    // function call
+    cairo_text_extents (cr, utf8, Nan::ObjectWrap::Unwrap<TextExtent>(extents)->_data);
+
+    // return
+    Local<Value> returnValue = extents;
+    info.GetReturnValue().Set(returnValue);
+}
+
 NAN_METHOD(selectFontFace) {
     auto self = info.This();
     auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -1092,6 +1114,7 @@ void SetupCairoContext(Local<Function> object) {
     SET_METHOD(prototype, relMoveTo);
     SET_METHOD(prototype, pathExtents);
     SET_METHOD(prototype, showText);
+    SET_METHOD(prototype, textExtents);
     SET_METHOD(prototype, selectFontFace);
     SET_METHOD(prototype, setFontSize);
     SET_METHOD(prototype, getFontFace);

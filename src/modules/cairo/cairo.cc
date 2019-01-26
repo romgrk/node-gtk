@@ -9,6 +9,7 @@
 #include "../../gobject.h"
 #include "../../value.h"
 #include "cairo-context.h"
+#include "cairo-text-extent.h"
 
 using v8::Function;
 using v8::Local;
@@ -28,8 +29,9 @@ NAN_METHOD(Init) {
     Local<Object> cairoModule = info[0].As<Object>();
 
     Local<Function> cairoContext = GetFunction(cairoModule, "Context");
-
     SetupCairoContext(cairoContext);
+
+    TextExtent::Initialize(cairoModule);
 }
 
 Local<Object> GetModule() {

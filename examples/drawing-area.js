@@ -29,16 +29,26 @@ drawingArea.on('draw', (context) => {
   context.arc(16, 16, 16, 0, 2 * Math.PI);
   context.fill()
 
-  context.setSourceRgba(0.1, 0.1, 0.1, 1)
-  context.rectangle(10, 40, 100, 20)
-  context.fill()
-
   context.selectFontFace("Fantasque Sans Mono", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
   context.setFontSize(12)
+
+  const extents = context.textExtents("Disziplin ist Macht.")
+  console.log({
+    xAdvance: extents.xAdvance,
+    yAdvance: extents.yAdvance,
+    width:    extents.width,
+    height:   extents.height,
+    xBearing: extents.xBearing,
+    yBearing: extents.yBearing,
+  })
+  context.setSourceRgba(0.1, 0.1, 0.1, 1)
+  context.rectangle(10, 40, extents.xAdvance, extents.height - extents.yBearing)
+  context.fill()
 
   context.moveTo(10, 50)
   context.setSourceRgba(1, 0.0, 0.0, 1)
   context.showText("Disziplin ist Macht.")
+
 
   context.setLineWidth (2)
 
@@ -60,7 +70,7 @@ vbox.packStart(drawingArea, true, true, 0)
 
 
 // configure main window
-window.setDefaultSize(1200, 720)
+window.setDefaultSize(600, 400)
 window.setResizable(true)
 window.add(vbox)
 

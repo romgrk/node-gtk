@@ -19,6 +19,7 @@
                 "src/modules/system.cc",
                 "src/modules/cairo/cairo.cc",
                 "src/modules/cairo/cairo-context.cc",
+                "src/modules/cairo/cairo-text-extent.cc",
             ],
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"
