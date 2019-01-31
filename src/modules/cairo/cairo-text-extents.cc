@@ -1,7 +1,7 @@
 
 #include "../../gi.h"
 #include "../../util.h"
-#include "cairo-text-extent.h"
+#include "cairo-text-extents.h"
 
 using namespace v8;
 
@@ -11,21 +11,21 @@ namespace GNodeJS {
 namespace Cairo {
 
 
-Nan::Persistent<FunctionTemplate> TextExtent::constructor;
+Nan::Persistent<FunctionTemplate> TextExtents::constructor;
 
 
 /*
- * Initialize TextExtent.
+ * Initialize TextExtents.
  */
 
-void TextExtent::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
+void TextExtents::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   Nan::HandleScope scope;
 
   // Constructor
-  Local<FunctionTemplate> ctor = Nan::New<FunctionTemplate>(TextExtent::New);
+  Local<FunctionTemplate> ctor = Nan::New<FunctionTemplate>(TextExtents::New);
   constructor.Reset(ctor);
   ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(Nan::New("CairoTextExtent").ToLocalChecked());
+  ctor->SetClassName(Nan::New("CairoTextExtents").ToLocalChecked());
 
   // Prototype
   Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
@@ -36,14 +36,14 @@ void TextExtent::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   SetProtoAccessor(proto, UTF8("xAdvance"), GetXAdvance, SetXAdvance,  ctor);
   SetProtoAccessor(proto, UTF8("yAdvance"), GetYAdvance, SetYAdvance, ctor);
 
-  Nan::Set(target, Nan::New("TextExtent").ToLocalChecked(), ctor->GetFunction());
+  Nan::Set(target, Nan::New("TextExtents").ToLocalChecked(), ctor->GetFunction());
 }
 
 /*
- * Initialize a TextExtent with the given width and height.
+ * Initialize a TextExtents with the given width and height.
  */
 
-NAN_METHOD(TextExtent::New) {
+NAN_METHOD(TextExtents::New) {
   if (!info.IsConstructCall()) {
     return Nan::ThrowTypeError("Class constructors cannot be invoked without 'new'");
   }
@@ -57,7 +57,7 @@ NAN_METHOD(TextExtent::New) {
     data = new cairo_text_extents_t();
   }
 
-  TextExtent* textExtent = new TextExtent(data);
+  TextExtents* textExtent = new TextExtents(data);
   textExtent->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
@@ -67,7 +67,7 @@ NAN_METHOD(TextExtent::New) {
  * Initialize text extent.
  */
 
-TextExtent::TextExtent(cairo_text_extents_t* data) : ObjectWrap() {
+TextExtents::TextExtents(cairo_text_extents_t* data) : ObjectWrap() {
   _data = data;
 }
 
@@ -75,7 +75,7 @@ TextExtent::TextExtent(cairo_text_extents_t* data) : ObjectWrap() {
  * Destroy text extent..
  */
 
-TextExtent::~TextExtent() {
+TextExtents::~TextExtents() {
   if (_data != NULL) {
     delete _data;
   }
@@ -86,14 +86,14 @@ TextExtent::~TextExtent() {
  */
 
 #define DEFINE_ACCESSORS(prop, getterName, setterName) \
-  NAN_GETTER(TextExtent::getterName) { \
-    TextExtent *textExtent = Nan::ObjectWrap::Unwrap<TextExtent>(info.This()); \
+  NAN_GETTER(TextExtents::getterName) { \
+    TextExtents *textExtent = Nan::ObjectWrap::Unwrap<TextExtents>(info.This()); \
     info.GetReturnValue().Set(Nan::New<Number>(textExtent->_data->prop)); \
   } \
  \
-  NAN_SETTER(TextExtent::setterName) { \
+  NAN_SETTER(TextExtents::setterName) { \
     if (value->IsNumber()) { \
-      TextExtent *textExtent = Nan::ObjectWrap::Unwrap<TextExtent>(info.This()); \
+      TextExtents *textExtent = Nan::ObjectWrap::Unwrap<TextExtents>(info.This()); \
       textExtent->_data->prop = Nan::To<double> (value).ToChecked(); \
     } \
   }

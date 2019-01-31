@@ -2,7 +2,8 @@
 #include <cairo.h>
 
 #include "cairo-context.h"
-#include "cairo-text-extent.h"
+#include "cairo-text-extents.h"
+#include "cairo-font-extents.h"
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../gobject.h"
@@ -847,12 +848,30 @@ NAN_METHOD(textExtents) {
 
     // out-arguments
     auto extents = Nan::NewInstance(
-            Nan::New<FunctionTemplate>(TextExtent::constructor)->GetFunction(),
+            Nan::New<FunctionTemplate>(TextExtents::constructor)->GetFunction(),
             0,
             NULL).ToLocalChecked();
 
     // function call
-    cairo_text_extents (cr, utf8, Nan::ObjectWrap::Unwrap<TextExtent>(extents)->_data);
+    cairo_text_extents (cr, utf8, Nan::ObjectWrap::Unwrap<TextExtents>(extents)->_data);
+
+    // return
+    Local<Value> returnValue = extents;
+    info.GetReturnValue().Set(returnValue);
+}
+
+NAN_METHOD(fontExtents) {
+    auto self = info.This();
+    auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+    // out-arguments
+    auto extents = Nan::NewInstance(
+            Nan::New<FunctionTemplate>(FontExtents::constructor)->GetFunction(),
+            0,
+            NULL).ToLocalChecked();
+
+    // function call
+    cairo_font_extents (cr, Nan::ObjectWrap::Unwrap<FontExtents>(extents)->_data);
 
     // return
     Local<Value> returnValue = extents;
@@ -1117,6 +1136,7 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
     SET_METHOD(tpl, pathExtents);
     SET_METHOD(tpl, showText);
     SET_METHOD(tpl, textExtents);
+    SET_METHOD(tpl, fontExtents);
     SET_METHOD(tpl, selectFontFace);
     SET_METHOD(tpl, setFontSize);
     SET_METHOD(tpl, getFontFace);

@@ -41,6 +41,16 @@ drawingArea.on('draw', (context) => {
     xBearing: extents.xBearing,
     yBearing: extents.yBearing,
   })
+
+  const fontExtents = context.fontExtents()
+  console.log(fontExtents, {
+    ascent:      fontExtents.ascent,
+    descent:     fontExtents.descent,
+    height:      fontExtents.height,
+    maxXAdvance: fontExtents.maxXAdvance,
+    maxYAdvance: fontExtents.maxYAdvance,
+  })
+
   context.setSourceRgba(0.1, 0.1, 0.1, 1)
   context.rectangle(10, 40, extents.xAdvance, extents.height - extents.yBearing)
   context.fill()

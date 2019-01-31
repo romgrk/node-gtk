@@ -12,7 +12,7 @@ namespace GNodeJS {
 namespace Cairo {
 
 
-class TextExtent: public Nan::ObjectWrap {
+class TextExtents: public Nan::ObjectWrap {
   public:
     static Nan::Persistent<v8::FunctionTemplate> constructor;
     static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target);
@@ -30,8 +30,8 @@ class TextExtent: public Nan::ObjectWrap {
     static NAN_SETTER(SetXAdvance);
     static NAN_SETTER(SetYAdvance);
 
-    TextExtent(cairo_text_extents_t* data);
-    ~TextExtent();
+    TextExtents(cairo_text_extents_t* data);
+    ~TextExtents();
 
     cairo_text_extents_t* _data;
 };

@@ -9,7 +9,8 @@
 #include "../../gobject.h"
 #include "../../value.h"
 #include "cairo-context.h"
-#include "cairo-text-extent.h"
+#include "cairo-font-extents.h"
+#include "cairo-text-extents.h"
 
 using v8::Function;
 using v8::Local;
@@ -38,7 +39,8 @@ MaybeLocal<FunctionTemplate> GetTemplate(GIBaseInfo *info) {
 NAN_METHOD(Init) {
     Local<Object> cairoModule = info[0].As<Object>();
 
-    TextExtent::Initialize(cairoModule);
+    TextExtents::Initialize(cairoModule);
+    FontExtents::Initialize(cairoModule);
 }
 
 Local<Object> GetModule() {
