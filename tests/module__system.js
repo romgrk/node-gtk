@@ -6,7 +6,7 @@
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk')
 const common = require('./__common__.js')
-const system = gi.system
+const system = gi.System
 
 Gtk.init()
 
