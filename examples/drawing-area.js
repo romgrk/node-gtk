@@ -79,6 +79,9 @@ drawingArea.on('draw', (context) => {
   layout.setFontDescription(fontDescription)
   PangoCairo.showLayout(context, layout)
 
+  const path = context.copyPath()
+  console.log(path, path.status)
+
   return true
 })
 

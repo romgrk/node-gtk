@@ -25,35 +25,26 @@ const ENUM_TYPE = {
   cairo_font_weight_t: 'int64_t',
 }
 
+const WRAP_TYPE = {
+  cairo_path_t: 'Path',
+  cairo_text_extents_t: 'TextExtents',
+  cairo_font_extents_t: 'FontExtents',
+}
+
 const result = nid.parse(content)
 const declarations = result.declarations
 const functions = declarations.filter(d => d.function).map(d => d.function)
 
 console.assert(declarations.length === functions.length)
-console.log(functions.map(fn =>
-  [getJSName(fn.name), fn.name]
-))
 
 
-/* const getDash = functions.find(f => f.name === 'cairo_get_dash')
- * // const moveTo = functions.find(f => f.name === 'cairo_move_to')
- * // const showText = functions.find(f => f.name === 'cairo_show_text')
- * const setLineWidth = functions.find(f => f.name === 'cairo_set_line_width')
- * const getLineWidth = functions.find(f => f.name === 'cairo_get_line_width')
- * const setFillRule = functions.find(f => f.name === 'cairo_set_fill_rule')
- * const getFillRule = functions.find(f => f.name === 'cairo_get_fill_rule')
- * 
- * // logFn(moveTo)
- * // logFn(showText)
- * logFn(setLineWidth)
- * logFn(getLineWidth)
- * logFn(setFillRule)
- * logFn(getFillRule)
- * // logFn(getDash) */
+// logFn(functions.find(f => f.name === 'cairo_text_extents'))
+// logFn(functions.find(f => f.name === 'cairo_font_extents'))
 
 // functions.map(logFn)
 
 console.log(generateSource('CairoContext', functions))
+
 
 function logFn(fn) {
   let source
@@ -61,7 +52,6 @@ function logFn(fn) {
     source = getSource(fn)
     // console.log('##### ' + fn.name + ' #####')
   } catch (e) {
-    return
     console.log('##### ' + fn.name + ' #####')
     console.log('Info:', fn)
     console.log(e)
@@ -134,8 +124,18 @@ function getInArgumentSource(p, n) {
 }
 
 function getOutArgumentDeclaration(p, n) {
+  const typeName = getTypeName(p.type)
+
   if (p.type.name === 'double')
     return `double ${p.name} = 0.0;`
+
+  if (p.type.name in WRAP_TYPE)
+    return [
+      `auto ${p.name} = Nan::NewInstance(`,
+      `        Nan::New<Function>(${WRAP_TYPE[p.type.name]}::constructor),`,
+      '        0,',
+      '        NULL).ToLocalChecked();',
+    ].join('\n        ')
 
   throw new Error('MISSING DECLARATION FOR ' + p.name + ': ' + typeName)
   return '// MISSING DECLARATION FOR ' + p.name
@@ -145,10 +145,19 @@ function getFunctionCall(fn) {
   const typeName = getTypeName(fn.type)
   const hasResult = typeName !== 'void'
 
-  const args = fn.parameters.map(p =>
-    (p.attributes.out ? '&' : '') + p.name).join(', ')
+  const args = fn.parameters.map(getFunctionArgument).join(', ')
 
   return (hasResult ? typeName + ' result = ' : '') + `${fn.name} (${args});`
+}
+
+function getFunctionArgument(p) {
+  if (p.attributes.out && p.type.name in WRAP_TYPE)
+    return `Nan::ObjectWrap::Unwrap<${WRAP_TYPE[p.type.name]}>(${p.name})->_data`
+
+  if (p.attributes.out)
+    return '&' + p.name
+
+  return p.name
 }
 
 function getReturn(fn, outArguments) {
@@ -158,29 +167,36 @@ function getReturn(fn, outArguments) {
   if (outArguments.length > 0) {
     console.assert(getTypeName(fn.type) === 'void', 'Non-void with out arguments: ' + fn.name)
 
-    lines.push(`Local<Object> returnValue = Nan::New<Object> ();`)
-    outArguments.forEach(p => {
-      lines.push(`Nan::Set (returnValue, UTF8 ("${p.name}"), Nan::New (${p.name}));`)
-    })
-    lines.push(`info.GetReturnValue().Set(returnValue);`)
+    if (outArguments.length === 1 && outArguments[0].type.name in WRAP_TYPE) {
+      lines.push(`Local<Value> returnValue = ${outArguments[0].name};`)
+    }
+    else {
+      lines.push(`Local<Object> returnValue = Nan::New<Object> ();`)
+      outArguments.forEach(p => {
+        lines.push(`Nan::Set (returnValue, UTF8 ("${p.name}"), Nan::New (${p.name}));`)
+      })
+    }
+  }
+  else if (fn.type.name in WRAP_TYPE) {
+    lines.push(`Local<Value> args[] = { Nan::New<External> (result) };`)
+    lines.push(`Local<Function> constructor = Nan::New<Function> (${WRAP_TYPE[fn.type.name]}::constructor);`)
+    lines.push(`Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();`)
   }
   else if (typeName !== 'void') {
     lines.push(`Local<Value> returnValue = Nan::New (result);`)
-    lines.push(`info.GetReturnValue().Set(returnValue);`)
   }
 
+  lines.push(`info.GetReturnValue().Set(returnValue);`)
 
   return lines.join('\n        ')
 }
 
 function getSetup(name, functions) {
   return unindent(`
-    #define SET_METHOD(target, name) Nan::SetMethod(target, #name, name)
+    #define SET_METHOD(tpl, name) Nan::SetPrototypeMethod(tpl, #name, name)
 
-    void Setup${name}(Local<Function> object) {
-        Local<Object> prototype = Local<Object>::Cast (Nan::Get(object, UTF8("prototype")).ToLocalChecked());
-
-        ${functions.map(fn => `SET_METHOD(prototype, ${getJSName(fn.name)});`).join('\n        ')}
+    static void AttachMethods(Local<FunctionTemplate> tpl) {
+        ${functions.map(fn => `SET_METHOD(tpl, ${getJSName(fn.name)});`).join('\n        ')}
     }
 
     #undef SET_METHOD

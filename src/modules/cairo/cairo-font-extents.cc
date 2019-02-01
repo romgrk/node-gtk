@@ -11,7 +11,8 @@ namespace GNodeJS {
 namespace Cairo {
 
 
-Nan::Persistent<FunctionTemplate> FontExtents::constructor;
+Nan::Persistent<FunctionTemplate> FontExtents::constructorTemplate;
+Nan::Persistent<Function>         FontExtents::constructor;
 
 
 /*
@@ -22,20 +23,23 @@ void FontExtents::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   Nan::HandleScope scope;
 
   // Constructor
-  Local<FunctionTemplate> ctor = Nan::New<FunctionTemplate>(FontExtents::New);
-  constructor.Reset(ctor);
-  ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(Nan::New("CairoFontExtents").ToLocalChecked());
+  auto tpl = Nan::New<FunctionTemplate>(FontExtents::New);
+  constructorTemplate.Reset(tpl);
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  tpl->SetClassName(Nan::New("CairoFontExtents").ToLocalChecked());
 
   // Prototype
-  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
-  SetProtoAccessor(proto, UTF8("ascent"),   GetAscent,   SetAscent,   ctor);
-  SetProtoAccessor(proto, UTF8("descent"),  GetDescent,  SetDescent,  ctor);
-  SetProtoAccessor(proto, UTF8("height"),   GetHeight,   SetHeight,   ctor);
-  SetProtoAccessor(proto, UTF8("maxXAdvance"), GetMaxXAdvance, SetMaxXAdvance, ctor);
-  SetProtoAccessor(proto, UTF8("maxYAdvance"), GetMaxYAdvance, SetMaxYAdvance, ctor);
+  Local<ObjectTemplate> proto = tpl->PrototypeTemplate();
+  SetProtoAccessor(proto, UTF8("ascent"),   GetAscent,   SetAscent,   tpl);
+  SetProtoAccessor(proto, UTF8("descent"),  GetDescent,  SetDescent,  tpl);
+  SetProtoAccessor(proto, UTF8("height"),   GetHeight,   SetHeight,   tpl);
+  SetProtoAccessor(proto, UTF8("maxXAdvance"), GetMaxXAdvance, SetMaxXAdvance, tpl);
+  SetProtoAccessor(proto, UTF8("maxYAdvance"), GetMaxYAdvance, SetMaxYAdvance, tpl);
 
-  Nan::Set(target, Nan::New("FontExtents").ToLocalChecked(), ctor->GetFunction());
+  auto ctor = tpl->GetFunction();
+  constructor.Reset(ctor);
+
+  Nan::Set(target, Nan::New("FontExtents").ToLocalChecked(), ctor);
 }
 
 /*

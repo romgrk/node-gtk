@@ -11,6 +11,7 @@
 #include "cairo-context.h"
 #include "cairo-font-extents.h"
 #include "cairo-text-extents.h"
+#include "cairo-path.h"
 
 using v8::Function;
 using v8::Local;
@@ -41,6 +42,7 @@ NAN_METHOD(Init) {
 
     TextExtents::Initialize(cairoModule);
     FontExtents::Initialize(cairoModule);
+    Path::Initialize(cairoModule);
 }
 
 Local<Object> GetModule() {

@@ -2,6 +2,7 @@
 #include <cairo.h>
 
 #include "cairo-context.h"
+#include "cairo-path.h"
 #include "cairo-text-extents.h"
 #include "cairo-font-extents.h"
 #include "../../debug.h"
@@ -21,16 +22,6 @@ namespace GNodeJS {
 namespace Cairo {
 
 namespace Context {
-
-NAN_METHOD(destroy) {
-    auto self = info.This();
-    auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
-
-    // function call
-    cairo_destroy (cr);
-
-    self->SetAlignedPointerInInternalField (0, NULL);
-}
 
 NAN_METHOD(status) {
     auto self = info.This();
@@ -602,7 +593,9 @@ NAN_METHOD(copyPath) {
     cairo_path_t * result = cairo_copy_path (cr);
 
     // return
-    Local<Value> returnValue = Nan::New (result);
+    Local<Value> args[] = { Nan::New<External> (result) };
+    Local<Function> constructor = Nan::New<Function> (Path::constructor);
+    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
     info.GetReturnValue().Set(returnValue);
 }
 
@@ -614,7 +607,9 @@ NAN_METHOD(copyPathFlat) {
     cairo_path_t * result = cairo_copy_path_flat (cr);
 
     // return
-    Local<Value> returnValue = Nan::New (result);
+    Local<Value> args[] = { Nan::New<External> (result) };
+    Local<Function> constructor = Nan::New<Function> (Path::constructor);
+    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
     info.GetReturnValue().Set(returnValue);
 }
 
@@ -840,6 +835,24 @@ NAN_METHOD(showText) {
     cairo_show_text (cr, utf8);
 }
 
+NAN_METHOD(fontExtents) {
+    auto self = info.This();
+    auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+    // out-arguments
+    auto extents = Nan::NewInstance(
+            Nan::New<Function>(FontExtents::constructor),
+            0,
+            NULL).ToLocalChecked();
+
+    // function call
+    cairo_font_extents (cr, Nan::ObjectWrap::Unwrap<FontExtents>(extents)->_data);
+
+    // return
+    Local<Value> returnValue = extents;
+    info.GetReturnValue().Set(returnValue);
+}
+
 NAN_METHOD(textExtents) {
     auto self = info.This();
     auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -849,30 +862,12 @@ NAN_METHOD(textExtents) {
 
     // out-arguments
     auto extents = Nan::NewInstance(
-            Nan::New<FunctionTemplate>(TextExtents::constructor)->GetFunction(),
+            Nan::New<Function>(TextExtents::constructor),
             0,
             NULL).ToLocalChecked();
 
     // function call
     cairo_text_extents (cr, utf8, Nan::ObjectWrap::Unwrap<TextExtents>(extents)->_data);
-
-    // return
-    Local<Value> returnValue = extents;
-    info.GetReturnValue().Set(returnValue);
-}
-
-NAN_METHOD(fontExtents) {
-    auto self = info.This();
-    auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
-
-    // out-arguments
-    auto extents = Nan::NewInstance(
-            Nan::New<FunctionTemplate>(FontExtents::constructor)->GetFunction(),
-            0,
-            NULL).ToLocalChecked();
-
-    // function call
-    cairo_font_extents (cr, Nan::ObjectWrap::Unwrap<FontExtents>(extents)->_data);
 
     // return
     Local<Value> returnValue = extents;
@@ -1068,7 +1063,6 @@ NAN_METHOD(tagEnd) {
 #define SET_METHOD(tpl, name) Nan::SetPrototypeMethod(tpl, #name, name)
 
 static void AttachMethods(Local<FunctionTemplate> tpl) {
-    SET_METHOD(tpl, destroy);
     SET_METHOD(tpl, status);
     SET_METHOD(tpl, save);
     SET_METHOD(tpl, restore);
@@ -1136,8 +1130,8 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
     SET_METHOD(tpl, relMoveTo);
     SET_METHOD(tpl, pathExtents);
     SET_METHOD(tpl, showText);
-    SET_METHOD(tpl, textExtents);
     SET_METHOD(tpl, fontExtents);
+    SET_METHOD(tpl, textExtents);
     SET_METHOD(tpl, selectFontFace);
     SET_METHOD(tpl, setFontSize);
     SET_METHOD(tpl, getFontFace);

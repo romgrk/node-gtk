@@ -11,7 +11,8 @@ namespace GNodeJS {
 namespace Cairo {
 
 
-Nan::Persistent<FunctionTemplate> TextExtents::constructor;
+Nan::Persistent<FunctionTemplate> TextExtents::constructorTemplate;
+Nan::Persistent<Function>         TextExtents::constructor;
 
 
 /*
@@ -22,21 +23,24 @@ void TextExtents::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   Nan::HandleScope scope;
 
   // Constructor
-  Local<FunctionTemplate> ctor = Nan::New<FunctionTemplate>(TextExtents::New);
-  constructor.Reset(ctor);
-  ctor->InstanceTemplate()->SetInternalFieldCount(1);
-  ctor->SetClassName(Nan::New("CairoTextExtents").ToLocalChecked());
+  auto tpl = Nan::New<FunctionTemplate>(TextExtents::New);
+  constructorTemplate.Reset(tpl);
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  tpl->SetClassName(Nan::New("CairoTextExtents").ToLocalChecked());
 
   // Prototype
-  Local<ObjectTemplate> proto = ctor->PrototypeTemplate();
-  SetProtoAccessor(proto, UTF8("xBearing"), GetXBearing, SetXBearing,  ctor);
-  SetProtoAccessor(proto, UTF8("yBearing"), GetYBearing, SetYBearing, ctor);
-  SetProtoAccessor(proto, UTF8("width"),    GetWidth,  SetWidth,  ctor);
-  SetProtoAccessor(proto, UTF8("height"),   GetHeight, SetHeight, ctor);
-  SetProtoAccessor(proto, UTF8("xAdvance"), GetXAdvance, SetXAdvance,  ctor);
-  SetProtoAccessor(proto, UTF8("yAdvance"), GetYAdvance, SetYAdvance, ctor);
+  Local<ObjectTemplate> proto = tpl->PrototypeTemplate();
+  SetProtoAccessor(proto, UTF8("xBearing"), GetXBearing, SetXBearing,  tpl);
+  SetProtoAccessor(proto, UTF8("yBearing"), GetYBearing, SetYBearing, tpl);
+  SetProtoAccessor(proto, UTF8("width"),    GetWidth,  SetWidth,  tpl);
+  SetProtoAccessor(proto, UTF8("height"),   GetHeight, SetHeight, tpl);
+  SetProtoAccessor(proto, UTF8("xAdvance"), GetXAdvance, SetXAdvance,  tpl);
+  SetProtoAccessor(proto, UTF8("yAdvance"), GetYAdvance, SetYAdvance, tpl);
 
-  Nan::Set(target, Nan::New("TextExtents").ToLocalChecked(), ctor->GetFunction());
+  auto ctor = tpl->GetFunction();
+  constructor.Reset(ctor);
+
+  Nan::Set(target, Nan::New("TextExtents").ToLocalChecked(), ctor);
 }
 
 /*
