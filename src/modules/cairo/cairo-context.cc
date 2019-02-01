@@ -1167,12 +1167,14 @@ static void InstanceConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
         context = cairo_reference ((cairo_t *) External::Cast(*info[0])->Value());
 
-    } else {
+    } else if (info[0]->IsObject ()) {
         /* User code calling `new Cairo.Context(surface)` */
-        /* TODO: use cairo_create (cairo_surface_t *) */
 
-        Nan::ThrowTypeError("Not supported yet");
+        auto surface = (cairo_surface_t *) info[0].As<Object>()->GetAlignedPointerFromInternalField (0);
+        context = cairo_create (surface);
 
+    } else {
+        Nan::ThrowTypeError("Missing argument (surface)");
         return;
     }
 
