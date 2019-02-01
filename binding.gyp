@@ -22,6 +22,7 @@
                 "src/modules/cairo/cairo-path.cc",
                 "src/modules/cairo/cairo-font-extents.cc",
                 "src/modules/cairo/cairo-text-extents.cc",
+                "src/modules/cairo/cairo-surface.cc",
             ],
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"
