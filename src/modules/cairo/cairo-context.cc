@@ -1346,34 +1346,76 @@ void cairo_tag_end (cairo_t *cr, const char *tag_name);
 #define CAIRO_TAG_DEST "cairo.dest"
 #define CAIRO_TAG_LINK "Link"
 
+Matrix:
 
-FontFace:
+void cairo_matrix_init (cairo_matrix_t *matrix, double xx, double yx, double xy, double yy, double x0, double y0);
+void cairo_matrix_init_identity (cairo_matrix_t *matrix);
+void cairo_matrix_init_translate (cairo_matrix_t *matrix, double tx, double ty);
+void cairo_matrix_init_scale (cairo_matrix_t *matrix, double sx, double sy);
+void cairo_matrix_init_rotate (cairo_matrix_t *matrix, double radians);
+void cairo_matrix_translate (cairo_matrix_t *matrix, double tx, double ty);
+void cairo_matrix_scale (cairo_matrix_t *matrix, double sx, double sy);
+void cairo_matrix_rotate (cairo_matrix_t *matrix, double radians);
+cairo_status_t cairo_matrix_invert (cairo_matrix_t *matrix);
+void cairo_matrix_multiply (cairo_matrix_t *result, const cairo_matrix_t *a, const cairo_matrix_t *b);
+void cairo_matrix_transform_distance (const cairo_matrix_t *matrix, double *dx, double *dy);
+void cairo_matrix_transform_point (const cairo_matrix_t *matrix, double *x, double *y);
+typedef struct { double xx; double yx; double xy; double yy; double x0; double y0; } cairo_matrix_t;
 
-cairo_font_face_t * cairo_toy_font_face_create (const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
-const char * cairo_toy_font_face_get_family (cairo_font_face_t *font_face);
-cairo_font_slant_t cairo_toy_font_face_get_slant (cairo_font_face_t *font_face);
-cairo_font_weight_t cairo_toy_font_face_get_weight (cairo_font_face_t *font_face);
-cairo_glyph_t * cairo_glyph_allocate (int num_glyphs);
-void cairo_glyph_free (cairo_glyph_t *glyphs);
-cairo_text_cluster_t * cairo_text_cluster_allocate (int num_clusters);
-void cairo_text_cluster_free (cairo_text_cluster_t *clusters);
-typedef struct { unsigned long index; double x; double y; } cairo_glyph_t;
-typedef struct { int num_bytes; int num_glyphs; } cairo_text_cluster_t;
+
+Region:
+
+cairo_region_t * cairo_region_create (void);
+cairo_region_t * cairo_region_create_rectangle (const cairo_rectangle_int_t *rectangle);
+cairo_region_t * cairo_region_create_rectangles (const cairo_rectangle_int_t *rects, int count);
+cairo_region_t * cairo_region_copy (const cairo_region_t *original);
+cairo_region_t * cairo_region_reference (cairo_region_t *region);
+void cairo_region_destroy (cairo_region_t *region);
+cairo_status_t cairo_region_status (const cairo_region_t *region);
+void cairo_region_get_extents (const cairo_region_t *region, cairo_rectangle_int_t *extents);
+int cairo_region_num_rectangles (const cairo_region_t *region);
+void cairo_region_get_rectangle (const cairo_region_t *region, int nth, cairo_rectangle_int_t *rectangle);
+cairo_bool_t cairo_region_is_empty (const cairo_region_t *region);
+cairo_bool_t cairo_region_contains_point (const cairo_region_t *region, int x, int y);
+cairo_region_overlap_t cairo_region_contains_rectangle (const cairo_region_t *region, const cairo_rectangle_int_t *rectangle);
+cairo_bool_t cairo_region_equal (const cairo_region_t *a, const cairo_region_t *b);
+void cairo_region_translate (cairo_region_t *region, int dx, int dy);
+cairo_status_t cairo_region_intersect (cairo_region_t *dst, const cairo_region_t *other);
+cairo_status_t cairo_region_intersect_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
+cairo_status_t cairo_region_subtract (cairo_region_t *dst, const cairo_region_t *other);
+cairo_status_t cairo_region_subtract_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
+cairo_status_t cairo_region_union (cairo_region_t *dst, const cairo_region_t *other);
+cairo_status_t cairo_region_union_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
+cairo_status_t cairo_region_xor (cairo_region_t *dst, const cairo_region_t *other);
+cairo_status_t cairo_region_xor_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
+typedef struct _cairo_region cairo_region_t;
+
+Pattern:
+
+cairo_pattern_t * cairo_pattern_create_rgb (double red, double green, double blue);
+cairo_pattern_t * cairo_pattern_create_rgba (double red, double green, double blue, double alpha);
+cairo_pattern_t * cairo_pattern_create_radial (double cx0, double cy0, double radius0, double cx1, double cy1, double radius1);
+cairo_pattern_t * cairo_pattern_create_mesh (void);
+cairo_pattern_t * cairo_pattern_create_linear (double x0, double y0, double x1, double y1);
+cairo_pattern_t * cairo_pattern_create_for_surface (cairo_surface_t *surface);
 
 void cairo_pattern_add_color_stop_rgb (cairo_pattern_t *pattern, double offset, double red, double green, double blue);
 void cairo_pattern_add_color_stop_rgba (cairo_pattern_t *pattern, double offset, double red, double green, double blue, double alpha);
 cairo_status_t cairo_pattern_get_color_stop_count (cairo_pattern_t *pattern, int *count);
 cairo_status_t cairo_pattern_get_color_stop_rgba (cairo_pattern_t *pattern, int index, double *offset, double *red, double *green, double *blue, double *alpha);
-cairo_pattern_t * cairo_pattern_create_rgb (double red, double green, double blue);
-cairo_pattern_t * cairo_pattern_create_rgba (double red, double green, double blue, double alpha);
 cairo_status_t cairo_pattern_get_rgba (cairo_pattern_t *pattern, double *red, double *green, double *blue, double *alpha);
-cairo_pattern_t * cairo_pattern_create_for_surface (cairo_surface_t *surface);
 cairo_status_t cairo_pattern_get_surface (cairo_pattern_t *pattern, cairo_surface_t **surface);
-cairo_pattern_t * cairo_pattern_create_linear (double x0, double y0, double x1, double y1);
+
+Pattern > LinearPattern:
+
 cairo_status_t cairo_pattern_get_linear_points (cairo_pattern_t *pattern, double *x0, double *y0, double *x1, double *y1);
-cairo_pattern_t * cairo_pattern_create_radial (double cx0, double cy0, double radius0, double cx1, double cy1, double radius1);
+
+Pattern > RadialPattern:
+
 cairo_status_t cairo_pattern_get_radial_circles (cairo_pattern_t *pattern, double *x0, double *y0, double *r0, double *x1, double *y1, double *r1);
-cairo_pattern_t * cairo_pattern_create_mesh (void);
+
+Pattern > MeshPattern:
+
 void cairo_mesh_pattern_begin_patch (cairo_pattern_t *pattern);
 void cairo_mesh_pattern_end_patch (cairo_pattern_t *pattern);
 void cairo_mesh_pattern_move_to (cairo_pattern_t *pattern, double x, double y);
@@ -1401,30 +1443,7 @@ cairo_status_t cairo_pattern_set_user_data (cairo_pattern_t *pattern, const cair
 void * cairo_pattern_get_user_data (cairo_pattern_t *pattern, const cairo_user_data_key_t *key);
 typedef struct _cairo_pattern cairo_pattern_t;
 
-cairo_region_t * cairo_region_create (void);
-cairo_region_t * cairo_region_create_rectangle (const cairo_rectangle_int_t *rectangle);
-cairo_region_t * cairo_region_create_rectangles (const cairo_rectangle_int_t *rects, int count);
-cairo_region_t * cairo_region_copy (const cairo_region_t *original);
-cairo_region_t * cairo_region_reference (cairo_region_t *region);
-void cairo_region_destroy (cairo_region_t *region);
-cairo_status_t cairo_region_status (const cairo_region_t *region);
-void cairo_region_get_extents (const cairo_region_t *region, cairo_rectangle_int_t *extents);
-int cairo_region_num_rectangles (const cairo_region_t *region);
-void cairo_region_get_rectangle (const cairo_region_t *region, int nth, cairo_rectangle_int_t *rectangle);
-cairo_bool_t cairo_region_is_empty (const cairo_region_t *region);
-cairo_bool_t cairo_region_contains_point (const cairo_region_t *region, int x, int y);
-cairo_region_overlap_t cairo_region_contains_rectangle (const cairo_region_t *region, const cairo_rectangle_int_t *rectangle);
-cairo_bool_t cairo_region_equal (const cairo_region_t *a, const cairo_region_t *b);
-void cairo_region_translate (cairo_region_t *region, int dx, int dy);
-cairo_status_t cairo_region_intersect (cairo_region_t *dst, const cairo_region_t *other);
-cairo_status_t cairo_region_intersect_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
-cairo_status_t cairo_region_subtract (cairo_region_t *dst, const cairo_region_t *other);
-cairo_status_t cairo_region_subtract_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
-cairo_status_t cairo_region_union (cairo_region_t *dst, const cairo_region_t *other);
-cairo_status_t cairo_region_union_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
-cairo_status_t cairo_region_xor (cairo_region_t *dst, const cairo_region_t *other);
-cairo_status_t cairo_region_xor_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
-typedef struct _cairo_region cairo_region_t;
+Pattern > RasterSourcePattern:
 
 cairo_pattern_t * cairo_pattern_create_raster_source (void *user_data, cairo_content_t content, int width, int height);
 void cairo_raster_source_pattern_set_callback_data (cairo_pattern_t *pattern, void *data);
@@ -1442,6 +1461,21 @@ void (*cairo_raster_source_release_func_t) (cairo_pattern_t *pattern, void *call
 cairo_status_t (*cairo_raster_source_snapshot_func_t) (cairo_pattern_t *pattern, void *callback_data);
 cairo_status_t (*cairo_raster_source_copy_func_t) (cairo_pattern_t *pattern, void *callback_data, const cairo_pattern_t *other);
 void (*cairo_raster_source_finish_func_t) (cairo_pattern_t *pattern, void *callback_data);
+
+FontFace:
+
+cairo_font_face_t * cairo_toy_font_face_create (const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
+const char * cairo_toy_font_face_get_family (cairo_font_face_t *font_face);
+cairo_font_slant_t cairo_toy_font_face_get_slant (cairo_font_face_t *font_face);
+cairo_font_weight_t cairo_toy_font_face_get_weight (cairo_font_face_t *font_face);
+cairo_glyph_t * cairo_glyph_allocate (int num_glyphs);
+void cairo_glyph_free (cairo_glyph_t *glyphs);
+cairo_text_cluster_t * cairo_text_cluster_allocate (int num_clusters);
+void cairo_text_cluster_free (cairo_text_cluster_t *clusters);
+typedef struct { unsigned long index; double x; double y; } cairo_glyph_t;
+typedef struct { int num_bytes; int num_glyphs; } cairo_text_cluster_t;
+
+FontFace:
 
 cairo_font_face_t * cairo_font_face_reference (cairo_font_face_t *font_face);
 void cairo_font_face_destroy (cairo_font_face_t *font_face);
@@ -1553,20 +1587,6 @@ double cairo_device_observer_stroke_elapsed (cairo_device_t *device);
 typedef struct _cairo_device cairo_device_t;
 
 // XXX(cairo surface not included)
-
-void cairo_matrix_init (cairo_matrix_t *matrix, double xx, double yx, double xy, double yy, double x0, double y0);
-void cairo_matrix_init_identity (cairo_matrix_t *matrix);
-void cairo_matrix_init_translate (cairo_matrix_t *matrix, double tx, double ty);
-void cairo_matrix_init_scale (cairo_matrix_t *matrix, double sx, double sy);
-void cairo_matrix_init_rotate (cairo_matrix_t *matrix, double radians);
-void cairo_matrix_translate (cairo_matrix_t *matrix, double tx, double ty);
-void cairo_matrix_scale (cairo_matrix_t *matrix, double sx, double sy);
-void cairo_matrix_rotate (cairo_matrix_t *matrix, double radians);
-cairo_status_t cairo_matrix_invert (cairo_matrix_t *matrix);
-void cairo_matrix_multiply (cairo_matrix_t *result, const cairo_matrix_t *a, const cairo_matrix_t *b);
-void cairo_matrix_transform_distance (const cairo_matrix_t *matrix, double *dx, double *dy);
-void cairo_matrix_transform_point (const cairo_matrix_t *matrix, double *x, double *y);
-typedef struct { double xx; double yx; double xy; double yy; double x0; double y0; } cairo_matrix_t;
 
 const char * cairo_status_to_string (cairo_status_t status);
 void cairo_debug_reset_static_data (void);
