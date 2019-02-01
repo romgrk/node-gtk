@@ -1287,7 +1287,6 @@ typedef struct { cairo_status_t status; cairo_rectangle_t *rectangles; int num_r
 
 cairo_path_t * cairo_copy_path (cairo_t *cr);
 cairo_path_t * cairo_copy_path_flat (cairo_t *cr);
-void cairo_path_destroy (cairo_path_t *path);
 void cairo_append_path (cairo_t *cr, const cairo_path_t *path);
 cairo_bool_t cairo_has_current_point (cairo_t *cr);
 void cairo_get_current_point (cairo_t *cr, double *x, double *y);
@@ -1346,6 +1345,12 @@ void cairo_tag_end (cairo_t *cr, const char *tag_name);
 #define CAIRO_TAG_DEST "cairo.dest"
 #define CAIRO_TAG_LINK "Link"
 
+
+Path:
+
+void cairo_path_destroy (cairo_path_t *path);
+
+
 Matrix:
 
 void cairo_matrix_init (cairo_matrix_t *matrix, double xx, double yx, double xy, double yy, double x0, double y0);
@@ -1389,6 +1394,7 @@ cairo_status_t cairo_region_union_rectangle (cairo_region_t *dst, const cairo_re
 cairo_status_t cairo_region_xor (cairo_region_t *dst, const cairo_region_t *other);
 cairo_status_t cairo_region_xor_rectangle (cairo_region_t *dst, const cairo_rectangle_int_t *rectangle);
 typedef struct _cairo_region cairo_region_t;
+
 
 Pattern:
 
