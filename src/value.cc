@@ -1228,7 +1228,18 @@ bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
         return false;
 
     Local<Object> object = TO_OBJECT (value);
-    GType object_type = (GType) Nan::To<int64_t> (Nan::Get(object, UTF8("__gtype__")).ToLocalChecked()).ToChecked();
+    GType object_type = GET_OBJECT_GTYPE (object);
+
+    if (object_type == NOT_A_GTYPE) {
+        /*
+         * Happens for objects that aren't GObjects but that are still
+         * used by introspectable libs. (e.g. CairoContext objects)
+         * In this case, we'll just make sure that the object contains at
+         * least a pointer to something.
+         */
+        return object->InternalFieldCount() == 1;
+    }
+
     return g_type_is_a(object_type, g_type);
 }
 

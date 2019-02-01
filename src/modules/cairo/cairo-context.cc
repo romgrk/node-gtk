@@ -7,6 +7,7 @@
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../gobject.h"
+#include "../../util.h"
 #include "../../value.h"
 
 using v8::Function;
@@ -1183,6 +1184,7 @@ static void InstanceConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     self->SetAlignedPointerInInternalField (0, context);
 
+    SET_OBJECT_GTYPE (self, -1);
 
     auto* contextInfo = new ContextInfo();
     contextInfo->context = context;

@@ -200,11 +200,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     self->SetAlignedPointerInInternalField (0, boxed);
 
-    Nan::DefineOwnProperty(self,
-            UTF8("__gtype__"),
-            Nan::New<Number>(gtype),
-            (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
-    );
+    SET_OBJECT_GTYPE (self, gtype);
 
     auto* box = new Boxed();
     box->data = boxed;

@@ -5,6 +5,8 @@
 const gi = require('../')
 const Gtk = gi.require('Gtk', '3.0')
 const Cairo = gi.require('cairo')
+const Pango = gi.require('Pango')
+const PangoCairo = gi.require('PangoCairo')
 
 Gtk.init()
 
@@ -29,10 +31,10 @@ drawingArea.on('draw', (context) => {
   context.arc(16, 16, 16, 0, 2 * Math.PI);
   context.fill()
 
-  context.selectFontFace("Fantasque Sans Mono", Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
+  context.selectFontFace('Fantasque Sans Mono', Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
   context.setFontSize(12)
 
-  const extents = context.textExtents("Disziplin ist Macht.")
+  const extents = context.textExtents('Disziplin ist Macht.')
   console.log({
     xAdvance: extents.xAdvance,
     yAdvance: extents.yAdvance,
@@ -43,7 +45,7 @@ drawingArea.on('draw', (context) => {
   })
 
   const fontExtents = context.fontExtents()
-  console.log(fontExtents, {
+  console.log({
     ascent:      fontExtents.ascent,
     descent:     fontExtents.descent,
     height:      fontExtents.height,
@@ -57,7 +59,7 @@ drawingArea.on('draw', (context) => {
 
   context.moveTo(10, 50)
   context.setSourceRgba(1, 0.0, 0.0, 1)
-  context.showText("Disziplin ist Macht.")
+  context.showText('Disziplin ist Macht.')
 
 
   context.setLineWidth (2)
@@ -69,6 +71,13 @@ drawingArea.on('draw', (context) => {
   context.lineTo(300, 200)
 
   context.stroke()
+
+  context.setSourceRgb(0, 0, 0)
+  const layout = PangoCairo.createLayout(context)
+  const fontDescription = Pango.fontDescriptionFromString('Fantasque Sans Mono 9')
+  layout.setText('text', -1)
+  layout.setFontDescription(fontDescription)
+  PangoCairo.showLayout(context, layout)
 
   return true
 })

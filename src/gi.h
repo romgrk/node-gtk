@@ -7,6 +7,7 @@
 #include <nan.h>
 #include <girepository.h>
 #include "boxed.h"
+#include "util.h"
 
 
 using v8::Object;

@@ -11,6 +11,24 @@
 #include <node.h>
 #include <girepository.h>
 
+/*
+ * V8 Helpers
+ */
+
+#define UTF8(s)         Nan::New<v8::String> (s).ToLocalChecked()
+#define RETURN(s)       info.GetReturnValue().Set(s)
+
+#define NOT_A_GTYPE ((GType) -1)
+
+#define GET_OBJECT_GTYPE(target) (GType) Nan::Get(target, UTF8("__gtype__")).ToLocalChecked()->NumberValue()
+#define SET_OBJECT_GTYPE(target, value) \
+    Nan::DefineOwnProperty(target, \
+            UTF8("__gtype__"), \
+            Nan::New<Number>(-1), \
+            (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum) \
+    )
+
+
 inline void SetProtoAccessor(
         v8::Local<v8::ObjectTemplate> tpl,
         v8::Local<v8::String> name,
