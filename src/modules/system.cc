@@ -20,10 +20,10 @@ namespace System {
 
 
 NAN_METHOD(AddressOf) {
-    Local<Object> obj = info[0].As<Object>();
-    GObject *gobject = GObjectFromWrapper (obj);
+    Local<Object> object = info[0].As<Object>();
+    void *ptr = object->GetAlignedPointerFromInternalField (0);
 
-    char* pointer_string = g_strdup_printf("%p", gobject);
+    char* pointer_string = g_strdup_printf("%p", ptr);
 
     RETURN(UTF8(pointer_string));
 
