@@ -1,4 +1,5 @@
 
+#include "../../debug.h"
 #include "../../gi.h"
 #include "../../util.h"
 #include "cairo-surface.h"
@@ -60,7 +61,7 @@ void ImageSurface::Initialize(
 }
 
 /*
- * Initialize a Surface with an external
+ * Initialize a Surface
  */
 
 NAN_METHOD(Surface::New) {
@@ -85,7 +86,7 @@ NAN_METHOD(ImageSurface::New) {
     data = cairo_image_surface_create (format, width, height);
   }
   else {
-    return Nan::ThrowError("Cannot instantiate CairoPath");
+    return Nan::ThrowError("Cannot instantiate CairoImageSurface: not enough arguments");
   }
 
   ImageSurface* surface = new ImageSurface(data);

@@ -5,6 +5,7 @@
 #include "cairo-path.h"
 #include "cairo-text-extents.h"
 #include "cairo-font-extents.h"
+#include "cairo-surface.h"
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../gobject.h"
@@ -1170,7 +1171,7 @@ static void InstanceConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     } else if (info[0]->IsObject ()) {
         /* User code calling `new Cairo.Context(surface)` */
 
-        auto surface = (cairo_surface_t *) info[0].As<Object>()->GetAlignedPointerFromInternalField (0);
+        auto surface = Nan::ObjectWrap::Unwrap<Surface>(info[0].As<Object>())->_data;
         context = cairo_create (surface);
 
     } else {
