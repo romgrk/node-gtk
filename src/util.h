@@ -29,6 +29,9 @@
     )
 
 
+#define SET_METHOD(object, name)        Nan::SetMethod(object, #name, name)
+#define SET_PROTOTYPE_METHOD(tpl, name) Nan::SetPrototypeMethod(tpl, #name, name)
+
 inline void SetProtoAccessor(
         v8::Local<v8::ObjectTemplate> tpl,
         v8::Local<v8::String> name,

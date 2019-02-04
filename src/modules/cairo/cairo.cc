@@ -12,6 +12,8 @@
 #include "cairo-font-extents.h"
 #include "cairo-text-extents.h"
 #include "cairo-path.h"
+#include "cairo-rectangle.h"
+#include "cairo-rectangle-int.h"
 #include "cairo-surface.h"
 
 using v8::Function;
@@ -44,6 +46,8 @@ NAN_METHOD(Init) {
     TextExtents::Initialize(cairoModule);
     FontExtents::Initialize(cairoModule);
     Path::Initialize(cairoModule);
+    Rectangle::Initialize(cairoModule);
+    RectangleInt::Initialize(cairoModule);
     Surface::Initialize(cairoModule);
 }
 

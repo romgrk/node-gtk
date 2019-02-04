@@ -3,16 +3,9 @@
  */
 
 const fs = require('fs')
-const path = require('path')
-const util = require('util')
 const nid = require('nid-parser')
 const camelCase = require('lodash.camelcase')
 const unindent = require('unindent')
-
-util.inspect.defaultOptions = { depth: 6 }
-
-const filename = path.join(__dirname, 'cairo-context.nid')
-const content = fs.readFileSync(filename).toString()
 
 const ENUM_TYPE = {
   cairo_bool_t: 'bool',
@@ -23,28 +16,46 @@ const ENUM_TYPE = {
   cairo_operator_t: 'int64_t',
   cairo_font_slant_t: 'int64_t',
   cairo_font_weight_t: 'int64_t',
+  cairo_format_t: 'int64_t',
+  cairo_content_t: 'int64_t',
+  cairo_pdf_version_t: 'int64_t',
+  cairo_pdf_outline_flags_t: 'int64_t',
+  cairo_pdf_metadata_t: 'int64_t',
+  cairo_ps_level_t: 'int64_t',
+  cairo_svg_version_t: 'int64_t',
+  cairo_svg_unit_t: 'int64_t',
 }
 
 const WRAP_TYPE = {
   cairo_path_t: 'Path',
   cairo_text_extents_t: 'TextExtents',
   cairo_font_extents_t: 'FontExtents',
+  cairo_font_options_t: 'FontOptions',
+  cairo_surface_t: 'Surface',
+  cairo_rectangle_t: 'Rectangle',
+  cairo_rectangle_int_t: 'Rectangle',
 }
 
-const result = nid.parse(content)
-const declarations = result.declarations
-const functions = declarations.filter(d => d.function).map(d => d.function)
+module.exports = {
+  ENUM_TYPE,
+  WRAP_TYPE,
+  logFn,
+  generateSource,
+  getSource,
+  getInArgumentSource,
+  getOutArgumentDeclaration,
+  getFunctionCall,
+  getFunctionArgument,
+  getReturn,
+  getAttachMethods,
+  parseFile,
+  getInArguments,
+  getOutArguments,
+  getTypeName,
+  getJSName,
+}
 
-console.assert(declarations.length === functions.length)
-
-
-// logFn(functions.find(f => f.name === 'cairo_text_extents'))
-// logFn(functions.find(f => f.name === 'cairo_font_extents'))
-
-// functions.map(logFn)
-
-console.log(generateSource('CairoContext', functions))
-
+// Functions
 
 function logFn(fn) {
   let source
@@ -75,7 +86,7 @@ function generateSource(name, functions) {
 
   const result = (
     validFunctions.map(fn => fn.source).join('')
-    + getSetup(name, validFunctions)
+    + getAttachMethods(name, validFunctions)
   )
 
   return result.replace(/^  /gm, '')
@@ -107,27 +118,45 @@ ${hasResult ? `
   `)
 }
 
+
 function getInArgumentSource(p, n) {
   const typeName = getTypeName(p.type)
+  const baseName = p.type.name.replace('const ', '')
 
   if (typeName === 'double')
     return `auto ${p.name} = Nan::To<double>(info[${n}].As<Number>()).ToChecked();`
 
+  if (typeName === 'int')
+    return `auto ${p.name} = Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
+
+  if (typeName === 'unsigned int')
+    return `auto ${p.name} = Nan::To<uint64_t>(info[${n}].As<Number>()).ToChecked();`
+
   if (typeName === 'const char *')
     return `auto ${p.name} = *Nan::Utf8String (info[${n}].As<String>());`
 
-  if (typeName in ENUM_TYPE)
+  if (baseName in ENUM_TYPE)
     return `auto ${p.name} = (${typeName}) Nan::To<${ENUM_TYPE[typeName]}>(info[${n}].As<Number>()).ToChecked();`
 
-  throw new Error('MISSING DECLARATION FOR ' + p.name + ': ' + typeName)
+  if (baseName in WRAP_TYPE)
+    return `auto ${p.name} = Nan::ObjectWrap::Unwrap<${WRAP_TYPE[baseName]}>(${p.name})->_data;`
+
+  throw new Error('MISSING DECLARATION FOR ' + p.name + ': ' + typeName + `(${baseName})`)
   return '// MISSING DECLARATION FOR ' + p.name + ': ' + typeName
 }
 
 function getOutArgumentDeclaration(p, n) {
   const typeName = getTypeName(p.type)
+  const baseName = p.type.name.replace('const ', '')
 
   if (p.type.name === 'double')
     return `double ${p.name} = 0.0;`
+
+  if (p.type.name === 'int')
+    return `int ${p.name} = 0;`
+
+  if (p.type.pointer === '*' && baseName in ENUM_TYPE)
+    return `${typeName}${p.name} = NULL;`
 
   if (p.type.name in WRAP_TYPE)
     return [
@@ -137,7 +166,7 @@ function getOutArgumentDeclaration(p, n) {
       '        NULL).ToLocalChecked();',
     ].join('\n        ')
 
-  throw new Error('MISSING DECLARATION FOR ' + p.name + ': ' + typeName)
+  throw new Error('MISSING DECLARATION FOR ' + p.name + ': ' + typeName + `(${baseName}) ` + JSON.stringify(p))
   return '// MISSING DECLARATION FOR ' + p.name
 }
 
@@ -191,7 +220,7 @@ function getReturn(fn, outArguments) {
   return lines.join('\n        ')
 }
 
-function getSetup(name, functions) {
+function getAttachMethods(name, functions) {
   return unindent(`
     #define SET_METHOD(tpl, name) Nan::SetPrototypeMethod(tpl, #name, name)
 
@@ -204,19 +233,25 @@ function getSetup(name, functions) {
 }
 
 
+function parseFile(filepath) {
+  const content = fs.readFileSync(filepath).toString()
+  return nid.parse(content)
+}
+
+
 // Helpers
 
-function getInArguments(fn) {
+function getInArguments(fn, selfType = 'cairo_t') {
   return fn.parameters.filter((p, i) =>
     !p.attributes.out
-    && !(i === 0 && p.type.name === 'cairo_t')
+    && !(i === 0 && p.type.name === selfType)
   )
 }
 
-function getOutArguments(fn) {
+function getOutArguments(fn, selfType = 'cairo_t') {
   return fn.parameters.filter((p, i) =>
     p.attributes.out
-    && !(i === 0 && p.type.name === 'cairo_t')
+    && !(i === 0 && p.type.name === selfType)
   )
 }
 
@@ -224,31 +259,6 @@ function getTypeName(type) {
   return type.name + (type.pointer ? ' ' + type.pointer : '')
 }
 
-function getJSName(originalName) {
-  return camelCase(originalName.replace('cairo_', ''))
+function getJSName(originalName, prefix = 'cairo_') {
+  return camelCase(originalName.replace(prefix, ''))
 }
-
-
-/*
-
-#define SET_METHOD(target, name) Nan::SetMethod(target, #name, name)
-
-void SetupCairoContext(Local<Function> cairoContext) {
-    Local<Object> prototype = Local<Object>::Cast (Nan::Get(cairoContext, UTF8("prototype")).ToLocalChecked());
-
-    SET_METHOD(prototype, setSourceRGBA);
-    SET_METHOD(prototype, setSourceRGB);
-    SET_METHOD(prototype, setOperator);
-    SET_METHOD(prototype, selectFontFace);
-    SET_METHOD(prototype, setFontSize);
-    SET_METHOD(prototype, setLineWidth);
-    SET_METHOD(prototype, moveTo);
-    SET_METHOD(prototype, lineTo);
-    SET_METHOD(prototype, showText);
-    SET_METHOD(prototype, arc);
-    SET_METHOD(prototype, fill);
-    SET_METHOD(prototype, stroke);
-}
-
-#undef SET_METHOD
- */

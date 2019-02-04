@@ -431,7 +431,6 @@ typedef struct _cairo_surface cairo_surface_t;
 
 // Surface > ImageSurface:
 
-int cairo_format_stride_for_width (cairo_format_t format, int width);
 cairo_surface_t * cairo_image_surface_create (cairo_format_t format, int width, int height);
 cairo_surface_t * cairo_image_surface_create_for_data (unsigned char *data, cairo_format_t format, int width, int height, int stride);
 unsigned char * cairo_image_surface_get_data (cairo_surface_t *surface);
@@ -566,10 +565,13 @@ cairo_surface_t * cairo_script_surface_create_for_target (cairo_device_t *script
 void cairo_script_write_comment (cairo_device_t *script, const char *comment, int len);
 #define CAIRO_HAS_SCRIPT_SURFACE 1
 
-// Other:
+// Other/Static:
 
 const char * cairo_status_to_string (cairo_status_t status);
 void cairo_debug_reset_static_data (void);
+
+int cairo_format_stride_for_width (cairo_format_t format, int width);
+
 
 void (*cairo_destroy_func_t) (void *data);
 typedef int cairo_bool_t;
