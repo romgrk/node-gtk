@@ -37,7 +37,8 @@
     "node-gyp": "^4.0.0",
     "node-pre-gyp": "^0.13.0",
     "node-pre-gyp-github": "^1.4.3",
-    "unindent": "^2.0.0"
+    "unindent": "^2.0.0",
+    "remove-trailing-spaces": "^1.0.7"
   },
   "devDependencies": {
     "assert": "^1.5.0",

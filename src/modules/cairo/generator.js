@@ -5,7 +5,7 @@
 const fs = require('fs')
 const nid = require('nid-parser')
 const camelCase = require('lodash.camelcase')
-const unindent = require('unindent')
+const unindent = require('./unindent.js')
 
 const ENUM_TYPE = {
   cairo_bool_t: 'bool',
@@ -33,7 +33,7 @@ const WRAP_TYPE = {
   cairo_font_options_t: 'FontOptions',
   cairo_surface_t: 'Surface',
   cairo_rectangle_t: 'Rectangle',
-  cairo_rectangle_int_t: 'Rectangle',
+  cairo_rectangle_int_t: 'RectangleInt',
 }
 
 module.exports = {
@@ -139,7 +139,7 @@ function getInArgumentSource(p, n) {
     return `auto ${p.name} = (${typeName}) Nan::To<${ENUM_TYPE[typeName]}>(info[${n}].As<Number>()).ToChecked();`
 
   if (baseName in WRAP_TYPE)
-    return `auto ${p.name} = Nan::ObjectWrap::Unwrap<${WRAP_TYPE[baseName]}>(${p.name})->_data;`
+    return `auto ${p.name} = Nan::ObjectWrap::Unwrap<${WRAP_TYPE[baseName]}>(info[${n}].As<Object>())->_data;`
 
   throw new Error('MISSING DECLARATION FOR ' + p.name + ': ' + typeName + `(${baseName})`)
   return '// MISSING DECLARATION FOR ' + p.name + ': ' + typeName
@@ -244,7 +244,7 @@ function parseFile(filepath) {
 function getInArguments(fn, selfType = 'cairo_t') {
   return fn.parameters.filter((p, i) =>
     !p.attributes.out
-    && !(i === 0 && p.type.name === selfType)
+    && !(i === 0 && p.type.name === selfType && !fn.attributes.static)
   )
 }
 

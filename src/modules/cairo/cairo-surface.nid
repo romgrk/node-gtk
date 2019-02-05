@@ -6,14 +6,14 @@ namespace Surface {
 [[static]] cairo_surface_t * cairo_surface_create_similar (cairo_surface_t *other, cairo_content_t content, int width, int height);
 [[static]] cairo_surface_t * cairo_surface_create_similar_image (cairo_surface_t *other, cairo_format_t format, int width, int height);
 [[static]] cairo_surface_t * cairo_surface_create_for_rectangle (cairo_surface_t *target, double x, double y, double width, double height);
-[[static]] cairo_status_t cairo_surface_write_to_png (cairo_surface_t *surface, const char *filename);
+cairo_status_t cairo_surface_write_to_png (cairo_surface_t *surface, const char *filename);
 /* cairo_surface_t * cairo_surface_reference (cairo_surface_t *surface); */
 /* void cairo_surface_destroy (cairo_surface_t *surface); */
 cairo_status_t cairo_surface_status (cairo_surface_t *surface);
 void cairo_surface_finish (cairo_surface_t *surface);
 void cairo_surface_flush (cairo_surface_t *surface);
 cairo_device_t * cairo_surface_get_device (cairo_surface_t *surface);
-void cairo_surface_get_font_options (cairo_surface_t *surface, [[out]] cairo_font_options_t *options);
+/* void cairo_surface_get_font_options (cairo_surface_t *surface, [[out]] cairo_font_options_t *options); TODO(reenable when FontOptions is done) */
 cairo_content_t cairo_surface_get_content (cairo_surface_t *surface);
 void cairo_surface_mark_dirty (cairo_surface_t *surface);
 void cairo_surface_mark_dirty_rectangle (cairo_surface_t *surface, int x, int y, int width, int height);
@@ -70,35 +70,35 @@ int cairo_image_surface_get_stride (cairo_surface_t *surface);
 /* cairo_status_t cairo_surface_write_to_png_stream (cairo_surface_t *surface, cairo_write_func_t write_func, void *closure); */
 
 // Surface > PDFSurface:
-namespace PDFSurface {
-
-[[constructor]] cairo_surface_t * cairo_pdf_surface_create (const char *filename, double width_in_points, double height_in_points);
-/* cairo_surface_t * cairo_pdf_surface_create_for_stream (cairo_write_func_t write_func, void *closure, double width_in_points, double height_in_points); */
-/* [[static]] void cairo_pdf_get_versions ([[out]] cairo_pdf_version_t const **versions, [[out]] int *num_versions); */
-[[static]] const char * cairo_pdf_version_to_string (cairo_pdf_version_t version);
-void cairo_pdf_surface_restrict_to_version (cairo_surface_t *surface, cairo_pdf_version_t version);
-void cairo_pdf_surface_set_size (cairo_surface_t *surface, double width_in_points, double height_in_points);
-int cairo_pdf_surface_add_outline (cairo_surface_t *surface, int parent_id, const char *utf8, const char *link_attribs, cairo_pdf_outline_flags_t flags);
-void cairo_pdf_surface_set_metadata (cairo_surface_t *surface, cairo_pdf_metadata_t metadata, const char *utf8);
-void cairo_pdf_surface_set_page_label (cairo_surface_t *surface, const char *utf8);
-void cairo_pdf_surface_set_thumbnail_size (cairo_surface_t *surface, int width, int height);
-}
+/* namespace PDFSurface {
+ * 
+ * [[constructor]] cairo_surface_t * cairo_pdf_surface_create (const char *filename, double width_in_points, double height_in_points);
+ * [> cairo_surface_t * cairo_pdf_surface_create_for_stream (cairo_write_func_t write_func, void *closure, double width_in_points, double height_in_points); <]
+ * [> [[static]] void cairo_pdf_get_versions ([[out]] cairo_pdf_version_t const **versions, [[out]] int *num_versions); <]
+ * [[static]] const char * cairo_pdf_version_to_string (cairo_pdf_version_t version);
+ * void cairo_pdf_surface_restrict_to_version (cairo_surface_t *surface, cairo_pdf_version_t version);
+ * void cairo_pdf_surface_set_size (cairo_surface_t *surface, double width_in_points, double height_in_points);
+ * int cairo_pdf_surface_add_outline (cairo_surface_t *surface, int parent_id, const char *utf8, const char *link_attribs, cairo_pdf_outline_flags_t flags);
+ * void cairo_pdf_surface_set_metadata (cairo_surface_t *surface, cairo_pdf_metadata_t metadata, const char *utf8);
+ * void cairo_pdf_surface_set_page_label (cairo_surface_t *surface, const char *utf8);
+ * void cairo_pdf_surface_set_thumbnail_size (cairo_surface_t *surface, int width, int height);
+ * } */
 
 // Surface > PostScriptSurface:
-namespace PostScriptSurface {
-
-[[constructor]] cairo_surface_t * cairo_ps_surface_create (const char *filename, double width_in_points, double height_in_points);
-/* cairo_surface_t * cairo_ps_surface_create_for_stream (cairo_write_func_t write_func, void *closure, double width_in_points, double height_in_points); */
-[[static]] const char * cairo_ps_level_to_string (cairo_ps_level_t level);
-void cairo_ps_surface_restrict_to_level (cairo_surface_t *surface, cairo_ps_level_t level);
-void cairo_ps_get_levels ([[out]] cairo_ps_level_t const **levels, [[out]] int *num_levels);
-void cairo_ps_surface_set_eps (cairo_surface_t *surface, cairo_bool_t eps);
-cairo_bool_t cairo_ps_surface_get_eps (cairo_surface_t *surface);
-void cairo_ps_surface_set_size (cairo_surface_t *surface, double width_in_points, double height_in_points);
-void cairo_ps_surface_dsc_begin_setup (cairo_surface_t *surface);
-void cairo_ps_surface_dsc_begin_page_setup (cairo_surface_t *surface);
-void cairo_ps_surface_dsc_comment (cairo_surface_t *surface, const char *comment);
-}
+/* namespace PostScriptSurface {
+ * 
+ * [[constructor]] cairo_surface_t * cairo_ps_surface_create (const char *filename, double width_in_points, double height_in_points);
+ * [> cairo_surface_t * cairo_ps_surface_create_for_stream (cairo_write_func_t write_func, void *closure, double width_in_points, double height_in_points); <]
+ * [[static]] const char * cairo_ps_level_to_string (cairo_ps_level_t level);
+ * void cairo_ps_surface_restrict_to_level (cairo_surface_t *surface, cairo_ps_level_t level);
+ * void cairo_ps_get_levels ([[out]] cairo_ps_level_t const **levels, [[out]] int *num_levels);
+ * void cairo_ps_surface_set_eps (cairo_surface_t *surface, cairo_bool_t eps);
+ * cairo_bool_t cairo_ps_surface_get_eps (cairo_surface_t *surface);
+ * void cairo_ps_surface_set_size (cairo_surface_t *surface, double width_in_points, double height_in_points);
+ * void cairo_ps_surface_dsc_begin_setup (cairo_surface_t *surface);
+ * void cairo_ps_surface_dsc_begin_page_setup (cairo_surface_t *surface);
+ * void cairo_ps_surface_dsc_comment (cairo_surface_t *surface, const char *comment);
+ * } */
 
 // Surface > RecordingSurface:
 namespace RecordingSurface {
@@ -109,36 +109,36 @@ cairo_bool_t cairo_recording_surface_get_extents (cairo_surface_t *surface, [[ou
 }
 
 // Surface > Win32Surface:
-namespace Win32Surface {
-
-/* cairo_surface_t * cairo_win32_surface_create (HDC hdc); */
-[[constructor]] cairo_surface_t * cairo_win32_surface_create_with_dib (cairo_format_t format, int width, int height);
-/* [[static]] cairo_surface_t * cairo_win32_surface_create_with_ddb (HDC hdc, cairo_format_t format, int width, int height); */
-/* [[static]] cairo_surface_t * cairo_win32_surface_create_with_format (HDC hdc, cairo_format_t format); */
-/* [[static]] cairo_surface_t * cairo_win32_printing_surface_create (HDC hdc); */
-/* HDC cairo_win32_surface_get_dc (cairo_surface_t *surface); */
-cairo_surface_t * cairo_win32_surface_get_image (cairo_surface_t *surface);
-}
+/* namespace Win32Surface {
+ * 
+ * [> cairo_surface_t * cairo_win32_surface_create (HDC hdc); <]
+ * [[constructor]] cairo_surface_t * cairo_win32_surface_create_with_dib (cairo_format_t format, int width, int height);
+ * [> [[static]] cairo_surface_t * cairo_win32_surface_create_with_ddb (HDC hdc, cairo_format_t format, int width, int height); <]
+ * [> [[static]] cairo_surface_t * cairo_win32_surface_create_with_format (HDC hdc, cairo_format_t format); <]
+ * [> [[static]] cairo_surface_t * cairo_win32_printing_surface_create (HDC hdc); <]
+ * [> HDC cairo_win32_surface_get_dc (cairo_surface_t *surface); <]
+ * cairo_surface_t * cairo_win32_surface_get_image (cairo_surface_t *surface);
+ * } */
 
 // Surface > SVGSurface:
-namespace SVGSurface {
-
-[[constructor]] cairo_surface_t * cairo_svg_surface_create (const char *filename, double width_in_points, double height_in_points);
-/* cairo_surface_t * cairo_svg_surface_create_for_stream (cairo_write_func_t write_func, void *closure, double width_in_points, double height_in_points); */
-/* [[static]] void cairo_svg_get_versions ([[out]] cairo_svg_version_t const **versions, [[out]] int *num_versions); */
-[[static]] const char * cairo_svg_version_to_string (cairo_svg_version_t version);
-cairo_svg_unit_t cairo_svg_surface_get_document_unit (cairo_surface_t *surface);
-void cairo_svg_surface_set_document_unit (cairo_surface_t *surface, cairo_svg_unit_t unit);
-void cairo_svg_surface_restrict_to_version (cairo_surface_t *surface, cairo_svg_version_t version);
-}
+/* namespace SVGSurface {
+ * 
+ * [[constructor]] cairo_surface_t * cairo_svg_surface_create (const char *filename, double width_in_points, double height_in_points);
+ * [> cairo_surface_t * cairo_svg_surface_create_for_stream (cairo_write_func_t write_func, void *closure, double width_in_points, double height_in_points); <]
+ * [> [[static]] void cairo_svg_get_versions ([[out]] cairo_svg_version_t const **versions, [[out]] int *num_versions); <]
+ * [[static]] const char * cairo_svg_version_to_string (cairo_svg_version_t version);
+ * cairo_svg_unit_t cairo_svg_surface_get_document_unit (cairo_surface_t *surface);
+ * void cairo_svg_surface_set_document_unit (cairo_surface_t *surface, cairo_svg_unit_t unit);
+ * void cairo_svg_surface_restrict_to_version (cairo_surface_t *surface, cairo_svg_version_t version);
+ * } */
 
 // Surface > QuartsSurface:
-namespace QuartzSurface {
-
-[[constructor]] cairo_surface_t * cairo_quartz_surface_create (cairo_format_t format, unsigned int width, unsigned int height);
-/* cairo_surface_t * cairo_quartz_surface_create_for_cg_context (CGContextRef cgContext, unsigned int width, unsigned int height); */
-/* CGContextRef cairo_quartz_surface_get_cg_context (cairo_surface_t *surface); */
-}
+/* namespace QuartzSurface {
+ * 
+ * [[constructor]] cairo_surface_t * cairo_quartz_surface_create (cairo_format_t format, unsigned int width, unsigned int height);
+ * [> cairo_surface_t * cairo_quartz_surface_create_for_cg_context (CGContextRef cgContext, unsigned int width, unsigned int height); <]
+ * [> CGContextRef cairo_quartz_surface_get_cg_context (cairo_surface_t *surface); <]
+ * } */
 
 // Surface > XCBSurface:
 
