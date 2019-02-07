@@ -20,6 +20,7 @@ class Boxed {
 public:
     void* data;
     GType g_type;
+    GIBaseInfo * info;
     unsigned long size;
     Nan::Persistent<Object> *persistent;
 

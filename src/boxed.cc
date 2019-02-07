@@ -208,6 +208,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     box->data = boxed;
     box->size = size;
     box->g_type = gtype;
+    box->info = g_base_info_ref (gi_info);
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
 }
@@ -226,9 +227,13 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
         /*
          * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
          */
-        warn("boxed possibly not freed");
+        warn("boxed possibly not freed (%s.%s : %s)",
+                g_base_info_get_namespace (box->info),
+                g_base_info_get_name (box->info),
+                g_type_name (box->g_type));
     }
 
+    g_base_info_unref (box->info);
     delete box->persistent;
     delete box;
 }
