@@ -97,13 +97,14 @@ Local<Value> FunctionCall (
         GIArgument *return_value,
         GError **error
     ) {
+    /* FIXME(return_value is never use) */
 
     Local<Value> jsReturnValue;
     GIBaseInfo *gi_info = func->info; // do-not-free
     bool use_return_value = return_value != NULL;
     bool use_error = error != NULL;
 
-    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "file_get_contents") == 0;
+    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "get_pixel_extents") == 0;
     bool debug_mode = false;
 
     if (debug_mode)
@@ -569,7 +570,15 @@ Local<Value> FunctionInfo::GetReturnValue (GITypeInfo* return_type, GIArgument* 
 
             } else if (param.type == ParameterType::NORMAL) {
 
-                ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer))
+                bool isPointer = g_type_info_get_tag (&arg_type) == GI_TYPE_TAG_INTERFACE
+
+                if (isPointer) {
+                    void *pointer = &arg_value.v_pointer;
+                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) pointer))
+                }
+                else {
+                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer))
+                }
             }
         }
     }
