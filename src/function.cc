@@ -570,7 +570,7 @@ Local<Value> FunctionInfo::GetReturnValue (GITypeInfo* return_type, GIArgument* 
 
             } else if (param.type == ParameterType::NORMAL) {
 
-                bool isPointer = g_type_info_get_tag (&arg_type) == GI_TYPE_TAG_INTERFACE
+                bool isPointer = g_type_info_get_tag (&arg_type) == GI_TYPE_TAG_INTERFACE;
 
                 if (isPointer) {
                     void *pointer = &arg_value.v_pointer;
