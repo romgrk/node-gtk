@@ -27,12 +27,12 @@ util.inspect.defaultOptions = { depth: 6 }
 generateCairoContext()
 
 function generateCairoContext() {
-  const result = parseFile(path.join(__dirname, 'cairo-surface.nid'))
+  const result = parseFile(path.join(__dirname, 'cairo-context.nid'))
 
   const declarations = result.declarations
   const functions = declarations.filter(d => d.function).map(d => d.function)
 
-  console.assert(declarations.length === functions.length)
+  console.assert(declarations.length === functions.length, 'declarations.length === functions.length is false')
 
   // logFn(functions.find(f => f.name === 'cairo_text_extents'))
   // functions.map(logFn)

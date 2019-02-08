@@ -66,7 +66,7 @@ void * cairo_get_user_data (cairo_t *cr, const cairo_user_data_key_t *key);
 
 cairo_path_t * cairo_copy_path (cairo_t *cr);
 cairo_path_t * cairo_copy_path_flat (cairo_t *cr);
-void cairo_path_destroy (cairo_path_t *path);
+/* void cairo_path_destroy (cairo_path_t *path); */
 void cairo_append_path (cairo_t *cr, const cairo_path_t *path);
 cairo_bool_t cairo_has_current_point (cairo_t *cr);
 void cairo_get_current_point (cairo_t *cr, [[out]] double *x, [[out]] double *y);

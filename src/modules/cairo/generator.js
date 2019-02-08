@@ -85,7 +85,8 @@ function generateSource(name, functions) {
   const validFunctions = functions.filter(fn => fn.source)
 
   const result = (
-    validFunctions.map(fn => fn.source).join('')
+    validFunctions.map(fn => fn.source).join('\n\n')
+    + '\n\n'
     + getAttachMethods(name, validFunctions)
   )
 
