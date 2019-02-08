@@ -415,8 +415,8 @@ Local<Value> WrapperFromGObject(GObject *gobject, GIBaseInfo *object_info) {
     } else {
         GType gtype = G_OBJECT_TYPE(gobject);
         g_type_ensure (gtype); //void *klass = g_type_class_ref (type);
-
         // We don't use the gtype above, but maybe we can register that type using the type's interface's object_info.
+
         auto tpl = GetClassTemplateFromGI(object_info);
         Local<Function> constructor = tpl->GetFunction ();
         Local<Value> gobject_external = New<External> (gobject);

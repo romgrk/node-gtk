@@ -1195,7 +1195,7 @@ Local<Value> GValueToV8(const GValue *gvalue) {
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return New<Integer>(g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
-        return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)), NULL);
+        return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         GType type = G_VALUE_TYPE (gvalue);
         g_type_ensure(type);
