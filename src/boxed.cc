@@ -31,12 +31,13 @@ namespace GNodeJS {
 
 
 size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
-    GIInfoType i_type = g_base_info_get_type(boxed_info);
-    if (i_type == GI_INFO_TYPE_STRUCT) {
+    GIInfoType type = g_base_info_get_type(boxed_info);
+    if (type == GI_INFO_TYPE_STRUCT) {
         return g_struct_info_get_size((GIStructInfo*)boxed_info);
-    } else if (i_type == GI_INFO_TYPE_UNION) {
+    } else if (type == GI_INFO_TYPE_UNION) {
         return g_union_info_get_size((GIUnionInfo*)boxed_info);
     } else {
+        warn("received bad type: %s", g_info_type_to_string (type));
         g_assert_not_reached();
     }
 }
