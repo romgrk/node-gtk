@@ -24,6 +24,12 @@ namespace Cairo {
 
 namespace Context {
 
+
+static Nan::Persistent<v8::FunctionTemplate> constructorTemplate;
+
+
+/* auto-generated */
+
 NAN_METHOD(status) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -1207,6 +1213,8 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
 
 #undef SET_METHOD
 
+/* </ auto-generated */
+
 static void InstanceDestroyed(const Nan::WeakCallbackInfo<ContextInfo> &info);
 
 static void InstanceConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -1257,8 +1265,16 @@ static void InstanceDestroyed(const Nan::WeakCallbackInfo<ContextInfo> &info) {
 }
 
 Local<FunctionTemplate> GetTemplate() {
+    if (!constructorTemplate.IsEmpty())
+      return Nan::New<FunctionTemplate> (constructorTemplate);
+
     auto tpl = Nan::New<FunctionTemplate> (InstanceConstructor);
+    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    tpl->SetClassName (UTF8("CairoContext"));
     AttachMethods (tpl);
+
+    constructorTemplate.Reset(tpl);
+
     return tpl;
 }
 

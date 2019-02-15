@@ -1,5 +1,11 @@
 // vim: ft=c
 
+/*
+ * IMPORTANT:
+ *   Don't forget to update cairo.cc's GetTemplate if a new type
+ *   is added.
+ */
+
 // Surface:
 namespace Surface {
 

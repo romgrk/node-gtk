@@ -18,6 +18,10 @@ class Surface: public Nan::ObjectWrap {
     static Nan::Persistent<v8::FunctionTemplate> constructorTemplate;
     static Nan::Persistent<v8::Function>         constructor;
     static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target);
+    static void SetupTemplate();
+    static Local<v8::FunctionTemplate> GetTemplate();
+    static Local<v8::Function> GetConstructor();
+
     static NAN_METHOD(New);
 
     static NAN_METHOD(createSimilar);
@@ -57,7 +61,11 @@ class ImageSurface: public Surface {
   public:
     static Nan::Persistent<v8::FunctionTemplate> constructorTemplate;
     static Nan::Persistent<v8::Function>         constructor;
-    static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target, Local<FunctionTemplate> parentTpl);
+    static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target);
+    static void SetupTemplate(Local<v8::FunctionTemplate> parentTpl);
+    static Local<v8::FunctionTemplate> GetTemplate();
+    static Local<v8::Function> GetConstructor();
+
     static NAN_METHOD(New);
 
     static NAN_METHOD(createFromPng);
@@ -75,7 +83,11 @@ class RecordingSurface: public Surface {
   public:
     static Nan::Persistent<v8::FunctionTemplate> constructorTemplate;
     static Nan::Persistent<v8::Function>         constructor;
-    static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target, Local<FunctionTemplate> parentTpl);
+    static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target);
+    static void SetupTemplate(Local<v8::FunctionTemplate> parentTpl);
+    static Local<v8::FunctionTemplate> GetTemplate();
+    static Local<v8::Function> GetConstructor();
+
     static NAN_METHOD(New);
 
     static NAN_METHOD(inkExtents);

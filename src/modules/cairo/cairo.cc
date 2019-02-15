@@ -17,6 +17,7 @@
 #include "cairo-surface.h"
 
 using v8::Function;
+using v8::FunctionTemplate;
 using v8::Local;
 using v8::MaybeLocal;
 using v8::Object;
@@ -35,6 +36,15 @@ MaybeLocal<FunctionTemplate> GetTemplate(GIBaseInfo *info) {
 
     if (strcmp(name, "Context") == 0)
         return MaybeLocal<FunctionTemplate> (Cairo::Context::GetTemplate ());
+
+    if (strcmp(name, "Surface") == 0)
+        return MaybeLocal<FunctionTemplate> (Cairo::Surface::GetTemplate());
+
+    if (strcmp(name, "ImageSurface") == 0)
+        return MaybeLocal<FunctionTemplate> (Cairo::ImageSurface::GetTemplate());
+
+    if (strcmp(name, "RecordingSurface") == 0)
+        return MaybeLocal<FunctionTemplate> (Cairo::RecordingSurface::GetTemplate());
 
     return MaybeLocal<FunctionTemplate> ();
 }

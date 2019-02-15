@@ -108,8 +108,11 @@ function generateHeader(namespaces) {
 }
 
 function generateSource(namespaces) {
+  const base = namespaces.find(ns => ns.isBase)
+
   const classVariables    = namespaces.map(generateClassVariables)
-  const initializeMethods = namespaces.map(ns => generateInitializeMethod(ns, namespaces))
+  const templateMethods = namespaces.map(ns => generateTemplateMethods(ns, namespaces))
+  const initializeMethod = generateInitializeMethod(base, namespaces)
   const newMethods = namespaces.map(generateNewMethod)
   const methods = namespaces.map(ns => ns.functions.map(fn => fn.source).join('\n'))
 
@@ -155,10 +158,17 @@ function generateSource(namespaces) {
 
 
     /*
-     * Initialize methods
+     * Template methods
      */
 
-    ${initializeMethods.join('\n    ')}
+    ${templateMethods.join('\n    ')}
+
+
+    /*
+     * Initialize method
+     */
+
+    ${initializeMethod}
 
 
     /*
@@ -190,9 +200,13 @@ function generateClassDeclaration(options) {
     class ${options.name}: public ${options.isBase ? 'Nan::ObjectWrap' : 'Surface'} {
       public:
         static Nan::Persistent<v8::FunctionTemplate> constructorTemplate;
-        static Nan::Persistent<v8::Function>         constructor; ${options.isBase ? `
-        static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target);` : `
-        static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target, Local<FunctionTemplate> parentTpl);`}
+        static Nan::Persistent<v8::Function>         constructor;
+        static void Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target);${options.isBase ? `
+        static void SetupTemplate();` : `
+        static void SetupTemplate(Local<v8::FunctionTemplate> parentTpl);`}
+        static Local<v8::FunctionTemplate> GetTemplate();
+        static Local<v8::Function> GetConstructor();
+
         static NAN_METHOD(New);
 
         ${options.functions.map(fn => `static NAN_METHOD(${getFunctionJSName(fn)});`).join('\n        ')}
@@ -214,35 +228,56 @@ function generateClassVariables(options) {
   `
 }
 
-function generateInitializeMethod(options, namespaces) {
+function generateTemplateMethods(options, namespaces) {
+
+  const base = namespaces.find(ns => ns.isBase)
 
   const staticMethods = options.functions.filter(fn => fn.attributes.static)
   const methods = options.functions.filter(fn => fn.attributes.static !== true)
 
   return `
-    void ${options.name}::Initialize(
-        Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target${!options.isBase ?  `,
-        Local<FunctionTemplate> parentTpl` : '' }) {
+    Local<FunctionTemplate> ${options.name}::GetTemplate() {
+      if (constructorTemplate.IsEmpty())
+        ${base.name}::SetupTemplate();
+      return Nan::New<FunctionTemplate> (constructorTemplate);
+    }
+
+    Local<Function> ${options.name}::GetConstructor() {
+      if (constructor.IsEmpty())
+        ${base.name}::SetupTemplate();
+      return Nan::New<Function> (constructor);
+    }
+
+    void ${options.name}::SetupTemplate(${!options.isBase ?  `Local<FunctionTemplate> parentTpl` : '' }) {
 
       // Constructor
       auto tpl = Nan::New<FunctionTemplate>(${options.name}::New);
       tpl->InstanceTemplate()->SetInternalFieldCount(1);
       tpl->SetClassName(Nan::New("Cairo${options.name}").ToLocalChecked());
 ${!options.isBase ?  `      tpl->Inherit (parentTpl);` : '' }
-      constructorTemplate.Reset(tpl);
 
       ${methods.map(fn => `SET_PROTOTYPE_METHOD(tpl, ${getFunctionJSName(fn)});`).join('\n      ')}
 
       auto ctor = tpl->GetFunction();
-      constructor.Reset(ctor);
 
       ${staticMethods.map(fn => `SET_METHOD(ctor, ${getFunctionJSName(fn)});`).join('\n      ')}
 
-      Nan::Set (target, Nan::New ("${options.name}").ToLocalChecked(), ctor);
+      constructorTemplate.Reset(tpl);
+      constructor.Reset(ctor);
+
 ${options.isBase ? `
       ${namespaces.filter(ns => ns.name !== 'Surface').map(ns =>
-        `${ns.name}::Initialize(target, tpl);`).join('\n      ')}
+        `${ns.name}::SetupTemplate(tpl);`).join('\n      ')}
 ` : ''}    }
+  `
+}
+
+function generateInitializeMethod(options, namespaces) {
+  return `
+    void ${options.name}::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
+      ${namespaces.map(ns =>
+        `Nan::Set (target, Nan::New ("${ns.name}").ToLocalChecked(), ${ns.name}::GetConstructor());`).join('\n      ')}
+    }
   `
 }
 

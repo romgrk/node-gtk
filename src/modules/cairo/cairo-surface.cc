@@ -49,19 +49,29 @@ Surface::~Surface() {
 
 
 /*
- * Initialize methods
+ * Template methods
  */
 
 
-void Surface::Initialize(
-    Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
+Local<FunctionTemplate> Surface::GetTemplate() {
+  if (constructorTemplate.IsEmpty())
+    Surface::SetupTemplate();
+  return Nan::New<FunctionTemplate> (constructorTemplate);
+}
+
+Local<Function> Surface::GetConstructor() {
+  if (constructor.IsEmpty())
+    Surface::SetupTemplate();
+  return Nan::New<Function> (constructor);
+}
+
+void Surface::SetupTemplate() {
 
   // Constructor
   auto tpl = Nan::New<FunctionTemplate>(Surface::New);
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(Nan::New("CairoSurface").ToLocalChecked());
 
-  constructorTemplate.Reset(tpl);
 
   SET_PROTOTYPE_METHOD(tpl, writeToPng);
   SET_PROTOTYPE_METHOD(tpl, status);
@@ -87,29 +97,39 @@ void Surface::Initialize(
   SET_PROTOTYPE_METHOD(tpl, unmapImage);
 
   auto ctor = tpl->GetFunction();
-  constructor.Reset(ctor);
 
   SET_METHOD(ctor, createSimilar);
   SET_METHOD(ctor, createSimilarImage);
   SET_METHOD(ctor, createForRectangle);
 
-  Nan::Set (target, Nan::New ("Surface").ToLocalChecked(), ctor);
+  constructorTemplate.Reset(tpl);
+  constructor.Reset(ctor);
 
-  ImageSurface::Initialize(target, tpl);
-  RecordingSurface::Initialize(target, tpl);
+
+  ImageSurface::SetupTemplate(tpl);
+  RecordingSurface::SetupTemplate(tpl);
 }
 
 
-void ImageSurface::Initialize(
-    Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target,
-    Local<FunctionTemplate> parentTpl) {
+Local<FunctionTemplate> ImageSurface::GetTemplate() {
+  if (constructorTemplate.IsEmpty())
+    Surface::SetupTemplate();
+  return Nan::New<FunctionTemplate> (constructorTemplate);
+}
+
+Local<Function> ImageSurface::GetConstructor() {
+  if (constructor.IsEmpty())
+    Surface::SetupTemplate();
+  return Nan::New<Function> (constructor);
+}
+
+void ImageSurface::SetupTemplate(Local<FunctionTemplate> parentTpl) {
 
   // Constructor
   auto tpl = Nan::New<FunctionTemplate>(ImageSurface::New);
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(Nan::New("CairoImageSurface").ToLocalChecked());
   tpl->Inherit (parentTpl);
-  constructorTemplate.Reset(tpl);
 
   SET_PROTOTYPE_METHOD(tpl, getData);
   SET_PROTOTYPE_METHOD(tpl, getFormat);
@@ -118,34 +138,58 @@ void ImageSurface::Initialize(
   SET_PROTOTYPE_METHOD(tpl, getStride);
 
   auto ctor = tpl->GetFunction();
-  constructor.Reset(ctor);
 
   SET_METHOD(ctor, createFromPng);
 
-  Nan::Set (target, Nan::New ("ImageSurface").ToLocalChecked(), ctor);
+  constructorTemplate.Reset(tpl);
+  constructor.Reset(ctor);
+
 }
 
 
-void RecordingSurface::Initialize(
-    Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target,
-    Local<FunctionTemplate> parentTpl) {
+Local<FunctionTemplate> RecordingSurface::GetTemplate() {
+  if (constructorTemplate.IsEmpty())
+    Surface::SetupTemplate();
+  return Nan::New<FunctionTemplate> (constructorTemplate);
+}
+
+Local<Function> RecordingSurface::GetConstructor() {
+  if (constructor.IsEmpty())
+    Surface::SetupTemplate();
+  return Nan::New<Function> (constructor);
+}
+
+void RecordingSurface::SetupTemplate(Local<FunctionTemplate> parentTpl) {
 
   // Constructor
   auto tpl = Nan::New<FunctionTemplate>(RecordingSurface::New);
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(Nan::New("CairoRecordingSurface").ToLocalChecked());
   tpl->Inherit (parentTpl);
-  constructorTemplate.Reset(tpl);
 
   SET_PROTOTYPE_METHOD(tpl, inkExtents);
   SET_PROTOTYPE_METHOD(tpl, getExtents);
 
   auto ctor = tpl->GetFunction();
+
+
+
+  constructorTemplate.Reset(tpl);
   constructor.Reset(ctor);
 
+}
 
 
-  Nan::Set (target, Nan::New ("RecordingSurface").ToLocalChecked(), ctor);
+
+/*
+ * Initialize method
+ */
+
+
+void Surface::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
+  Nan::Set (target, Nan::New ("Surface").ToLocalChecked(), Surface::GetConstructor());
+  Nan::Set (target, Nan::New ("ImageSurface").ToLocalChecked(), ImageSurface::GetConstructor());
+  Nan::Set (target, Nan::New ("RecordingSurface").ToLocalChecked(), RecordingSurface::GetConstructor());
 }
 
 
@@ -506,7 +550,7 @@ NAN_METHOD(Surface::getReferenceCount) {
     auto surface = Nan::ObjectWrap::Unwrap<Surface>(self)->_data;
 
     // function call
-    unsigned int result = cairo_surface_get_reference_count (surface);
+    int unsigned result = cairo_surface_get_reference_count (surface);
 
     // return
     Local<Value> returnValue = Nan::New (result);
@@ -611,7 +655,7 @@ NAN_METHOD(ImageSurface::getData) {
     auto surface = Nan::ObjectWrap::Unwrap<ImageSurface>(self)->_data;
 
     // function call
-    unsigned char * result = cairo_image_surface_get_data (surface);
+    char unsigned * result = cairo_image_surface_get_data (surface);
 
     // return
     Local<Value> returnValue = Nan::New (result);

@@ -286,19 +286,18 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     Local<FunctionTemplate> tpl;
     MaybeLocal<FunctionTemplate> cairoTpl = Cairo::GetTemplate (info);
 
-    if (!cairoTpl.IsEmpty())
+    if (!cairoTpl.IsEmpty()) {
         tpl = cairoTpl.ToLocalChecked();
-    else
+    }
+    else {
         tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
+        tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
-
-    if (gtype != G_TYPE_NONE) {
-        const char *class_name = g_type_name(gtype);
-        tpl->SetClassName (UTF8(class_name));
-    } else {
-        const char *class_name = g_base_info_get_name (info);
-        tpl->SetClassName (UTF8(class_name));
+        if (gtype != G_TYPE_NONE) {
+            tpl->SetClassName (UTF8 (g_type_name (gtype)));
+        } else {
+            tpl->SetClassName (UTF8 (g_base_info_get_name (info)));
+        }
     }
 
     if (gtype == G_TYPE_NONE)
