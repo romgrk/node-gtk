@@ -250,7 +250,7 @@ Assuming you have [brew](http://brew.sh) installed, the following has been succe
 
 ```sh
 # basic dependencies to build this repo
-brew install git node gtk+3
+brew install git node gobject-introspection gtk+3
 ```
 
 At this point `npm install node-gtk` should already install, fallback and build `node-gtk` without problems.
