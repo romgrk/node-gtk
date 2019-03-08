@@ -15,6 +15,8 @@ will be welcomed.
 Supported Node.js versions: **8**, **9**, **10**, **11**  
 Pre-built binaries available for: **Linux**, **OS X**
 
+Related project: [react-gtk](https://github.com/codejamninja/react-gtk): use React to develope `node-gtk` applications.
+
 ![Browser demo](img/browser.png)
 [Browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
 
