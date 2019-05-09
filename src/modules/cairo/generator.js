@@ -31,6 +31,7 @@ const WRAP_TYPE = {
   cairo_text_extents_t: 'TextExtents',
   cairo_font_extents_t: 'FontExtents',
   cairo_font_options_t: 'FontOptions',
+  cairo_matrix_t: 'Matrix',
   cairo_surface_t: 'Surface',
   cairo_rectangle_t: 'Rectangle',
   cairo_rectangle_int_t: 'RectangleInt',
@@ -127,6 +128,9 @@ function getInArgumentSource(p, n) {
   if (typeName === 'double')
     return `auto ${p.name} = Nan::To<double>(info[${n}].As<Number>()).ToChecked();`
 
+  if (typeName === 'double *' && p.attributes.inout)
+    return `double *${p.name}; *${p.name} = Nan::To<double>(info[${n}].As<Number>()).ToChecked();`
+
   if (typeName === 'int')
     return `auto ${p.name} = Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
 
@@ -143,6 +147,7 @@ function getInArgumentSource(p, n) {
     return `auto ${p.name} = Nan::ObjectWrap::Unwrap<${WRAP_TYPE[baseName]}>(info[${n}].As<Object>())->_data;`
 
   throw new Error('MISSING DECLARATION FOR ' + p.name + ': ' + typeName + `(${baseName})`)
+
   return '// MISSING DECLARATION FOR ' + p.name + ': ' + typeName
 }
 
