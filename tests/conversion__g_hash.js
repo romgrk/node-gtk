@@ -18,7 +18,10 @@ const common = require('./__common__.js')
 
   const result = soup.formEncodeHash(formData)
   console.log('Result:', result)
-  common.assert(result === 'age=33&name=John')
+  common.assert(
+    result === 'age=33&name=John'
+    || result === 'name=John&age=33'
+  )
 }
 
 /*
