@@ -7,7 +7,13 @@ const fs = require('fs')
 const path = require('path')
 const child_process = require('child_process')
 
-const files = fs.readdirSync(__dirname).filter(f => !path.basename(f).startsWith('__'))
+const files =
+  [
+    fs.readdirSync(__dirname),
+    fs.readdirSync(__dirname + '/cairo').map(f => path.join('cairo', f)),
+  ]
+  .reduce((acc, cur) => acc.concat(cur), [])
+  .filter(f => f.endsWith('.js') && !path.basename(f).startsWith('__'))
 
 files.forEach(file => {
 

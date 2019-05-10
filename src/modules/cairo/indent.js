@@ -1,9 +1,9 @@
 /*
- * unindent.js
+ * indent.js
  */
 
 
-module.exports = unindent
+module.exports = { indent, unindent }
 
 function unindent(input) {
   input = input.replace(/^(\s*\n)+/, '')
@@ -16,4 +16,9 @@ function unindent(input) {
   }, lines[0].match(/^ */)[0].length)
 
   return input.replace(new RegExp('^' + ' '.repeat(smallestIndent), 'mg'), '').replace(/\s*$/, '')
+}
+
+function indent(spaces, input) {
+  const lines = input.split('\n').map(l => l.trim())
+  return lines.join('\n' + ' '.repeat(spaces))
 }

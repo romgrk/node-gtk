@@ -2,6 +2,7 @@
 #include <cairo.h>
 
 #include "cairo-context.h"
+#include "cairo-matrix.h"
 #include "cairo-path.h"
 #include "cairo-text-extents.h"
 #include "cairo-font-extents.h"
@@ -626,7 +627,7 @@ NAN_METHOD(getReferenceCount) {
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
-  int unsigned result = cairo_get_reference_count (cr);
+  unsigned int result = cairo_get_reference_count (cr);
 
   // return
   Local<Value> returnValue = Nan::New (result);
@@ -957,6 +958,35 @@ NAN_METHOD(setFontSize) {
   cairo_set_font_size (cr, size);
 }
 
+NAN_METHOD(setFontMatrix) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_set_font_matrix (cr, matrix);
+}
+
+NAN_METHOD(getFontMatrix) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // out-arguments
+  auto matrix = Nan::NewInstance(
+          Nan::New<Function>(Matrix::constructor),
+          0,
+          NULL).ToLocalChecked();
+
+  // function call
+  cairo_get_font_matrix (cr, Nan::ObjectWrap::Unwrap<Matrix>(matrix)->_data);
+
+  // return
+  Local<Value> returnValue = matrix;
+  info.GetReturnValue().Set(returnValue);
+}
+
 NAN_METHOD(getFontFace) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -1014,6 +1044,46 @@ NAN_METHOD(rotate) {
 
   // function call
   cairo_rotate (cr, angle);
+}
+
+NAN_METHOD(transform) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_transform (cr, matrix);
+}
+
+NAN_METHOD(setMatrix) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_set_matrix (cr, matrix);
+}
+
+NAN_METHOD(getMatrix) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // out-arguments
+  auto matrix = Nan::NewInstance(
+          Nan::New<Function>(Matrix::constructor),
+          0,
+          NULL).ToLocalChecked();
+
+  // function call
+  cairo_get_matrix (cr, Nan::ObjectWrap::Unwrap<Matrix>(matrix)->_data);
+
+  // return
+  Local<Value> returnValue = matrix;
+  info.GetReturnValue().Set(returnValue);
 }
 
 NAN_METHOD(identityMatrix) {
@@ -1197,11 +1267,16 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
   SET_METHOD(tpl, textExtents);
   SET_METHOD(tpl, selectFontFace);
   SET_METHOD(tpl, setFontSize);
+  SET_METHOD(tpl, setFontMatrix);
+  SET_METHOD(tpl, getFontMatrix);
   SET_METHOD(tpl, getFontFace);
   SET_METHOD(tpl, getScaledFont);
   SET_METHOD(tpl, translate);
   SET_METHOD(tpl, scale);
   SET_METHOD(tpl, rotate);
+  SET_METHOD(tpl, transform);
+  SET_METHOD(tpl, setMatrix);
+  SET_METHOD(tpl, getMatrix);
   SET_METHOD(tpl, identityMatrix);
   SET_METHOD(tpl, userToDevice);
   SET_METHOD(tpl, userToDeviceDistance);

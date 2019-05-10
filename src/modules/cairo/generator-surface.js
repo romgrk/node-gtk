@@ -6,22 +6,19 @@ const fs = require('fs')
 const path = require('path')
 const util = require('util')
 const removeTrailingSpaces = require('remove-trailing-spaces')
-const unindent = require('./unindent.js')
+const { unindent } = require('./indent.js')
 
 const {
   ENUM_TYPE,
   WRAP_TYPE,
-  logFn,
-  getSource,
   getInArgumentSource,
   getOutArgumentDeclaration,
   getFunctionCall,
-  getFunctionArgument,
   getReturn,
-  getAttachMethods,
   parseFile,
   getInArguments,
   getOutArguments,
+  getInOutArguments,
   getTypeName,
   getJSName,
 } = require('./generator.js')
@@ -283,9 +280,11 @@ function generateInitializeMethod(options, namespaces) {
 
 function generateClassMethodSource(fn, options) {
   const selfArgument = fn.attributes.static !== true ? fn.parameters[0] : undefined
-  const inArguments  = getInArguments(fn, 'cairo_surface_t')
-  const outArguments = getOutArguments(fn, 'cairo_surface_t')
-  const hasResult = getTypeName(fn.type) !== 'void' || outArguments.length > 0
+  const inArguments  = getInArguments(fn, 'cairo_matrix_t')
+  const outArguments = getOutArguments(fn, 'cairo_matrix_t')
+  const inoutArguments = getInOutArguments(fn, 'cairo_matrix_t')
+  const outAndInoutArguments = outArguments.concat(inoutArguments)
+  const hasResult = getTypeName(fn.type) !== 'void' || outAndInoutArguments.length > 0
 
   return `
     NAN_METHOD(${options.name}::${getFunctionJSName(fn)}) {${selfArgument ? `
@@ -294,6 +293,9 @@ function generateClassMethodSource(fn, options) {
 ` : ''}${inArguments.length > 0 ? `
         // in-arguments
         ${inArguments.map(getInArgumentSource).join('\n        ')}
+` : ''}${inoutArguments.length > 0 ? `
+        // in-out-arguments
+        ${inoutArguments.map(getInArgumentSource).join('\n        ')}
 ` : ''}${outArguments.length > 0 ? `
         // out-arguments
         ${outArguments.map(getOutArgumentDeclaration).join('\n        ')}
@@ -302,7 +304,7 @@ function generateClassMethodSource(fn, options) {
         ${getFunctionCall(fn)}
 ${hasResult ? `
         // return
-        ${getReturn(fn, outArguments)}
+        ${getReturn(fn, outAndInoutArguments)}
 ` : ''}    }
   `
 }

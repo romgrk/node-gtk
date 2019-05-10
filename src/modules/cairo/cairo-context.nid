@@ -97,7 +97,7 @@ void cairo_select_font_face (cairo_t *cr, const char *family, cairo_font_slant_t
 void cairo_set_font_size (cairo_t *cr, double size);
 
 void cairo_set_font_matrix (cairo_t *cr, const cairo_matrix_t *matrix);
-void cairo_get_font_matrix (cairo_t *cr, cairo_matrix_t *matrix);
+void cairo_get_font_matrix (cairo_t *cr, [[out]] cairo_matrix_t *matrix);
 
 void cairo_set_font_options (cairo_t *cr, const cairo_font_options_t *options);
 void cairo_get_font_options (cairo_t *cr, cairo_font_options_t *options);
@@ -113,7 +113,7 @@ void cairo_scale (cairo_t *cr, double sx, double sy);
 void cairo_rotate (cairo_t *cr, double angle);
 void cairo_transform (cairo_t *cr, const cairo_matrix_t *matrix);
 void cairo_set_matrix (cairo_t *cr, const cairo_matrix_t *matrix);
-void cairo_get_matrix (cairo_t *cr, cairo_matrix_t *matrix);
+void cairo_get_matrix (cairo_t *cr, [[out]] cairo_matrix_t *matrix);
 void cairo_identity_matrix (cairo_t *cr);
 void cairo_user_to_device (cairo_t *cr, [[out]] double *x, [[out]] double *y);
 void cairo_user_to_device_distance (cairo_t *cr, [[out]] double *dx, [[out]] double *dy);

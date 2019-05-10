@@ -6,28 +6,27 @@ const fs = require('fs')
 const path = require('path')
 const util = require('util')
 const removeTrailingSpaces = require('remove-trailing-spaces')
-const unindent = require('./unindent.js')
+const { indent, unindent } = require('./indent.js')
+
+util.inspect.defaultOptions = { depth: 6 }
 
 const {
-  ENUM_TYPE,
-  WRAP_TYPE,
-  logFn,
-  getSource,
+  getClassMethodSource,
   getInArgumentSource,
-  getOutArgumentDeclaration,
-  getFunctionCall,
-  getFunctionArgument,
-  getReturn,
-  getAttachMethods,
   parseFile,
-  getInArguments,
-  getOutArguments,
-  getTypeName,
   getJSName,
 } = require('./generator.js')
 
 
-util.inspect.defaultOptions = { depth: 6 }
+const options = {
+  name: 'Matrix',
+  type: 'cairo_matrix_t',
+  prefix: /cairo_[a-z0-9]+(_matrix)?/,
+  constructor: undefined,
+  functions: undefined
+}
+
+
 
 generateCairoMatrix()
 
@@ -35,20 +34,24 @@ function generateCairoMatrix() {
   const result = parseFile(path.join(__dirname, 'cairo-matrix.nid'))
   const declarations = result.declarations
 
-  console.log(declarations)
-
-  const constructor = declarations.find(d => d.function && d.function.attributes.constructor).function
-  const functions =
+  options.constructor = declarations.find(d => d.function && d.function.attributes.constructor).function
+  options.functions =
     declarations
-      .filter(d => d.function && !d.function.attributes.constructor)
+      .filter(d => d.function && d.function.attributes.constructor !== true)
       .map(d => {
         const fn = d.function
-        fn.source = generateClassMethodSource(fn, { name: 'Matrix' })
+        fn.source = getClassMethodSource(fn, options)
         return fn
       })
 
-  const header = generateHeader({ name: 'Matrix', constructor, functions })
-  const source = generateSource({ name: 'Matrix', constructor, functions })
+  /* functions.forEach(fn => {
+   *   console.log({ ...fn, source: undefined })
+   *   console.log(fn.source)
+   *   console.log('')
+   * }) */
+
+  const header = generateHeader(options)
+  const source = generateSource(options)
 
   fs.writeFileSync(path.join(__dirname, 'cairo-matrix.h'),  header)
   fs.writeFileSync(path.join(__dirname, 'cairo-matrix.cc'), source)
@@ -118,7 +121,7 @@ function generateSource(options) {
      * Initialize matrix.
      */
 
-    Matrix::Matrix(cairo_matrix_t* data) : ObjectWrap() {
+    ${options.name}::${options.name}(${options.type}* data) : ObjectWrap() {
       _data = data;
     }
 
@@ -126,7 +129,7 @@ function generateSource(options) {
      * Destroy matrix..
      */
 
-    Matrix::~Matrix() {
+    ${options.name}::~${options.name}() {
       if (_data != NULL) {
         delete _data;
       }
@@ -184,13 +187,13 @@ function generateClassDeclaration(options) {
 
         static NAN_METHOD(New);
 
-        ${options.functions.map(fn => `static NAN_METHOD(${getFunctionJSName(fn)});`).join('\n        ')}
+        ${options.functions.map(fn => `static NAN_METHOD(${getJSName(fn.name, options.prefix)});`).join('\n        ')}
 
-        ${options.name}(cairo_matrix_t* data);
+        ${options.name}(${options.type}* data);
         ~${options.name}();
 
-        cairo_matrix_t* _data;
-    }
+        ${options.type}* _data;
+    };
   `
 }
 
@@ -226,11 +229,11 @@ function generateTemplateMethods(options) {
       tpl->InstanceTemplate()->SetInternalFieldCount(1);
       tpl->SetClassName(Nan::New("Cairo${options.name}").ToLocalChecked());
 
-      ${methods.map(fn => `SET_PROTOTYPE_METHOD(tpl, ${getFunctionJSName(fn)});`).join('\n      ')}
+      ${methods.map(fn => `SET_PROTOTYPE_METHOD(tpl, ${getJSName(fn.name, options.prefix)});`).join('\n      ')}
 
       auto ctor = tpl->GetFunction();
 
-      ${staticMethods.map(fn => `SET_METHOD(ctor, ${getFunctionJSName(fn)});`).join('\n      ')}
+      ${staticMethods.map(fn => `SET_METHOD(ctor, ${getJSName(fn.name, options.prefix)});`).join('\n      ')}
 
       constructorTemplate.Reset(tpl);
       constructor.Reset(ctor);
@@ -246,32 +249,6 @@ function generateInitializeMethod(options) {
   `
 }
 
-function generateClassMethodSource(fn, options) {
-  const selfArgument = fn.attributes.static !== true ? fn.parameters[0] : undefined
-  const inArguments  = getInArguments(fn, 'cairo_matrix_t')
-  const outArguments = getOutArguments(fn, 'cairo_matrix_t')
-  const hasResult = getTypeName(fn.type) !== 'void' || outArguments.length > 0
-
-  return `
-    NAN_METHOD(${options.name}::${getFunctionJSName(fn)}) {${selfArgument ? `
-        auto self = info.This();
-        auto ${selfArgument.name} = Nan::ObjectWrap::Unwrap<${options.name}>(self)->_data;
-` : ''}${inArguments.length > 0 ? `
-        // in-arguments
-        ${inArguments.map(getInArgumentSource).join('\n        ')}
-` : ''}${outArguments.length > 0 ? `
-        // out-arguments
-        ${outArguments.map(getOutArgumentDeclaration).join('\n        ')}
-` : ''}
-        // function call
-        ${getFunctionCall(fn)}
-${hasResult ? `
-        // return
-        ${getReturn(fn, outArguments)}
-` : ''}    }
-  `
-}
-
 function generateNewMethod(options) {
   const constructor = options.constructor
   const parameters = constructor.parameters.slice(1)
@@ -283,19 +260,22 @@ function generateNewMethod(options) {
         return Nan::ThrowTypeError("Class constructors cannot be invoked without 'new'");
       }
 
-      cairo_matrix_t* data = NULL;
+      ${options.type}* data = NULL;
 
       if (info[0]->IsExternal()) {
-        data = (cairo_matrix_t*) External::Cast (*info[0])->Value ();
+        data = (${options.type}*) External::Cast (*info[0])->Value ();
       }
       else if (info.Length() == ${parameters.length}) {
         ${parameters.map(getInArgumentSource).join('\n        ')}
 
-        data = new cairo_matrix_t();
+        data = new ${options.type}();
         ${constructor.name} (data, ${parameters.map(p => p.name).join(', ')});
       }
+      else if (info.Length() == 0) {
+        data = new ${options.type}();
+      }
       else {
-        return Nan::ThrowError("Cannot instantiate ${options.name}: requires ${constructor.parameters.length} arguments");
+        return Nan::ThrowError("Cannot instantiate ${options.name}: requires ${parameters.length} arguments");
       }
 
       ${options.name}* matrix = new ${options.name}(data);
@@ -304,8 +284,4 @@ function generateNewMethod(options) {
       info.GetReturnValue().Set(info.This());
     }
   `
-}
-
-function getFunctionJSName(fn) {
-  return getJSName(fn.name, /cairo_[a-z0-9]+(_matrix)?/)
 }

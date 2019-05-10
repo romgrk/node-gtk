@@ -5,7 +5,7 @@
 const fs = require('fs')
 const nid = require('nid-parser')
 const camelCase = require('lodash.camelcase')
-const unindent = require('./unindent.js')
+const { indent, unindent } = require('./indent.js')
 
 const ENUM_TYPE = {
   cairo_bool_t: 'bool',
@@ -43,6 +43,7 @@ module.exports = {
   logFn,
   generateSource,
   getSource,
+  getClassMethodSource,
   getInArgumentSource,
   getOutArgumentDeclaration,
   getFunctionCall,
@@ -52,6 +53,7 @@ module.exports = {
   parseFile,
   getInArguments,
   getOutArguments,
+  getInOutArguments,
   getTypeName,
   getJSName,
 }
@@ -98,7 +100,9 @@ function getSource(fn) {
   const selfArgument = fn.parameters[0]
   const inArguments = getInArguments(fn)
   const outArguments = getOutArguments(fn)
-  const hasResult = getTypeName(fn.type) !== 'void' || outArguments.length > 0
+  const inoutArguments = getInOutArguments(fn)
+  const outAndInoutArguments = outArguments.concat(inoutArguments)
+  const hasResult = getTypeName(fn.type) !== 'void' || outAndInoutArguments.length > 0
 
   return unindent(`
     NAN_METHOD(${getJSName(fn.name)}) {
@@ -107,6 +111,9 @@ function getSource(fn) {
 ${inArguments.length > 0 ? `
         // in-arguments
         ${inArguments.map(getInArgumentSource).join('\n        ')}
+` : ''}${inoutArguments.length > 0 ? `
+        // in-out-arguments
+        ${inoutArguments.map(getInArgumentSource).join('\n        ')}
 ` : ''}${outArguments.length > 0 ? `
         // out-arguments
         ${outArguments.map(getOutArgumentDeclaration).join('\n        ')}
@@ -115,10 +122,42 @@ ${inArguments.length > 0 ? `
         ${getFunctionCall(fn)}
 ${hasResult ? `
         // return
-        ${getReturn(fn, outArguments)}
+        ${getReturn(fn, outAndInoutArguments)}
 ` : ''}    }
   `)
 }
+
+function getClassMethodSource(fn, options) {
+  const selfArgument = fn.attributes.static !== true ? fn.parameters[0] : undefined
+  const inArguments  = getInArguments(fn, options.type)
+  const outArguments = getOutArguments(fn, options.type)
+  const inoutArguments = getInOutArguments(fn, options.type)
+  const outAndInoutArguments = outArguments.concat(inoutArguments)
+  const hasResult = getTypeName(fn.type) !== 'void' || outAndInoutArguments.length > 0
+
+  return `
+    NAN_METHOD(${options.name}::${getJSName(fn.name, options.prefix)}) {${selfArgument ? `
+      auto self = info.This();
+      auto ${selfArgument.name} = Nan::ObjectWrap::Unwrap<${options.name}>(self)->_data;
+` : ''}${inArguments.length > 0 ? `
+      // in-arguments
+      ${inArguments.map(getInArgumentSource).join('\n      ')}
+` : ''}${inoutArguments.length > 0 ? `
+      // in-out-arguments
+      ${inoutArguments.map(getInArgumentSource).join('\n      ')}
+` : ''}${outArguments.length > 0 ? `
+      // out-arguments
+      ${outArguments.map(getOutArgumentDeclaration).join('\n      ')}
+` : ''}
+      // function call
+      ${getFunctionCall(fn)}
+${hasResult ? `
+      // return
+      ${indent(6, getReturn(fn, outAndInoutArguments))}
+` : ''}    }
+  `
+}
+
 
 
 function getInArgumentSource(p, n) {
@@ -129,7 +168,7 @@ function getInArgumentSource(p, n) {
     return `auto ${p.name} = Nan::To<double>(info[${n}].As<Number>()).ToChecked();`
 
   if (typeName === 'double *' && p.attributes.inout)
-    return `double *${p.name}; *${p.name} = Nan::To<double>(info[${n}].As<Number>()).ToChecked();`
+    return `auto ${p.name} = Nan::To<double>(info[${n}].As<Number>()).ToChecked();`
 
   if (typeName === 'int')
     return `auto ${p.name} = Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
@@ -189,7 +228,7 @@ function getFunctionArgument(p) {
   if (p.attributes.out && p.type.name in WRAP_TYPE)
     return `Nan::ObjectWrap::Unwrap<${WRAP_TYPE[p.type.name]}>(${p.name})->_data`
 
-  if (p.attributes.out)
+  if (p.attributes.out || p.attributes.inout)
     return '&' + p.name
 
   return p.name
@@ -249,15 +288,22 @@ function parseFile(filepath) {
 
 function getInArguments(fn, selfType = 'cairo_t') {
   return fn.parameters.filter((p, i) =>
-    !p.attributes.out
-    && !(i === 0 && p.type.name === selfType && !fn.attributes.static)
+    !p.attributes.out && !p.attributes.inout
+    && !(i === 0
+      && (p.type.name === selfType || p.type.name === 'const ' + selfType)
+      && !fn.attributes.static)
   )
 }
 
-function getOutArguments(fn, selfType = 'cairo_t') {
-  return fn.parameters.filter((p, i) =>
+function getOutArguments(fn) {
+  return fn.parameters.filter(p =>
     p.attributes.out
-    && !(i === 0 && p.type.name === selfType)
+  )
+}
+
+function getInOutArguments(fn) {
+  return fn.parameters.filter(p =>
+    p.attributes.inout
   )
 }
 

@@ -24,13 +24,23 @@ class Matrix: public Nan::ObjectWrap {
 
     static NAN_METHOD(New);
 
-
+    static NAN_METHOD(initIdentity);
+    static NAN_METHOD(initTranslate);
+    static NAN_METHOD(initScale);
+    static NAN_METHOD(initRotate);
+    static NAN_METHOD(translate);
+    static NAN_METHOD(scale);
+    static NAN_METHOD(rotate);
+    static NAN_METHOD(invert);
+    static NAN_METHOD(multiply);
+    static NAN_METHOD(transformDistance);
+    static NAN_METHOD(transformPoint);
 
     Matrix(cairo_matrix_t* data);
     ~Matrix();
 
     cairo_matrix_t* _data;
-}
+};
 
 
 }; // Cairo
