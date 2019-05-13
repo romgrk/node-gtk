@@ -8,6 +8,7 @@
 
 #include "../gi.h"
 #include "../gobject.h"
+#include "../macros.h"
 #include "../value.h"
 #include "system.h"
 

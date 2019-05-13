@@ -8,6 +8,7 @@
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
+#include "macros.h"
 #include "type.h"
 #include "util.h"
 #include "value.h"
@@ -333,7 +334,7 @@ Local<Function> GetBoxedFunction(GIBaseInfo *info, GType gtype) {
     }
 
     Local<FunctionTemplate> tpl = GetBoxedTemplate (info, gtype);
-    Local<Function> fn = tpl->GetFunction ();
+    Local<Function> fn = Nan::GetFunction (tpl).ToLocalChecked();
 
     if (gtype == G_TYPE_NONE)
         return fn;
@@ -354,10 +355,10 @@ Local<Function> MakeBoxedClass(GIBaseInfo *info) {
         auto name = UTF8 (g_base_info_get_name (info));
 
         if (Nan::HasOwnProperty(moduleCache, ns).FromMaybe(false)) {
-            auto module = Nan::Get(moduleCache, ns).ToLocalChecked()->ToObject();
+            auto module = TO_OBJECT (Nan::Get(moduleCache, ns).ToLocalChecked());
 
             if (Nan::HasOwnProperty(module, name).FromMaybe(false)) {
-                auto constructor = Nan::Get(module, name).ToLocalChecked()->ToObject();
+                auto constructor = TO_OBJECT (Nan::Get(module, name).ToLocalChecked());
                 return Local<Function>::Cast (constructor);
             }
         }
@@ -385,7 +386,7 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
 }
 
 void* BoxedFromWrapper(Local<Value> value) {
-    Local<Object> object = value->ToObject ();
+    Local<Object> object = Nan::To<Object> (value).ToLocalChecked();
     g_assert(object->InternalFieldCount() > 0);
     void *boxed = object->GetAlignedPointerFromInternalField(0);
     return boxed;

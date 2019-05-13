@@ -7,6 +7,7 @@
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
+#include "macros.h"
 #include "param_spec.h"
 #include "type.h"
 #include "util.h"
@@ -303,7 +304,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
     bool zero_terminated = g_type_info_is_zero_terminated(type_info);
 
     if (value->IsString()) {
-        Local<String> string = value->ToString();
+        Local<String> string = TO_STRING (value);
         int length = string->Length();
 
         if (length == 0)
@@ -314,7 +315,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
         return g_array_append_vals(g_array, utf8_data, length);
 
     } else if (value->IsArray ()) {
-        auto array = Local<Array>::Cast (value->ToObject ());
+        auto array = Local<Array>::Cast (TO_OBJECT (value));
         int length = array->Length ();
 
         GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
@@ -331,7 +332,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
                 g_array_append_val (g_array, arg);
             } else {
                 g_warning("V8ToGArray: couldnt convert value: %s",
-                        *Nan::Utf8String(value->ToString()) );
+                        *Nan::Utf8String(TO_STRING (value)) );
             }
         }
 
@@ -347,7 +348,7 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
     bool is_zero_terminated = g_type_info_is_zero_terminated(type_info);
 
     if (value->IsString()) {
-        Local<String> string = value->ToString();
+        Local<String> string = TO_STRING (value);
         const char *utf8_data = *Nan::Utf8String(string);
         return g_strdup(utf8_data);
     }
@@ -357,7 +358,7 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
         return NULL;
     }
 
-    auto array = Local<Array>::Cast (value->ToObject());
+    auto array = Local<Array>::Cast (TO_OBJECT (value));
     int length = array->Length();
 
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
@@ -375,7 +376,7 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
             memcpy(pointer, &arg, element_size);
         } else {
             g_warning("V8ToGArray: couldnt convert value: %s",
-                    *Nan::Utf8String(value->ToString()) );
+                    *Nan::Utf8String(TO_STRING (value)) );
         }
     }
 
@@ -396,7 +397,7 @@ gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value) {
         return NULL;
     }
 
-    Local<Array> array = Local<Array>::Cast(value->ToObject ());
+    Local<Array> array = Local<Array>::Cast(TO_OBJECT (value));
     int length = array->Length();
 
     if (length == 0)
@@ -499,8 +500,8 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
     GHashTable* hash_table = g_hash_table_new (hash_func, equal_func);
 
 
-    auto object = value->ToObject();
-    auto keys = object->GetOwnPropertyNames();
+    auto object = TO_OBJECT (value);
+    auto keys = Nan::GetOwnPropertyNames(object).ToLocalChecked();
 
     for (uint32_t i = 0; i < keys->Length(); i++) {
         auto key   = Nan::Get(keys, i).ToLocalChecked();
@@ -552,7 +553,7 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
 
     case GI_INFO_TYPE_FLAGS:
     case GI_INFO_TYPE_ENUM:
-        arg->v_int = value->Int32Value ();
+        arg->v_int = Nan::To<int32_t> (value).ToChecked();
         break;
 
     case GI_INFO_TYPE_OBJECT:
@@ -596,40 +597,40 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_pointer = NULL;
         break;
     case GI_TYPE_TAG_BOOLEAN:
-        arg->v_boolean = value->BooleanValue ();
+        arg->v_boolean = Nan::To<bool> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT8:
-        arg->v_int8 = value->Int32Value ();
+        arg->v_int8 = Nan::To<int32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT16:
-        arg->v_int16 = value->Int32Value ();
+        arg->v_int16 = Nan::To<int32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT32:
-        arg->v_int = value->Int32Value ();
+        arg->v_int = Nan::To<int32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT64:
-        arg->v_int64 = value->NumberValue ();
+        arg->v_int64 = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT8:
-        arg->v_uint8 = value->Uint32Value ();
+        arg->v_uint8 = Nan::To<uint32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT16:
-        arg->v_uint16 = value->Uint32Value ();
+        arg->v_uint16 = Nan::To<uint32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT32:
-        arg->v_uint = value->Uint32Value ();
+        arg->v_uint = Nan::To<uint32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT64:
-        arg->v_uint64 = value->NumberValue ();
+        arg->v_uint64 = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_FLOAT:
-        arg->v_float = value->NumberValue ();
+        arg->v_float = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_DOUBLE:
-        arg->v_double = value->NumberValue ();
+        arg->v_double = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_GTYPE:
-        arg->v_ulong = value->NumberValue ();
+        arg->v_ulong = Nan::To<int64_t> (value).ToChecked();
         break;
 
     case GI_TYPE_TAG_UTF8:
@@ -690,7 +691,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     //case GI_TYPE_TAG_ERROR: FIXME
 
     case GI_TYPE_TAG_UNICHAR: // FIXME
-        arg->v_uint32 = value->Int32Value();
+        arg->v_uint32 = Nan::To<uint32_t> (value).ToChecked();
         break;
 
     default:
@@ -780,8 +781,8 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
             if (!value->IsArray ())
                 return false;
 
-            auto array = value->ToObject ();
-            int length = Nan::Get(array, UTF8("length")).ToLocalChecked()->Uint32Value();
+            auto array = TO_OBJECT (value);
+            int length = Nan::To<uint32_t> (Nan::Get(array, UTF8("length")).ToLocalChecked()).ToChecked();
             GIBaseInfo *element_info = g_type_info_get_param_type(type_info, 0);
 
             bool result = true;
@@ -1080,28 +1081,28 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
 
 bool V8ToGValue(GValue *gvalue, Local<Value> value) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
-        g_value_set_boolean (gvalue, value->BooleanValue ());
+        g_value_set_boolean (gvalue, Nan::To<bool> (value).ToChecked());
     } else if (G_VALUE_HOLDS_INT (gvalue) || G_VALUE_HOLDS_LONG (gvalue)) {
-        g_value_set_int (gvalue, value->Int32Value ());
+        g_value_set_int (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
-        g_value_set_uint (gvalue, value->Uint32Value ());
+        g_value_set_uint (gvalue, Nan::To<uint32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
-        g_value_set_float (gvalue, value->NumberValue ());
+        g_value_set_float (gvalue, Nan::To<int64_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
-        g_value_set_double (gvalue, value->NumberValue ());
+        g_value_set_double (gvalue, Nan::To<int64_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
         GType type;
         if (value->IsString())
             type = g_type_from_name(*Nan::Utf8String(value));
         else
-            type = value->NumberValue ();
+            type = Nan::To<int64_t> (value).ToChecked();
         g_value_set_gtype(gvalue, type);
     } else if (G_VALUE_HOLDS_STRING (gvalue)) {
         Nan::Utf8String str (value);
         const char *data = *str;
         g_value_set_string (gvalue, data);
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
-        g_value_set_enum (gvalue, value->Int32Value ());
+        g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Nan::ThrowTypeError("Value is not instance of GObject");
@@ -1213,7 +1214,7 @@ bool ValueHasInternalField(Local<Value> value) {
     if (!value->IsObject())
         return false;
 
-    Local<Object> object = value->ToObject ();
+    Local<Object> object = TO_OBJECT (value);
 
     // Wait, this is not a GObject!
     if (object->InternalFieldCount() == 0)
@@ -1226,8 +1227,8 @@ bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
     if (!ValueHasInternalField(value))
         return false;
 
-    Local<Object> object = value->ToObject();
-    GType object_type = (GType) Nan::Get(object, UTF8("__gtype__")).ToLocalChecked()->NumberValue();
+    Local<Object> object = TO_OBJECT (value);
+    GType object_type = (GType) Nan::To<int64_t> (Nan::Get(object, UTF8("__gtype__")).ToLocalChecked()).ToChecked();
     return g_type_is_a(object_type, g_type);
 }
 

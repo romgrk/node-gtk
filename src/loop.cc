@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "gi.h"
 #include "loop.h"
+#include "macros.h"
 #include "util.h"
 
 /* Integration for the GLib main loop and uv's main loop */
@@ -86,12 +87,12 @@ void QuitLoopStack() {
     Local<Array> stack = GetLoopStack();
 
     for (uint32_t i = 0; i < stack->Length(); i++) {
-        Local<Object> fn = Nan::Get(stack, i).ToLocalChecked()->ToObject();
+        Local<Object> fn = TO_OBJECT (Nan::Get(stack, i).ToLocalChecked());
         Local<Object> self = fn;
 
 #ifndef NDEBUG
         auto name = Nan::Get(fn, UTF8("name"));
-        if (name.IsEmpty() || name.ToLocalChecked()->ToString()->Length() == 0)
+        if (name.IsEmpty() || TO_STRING (name.ToLocalChecked())->Length() == 0)
             log("calling (anonymous)");
         else
             log("calling %s", *Nan::Utf8String(name.ToLocalChecked()));

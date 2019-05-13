@@ -73,15 +73,15 @@ static bool InitGParametersFromProperty(GParameter    **parameters_p,
                                         int            *n_parameters_p,
                                         void           *klass,
                                         Local<Object>  property_hash) {
-    Local<Array> properties = property_hash->GetOwnPropertyNames ();
+    Local<Array> properties = Nan::GetOwnPropertyNames (property_hash).ToLocalChecked();
     int n_parameters = properties->Length ();
     GParameter *parameters = g_new0 (GParameter, n_parameters);
 
     for (int i = 0; i < n_parameters; i++) {
-        Local<String> name = properties->Get(i)->ToString();
+        Local<String> name = TO_STRING (properties->Get(i));
         Local<Value> value = property_hash->Get (name);
 
-        if (!InitGParameterFromProperty (&parameters[i], klass, name->ToString (), value))
+        if (!InitGParameterFromProperty (&parameters[i], klass, TO_STRING (name), value))
             return false;
     }
 
@@ -158,7 +158,7 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         int n_parameters = 0;
 
         if (info[0]->IsObject ()) {
-            Local<Object> property_hash = info[0]->ToObject ();
+            Local<Object> property_hash = TO_OBJECT (info[0]);
 
             if (!InitGParametersFromProperty (&parameters, &n_parameters, klass, property_hash)) {
                 // Error will already be thrown from InitGParametersFromProperty
@@ -269,9 +269,9 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &in
         return;
     }
 
-    const char *signal_name = *Nan::Utf8String (info[0]->ToString());
+    const char *signal_name = *Nan::Utf8String (TO_STRING (info[0]));
     Local<Function> callback = info[1].As<Function>();
-    GType gtype = (GType) Nan::Get(info.This(), UTF8("__gtype__")).ToLocalChecked()->NumberValue();
+    GType gtype = (GType) TO_LONG (Nan::Get(info.This(), UTF8("__gtype__")).ToLocalChecked());
 
     GIBaseInfo *object_info = g_irepository_find_by_gtype (NULL, gtype);
     GISignalInfo *signal_info = FindSignalInfo (object_info, signal_name);
@@ -303,7 +303,7 @@ static void SignalDisconnectInternal(const Nan::FunctionCallbackInfo<v8::Value> 
     }
 
     gpointer instance = static_cast<gpointer>(gobject);
-    ulong handler_id = info[0]->NumberValue();
+    ulong handler_id = TO_LONG (info[0]);
     g_signal_handler_disconnect (instance, handler_id);
 
     info.GetReturnValue().Set((double)handler_id);
@@ -408,7 +408,7 @@ static Local<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info) {
 
 Local<Function> MakeClass(GIBaseInfo *info) {
     auto tpl = GetClassTemplateFromGI (info);
-    return tpl->GetFunction ();
+    return Nan::GetFunction (tpl).ToLocalChecked();
 }
 
 Local<Value> WrapperFromGObject(GObject *gobject, GIBaseInfo *object_info) {
@@ -429,7 +429,7 @@ Local<Value> WrapperFromGObject(GObject *gobject, GIBaseInfo *object_info) {
         // We don't use the gtype above, but maybe we can register that type using the type's interface's object_info.
 
         auto tpl = GetClassTemplateFromGI(object_info);
-        Local<Function> constructor = tpl->GetFunction ();
+        Local<Function> constructor = Nan::GetFunction (tpl).ToLocalChecked();
         Local<Value> gobject_external = New<External> (gobject);
         Local<Value> args[] = { gobject_external };
         Local<Object> obj = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
@@ -442,7 +442,7 @@ GObject * GObjectFromWrapper(Local<Value> value) {
     if (!ValueHasInternalField(value))
         return nullptr;
 
-    Local<Object> object = value->ToObject ();
+    Local<Object> object = TO_OBJECT (value);
 
     void    *ptr     = object->GetAlignedPointerFromInternalField (0);
     GObject *gobject = G_OBJECT (ptr);

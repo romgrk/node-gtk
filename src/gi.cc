@@ -8,6 +8,7 @@
 #include "gi.h"
 #include "gobject.h"
 #include "loop.h"
+#include "macros.h"
 #include "type.h"
 #include "util.h"
 #include "value.h"
@@ -141,7 +142,7 @@ NAN_METHOD(MakeVirtualFunction) {
     }
 
     BaseInfo gi_info(info[0]);
-    GType implementor = (gulong) info[1]->NumberValue ();
+    GType implementor = (gulong) Nan::To<int64_t> (info[1]).ToChecked();
 
     MaybeLocal<Function> maybeFn = GNodeJS::MakeVirtualFunction(*gi_info, implementor);
 
@@ -166,7 +167,7 @@ NAN_METHOD(ObjectPropertyGetter) {
 
     g_assert(gobject != NULL);
 
-    Nan::Utf8String prop_name_v (info[1]->ToString ());
+    Nan::Utf8String prop_name_v (TO_STRING (info[1]));
     const char *prop_name = *prop_name_v;
 
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
@@ -185,7 +186,7 @@ NAN_METHOD(ObjectPropertyGetter) {
 
 NAN_METHOD(ObjectPropertySetter) {
     GObject* gobject = GNodeJS::GObjectFromWrapper(info[0]);
-    Nan::Utf8String prop_name_v (info[1]->ToString ());
+    Nan::Utf8String prop_name_v (TO_STRING (info[1]));
     const char *prop_name = *prop_name_v;
 
     if (gobject == NULL) {
@@ -304,7 +305,7 @@ NAN_METHOD(StartLoop) {
 
 NAN_METHOD(GetBaseClass) {
     auto tpl = GNodeJS::GetBaseClassTemplate ();
-    auto fn = tpl->GetFunction();
+    auto fn = Nan::GetFunction (tpl).ToLocalChecked();
     info.GetReturnValue().Set(fn);
 }
 

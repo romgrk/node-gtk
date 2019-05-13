@@ -18,3 +18,17 @@
         } \
     } while (0) \
 
+
+/*
+ * V8 Macros
+ */
+
+#define UTF8(s)         Nan::New<v8::String> (s).ToLocalChecked()
+
+#define RETURN(s)       info.GetReturnValue().Set(s)
+
+#define TO_OBJECT(v)    Nan::To<Object> (v).ToLocalChecked()
+#define TO_STRING(v)    Nan::To<String> (v).ToLocalChecked()
+#define TO_LONG(v)      Nan::To<int64_t> (v).ToChecked()
+
+

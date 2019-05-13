@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "param_spec.h"
+#include "macros.h"
 
 using v8::Function;
 using v8::FunctionTemplate;
@@ -60,7 +61,7 @@ Local<Value> ParamSpec::FromGParamSpec(GParamSpec *param_spec, bool makeCopy) {
 }
 
 GParamSpec* ParamSpec::FromWrapper(Local<Value> value) {
-    ParamSpec* paramSpec = ObjectWrap::Unwrap<ParamSpec>(value->ToObject());
+    ParamSpec* paramSpec = ObjectWrap::Unwrap<ParamSpec>(TO_OBJECT (value));
     return paramSpec->data;
 }
 
