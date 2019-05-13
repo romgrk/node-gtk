@@ -232,6 +232,19 @@ sudo apt-get install \
 
 At this point `npm install node-gtk` should already install, fallback and build `node-gtk` without problems.
 
+### How to build on Fedora
+
+Install basic dependencies:
+
+```sh
+sudo dnf install \
+  @development-tools \
+  nodejs \
+  gobject-introspection \
+  gtk3
+```
+
+After installing of packages, run `npm install node-gtk`.
 
 ### How to build on ArchLinux
 
@@ -284,6 +297,7 @@ Try Cmd + Tab if you don't see it.
 If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://webkitgtk.org/) libary.
 
   * in **Ubuntu**, you can `apt-get install libwebkit2gtk-3.0` (`4.0`   works too) and try it out.
+  * in **Fedora**, you should run `sudo dnf install webkit2gtk3`
   * in **ArchLinux**, you can `pacman -S --needed webkitgtk` and try it out.
   * in **OSX**, there is no way to run it right now because `webkitgtk` was removed from homebrew
 
