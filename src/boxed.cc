@@ -386,7 +386,7 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
 }
 
 void* BoxedFromWrapper(Local<Value> value) {
-    Local<Object> object = Nan::To<Object> (value).ToLocalChecked();
+    Local<Object> object = TO_OBJECT (value);
     g_assert(object->InternalFieldCount() > 0);
     void *boxed = object->GetAlignedPointerFromInternalField(0);
     return boxed;
