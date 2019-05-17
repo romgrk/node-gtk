@@ -624,10 +624,10 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_uint64 = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_FLOAT:
-        arg->v_float = Nan::To<int64_t> (value).ToChecked();
+        arg->v_float = Nan::To<double> (value).ToChecked();
         break;
     case GI_TYPE_TAG_DOUBLE:
-        arg->v_double = Nan::To<int64_t> (value).ToChecked();
+        arg->v_double = Nan::To<double> (value).ToChecked();
         break;
     case GI_TYPE_TAG_GTYPE:
         arg->v_ulong = Nan::To<int64_t> (value).ToChecked();
@@ -1087,9 +1087,9 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         g_value_set_uint (gvalue, Nan::To<uint32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
-        g_value_set_float (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_float (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
-        g_value_set_double (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_double (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
         GType type;
         if (value->IsString())
