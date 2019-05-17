@@ -37,11 +37,11 @@ static int GetV8ArrayLength (Local<Value> value) {
     if (value->IsArray())
         return Local<Array>::Cast (TO_OBJECT (value))->Length();
     else if (value->IsString())
-        return Nan::To<String> (value).ToLocalChecked()->Length();
+        return TO_STRING (value)->Length();
     else if (value->IsNull() || value->IsUndefined())
         return 0;
 
-    printf("%s\n", *Nan::Utf8String(Nan::To<String> (value).ToLocalChecked()));
+    printf("%s\n", *Nan::Utf8String(TO_STRING (value)));
     g_assert_not_reached();
 }
 
