@@ -1,9 +1,0 @@
-build
-examples
-node_modules
-.DS_Store
-.gitignore
-Makefile
-node-gtk.doap
-npm-debug.log
-package-lock.json

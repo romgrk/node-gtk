@@ -43,6 +43,12 @@
     "chalk": "^2.4.2",
     "mocha": "^5.2.0"
   },
+  "files": [
+    "/lib",
+    "/src",
+    "/scripts",
+    "binding.gyp"
+  ],
   "binary": {
     "module_name": "node_gtk",
     "module_path": "./lib/binding/{node_abi}-{platform}-{arch}/",
