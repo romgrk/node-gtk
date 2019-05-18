@@ -31,6 +31,6 @@ struct Closure {
     static void Invalidated(gpointer data, GClosure *closure);
 };
 
-GClosure *MakeClosure(v8::Handle<v8::Function> function, GICallableInfo* info);
+GClosure *MakeClosure(v8::Local<v8::Function> function, GICallableInfo* info);
 
 };

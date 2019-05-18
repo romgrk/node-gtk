@@ -47,5 +47,5 @@ common.describe('without constructor, size > 0', () => {
 
 common.describe('without constructor, size === 0',
   common.mustThrow('Boxed allocation failed: no constructor found', () => {
-    const result = new Gio.SettingsPrivate()
+    const result = new Gdk.Atom()
   }))

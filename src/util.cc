@@ -11,6 +11,7 @@
 #include <glib-object.h>
 
 #include "util.h"
+#include "macros.h"
 
 using v8::Local;
 using v8::Value;
@@ -51,11 +52,11 @@ char* GetSignalName(const char* signal_detail) {
  * be pending Micro-tasks from Promises or calls to 'process.nextTick()'.
  */
 void CallNextTickCallback() {
-    Local<Object> processObject = Nan::GetCurrentContext()->Global()->Get(
-            Nan::New<String>("process").ToLocalChecked())->ToObject();
-    Local<Value> tickCallbackValue = processObject->Get(Nan::New("_tickCallback").ToLocalChecked());
+    auto global = Nan::GetCurrentContext()->Global();
+    Local<Object> processObject = TO_OBJECT (global->Get(UTF8("process")));
+    Local<Value> tickCallbackValue = processObject->Get(UTF8("_tickCallback"));
     if (tickCallbackValue->IsFunction()) {
-        Nan::CallAsFunction(tickCallbackValue->ToObject(), processObject, 0, nullptr);
+        Nan::CallAsFunction(TO_OBJECT (tickCallbackValue), processObject, 0, nullptr);
     }
 }
 

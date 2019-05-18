@@ -1,5 +1,6 @@
 
 #include "gi.h"
+#include "macros.h"
 #include "type.h"
 #include "util.h"
 #include "debug.h"

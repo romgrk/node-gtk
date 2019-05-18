@@ -8,6 +8,7 @@
 #include "error.h"
 #include "function.h"
 #include "gobject.h"
+#include "macros.h"
 #include "type.h"
 #include "value.h"
 
@@ -34,13 +35,13 @@ static void FillArgument(GIArgInfo *arg_info, GIArgument *argument, Local<Value>
 
 static int GetV8ArrayLength (Local<Value> value) {
     if (value->IsArray())
-        return Local<Array>::Cast (value->ToObject ())->Length();
+        return Local<Array>::Cast (TO_OBJECT (value))->Length();
     else if (value->IsString())
-        return value->ToString ()->Length();
+        return TO_STRING (value)->Length();
     else if (value->IsNull() || value->IsUndefined())
         return 0;
 
-    printf("%s\n", *Nan::Utf8String(value->ToString()));
+    printf("%s\n", *Nan::Utf8String(TO_STRING (value)));
     g_assert_not_reached();
 }
 
@@ -527,7 +528,7 @@ Local<Value> FunctionInfo::GetReturnValue (GITypeInfo* return_type, GIArgument* 
         jsReturnValue = Nan::New<Array>();
 
 #define ADD_RETURN(value)   if (n_out_args > 1) \
-                                Nan::Set(jsReturnValue->ToObject(), jsReturnIndex++, (value)); \
+                                Nan::Set(TO_OBJECT (jsReturnValue), jsReturnIndex++, (value)); \
                             else \
                                 jsReturnValue = (value);
 
@@ -611,7 +612,7 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
     auto tpl = New<FunctionTemplate>(FunctionInvoker, external);
     tpl->SetLength(g_callable_info_get_n_args (info));
 
-    auto fn = tpl->GetFunction();
+    auto fn = Nan::GetFunction (tpl).ToLocalChecked();
     fn->SetName(name);
 
     Persistent<FunctionTemplate> persistent(Isolate::GetCurrent(), tpl);
@@ -743,7 +744,7 @@ MaybeLocal<Function> MakeVirtualFunction(GIBaseInfo *info, GType implementor) {
     auto tpl = New<FunctionTemplate>(FunctionInvoker, external);
     tpl->SetLength(g_callable_info_get_n_args (info));
 
-    auto fn = tpl->GetFunction();
+    auto fn = Nan::GetFunction (tpl).ToLocalChecked();
     fn->SetName(name);
 
     Persistent<FunctionTemplate> persistent(Isolate::GetCurrent(), tpl);
