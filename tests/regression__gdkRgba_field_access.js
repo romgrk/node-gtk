@@ -31,5 +31,5 @@ function run() {
   const color = window.getStyleContext().getBackgroundColor(Gtk.StateFlags.NORMAL)
   console.log(color.red)
   console.log(color.toString())
-  window.close()
+  process.exit(0)
 }
