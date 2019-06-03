@@ -9,6 +9,7 @@ const { indent, unindent } = require('./indent.js')
 
 const CAST_TYPE = {
   cairo_bool_t: 'bool',
+  'unsigned long': 'double',
 }
 
 const ENUM_TYPE = {
@@ -21,12 +22,15 @@ const ENUM_TYPE = {
   cairo_font_slant_t: 'int64_t',
   cairo_font_weight_t: 'int64_t',
   cairo_format_t: 'int64_t',
+  cairo_hint_metrics_t: 'int64_t',
+  cairo_hint_style_t: 'int64_t',
   cairo_content_t: 'int64_t',
   cairo_pdf_version_t: 'int64_t',
   cairo_pdf_outline_flags_t: 'int64_t',
   cairo_pdf_metadata_t: 'int64_t',
   cairo_ps_level_t: 'int64_t',
   cairo_region_overlap_t: 'int64_t',
+  cairo_subpixel_order_t: 'int64_t',
   cairo_svg_version_t: 'int64_t',
   cairo_svg_unit_t: 'int64_t',
 }
@@ -265,6 +269,9 @@ function getReturn(fn, outArguments) {
     lines.push(`Local<Value> args[] = { Nan::New<External> (result) };`)
     lines.push(`Local<Function> constructor = Nan::New<Function> (${WRAP_TYPE[fn.type.name]}::constructor);`)
     lines.push(`Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();`)
+  }
+  else if (typeName === 'const char *') {
+    lines.push(`Local<Value> returnValue = UTF8 (result);`)
   }
   else if (typeName !== 'void') {
     const cast = fn.type.name in CAST_TYPE ? `(${CAST_TYPE[fn.type.name]}) ` : ''

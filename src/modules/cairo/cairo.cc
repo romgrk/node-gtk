@@ -9,6 +9,7 @@
 #include "../../gobject.h"
 #include "../../value.h"
 #include "cairo-context.h"
+#include "cairo-font-options.h"
 #include "cairo-font-extents.h"
 #include "cairo-text-extents.h"
 #include "cairo-matrix.h"
@@ -44,6 +45,9 @@ MaybeLocal<FunctionTemplate> GetTemplate(GIBaseInfo *info) {
 
     if (strcmp(name, "Region") == 0)
         return MaybeLocal<FunctionTemplate> (Cairo::Region::GetTemplate());
+
+    if (strcmp(name, "FontOptions") == 0)
+        return MaybeLocal<FunctionTemplate> (Cairo::FontOptions::GetTemplate());
 
     if (strcmp(name, "Surface") == 0)
         return MaybeLocal<FunctionTemplate> (Cairo::Surface::GetTemplate());

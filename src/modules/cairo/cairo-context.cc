@@ -6,6 +6,7 @@
 #include "cairo-path.h"
 #include "cairo-text-extents.h"
 #include "cairo-font-extents.h"
+#include "cairo-font-options.h"
 #include "cairo-surface.h"
 #include "../../debug.h"
 #include "../../gi.h"
@@ -442,7 +443,7 @@ NAN_METHOD(inClip) {
   cairo_bool_t result = cairo_in_clip (cr, x, y);
 
   // return
-  Local<Value> returnValue = Nan::New (result);
+  Local<Value> returnValue = Nan::New ((bool) result);
   info.GetReturnValue().Set(returnValue);
 }
 
@@ -516,7 +517,7 @@ NAN_METHOD(inFill) {
   cairo_bool_t result = cairo_in_fill (cr, x, y);
 
   // return
-  Local<Value> returnValue = Nan::New (result);
+  Local<Value> returnValue = Nan::New ((bool) result);
   info.GetReturnValue().Set(returnValue);
 }
 
@@ -602,7 +603,7 @@ NAN_METHOD(inStroke) {
   cairo_bool_t result = cairo_in_stroke (cr, x, y);
 
   // return
-  Local<Value> returnValue = Nan::New (result);
+  Local<Value> returnValue = Nan::New ((bool) result);
   info.GetReturnValue().Set(returnValue);
 }
 
@@ -681,7 +682,7 @@ NAN_METHOD(hasCurrentPoint) {
   cairo_bool_t result = cairo_has_current_point (cr);
 
   // return
-  Local<Value> returnValue = Nan::New (result);
+  Local<Value> returnValue = Nan::New ((bool) result);
   info.GetReturnValue().Set(returnValue);
 }
 
@@ -987,6 +988,28 @@ NAN_METHOD(getFontMatrix) {
   info.GetReturnValue().Set(returnValue);
 }
 
+NAN_METHOD(setFontOptions) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto options = Nan::ObjectWrap::Unwrap<FontOptions>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_set_font_options (cr, options);
+}
+
+NAN_METHOD(getFontOptions) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto options = Nan::ObjectWrap::Unwrap<FontOptions>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_get_font_options (cr, options);
+}
+
 NAN_METHOD(getFontFace) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -1269,6 +1292,8 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
   SET_METHOD(tpl, setFontSize);
   SET_METHOD(tpl, setFontMatrix);
   SET_METHOD(tpl, getFontMatrix);
+  SET_METHOD(tpl, setFontOptions);
+  SET_METHOD(tpl, getFontOptions);
   SET_METHOD(tpl, getFontFace);
   SET_METHOD(tpl, getScaledFont);
   SET_METHOD(tpl, translate);

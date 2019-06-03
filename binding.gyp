@@ -21,6 +21,7 @@
                 "src/modules/cairo/cairo-context.cc",
                 "src/modules/cairo/cairo-matrix.cc",
                 "src/modules/cairo/cairo-path.cc",
+                "src/modules/cairo/cairo-font-options.cc",
                 "src/modules/cairo/cairo-font-extents.cc",
                 "src/modules/cairo/cairo-text-extents.cc",
                 "src/modules/cairo/cairo-region.cc",
