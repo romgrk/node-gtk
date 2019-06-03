@@ -23,6 +23,7 @@
                 "src/modules/cairo/cairo-path.cc",
                 "src/modules/cairo/cairo-font-extents.cc",
                 "src/modules/cairo/cairo-text-extents.cc",
+                "src/modules/cairo/cairo-region.cc",
                 "src/modules/cairo/cairo-rectangle.cc",
                 "src/modules/cairo/cairo-rectangle-int.cc",
                 "src/modules/cairo/cairo-surface.cc",

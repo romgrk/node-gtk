@@ -15,6 +15,7 @@
 #include "cairo-path.h"
 #include "cairo-rectangle.h"
 #include "cairo-rectangle-int.h"
+#include "cairo-region.h"
 #include "cairo-surface.h"
 
 using v8::Function;
@@ -41,6 +42,9 @@ MaybeLocal<FunctionTemplate> GetTemplate(GIBaseInfo *info) {
     if (strcmp(name, "Matrix") == 0)
         return MaybeLocal<FunctionTemplate> (Cairo::Matrix::GetTemplate());
 
+    if (strcmp(name, "Region") == 0)
+        return MaybeLocal<FunctionTemplate> (Cairo::Region::GetTemplate());
+
     if (strcmp(name, "Surface") == 0)
         return MaybeLocal<FunctionTemplate> (Cairo::Surface::GetTemplate());
 
@@ -63,6 +67,7 @@ NAN_METHOD(Init) {
     Path::Initialize(cairoModule);
     Rectangle::Initialize(cairoModule);
     RectangleInt::Initialize(cairoModule);
+    Region::Initialize(cairoModule);
     Surface::Initialize(cairoModule);
 }
 

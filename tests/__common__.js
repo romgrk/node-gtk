@@ -125,6 +125,10 @@ function _failed(...args) {
       + (args.length > 0 ? ':' : ''), ...args)
   else
     console.error(chalk.red.bold('Failed:'), ...args)
+
+  const line = new Error().stack.split('\n').slice(1).find(l => !l.includes('__common__'))
+  console.log(line)
+
 }
 
 function _success(...args) {

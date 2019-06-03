@@ -7,6 +7,10 @@ const nid = require('nid-parser')
 const camelCase = require('lodash.camelcase')
 const { indent, unindent } = require('./indent.js')
 
+const CAST_TYPE = {
+  cairo_bool_t: 'bool',
+}
+
 const ENUM_TYPE = {
   cairo_bool_t: 'bool',
   cairo_antialias_t: 'int64_t',
@@ -22,6 +26,7 @@ const ENUM_TYPE = {
   cairo_pdf_outline_flags_t: 'int64_t',
   cairo_pdf_metadata_t: 'int64_t',
   cairo_ps_level_t: 'int64_t',
+  cairo_region_overlap_t: 'int64_t',
   cairo_svg_version_t: 'int64_t',
   cairo_svg_unit_t: 'int64_t',
 }
@@ -33,13 +38,18 @@ const WRAP_TYPE = {
   cairo_font_options_t: 'FontOptions',
   cairo_matrix_t: 'Matrix',
   cairo_surface_t: 'Surface',
+  cairo_region_t: 'Region',
   cairo_rectangle_t: 'Rectangle',
   cairo_rectangle_int_t: 'RectangleInt',
 }
 
+const RESTRICTED = ['union', 'xor']
+
 module.exports = {
+  CAST_TYPE,
   ENUM_TYPE,
   WRAP_TYPE,
+  RESTRICTED,
   logFn,
   generateSource,
   getSource,
@@ -257,7 +267,8 @@ function getReturn(fn, outArguments) {
     lines.push(`Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();`)
   }
   else if (typeName !== 'void') {
-    lines.push(`Local<Value> returnValue = Nan::New (result);`)
+    const cast = fn.type.name in CAST_TYPE ? `(${CAST_TYPE[fn.type.name]}) ` : ''
+    lines.push(`Local<Value> returnValue = Nan::New (${cast}result);`)
   }
 
   lines.push(`info.GetReturnValue().Set(returnValue);`)
@@ -312,5 +323,6 @@ function getTypeName(type) {
 }
 
 function getJSName(originalName, prefix = 'cairo_') {
-  return camelCase(originalName.replace(prefix, ''))
+  const jsName = camelCase(originalName.replace(prefix, ''))
+  return RESTRICTED.includes(jsName) ? `${jsName}_` : jsName
 }
