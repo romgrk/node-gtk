@@ -3,6 +3,7 @@
 Changes to be released are kept in the unreleased section.
 
 ## Unreleased
+ - Added override for `Gtk.Builder#getObject`
 
 ## v0.3.0
  - Added export `System` for low-level inspection
