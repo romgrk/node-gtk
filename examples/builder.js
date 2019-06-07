@@ -13,9 +13,10 @@ const win = builder.getObject('mainWindow');
 
 win.setDefaultSize(600, 800);
 win.on('show', Gtk.main);
+win.on('destroy', Gtk.mainQuit)
 
 const button = builder.getObject('closeButton');
-button.on('clicked', Gtk.mainQuit);
+button.on('clicked', () => win.close())
 
 const label = builder.getObject('helloLabel');
 label.setText('Hello World!');
