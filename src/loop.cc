@@ -20,8 +20,6 @@ using namespace v8;
 
 namespace GNodeJS {
 
-static void CallNextTickCallback ();
-
 
 static Nan::Persistent<Array> loopStack(Nan::New<Array> ());
 
