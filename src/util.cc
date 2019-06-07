@@ -45,19 +45,4 @@ char* GetSignalName(const char* signal_detail) {
     return signal_name;
 }
 
-
-/**
- * This function is used to call "process._tickCallback()" inside NodeJS.
- * We want to do this after we run the LibUV eventloop because there might
- * be pending Micro-tasks from Promises or calls to 'process.nextTick()'.
- */
-void CallNextTickCallback() {
-    auto global = Nan::GetCurrentContext()->Global();
-    Local<Object> processObject = TO_OBJECT (global->Get(UTF8("process")));
-    Local<Value> tickCallbackValue = processObject->Get(UTF8("_tickCallback"));
-    if (tickCallbackValue->IsFunction()) {
-        Nan::CallAsFunction(TO_OBJECT (tickCallbackValue), processObject, 0, nullptr);
-    }
-}
-
 }

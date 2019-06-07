@@ -8,6 +8,8 @@ using namespace v8;
 
 namespace GNodeJS {
 
+  void CallMicrotaskHandlers ();
+
   void StartLoop();
 
   void QuitLoopStack();
