@@ -20,6 +20,7 @@ using namespace v8;
 
 namespace GNodeJS {
 
+
 static Nan::Persistent<Array> loopStack(Nan::New<Array> ());
 
 struct uv_loop_source {
@@ -27,7 +28,7 @@ struct uv_loop_source {
     uv_loop_t *loop;
 };
 
-static gboolean uv_loop_source_prepare (GSource *base, int *timeout) {
+static gboolean loop_source_prepare (GSource *base, int *timeout) {
     struct uv_loop_source *source = (struct uv_loop_source *) base;
     uv_update_time (source->loop);
 
@@ -49,23 +50,22 @@ static gboolean uv_loop_source_prepare (GSource *base, int *timeout) {
         return FALSE;
 }
 
-static gboolean uv_loop_source_dispatch (GSource *base, GSourceFunc callback, gpointer user_data) {
+static gboolean loop_source_dispatch (GSource *base, GSourceFunc callback, gpointer user_data) {
     struct uv_loop_source *source = (struct uv_loop_source *) base;
-    uv_run (source->loop, UV_RUN_NOWAIT);
-    Util::CallNextTickCallback();
+    uv_run (source->loop, UV_RUN_ONCE);
+    CallMicrotaskHandlers ();
     return G_SOURCE_CONTINUE;
 }
 
 static GSourceFuncs uv_loop_source_funcs = {
-    uv_loop_source_prepare,
-    NULL,
-    uv_loop_source_dispatch,
-    NULL,
-
+    /* prepare */  loop_source_prepare,
+    /* check */    NULL,
+    /* dispatch */ loop_source_dispatch,
+    /* finalize */ NULL,
     NULL, NULL,
 };
 
-static GSource *uv_loop_source_new (uv_loop_t *loop) {
+static GSource *loop_source_new (uv_loop_t *loop) {
     struct uv_loop_source *source = (struct uv_loop_source *) g_source_new (&uv_loop_source_funcs, sizeof (*source));
     source->loop = loop;
     g_source_add_unix_fd (&source->source,
@@ -74,8 +74,45 @@ static GSource *uv_loop_source_new (uv_loop_t *loop) {
     return &source->source;
 }
 
+/**
+ * This function is used to call "process._tickCallback()" inside NodeJS.
+ * We want to do this after we run the libuv eventloop because there might
+ * be pending micro-tasks from Promises or calls to 'process.nextTick()'.
+ */
+static void CallNextTickCallback() {
+    static Nan::Persistent<Object> process;
+    static Nan::Persistent<Object> tickCallback;
+
+    if (tickCallback.IsEmpty()) {
+        auto global = Nan::GetCurrentContext()->Global();
+        auto processObject = Nan::To<Object> (global->Get(UTF8("process")));
+
+        if (processObject.IsEmpty()) {
+            return;
+        }
+
+        Local<Object> processObjectChecked = processObject.ToLocalChecked();
+        Local<Value> tickCallbackValue = processObjectChecked->Get(UTF8("_tickCallback"));
+        if (!tickCallbackValue->IsFunction()) {
+            return;
+        }
+
+        process.Reset(processObjectChecked);
+        tickCallback.Reset(TO_OBJECT (tickCallbackValue));
+    }
+
+    if (!tickCallback.IsEmpty()) {
+        Nan::CallAsFunction(Nan::New<Object> (tickCallback), Nan::New<Object> (process), 0, nullptr);
+    }
+}
+
+void CallMicrotaskHandlers () {
+    CallNextTickCallback();
+    Isolate::GetCurrent()->RunMicrotasks();
+}
+
 void StartLoop() {
-    GSource *source = uv_loop_source_new (uv_default_loop ());
+    GSource *source = loop_source_new (uv_default_loop ());
     g_source_attach (source, NULL);
 }
 
