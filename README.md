@@ -3,9 +3,10 @@
 #### GNOME Gtk+ bindings for NodeJS
 
 ![NPM version](https://img.shields.io/npm/v/node-gtk.svg)
+![Travis status](https://api.travis-ci.org/romgrk/node-gtk.svg?branch=master)
 
 
-### What is this
+### What is this ?
 A work in progress to bring Gtk+ usable directly from NodeJS so that the environment would be more updated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
 It uses the GObject Introspection library (as PyGObject, for example), so any gobject-introspectable library is supported.
 
@@ -152,7 +153,7 @@ function onKeyPress(event) {
 Low-level methods `.connect(name: String, callback: Function) : Number` and
 `.disconnect(name: String, handleID: Number) : void` are also available.
 
-### Gtk
+### GTK
 
 For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
 
