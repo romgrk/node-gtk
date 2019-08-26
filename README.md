@@ -8,7 +8,7 @@
 
 ### What is this ?
 A work in progress to bring Gtk+ usable directly from NodeJS so that the environment would be more updated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
-It uses the GObject Introspection library (as PyGObject, for example), so any gobject-introspectable library is supported.
+It uses the GObject Introspection library (as [PyGObject](https://pygobject.readthedocs.io), for example), so any gobject-introspectable library is supported.
 
 Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
