@@ -43,7 +43,7 @@ GLib.KeyFile.loadFromData = function() {
 
 ### Multiple return values
 
-Methods which return more than one relevant return value.
+Methods that return more than one relevant return value.
 In those cases, we need to return an object with properties named accordingly.
 
 E.g. `gtk_widget_get_request_size ( GtkWidget *widget, int *width, int *height );`
@@ -70,5 +70,5 @@ if (!g_file_get_contents(..., &error)) {
 }
 ```
 
-This is irrelevant in JS, because an error would be thrown and the boolean return value is irrelevant.
+This is irrelevant in JS because an error would be thrown and the boolean return value is irrelevant.
 In those cases, we should just strip the boolean return value, and deal with the rest of the arguments.
