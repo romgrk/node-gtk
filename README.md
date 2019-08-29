@@ -6,7 +6,7 @@
 ![Travis status](https://api.travis-ci.org/romgrk/node-gtk.svg?branch=master)
 
 
-### What is this ?
+### What is this?
 A work in progress to bring Gtk+ usable directly from NodeJS so that the environment would be more updated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
 It uses the GObject Introspection library (as [PyGObject](https://pygobject.readthedocs.io), for example), so any gobject-introspectable library is supported.
 
@@ -155,12 +155,12 @@ Low-level methods `.connect(name: String, callback: Function) : Number` and
 
 ### GTK
 
-For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
+For GTK objects and functions documentation please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
 
 ### Naming conventions
 
  - **Functions, Methods & Virtual Functions**: `lowerCamelCase`  
-    Methods on GObject, structs, unions and functions on namespaces.  
+    Methods on GObject, structs, unions, and functions on namespaces.  
     Example:  
     `GLib.randomIntRange(0, 100)`  
     `textBuffer.placeCursor(0)`
@@ -185,7 +185,7 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
     `Gdk.EventType`
 
  - **Constants & Values**: `SNAKE_CASE` (not modified, may contain lowercase)  
-    Can be attached on namespaces or on specific objects.  
+    It can be attached to namespaces or on specific objects.  
     Example:  
     `Gdk.KEY_g !== Gdk.KEY_G`  
     `Gdk.EventType.KEY_PRESS`
@@ -199,7 +199,7 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
 ## Installing and building
 
 ### Target Platforms (so far)
-We're planning to serve pre-built binaries in order to make this project as cross-platform and easy to install
+We're planning to serve pre-built binaries to make this project as cross-platform and easy to install
 as possible.  However, right now we support only **Linux** and experimentally **OSX** but in both targets,
 _the project will fallback to build_.
 
@@ -295,7 +295,7 @@ Try <kbd>Cmd</kbd> + <kbd>Tab</kbd> if you don't see it.
 
 #### Browser demo
 
-If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://webkitgtk.org/) libary.
+If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://webkitgtk.org/) library.
 
   * in **Ubuntu**, you can `apt-get install libwebkit2gtk-3.0` (`4.0`   works too) and try it out.
   * in **Fedora**, you should run `sudo dnf install webkit2gtk3`
@@ -335,7 +335,7 @@ pacman -Syyu --noconfirm
 pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config}
 
 # where to put the repository clone?
-# pick your flder or use ~/oss (Open Source Software)
+# pick your folder or use ~/oss (Open Source Software)
 mkdir -p ~/oss/
 cd ~/oss
 
@@ -350,11 +350,11 @@ The `GYP_MSVS_VERSION` could be 2010, 2012, 2013 or 2015.
 Please verify [which version you should use](https://github.com/nodejs/node-gyp#installation)
 
 
-#### Possible issue on MinGW shell
+#### The possible on MinGW shell
 In case you are launching the general executable without knowing the correct platform,
 the binary path might not be available.
 
-In such case `python` won't be available either, and you can check via `which python` command.
+In such a case, `python` won't be available either, and you can check via `which python` command.
 
 If not found, you need to export the platform related binary path:
 
@@ -369,7 +369,7 @@ This should do the trick. You can also check if there is any python at all via `
 Please remember `python2` is the one needed.
 
 
-#### known issues building on Windows
+#### Known issues building on Windows
 Right now there are few gotchas and the build will most likely fail. Please help with a PR if you know how to solve the issue, thank you!
 
 
