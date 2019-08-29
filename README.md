@@ -3,13 +3,14 @@
 #### GNOME Gtk+ bindings for NodeJS
 
 ![NPM version](https://img.shields.io/npm/v/node-gtk.svg)
+![Travis status](https://api.travis-ci.org/romgrk/node-gtk.svg?branch=master)
 
 
-### What is this
-A work in progress to bring Gtk+ usable directly from nodejs so that the environemnt would be more udated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
-It uses the GObject Introspection library (as PyGObject, for example), so any gobject-introspectable library is supported.
+### What is this ?
+A work in progress to bring Gtk+ usable directly from NodeJS so that the environment would be more updated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
+It uses the GObject Introspection library (as [PyGObject](https://pygobject.readthedocs.io), for example), so any gobject-introspectable library is supported.
 
-Please note this project is currently in _beta_ state and is being developped. Any contributors willing to help
+Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
 
 Supported Node.js versions: **8**, **9**, **10**, **11**, **12**  
@@ -152,7 +153,7 @@ function onKeyPress(event) {
 Low-level methods `.connect(name: String, callback: Function) : Number` and
 `.disconnect(name: String, handleID: Number) : void` are also available.
 
-### Gtk
+### GTK
 
 For GTK objects and functions documentation, please refer to [gnome documentation](https://developer.gnome.org/gtk3/stable/), or any other GIR generated documentation as [valadoc](https://valadoc.org/gtk+-3.0/index.htm).
 
@@ -198,9 +199,9 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
 ## Installing and building
 
 ### Target Platforms (so far)
-We're planning to serve pre-built binaries in order to make this project as cross platform and easy to install
-as possible.  However, right now we support only **Linux** and experimentally **OSX** but in both targets
-_the project will falback to build_.
+We're planning to serve pre-built binaries in order to make this project as cross-platform and easy to install
+as possible.  However, right now we support only **Linux** and experimentally **OSX** but in both targets,
+_the project will fallback to build_.
 
 
 ### Requirements
@@ -289,7 +290,7 @@ npm install
 If you'll see a little window saying hello that's it: it works!
 
 Please note in OSX the window doesn't automatically open above other windows.
-Try Cmd + Tab if you don't see it.
+Try <kbd>Cmd</kbd> + <kbd>Tab</kbd> if you don't see it.
 
 
 #### Browser demo
@@ -353,7 +354,7 @@ Please verify [which version you should use](https://github.com/nodejs/node-gyp#
 In case you are launching the general executable without knowing the correct platform,
 the binary path might not be available.
 
-In such case `python` won't be available neither, and you can check via `which python` command.
+In such case `python` won't be available either, and you can check via `which python` command.
 
 If not found, you need to export the platform related binary path:
 

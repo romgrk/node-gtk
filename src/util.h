@@ -12,9 +12,9 @@
 
 namespace Util
 {
-    const char*    ArrayTypeToString (GIArrayType array_type);
-    char*          GetSignalName(const char* signal_detail);
 
-    void           CallNextTickCallback();
+    const char*    ArrayTypeToString (GIArrayType array_type);
+
+    char*          GetSignalName(const char* signal_detail);
 
 } /* Util */

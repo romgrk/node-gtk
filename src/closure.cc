@@ -65,6 +65,8 @@ void Closure::Marshal(GClosure *base,
             else if (!V8ToGValue (g_return_value, return_value))
                 g_warning ("Marshal: could not convert return value");
         }
+
+        CallMicrotaskHandlers ();
     }
     else {
         log("'%s' did throw", g_base_info_get_name (closure->info));
