@@ -25,19 +25,19 @@ matrix:
   include:
      # Linux
      - os: linux
-       dist: trusty
+       dist: xenial
        env: NODE_VERSION="12" CC="gcc-8" CXX="g++-8"
      - os: linux
-       dist: trusty
+       dist: xenial
        env: NODE_VERSION="11" CC="gcc-8" CXX="g++-8"
      - os: linux
-       dist: trusty
+       dist: xenial
        env: NODE_VERSION="10" CC="gcc-8" CXX="g++-8"
      - os: linux
-       dist: trusty
+       dist: xenial
        env: NODE_VERSION="9" CC="gcc-8" CXX="g++-8"
      - os: linux
-       dist: trusty
+       dist: xenial
        env: NODE_VERSION="8" CC="gcc-8" CXX="g++-8"
 
      # OS X
