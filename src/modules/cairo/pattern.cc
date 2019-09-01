@@ -3,10 +3,10 @@
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../util.h"
-#include "cairo-path.h"
-#include "cairo-pattern.h"
-#include "cairo-matrix.h"
-#include "cairo-surface.h"
+#include "path.h"
+#include "pattern.h"
+#include "matrix.h"
+#include "surface.h"
 
 using namespace v8;
 

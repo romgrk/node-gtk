@@ -3,7 +3,7 @@
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../util.h"
-#include "cairo-font-options.h"
+#include "font-options.h"
 
 using namespace v8;
 

@@ -1,7 +1,7 @@
 
 #include "../../gi.h"
 #include "../../util.h"
-#include "cairo-font-extents.h"
+#include "font-extents.h"
 
 using namespace v8;
 

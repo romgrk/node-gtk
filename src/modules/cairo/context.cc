@@ -1,13 +1,13 @@
 
 #include <cairo.h>
 
-#include "cairo-context.h"
-#include "cairo-matrix.h"
-#include "cairo-path.h"
-#include "cairo-text-extents.h"
-#include "cairo-font-extents.h"
-#include "cairo-font-options.h"
-#include "cairo-surface.h"
+#include "context.h"
+#include "matrix.h"
+#include "path.h"
+#include "text-extents.h"
+#include "font-extents.h"
+#include "font-options.h"
+#include "surface.h"
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../gobject.h"

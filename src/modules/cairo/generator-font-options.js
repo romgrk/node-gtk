@@ -31,7 +31,7 @@ const options = {
 generateCairoFontOptions()
 
 function generateCairoFontOptions() {
-  const result = parseFile(path.join(__dirname, 'cairo-font-options.nid'))
+  const result = parseFile(path.join(__dirname, 'font-options.nid'))
   const declarations = result.declarations
 
   options.constructor = declarations.find(d => d.function && d.function.attributes.constructor).function
@@ -53,8 +53,8 @@ function generateCairoFontOptions() {
   const header = generateHeader(options)
   const source = generateSource(options)
 
-  fs.writeFileSync(path.join(__dirname, 'cairo-font-options.h'),  header)
-  fs.writeFileSync(path.join(__dirname, 'cairo-font-options.cc'), source)
+  fs.writeFileSync(path.join(__dirname, 'font-options.h'),  header)
+  fs.writeFileSync(path.join(__dirname, 'font-options.cc'), source)
 }
 
 // Helpers
@@ -102,7 +102,7 @@ function generateSource(options) {
     #include "../../debug.h"
     #include "../../gi.h"
     #include "../../util.h"
-    #include "cairo-font-options.h"
+    #include "font-options.h"
 
     using namespace v8;
 

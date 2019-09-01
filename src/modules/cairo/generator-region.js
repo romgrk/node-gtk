@@ -31,7 +31,7 @@ const options = {
 generateCairoRegion()
 
 function generateCairoRegion() {
-  const result = parseFile(path.join(__dirname, 'cairo-region.nid'))
+  const result = parseFile(path.join(__dirname, 'region.nid'))
   const declarations = result.declarations
 
   options.constructor = declarations.find(d => d.function && d.function.attributes.constructor).function
@@ -53,8 +53,8 @@ function generateCairoRegion() {
   const header = generateHeader(options)
   const source = generateSource(options)
 
-  fs.writeFileSync(path.join(__dirname, 'cairo-region.h'),  header)
-  fs.writeFileSync(path.join(__dirname, 'cairo-region.cc'), source)
+  fs.writeFileSync(path.join(__dirname, 'region.h'),  header)
+  fs.writeFileSync(path.join(__dirname, 'region.cc'), source)
 }
 
 // Helpers
@@ -102,9 +102,9 @@ function generateSource(options) {
     #include "../../debug.h"
     #include "../../gi.h"
     #include "../../util.h"
-    #include "cairo-region.h"
-    #include "cairo-rectangle.h"
-    #include "cairo-rectangle-int.h"
+    #include "region.h"
+    #include "rectangle.h"
+    #include "rectangle-int.h"
 
     using namespace v8;
 

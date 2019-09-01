@@ -29,7 +29,7 @@ util.inspect.defaultOptions = { depth: 6 }
 generateCairoPattern()
 
 function generateCairoPattern() {
-  const result = parseFile(path.join(__dirname, 'cairo-pattern.nid'))
+  const result = parseFile(path.join(__dirname, 'pattern.nid'))
   const declarations = result.declarations
 
   console.log(declarations)
@@ -74,8 +74,8 @@ function generateCairoPattern() {
   const header = generateHeader(namespaces)
   const source = generateSource(namespaces)
 
-  fs.writeFileSync(path.join(__dirname, 'cairo-pattern.h'),  header)
-  fs.writeFileSync(path.join(__dirname, 'cairo-pattern.cc'), source)
+  fs.writeFileSync(path.join(__dirname, 'pattern.h'),  header)
+  fs.writeFileSync(path.join(__dirname, 'pattern.cc'), source)
 }
 
 // Helpers
@@ -123,10 +123,10 @@ function generateSource(namespaces) {
     #include "../../debug.h"
     #include "../../gi.h"
     #include "../../util.h"
-    #include "cairo-path.h"
-    #include "cairo-pattern.h"
-    #include "cairo-matrix.h"
-    #include "cairo-surface.h"
+    #include "path.h"
+    #include "pattern.h"
+    #include "matrix.h"
+    #include "surface.h"
 
     using namespace v8;
 

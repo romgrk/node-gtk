@@ -1,7 +1,7 @@
 
 #include "../../gi.h"
 #include "../../util.h"
-#include "cairo-path.h"
+#include "path.h"
 
 using namespace v8;
 
@@ -63,7 +63,7 @@ NAN_METHOD(Path::New) {
 }
 
 /*
- * Initialize text extent.
+ * Initialize path
  */
 
 Path::Path(cairo_path_t* data) : ObjectWrap() {
@@ -71,7 +71,7 @@ Path::Path(cairo_path_t* data) : ObjectWrap() {
 }
 
 /*
- * Destroy text extent..
+ * Destroy path
  */
 
 Path::~Path() {

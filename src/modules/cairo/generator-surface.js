@@ -29,7 +29,7 @@ util.inspect.defaultOptions = { depth: 6 }
 generateCairoSurface()
 
 function generateCairoSurface() {
-  const result = parseFile(path.join(__dirname, 'cairo-surface.nid'))
+  const result = parseFile(path.join(__dirname, 'surface.nid'))
   const declarations = result.declarations
 
   console.log(declarations)
@@ -77,8 +77,8 @@ function generateCairoSurface() {
   const header = generateHeader(namespaces)
   const source = generateSource(namespaces)
 
-  fs.writeFileSync(path.join(__dirname, 'cairo-surface.h'),  header)
-  fs.writeFileSync(path.join(__dirname, 'cairo-surface.cc'), source)
+  fs.writeFileSync(path.join(__dirname, 'surface.h'),  header)
+  fs.writeFileSync(path.join(__dirname, 'surface.cc'), source)
 }
 
 // Helpers
@@ -126,9 +126,9 @@ function generateSource(namespaces) {
     #include "../../debug.h"
     #include "../../gi.h"
     #include "../../util.h"
-    #include "cairo-surface.h"
-    #include "cairo-rectangle.h"
-    #include "cairo-rectangle-int.h"
+    #include "surface.h"
+    #include "rectangle.h"
+    #include "rectangle-int.h"
 
     using namespace v8;
 

@@ -1,7 +1,7 @@
 
 #include "../../gi.h"
 #include "../../util.h"
-#include "cairo-text-extents.h"
+#include "text-extents.h"
 
 using namespace v8;
 

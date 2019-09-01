@@ -31,7 +31,7 @@ const options = {
 generateCairoMatrix()
 
 function generateCairoMatrix() {
-  const result = parseFile(path.join(__dirname, 'cairo-matrix.nid'))
+  const result = parseFile(path.join(__dirname, 'matrix.nid'))
   const declarations = result.declarations
 
   options.constructor = declarations.find(d => d.function && d.function.attributes.constructor).function
@@ -53,8 +53,8 @@ function generateCairoMatrix() {
   const header = generateHeader(options)
   const source = generateSource(options)
 
-  fs.writeFileSync(path.join(__dirname, 'cairo-matrix.h'),  header)
-  fs.writeFileSync(path.join(__dirname, 'cairo-matrix.cc'), source)
+  fs.writeFileSync(path.join(__dirname, 'matrix.h'),  header)
+  fs.writeFileSync(path.join(__dirname, 'matrix.cc'), source)
 }
 
 // Helpers
@@ -102,9 +102,9 @@ function generateSource(options) {
     #include "../../debug.h"
     #include "../../gi.h"
     #include "../../util.h"
-    #include "cairo-matrix.h"
-    #include "cairo-rectangle.h"
-    #include "cairo-rectangle-int.h"
+    #include "matrix.h"
+    #include "rectangle.h"
+    #include "rectangle-int.h"
 
     using namespace v8;
 

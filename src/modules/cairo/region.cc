@@ -3,9 +3,9 @@
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../util.h"
-#include "cairo-region.h"
-#include "cairo-rectangle.h"
-#include "cairo-rectangle-int.h"
+#include "region.h"
+#include "rectangle.h"
+#include "rectangle-int.h"
 
 using namespace v8;
 

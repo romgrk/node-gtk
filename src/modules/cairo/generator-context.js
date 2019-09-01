@@ -27,7 +27,7 @@ util.inspect.defaultOptions = { depth: 6 }
 generateCairoContext()
 
 function generateCairoContext() {
-  const result = parseFile(path.join(__dirname, 'cairo-context.nid'))
+  const result = parseFile(path.join(__dirname, 'context.nid'))
 
   const declarations = result.declarations
   const functions = declarations.filter(d => d.function).map(d => d.function)

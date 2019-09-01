@@ -1,7 +1,7 @@
 
 #include "../../gi.h"
 #include "../../util.h"
-#include "cairo-rectangle.h"
+#include "rectangle.h"
 
 using namespace v8;
 

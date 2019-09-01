@@ -250,12 +250,8 @@ cairo_status_t (*cairo_raster_source_snapshot_func_t) (cairo_pattern_t *pattern,
 cairo_status_t (*cairo_raster_source_copy_func_t) (cairo_pattern_t *pattern, void *callback_data, const cairo_pattern_t *other);
 void (*cairo_raster_source_finish_func_t) (cairo_pattern_t *pattern, void *callback_data);
 
-// FontFace:
+// FontFace related elements:
 
-cairo_font_face_t * cairo_toy_font_face_create (const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
-const char * cairo_toy_font_face_get_family (cairo_font_face_t *font_face);
-cairo_font_slant_t cairo_toy_font_face_get_slant (cairo_font_face_t *font_face);
-cairo_font_weight_t cairo_toy_font_face_get_weight (cairo_font_face_t *font_face);
 cairo_glyph_t * cairo_glyph_allocate (int num_glyphs);
 void cairo_glyph_free (cairo_glyph_t *glyphs);
 cairo_text_cluster_t * cairo_text_cluster_allocate (int num_clusters);
@@ -274,27 +270,10 @@ cairo_status_t cairo_font_face_set_user_data (cairo_font_face_t *font_face, cons
 void * cairo_font_face_get_user_data (cairo_font_face_t *font_face, const cairo_user_data_key_t *key);
 typedef struct _cairo_font_face cairo_font_face_t;
 
-cairo_scaled_font_t * cairo_scaled_font_create (cairo_font_face_t *font_face, const cairo_matrix_t *font_matrix, const cairo_matrix_t *ctm, const cairo_font_options_t *options);
-cairo_scaled_font_t * cairo_scaled_font_reference (cairo_scaled_font_t *scaled_font);
-void cairo_scaled_font_destroy (cairo_scaled_font_t *scaled_font);
-cairo_status_t cairo_scaled_font_status (cairo_scaled_font_t *scaled_font);
-void cairo_scaled_font_extents (cairo_scaled_font_t *scaled_font, cairo_font_extents_t *extents);
-void cairo_scaled_font_text_extents (cairo_scaled_font_t *scaled_font, const char *utf8, cairo_text_extents_t *extents);
-void cairo_scaled_font_glyph_extents (cairo_scaled_font_t *scaled_font, const cairo_glyph_t *glyphs, int num_glyphs, cairo_text_extents_t *extents);
-cairo_status_t cairo_scaled_font_text_to_glyphs (cairo_scaled_font_t *scaled_font, double x, double y, const char *utf8, int utf8_len, cairo_glyph_t **glyphs, int *num_glyphs, cairo_text_cluster_t **clusters, int *num_clusters, cairo_text_cluster_flags_t *cluster_flags);
-cairo_font_face_t * cairo_scaled_font_get_font_face (cairo_scaled_font_t *scaled_font);
-void cairo_scaled_font_get_font_options (cairo_scaled_font_t *scaled_font, cairo_font_options_t *options);
-void cairo_scaled_font_get_font_matrix (cairo_scaled_font_t *scaled_font, cairo_matrix_t *font_matrix);
-void cairo_scaled_font_get_ctm (cairo_scaled_font_t *scaled_font, cairo_matrix_t *ctm);
-void cairo_scaled_font_get_scale_matrix (cairo_scaled_font_t *scaled_font, cairo_matrix_t *scale_matrix);
-cairo_font_type_t cairo_scaled_font_get_type (cairo_scaled_font_t *scaled_font);
-unsigned int cairo_scaled_font_get_reference_count (cairo_scaled_font_t *scaled_font);
-cairo_status_t cairo_scaled_font_set_user_data (cairo_scaled_font_t *scaled_font, const cairo_user_data_key_t *key, void *user_data, cairo_destroy_func_t destroy);
-void * cairo_scaled_font_get_user_data (cairo_scaled_font_t *scaled_font, const cairo_user_data_key_t *key);
-typedef struct _cairo_scaled_font cairo_scaled_font_t;
-typedef struct { double ascent; double descent; double height; double max_x_advance; double max_y_advance; } cairo_font_extents_t;
-typedef struct { double x_bearing; double y_bearing; double width; double height; double x_advance; double y_advance; } cairo_text_extents_t;
-
+cairo_font_face_t * cairo_toy_font_face_create (const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
+const char * cairo_toy_font_face_get_family (cairo_font_face_t *font_face);
+cairo_font_slant_t cairo_toy_font_face_get_slant (cairo_font_face_t *font_face);
+cairo_font_weight_t cairo_toy_font_face_get_weight (cairo_font_face_t *font_face);
 
 cairo_font_face_t * cairo_ft_font_face_create_for_ft_face (FT_Face face, int load_flags);
 cairo_font_face_t * cairo_ft_font_face_create_for_pattern (FcPattern *pattern);
@@ -320,6 +299,29 @@ void cairo_win32_scaled_font_get_device_to_logical (cairo_scaled_font_t *scaled_
 cairo_font_face_t * cairo_quartz_font_face_create_for_cgfont (CGFontRef font);
 cairo_font_face_t * cairo_quartz_font_face_create_for_atsu_font_id (ATSUFontID font_id);
 #define CAIRO_HAS_QUARTZ_FONT 1
+
+// ScaledFont
+
+cairo_scaled_font_t * cairo_scaled_font_create (cairo_font_face_t *font_face, const cairo_matrix_t *font_matrix, const cairo_matrix_t *ctm, const cairo_font_options_t *options);
+cairo_scaled_font_t * cairo_scaled_font_reference (cairo_scaled_font_t *scaled_font);
+void cairo_scaled_font_destroy (cairo_scaled_font_t *scaled_font);
+cairo_status_t cairo_scaled_font_status (cairo_scaled_font_t *scaled_font);
+void cairo_scaled_font_extents (cairo_scaled_font_t *scaled_font, cairo_font_extents_t *extents);
+void cairo_scaled_font_text_extents (cairo_scaled_font_t *scaled_font, const char *utf8, cairo_text_extents_t *extents);
+void cairo_scaled_font_glyph_extents (cairo_scaled_font_t *scaled_font, const cairo_glyph_t *glyphs, int num_glyphs, cairo_text_extents_t *extents);
+cairo_status_t cairo_scaled_font_text_to_glyphs (cairo_scaled_font_t *scaled_font, double x, double y, const char *utf8, int utf8_len, cairo_glyph_t **glyphs, int *num_glyphs, cairo_text_cluster_t **clusters, int *num_clusters, cairo_text_cluster_flags_t *cluster_flags);
+cairo_font_face_t * cairo_scaled_font_get_font_face (cairo_scaled_font_t *scaled_font);
+void cairo_scaled_font_get_font_options (cairo_scaled_font_t *scaled_font, cairo_font_options_t *options);
+void cairo_scaled_font_get_font_matrix (cairo_scaled_font_t *scaled_font, cairo_matrix_t *font_matrix);
+void cairo_scaled_font_get_ctm (cairo_scaled_font_t *scaled_font, cairo_matrix_t *ctm);
+void cairo_scaled_font_get_scale_matrix (cairo_scaled_font_t *scaled_font, cairo_matrix_t *scale_matrix);
+cairo_font_type_t cairo_scaled_font_get_type (cairo_scaled_font_t *scaled_font);
+unsigned int cairo_scaled_font_get_reference_count (cairo_scaled_font_t *scaled_font);
+cairo_status_t cairo_scaled_font_set_user_data (cairo_scaled_font_t *scaled_font, const cairo_user_data_key_t *key, void *user_data, cairo_destroy_func_t destroy);
+void * cairo_scaled_font_get_user_data (cairo_scaled_font_t *scaled_font, const cairo_user_data_key_t *key);
+typedef struct _cairo_scaled_font cairo_scaled_font_t;
+typedef struct { double ascent; double descent; double height; double max_x_advance; double max_y_advance; } cairo_font_extents_t;
+typedef struct { double x_bearing; double y_bearing; double width; double height; double x_advance; double y_advance; } cairo_text_extents_t;
 
 cairo_status_t (*cairo_user_scaled_font_init_func_t) (cairo_scaled_font_t *scaled_font, cairo_t *cr, cairo_font_extents_t *extents);
 cairo_status_t (*cairo_user_scaled_font_render_glyph_func_t) (cairo_scaled_font_t *scaled_font, unsigned long glyph, cairo_t *cr, cairo_text_extents_t *extents);
