@@ -14,6 +14,7 @@
 #include "cairo-text-extents.h"
 #include "cairo-matrix.h"
 #include "cairo-path.h"
+#include "cairo-pattern.h"
 #include "cairo-rectangle.h"
 #include "cairo-rectangle-int.h"
 #include "cairo-region.h"
@@ -43,6 +44,9 @@ MaybeLocal<FunctionTemplate> GetTemplate(GIBaseInfo *info) {
     if (strcmp(name, "Matrix") == 0)
         return MaybeLocal<FunctionTemplate> (Cairo::Matrix::GetTemplate());
 
+    if (strcmp(name, "Pattern") == 0)
+        return MaybeLocal<FunctionTemplate> (Cairo::Pattern::GetTemplate());
+
     if (strcmp(name, "Region") == 0)
         return MaybeLocal<FunctionTemplate> (Cairo::Region::GetTemplate());
 
@@ -69,6 +73,7 @@ NAN_METHOD(Init) {
     FontExtents::Initialize(cairoModule);
     Matrix::Initialize(cairoModule);
     Path::Initialize(cairoModule);
+    Pattern::Initialize(cairoModule);
     Rectangle::Initialize(cairoModule);
     RectangleInt::Initialize(cairoModule);
     Region::Initialize(cairoModule);

@@ -19,6 +19,8 @@ const ENUM_TYPE = {
   cairo_line_cap_t: 'int64_t',
   cairo_line_join_t: 'int64_t',
   cairo_operator_t: 'int64_t',
+  cairo_extend_t: 'int64_t',
+  cairo_filter_t: 'int64_t',
   cairo_font_slant_t: 'int64_t',
   cairo_font_weight_t: 'int64_t',
   cairo_format_t: 'int64_t',
@@ -37,6 +39,7 @@ const ENUM_TYPE = {
 
 const WRAP_TYPE = {
   cairo_path_t: 'Path',
+  cairo_pattern_t: 'Pattern',
   cairo_text_extents_t: 'TextExtents',
   cairo_font_extents_t: 'FontExtents',
   cairo_font_options_t: 'FontOptions',
@@ -188,7 +191,7 @@ function getInArgumentSource(p, n) {
     return `auto ${p.name} = Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
 
   if (typeName === 'unsigned int')
-    return `auto ${p.name} = Nan::To<uint64_t>(info[${n}].As<Number>()).ToChecked();`
+    return `auto ${p.name} = Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
 
   if (typeName === 'const char *')
     return `auto ${p.name} = *Nan::Utf8String (info[${n}].As<String>());`
@@ -213,6 +216,9 @@ function getOutArgumentDeclaration(p, n) {
 
   if (p.type.name === 'int')
     return `int ${p.name} = 0;`
+
+  if (p.type.name === 'unsigned int')
+    return `unsigned int ${p.name} = 0;`
 
   if (p.type.pointer === '*' && baseName in ENUM_TYPE)
     return `${typeName}${p.name} = NULL;`
@@ -250,10 +256,13 @@ function getFunctionArgument(p) {
 
 function getReturn(fn, outArguments) {
   const lines = []
-  const typeName = getTypeName(fn.type)
+  const type = fn.type
+  const typeName = fn.attributes.returns ?
+    fn.attributes.returns :
+    getTypeName(type)
 
   if (outArguments.length > 0) {
-    console.assert(getTypeName(fn.type) === 'void', 'Non-void with out arguments: ' + fn.name)
+    console.assert(getTypeName(type) === 'void', 'Non-void with out arguments: ' + fn.name)
 
     if (outArguments.length === 1 && outArguments[0].type.name in WRAP_TYPE) {
       lines.push(`Local<Value> returnValue = ${outArguments[0].name};`)
@@ -265,16 +274,19 @@ function getReturn(fn, outArguments) {
       })
     }
   }
-  else if (fn.type.name in WRAP_TYPE) {
+  else if (type.name in WRAP_TYPE || typeName.startsWith('wrap:')) {
+    const realTypeName = typeName.startsWith('wrap:') ?
+      typeName.replace('wrap:', '') :
+      WRAP_TYPE[type.name]
     lines.push(`Local<Value> args[] = { Nan::New<External> (result) };`)
-    lines.push(`Local<Function> constructor = Nan::New<Function> (${WRAP_TYPE[fn.type.name]}::constructor);`)
+    lines.push(`Local<Function> constructor = Nan::New<Function> (${realTypeName}::constructor);`)
     lines.push(`Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();`)
   }
   else if (typeName === 'const char *') {
     lines.push(`Local<Value> returnValue = UTF8 (result);`)
   }
   else if (typeName !== 'void') {
-    const cast = fn.type.name in CAST_TYPE ? `(${CAST_TYPE[fn.type.name]}) ` : ''
+    const cast = type.name in CAST_TYPE ? `(${CAST_TYPE[type.name]}) ` : ''
     lines.push(`Local<Value> returnValue = Nan::New (${cast}result);`)
   }
 

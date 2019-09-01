@@ -32,13 +32,14 @@
   "homepage": "https://github.com/romgrk/node-gtk#readme",
   "dependencies": {
     "lodash.camelcase": "4.3.0",
+    "lodash.isequal": "4.5.0",
     "nan": "2.14.0",
     "nid-parser": "0.0.5",
     "node-gyp": "^4.0.0",
     "node-pre-gyp": "^0.13.0",
     "node-pre-gyp-github": "^1.4.3",
-    "unindent": "^2.0.0",
-    "remove-trailing-spaces": "^1.0.7"
+    "remove-trailing-spaces": "^1.0.7",
+    "unindent": "^2.0.0"
   },
   "devDependencies": {
     "assert": "^1.5.0",

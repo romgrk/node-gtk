@@ -3,6 +3,7 @@
  */
 
 const chalk = require('chalk')
+const isEqual = require('lodash.isequal')
 
 module.exports = {
   assert,
@@ -27,7 +28,7 @@ function assert(condition, message) {
 }
 
 function expect(value, expected) {
-  assert(value === expected,
+  assert(isEqual(value, expected),
     `Expected: "${expected}", got: "${value}"`)
 }
 
