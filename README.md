@@ -40,6 +40,7 @@ You can use Gtk+ API directly, or you can use [react-gtk](https://github.com/cod
   * [Experimental platforms](#experimental-platforms)
   * [Testing the project](#testing-the-project)
     + [Browser demo](#browser-demo)
+- [Features that supported](#features-that-supported)
 - [Support](#support)
 
 
@@ -369,11 +370,11 @@ This should do the trick. You can also check if there is any python at all via `
 Please remember `python2` is the one needed.
 
 
-#### known issues building on Windows
+#### Known issues building on Windows
 Right now there are few gotchas and the build will most likely fail. Please help with a PR if you know how to solve the issue, thank you!
 
 
-## Support
+## Features That Supported
 
 There are still less used features that are not supported, but everything you should need to start building
 a working Gtk application is supported.
@@ -397,3 +398,6 @@ a working Gtk application is supported.
  - [ ] GParamSpec
  - [ ] Javascript inheritance of C classes
  - [x] Memory management
+ 
+ ## Support
+ If you are interested in this project or need help with this project, don't hesitate to join our [Discord channel](https://discord.gg/r2VqPUV).
