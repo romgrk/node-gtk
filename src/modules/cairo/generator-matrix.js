@@ -231,7 +231,7 @@ function generateTemplateMethods(options) {
 
       ${methods.map(fn => `SET_PROTOTYPE_METHOD(tpl, ${getJSName(fn.name, options.prefix)});`).join('\n      ')}
 
-      auto ctor = tpl->GetFunction();
+      auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
       ${staticMethods.map(fn => `SET_METHOD(ctor, ${getJSName(fn.name, options.prefix)});`).join('\n      ')}
 

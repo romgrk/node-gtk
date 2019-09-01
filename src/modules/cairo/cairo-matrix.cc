@@ -71,7 +71,7 @@ void Matrix::SetupTemplate() {
   SET_PROTOTYPE_METHOD(tpl, transformDistance);
   SET_PROTOTYPE_METHOD(tpl, transformPoint);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
   SET_METHOD(ctor, initIdentity);
   SET_METHOD(ctor, initTranslate);

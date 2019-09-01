@@ -82,7 +82,7 @@ void Region::SetupTemplate() {
   Nan::SetPrototypeMethod(tpl, "xor", xor_);
   SET_PROTOTYPE_METHOD(tpl, xorRectangle);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
   SET_METHOD(ctor, copy);
 

@@ -35,7 +35,7 @@ void RectangleInt::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   SetProtoAccessor(proto, UTF8("width"),  GetWidth,  SetWidth,  tpl);
   SetProtoAccessor(proto, UTF8("height"), GetHeight, SetHeight, tpl);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
   constructor.Reset(ctor);
 
   Nan::Set(target, Nan::New("RectangleInt").ToLocalChecked(), ctor);

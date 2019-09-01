@@ -32,7 +32,7 @@ void Path::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   Local<ObjectTemplate> proto = tpl->PrototypeTemplate();
   SetProtoAccessor(proto, UTF8("status"), GetStatus, NULL,  tpl);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
   constructor.Reset(ctor);
 
   Nan::Set(target, Nan::New("Path").ToLocalChecked(), ctor);

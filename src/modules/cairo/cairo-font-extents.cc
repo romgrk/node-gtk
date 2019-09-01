@@ -36,7 +36,7 @@ void FontExtents::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   SetProtoAccessor(proto, UTF8("maxXAdvance"), GetMaxXAdvance, SetMaxXAdvance, tpl);
   SetProtoAccessor(proto, UTF8("maxYAdvance"), GetMaxYAdvance, SetMaxYAdvance, tpl);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
   constructor.Reset(ctor);
 
   Nan::Set(target, Nan::New("FontExtents").ToLocalChecked(), ctor);

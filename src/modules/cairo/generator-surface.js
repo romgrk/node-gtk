@@ -36,7 +36,13 @@ function generateCairoSurface() {
 
   const namespaces = declarations.map((cur) => {
     const name = cur.namespace.name
-    const options = { name, constructor: null, functions: null, isBase: name === 'Surface' }
+    const options = {
+      name,
+      constructor: null,
+      functions: null,
+      isBase: name === 'Surface',
+      type: 'cairo_surface_t',
+    }
 
     const allFunctions =
       cur.namespace.declarations
@@ -255,7 +261,7 @@ ${!options.isBase ?  `      tpl->Inherit (parentTpl);` : '' }
 
       ${methods.map(fn => `SET_PROTOTYPE_METHOD(tpl, ${getFunctionJSName(fn)});`).join('\n      ')}
 
-      auto ctor = tpl->GetFunction();
+      auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
       ${staticMethods.map(fn => `SET_METHOD(ctor, ${getFunctionJSName(fn)});`).join('\n      ')}
 
@@ -280,9 +286,9 @@ function generateInitializeMethod(options, namespaces) {
 
 function generateClassMethodSource(fn, options) {
   const selfArgument = fn.attributes.static !== true ? fn.parameters[0] : undefined
-  const inArguments  = getInArguments(fn, 'cairo_matrix_t')
-  const outArguments = getOutArguments(fn, 'cairo_matrix_t')
-  const inoutArguments = getInOutArguments(fn, 'cairo_matrix_t')
+  const inArguments  = getInArguments(fn, options.type)
+  const outArguments = getOutArguments(fn, options.type)
+  const inoutArguments = getInOutArguments(fn, options.type)
   const outAndInoutArguments = outArguments.concat(inoutArguments)
   const hasResult = getTypeName(fn.type) !== 'void' || outAndInoutArguments.length > 0
 

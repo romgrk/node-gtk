@@ -77,7 +77,7 @@ void FontOptions::SetupTemplate() {
   SET_PROTOTYPE_METHOD(tpl, getVariations);
   SET_PROTOTYPE_METHOD(tpl, setVariations);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
 
 

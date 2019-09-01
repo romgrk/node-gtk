@@ -37,7 +37,7 @@ void TextExtents::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   SetProtoAccessor(proto, UTF8("xAdvance"), GetXAdvance, SetXAdvance,  tpl);
   SetProtoAccessor(proto, UTF8("yAdvance"), GetYAdvance, SetYAdvance, tpl);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
   constructor.Reset(ctor);
 
   Nan::Set(target, Nan::New("TextExtents").ToLocalChecked(), ctor);

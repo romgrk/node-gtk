@@ -96,7 +96,7 @@ void Surface::SetupTemplate() {
   SET_PROTOTYPE_METHOD(tpl, mapToImage);
   SET_PROTOTYPE_METHOD(tpl, unmapImage);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
   SET_METHOD(ctor, createSimilar);
   SET_METHOD(ctor, createSimilarImage);
@@ -137,7 +137,7 @@ void ImageSurface::SetupTemplate(Local<FunctionTemplate> parentTpl) {
   SET_PROTOTYPE_METHOD(tpl, getHeight);
   SET_PROTOTYPE_METHOD(tpl, getStride);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
   SET_METHOD(ctor, createFromPng);
 
@@ -170,7 +170,7 @@ void RecordingSurface::SetupTemplate(Local<FunctionTemplate> parentTpl) {
   SET_PROTOTYPE_METHOD(tpl, inkExtents);
   SET_PROTOTYPE_METHOD(tpl, getExtents);
 
-  auto ctor = tpl->GetFunction();
+  auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
 
 
