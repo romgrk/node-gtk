@@ -1439,8 +1439,12 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
   SET_METHOD(tpl, userToDeviceDistance);
   SET_METHOD(tpl, deviceToUser);
   SET_METHOD(tpl, deviceToUserDistance);
+  #if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
   SET_METHOD(tpl, tagBegin);
+  #endif
+  #if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
   SET_METHOD(tpl, tagEnd);
+  #endif
 }
 
 #undef SET_METHOD

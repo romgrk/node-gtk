@@ -327,7 +327,18 @@ function getAttachMethods(name, functions) {
     #define SET_METHOD(tpl, name) Nan::SetPrototypeMethod(tpl, #name, name)
 
     static void AttachMethods(Local<FunctionTemplate> tpl) {
-        ${functions.map(fn => `SET_METHOD(tpl, ${getJSName(fn.name)});`).join('\n        ')}
+        ${functions.map(fn =>
+          (fn.attributes.version ? (() => {
+            const [major, minor, micro] = fn.attributes.version.split('.')
+            return '#if ' + [
+              (major ? 'CAIRO_VERSION_MAJOR >= ' + major : undefined),
+              (minor ? 'CAIRO_VERSION_MINOR >= ' + minor : undefined),
+              (micro ? 'CAIRO_VERSION_MICRO >= ' + micro : undefined),
+            ].filter(Boolean).join(' && ') + '\n        '
+          })() : '')
+          + `SET_METHOD(tpl, ${getJSName(fn.name)});`
+          + (fn.attributes.version ? '\n        #endif' : '')
+        ).join('\n        ')}
     }
 
     #undef SET_METHOD
