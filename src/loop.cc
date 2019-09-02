@@ -130,9 +130,9 @@ void QuitLoopStack() {
 #ifndef NDEBUG
         auto name = Nan::Get(fn, UTF8("name"));
         if (name.IsEmpty() || TO_STRING (name.ToLocalChecked())->Length() == 0)
-            log("calling (anonymous)");
+            info("calling (anonymous)");
         else
-            log("calling %s", *Nan::Utf8String(name.ToLocalChecked()));
+            info("calling %s", *Nan::Utf8String(name.ToLocalChecked()));
 #endif
 
         Nan::CallAsFunction(fn, self, 0, nullptr);
