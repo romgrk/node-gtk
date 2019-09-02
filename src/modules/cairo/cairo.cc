@@ -21,6 +21,7 @@
 #include "rectangle.h"
 #include "rectangle-int.h"
 #include "region.h"
+#include "scaled-font.h"
 #include "surface.h"
 
 using v8::Function;
@@ -55,6 +56,7 @@ MaybeLocal<FunctionTemplate> GetTemplate(GIBaseInfo *info) {
     ADD_CLASS(FontFace)
     ADD_CLASS(ToyFontFace)
     ADD_CLASS(FtFontFace)
+    ADD_CLASS(ScaledFont)
     ADD_CLASS(Win32FontFace)
     ADD_CLASS(QuartzFontFace)
     ADD_CLASS(Region)
@@ -81,6 +83,7 @@ NAN_METHOD(Init) {
     Rectangle::Initialize(cairoModule);
     RectangleInt::Initialize(cairoModule);
     Region::Initialize(cairoModule);
+    ScaledFont::Initialize(cairoModule);
     Surface::Initialize(cairoModule);
     TextCluster::Initialize(cairoModule);
 }

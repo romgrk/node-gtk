@@ -29,6 +29,7 @@
                 "src/modules/cairo/rectangle-int.cc",
                 "src/modules/cairo/rectangle.cc",
                 "src/modules/cairo/region.cc",
+                "src/modules/cairo/scaled-font.cc",
                 "src/modules/cairo/surface.cc",
                 "src/modules/cairo/text-cluster.cc",
                 "src/modules/cairo/text-extents.cc",

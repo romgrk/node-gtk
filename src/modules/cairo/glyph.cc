@@ -97,6 +97,7 @@ NAN_INDEX_GETTER(Glyph::IndexGetter) {
   Glyph *glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info.This());
   cairo_glyph_t *glyph = &glyphs->_data[index];
 
+  printf("glyph: %p", glyph);
   Local<Object> returnValue = Nan::New<Object> ();
   Nan::Set (returnValue, UTF8("index"), Nan::New<Number> (glyph->index));
   Nan::Set (returnValue, UTF8("x"),     Nan::New<Number> (glyph->x));

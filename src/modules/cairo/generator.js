@@ -36,6 +36,7 @@ const ENUM_TYPE = {
   cairo_subpixel_order_t: 'int64_t',
   cairo_svg_version_t: 'int64_t',
   cairo_svg_unit_t: 'int64_t',
+  cairo_text_cluster_flags_t: 'int64_t',
 }
 
 const WRAP_TYPE = {
@@ -43,12 +44,14 @@ const WRAP_TYPE = {
   cairo_pattern_t: 'Pattern',
   cairo_text_extents_t: 'TextExtents',
   cairo_font_extents_t: 'FontExtents',
+  cairo_font_face_t: 'FontFace',
   cairo_font_options_t: 'FontOptions',
   cairo_glyph_t: 'Glyph',
   cairo_matrix_t: 'Matrix',
   cairo_region_t: 'Region',
   cairo_rectangle_t: 'Rectangle',
   cairo_rectangle_int_t: 'RectangleInt',
+  cairo_scaled_font_t: 'ScaledFont',
   cairo_surface_t: 'Surface',
   cairo_text_cluster_t: 'TextCluster',
 }

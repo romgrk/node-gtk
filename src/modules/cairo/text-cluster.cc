@@ -31,6 +31,7 @@ void TextCluster::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   // Prototype
   Local<ObjectTemplate> proto = tpl->PrototypeTemplate();
   SetProtoAccessor(proto, UTF8("length"), GetLength, NULL,  tpl);
+  SetProtoAccessor(proto, UTF8("flags"),  GetFlags,  NULL,  tpl);
   Nan::SetIndexedPropertyHandler(proto, IndexGetter);
 
   auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
@@ -50,16 +51,18 @@ NAN_METHOD(TextCluster::New) {
 
   cairo_text_cluster_t* data = NULL;
   int64_t length = 0;
+  cairo_text_cluster_flags_t flags;
 
   if (info[0]->IsExternal()) {
     data = (cairo_text_cluster_t*) External::Cast (*info[0])->Value ();
     length = Nan::To<int64_t>(info[1]).ToChecked();
+    flags = static_cast<cairo_text_cluster_flags_t>(Nan::To<int32_t>(info[2]).ToChecked());
   }
   else {
     return Nan::ThrowError("Cannot instantiate CairoTextCluster");
   }
 
-  TextCluster* text_cluster = new TextCluster(data, length);
+  TextCluster* text_cluster = new TextCluster(data, length, flags);
   text_cluster->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
@@ -69,9 +72,10 @@ NAN_METHOD(TextCluster::New) {
  * Initialize text_cluster
  */
 
-TextCluster::TextCluster(cairo_text_cluster_t* data, int64_t length) : ObjectWrap() {
+TextCluster::TextCluster(cairo_text_cluster_t* data, int64_t length, cairo_text_cluster_flags_t flags) : ObjectWrap() {
   _data = data;
   _length = length;
+  _flags = flags;
 }
 
 /*
@@ -91,6 +95,11 @@ TextCluster::~TextCluster() {
 NAN_GETTER(TextCluster::GetLength) {
     TextCluster *text_cluster = Nan::ObjectWrap::Unwrap<TextCluster>(info.This());
     info.GetReturnValue().Set(Nan::New<Number>(text_cluster->_length));
+}
+
+NAN_GETTER(TextCluster::GetFlags) {
+    TextCluster *text_cluster = Nan::ObjectWrap::Unwrap<TextCluster>(info.This());
+    info.GetReturnValue().Set(Nan::New<Number>(text_cluster->_flags));
 }
 
 NAN_INDEX_GETTER(TextCluster::IndexGetter) {
