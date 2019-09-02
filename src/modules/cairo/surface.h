@@ -32,6 +32,7 @@ class Surface: public Nan::ObjectWrap {
     static NAN_METHOD(finish);
     static NAN_METHOD(flush);
     static NAN_METHOD(getDevice);
+    static NAN_METHOD(getFontOptions);
     static NAN_METHOD(getContent);
     static NAN_METHOD(markDirty);
     static NAN_METHOD(markDirtyRectangle);

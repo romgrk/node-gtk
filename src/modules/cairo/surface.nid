@@ -19,7 +19,7 @@ cairo_status_t cairo_surface_status (cairo_surface_t *surface);
 void cairo_surface_finish (cairo_surface_t *surface);
 void cairo_surface_flush (cairo_surface_t *surface);
 cairo_device_t * cairo_surface_get_device (cairo_surface_t *surface);
-/* void cairo_surface_get_font_options (cairo_surface_t *surface, [[out]] cairo_font_options_t *options); TODO(reenable when FontOptions is done) */
+void cairo_surface_get_font_options (cairo_surface_t *surface, [[out]] cairo_font_options_t *options);
 cairo_content_t cairo_surface_get_content (cairo_surface_t *surface);
 void cairo_surface_mark_dirty (cairo_surface_t *surface);
 void cairo_surface_mark_dirty_rectangle (cairo_surface_t *surface, int x, int y, int width, int height);

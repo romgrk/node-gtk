@@ -78,6 +78,7 @@ void Surface::SetupTemplate() {
   SET_PROTOTYPE_METHOD(tpl, finish);
   SET_PROTOTYPE_METHOD(tpl, flush);
   SET_PROTOTYPE_METHOD(tpl, getDevice);
+  SET_PROTOTYPE_METHOD(tpl, getFontOptions);
   SET_PROTOTYPE_METHOD(tpl, getContent);
   SET_PROTOTYPE_METHOD(tpl, markDirty);
   SET_PROTOTYPE_METHOD(tpl, markDirtyRectangle);
@@ -399,6 +400,25 @@ NAN_METHOD(Surface::getDevice) {
 }
 
 
+NAN_METHOD(Surface::getFontOptions) {
+    auto self = info.This();
+    auto surface = Nan::ObjectWrap::Unwrap<Surface>(self)->_data;
+
+    // out-arguments
+    auto options = Nan::NewInstance(
+            Nan::New<Function>(FontOptions::constructor),
+            0,
+            NULL).ToLocalChecked();
+
+    // function call
+    cairo_surface_get_font_options (surface, Nan::ObjectWrap::Unwrap<FontOptions>(options)->_data);
+
+    // return
+    Local<Value> returnValue = options;
+    info.GetReturnValue().Set(returnValue);
+}
+
+
 NAN_METHOD(Surface::getContent) {
     auto self = info.This();
     auto surface = Nan::ObjectWrap::Unwrap<Surface>(self)->_data;
@@ -550,7 +570,7 @@ NAN_METHOD(Surface::getReferenceCount) {
     auto surface = Nan::ObjectWrap::Unwrap<Surface>(self)->_data;
 
     // function call
-    int unsigned result = cairo_surface_get_reference_count (surface);
+    unsigned int result = cairo_surface_get_reference_count (surface);
 
     // return
     Local<Value> returnValue = Nan::New (result);
@@ -584,7 +604,7 @@ NAN_METHOD(Surface::hasShowTextGlyphs) {
     cairo_bool_t result = cairo_surface_has_show_text_glyphs (surface);
 
     // return
-    Local<Value> returnValue = Nan::New (result);
+    Local<Value> returnValue = Nan::New ((bool) result);
     info.GetReturnValue().Set(returnValue);
 }
 
@@ -600,7 +620,7 @@ NAN_METHOD(Surface::supportsMimeType) {
     cairo_bool_t result = cairo_surface_supports_mime_type (surface, mime_type);
 
     // return
-    Local<Value> returnValue = Nan::New (result);
+    Local<Value> returnValue = Nan::New ((bool) result);
     info.GetReturnValue().Set(returnValue);
 }
 
@@ -655,7 +675,7 @@ NAN_METHOD(ImageSurface::getData) {
     auto surface = Nan::ObjectWrap::Unwrap<ImageSurface>(self)->_data;
 
     // function call
-    char unsigned * result = cairo_image_surface_get_data (surface);
+    unsigned char * result = cairo_image_surface_get_data (surface);
 
     // return
     Local<Value> returnValue = Nan::New (result);
