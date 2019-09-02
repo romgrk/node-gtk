@@ -8,7 +8,7 @@
 
 ### What is this ?
 A work in progress to bring Gtk+ usable directly from NodeJS so that the environment would be more updated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
-It uses the GObject Introspection library (as [PyGObject](https://pygobject.readthedocs.io), for example), so any gobject-introspectable library is supported.
+It uses the [GObject Introspection](https://gi.readthedocs.io/en/latest) library (as [PyGObject](https://pygobject.readthedocs.io), for example), so any `gobject-introspectable` library is supported.
 
 Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
@@ -18,7 +18,7 @@ Pre-built binaries available for: **Linux**, **OS X**
 
 ### How do I use it?
 
-You can use Gtk+ API directly, or you can use [react-gtk](https://github.com/codejamninja/react-gtk) to develop a `node-gtk` application using React.
+You can use [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you can use [react-gtk](https://github.com/codejamninja/react-gtk) to develop a `node-gtk` application using React.
 
 ![Browser demo](img/browser.png)
 [Browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
@@ -40,6 +40,7 @@ You can use Gtk+ API directly, or you can use [react-gtk](https://github.com/cod
   * [Experimental platforms](#experimental-platforms)
   * [Testing the project](#testing-the-project)
     + [Browser demo](#browser-demo)
+- [Features that supported](#features-that-are-supported)
 - [Support](#support)
 
 
@@ -199,14 +200,14 @@ For GTK objects and functions documentation, please refer to [gnome documentatio
 ## Installing and building
 
 ### Target Platforms (so far)
-We're planning to serve pre-built binaries in order to make this project as cross-platform and easy to install
+We're planning to serve pre-built binaries to make this project as cross-platform and easy to install
 as possible.  However, right now we support only **Linux** and experimentally **OSX** but in both targets,
 _the project will fallback to build_.
 
 
 ### Requirements
-In order to clone, install, and build this project you'll need a working copy of git, nodejs 8 or higher, npm,
-python2, and either gcc 8 (other versions may fail) or clang.
+In order to clone, install, and build this project you'll need a working copy of `git`, `nodejs` 8 or higher, `npm`,
+`python2`, and either `gcc` 8 (other versions may fail) or `clang`.
 In the _not-working-yet_ Windows platform, all dependencies must be available under [MSYS2 shell](https://msys2.github.io).
 
 
@@ -369,11 +370,11 @@ This should do the trick. You can also check if there is any python at all via `
 Please remember `python2` is the one needed.
 
 
-#### known issues building on Windows
+#### Known issues building on Windows
 Right now there are few gotchas and the build will most likely fail. Please help with a PR if you know how to solve the issue, thank you!
 
 
-## Support
+## Features that are supported
 
 There are still less used features that are not supported, but everything you should need to start building
 a working Gtk application is supported.
@@ -397,3 +398,6 @@ a working Gtk application is supported.
  - [ ] GParamSpec
  - [ ] Javascript inheritance of C classes
  - [x] Memory management
+ 
+ ## Support
+ If you are interested in this project or need help with this project, don't hesitate to join our [Discord channel](https://discord.gg/r2VqPUV).
