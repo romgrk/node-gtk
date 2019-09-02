@@ -23,6 +23,7 @@ const ENUM_TYPE = {
   cairo_filter_t: 'int64_t',
   cairo_font_slant_t: 'int64_t',
   cairo_font_weight_t: 'int64_t',
+  cairo_font_type_t: 'int64_t',
   cairo_format_t: 'int64_t',
   cairo_hint_metrics_t: 'int64_t',
   cairo_hint_style_t: 'int64_t',
@@ -43,14 +44,25 @@ const WRAP_TYPE = {
   cairo_text_extents_t: 'TextExtents',
   cairo_font_extents_t: 'FontExtents',
   cairo_font_options_t: 'FontOptions',
+  cairo_glyph_t: 'Glyph',
   cairo_matrix_t: 'Matrix',
-  cairo_surface_t: 'Surface',
   cairo_region_t: 'Region',
   cairo_rectangle_t: 'Rectangle',
   cairo_rectangle_int_t: 'RectangleInt',
+  cairo_surface_t: 'Surface',
+  cairo_text_cluster_t: 'TextCluster',
 }
 
-const RESTRICTED = ['union', 'xor']
+const EXTERNAL_TYPES = new Set([
+  'FT_Face',
+  'FcPattern',
+  'LOGFONTW',
+  'HFONT',
+  'CGFontRef',
+  'ATSUFontID'
+])
+
+const RESTRICTED = new Set(['union', 'xor'])
 
 module.exports = {
   CAST_TYPE,
@@ -202,6 +214,9 @@ function getInArgumentSource(p, n) {
   if (baseName in WRAP_TYPE)
     return `auto ${p.name} = Nan::ObjectWrap::Unwrap<${WRAP_TYPE[baseName]}>(info[${n}].As<Object>())->_data;`
 
+  if (EXTERNAL_TYPES.has(baseName))
+    return `auto ${p.name} = (${typeName}) Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
+
   throw new Error('MISSING DECLARATION FOR ' + p.name + ': ' + typeName + `(${baseName})`)
 
   return '// MISSING DECLARATION FOR ' + p.name + ': ' + typeName
@@ -343,5 +358,5 @@ function getTypeName(type) {
 
 function getJSName(originalName, prefix = 'cairo_') {
   const jsName = camelCase(originalName.replace(prefix, ''))
-  return RESTRICTED.includes(jsName) ? `${jsName}_` : jsName
+  return RESTRICTED.has(jsName) ? `${jsName}_` : jsName
 }

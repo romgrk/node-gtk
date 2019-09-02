@@ -9,8 +9,11 @@
 #include "../../gobject.h"
 #include "../../value.h"
 #include "context.h"
-#include "font-options.h"
 #include "font-extents.h"
+#include "font-face.h"
+#include "font-options.h"
+#include "glyph.h"
+#include "text-cluster.h"
 #include "text-extents.h"
 #include "matrix.h"
 #include "path.h"
@@ -38,29 +41,28 @@ MaybeLocal<FunctionTemplate> GetTemplate(GIBaseInfo *info) {
 
     auto name = g_base_info_get_name (info);
 
-    if (strcmp(name, "Context") == 0)
-        return MaybeLocal<FunctionTemplate> (Cairo::Context::GetTemplate ());
+#define ADD_CLASS(klass) \
+    if (strcmp(name, #klass) == 0) \
+        return MaybeLocal<FunctionTemplate> (Cairo::klass::GetTemplate ());
 
-    if (strcmp(name, "Matrix") == 0)
-        return MaybeLocal<FunctionTemplate> (Cairo::Matrix::GetTemplate());
+    ADD_CLASS(Context)
+    ADD_CLASS(Matrix)
+    ADD_CLASS(Pattern)
+    ADD_CLASS(LinearPattern)
+    ADD_CLASS(RadialPattern)
+    ADD_CLASS(MeshPattern)
+    ADD_CLASS(FontOptions)
+    ADD_CLASS(FontFace)
+    ADD_CLASS(ToyFontFace)
+    ADD_CLASS(FtFontFace)
+    ADD_CLASS(Win32FontFace)
+    ADD_CLASS(QuartzFontFace)
+    ADD_CLASS(Region)
+    ADD_CLASS(Surface)
+    ADD_CLASS(ImageSurface)
+    ADD_CLASS(RecordingSurface)
 
-    if (strcmp(name, "Pattern") == 0)
-        return MaybeLocal<FunctionTemplate> (Cairo::Pattern::GetTemplate());
-
-    if (strcmp(name, "Region") == 0)
-        return MaybeLocal<FunctionTemplate> (Cairo::Region::GetTemplate());
-
-    if (strcmp(name, "FontOptions") == 0)
-        return MaybeLocal<FunctionTemplate> (Cairo::FontOptions::GetTemplate());
-
-    if (strcmp(name, "Surface") == 0)
-        return MaybeLocal<FunctionTemplate> (Cairo::Surface::GetTemplate());
-
-    if (strcmp(name, "ImageSurface") == 0)
-        return MaybeLocal<FunctionTemplate> (Cairo::ImageSurface::GetTemplate());
-
-    if (strcmp(name, "RecordingSurface") == 0)
-        return MaybeLocal<FunctionTemplate> (Cairo::RecordingSurface::GetTemplate());
+#undef ADD_CLASS
 
     return MaybeLocal<FunctionTemplate> ();
 }
@@ -71,6 +73,8 @@ NAN_METHOD(Init) {
 
     TextExtents::Initialize(cairoModule);
     FontExtents::Initialize(cairoModule);
+    FontFace::Initialize(cairoModule);
+    Glyph::Initialize(cairoModule);
     Matrix::Initialize(cairoModule);
     Path::Initialize(cairoModule);
     Pattern::Initialize(cairoModule);
@@ -78,6 +82,7 @@ NAN_METHOD(Init) {
     RectangleInt::Initialize(cairoModule);
     Region::Initialize(cairoModule);
     Surface::Initialize(cairoModule);
+    TextCluster::Initialize(cairoModule);
 }
 
 Local<Object> GetModule() {

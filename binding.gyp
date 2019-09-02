@@ -19,16 +19,19 @@
                 "src/modules/system.cc",
                 "src/modules/cairo/cairo.cc",
                 "src/modules/cairo/context.cc",
+                "src/modules/cairo/font-extents.cc",
+                "src/modules/cairo/font-face.cc",
+                "src/modules/cairo/font-options.cc",
+                "src/modules/cairo/glyph.cc",
                 "src/modules/cairo/matrix.cc",
                 "src/modules/cairo/path.cc",
                 "src/modules/cairo/pattern.cc",
-                "src/modules/cairo/font-options.cc",
-                "src/modules/cairo/font-extents.cc",
-                "src/modules/cairo/text-extents.cc",
-                "src/modules/cairo/region.cc",
-                "src/modules/cairo/rectangle.cc",
                 "src/modules/cairo/rectangle-int.cc",
+                "src/modules/cairo/rectangle.cc",
+                "src/modules/cairo/region.cc",
                 "src/modules/cairo/surface.cc",
+                "src/modules/cairo/text-cluster.cc",
+                "src/modules/cairo/text-extents.cc",
             ],
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"
@@ -44,9 +47,14 @@
                 ['OS != "linux"', {
                     "defines": [
                         "ulong=unsigned long",
+                        "PLATFORM_LINUX=1",
                     ]
                 }],
                 ['OS == "mac"', {
+                    "defines": [
+                        "ulong=unsigned long",
+                        "PLATFORM_MAC=1",
+                    ],
                     "xcode_settings": {
                         "OTHER_CFLAGS": [
                             "<!@(pkg-config --cflags glib-2.0 gobject-introspection-1.0 cairo)",
@@ -59,6 +67,7 @@
                 ['OS == "win"', {
                     "defines": [
                         "uint=unsigned int",
+                        "PLATFORM_WIN=1",
                     ],
                     "include_dirs": [
                         "include",
