@@ -120,5 +120,5 @@ void cairo_user_to_device_distance (cairo_t *cr, [[out]] double *dx, [[out]] dou
 void cairo_device_to_user (cairo_t *cr, [[out]] double *x, [[out]] double *y);
 void cairo_device_to_user_distance (cairo_t *cr, [[out]] double *dx, [[out]] double *dy);
 
-void cairo_tag_begin (cairo_t *cr, const char *tag_name, const char *attributes);
-void cairo_tag_end (cairo_t *cr, const char *tag_name); 
+[[version(1.16)]] void cairo_tag_begin (cairo_t *cr, const char *tag_name, const char *attributes);
+[[version(1.16)]] void cairo_tag_end (cairo_t *cr, const char *tag_name); 

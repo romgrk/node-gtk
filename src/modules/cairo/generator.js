@@ -137,6 +137,14 @@ function getSource(fn) {
   const hasResult = getTypeName(fn.type) !== 'void' || outAndInoutArguments.length > 0
 
   return unindent(`
+    ${fn.attributes.version ? (() => {
+      const [major, minor, micro] = fn.attributes.version.split('.')
+      return '#if ' + [
+        (major ? 'CAIRO_VERSION_MAJOR >= ' + major : undefined),
+        (minor ? 'CAIRO_VERSION_MINOR >= ' + minor : undefined),
+        (micro ? 'CAIRO_VERSION_MICRO >= ' + micro : undefined),
+      ].filter(Boolean).join(' && ')
+    })() : '' }
     NAN_METHOD(${getJSName(fn.name)}) {
         auto self = info.This();
         auto ${selfArgument.name} = (${getTypeName(selfArgument.type)}) self->GetAlignedPointerFromInternalField (0);
@@ -156,6 +164,7 @@ ${hasResult ? `
         // return
         ${getReturn(fn, outAndInoutArguments)}
 ` : ''}    }
+    ${fn.attributes.version ? '#endif' : '' }
   `)
 }
 

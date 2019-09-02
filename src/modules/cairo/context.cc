@@ -6,8 +6,13 @@
 #include "path.h"
 #include "text-extents.h"
 #include "font-extents.h"
+#include "font-face.h"
 #include "font-options.h"
+#include "glyph.h"
+#include "pattern.h"
+#include "scaled-font.h"
 #include "surface.h"
+#include "text-cluster.h"
 #include "../../debug.h"
 #include "../../gi.h"
 #include "../../gobject.h"
@@ -101,7 +106,9 @@ NAN_METHOD(popGroup) {
   cairo_pattern_t * result = cairo_pop_group (cr);
 
   // return
-  Local<Value> returnValue = Nan::New (result);
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Pattern::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
   info.GetReturnValue().Set(returnValue);
 }
 
@@ -154,6 +161,17 @@ NAN_METHOD(setSourceRgba) {
   cairo_set_source_rgba (cr, red, green, blue, alpha);
 }
 
+NAN_METHOD(setSource) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto source = Nan::ObjectWrap::Unwrap<Pattern>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_set_source (cr, source);
+}
+
 NAN_METHOD(setSourceSurface) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -175,7 +193,9 @@ NAN_METHOD(getSource) {
   cairo_pattern_t * result = cairo_get_source (cr);
 
   // return
-  Local<Value> returnValue = Nan::New (result);
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Pattern::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
   info.GetReturnValue().Set(returnValue);
 }
 
@@ -521,6 +541,17 @@ NAN_METHOD(inFill) {
   info.GetReturnValue().Set(returnValue);
 }
 
+NAN_METHOD(mask) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_mask (cr, pattern);
+}
+
 NAN_METHOD(maskSurface) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -812,6 +843,18 @@ NAN_METHOD(rectangle) {
   cairo_rectangle (cr, x, y, width, height);
 }
 
+NAN_METHOD(glyphPath) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[0].As<Object>())->_data;
+  auto num_glyphs = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+
+  // function call
+  cairo_glyph_path (cr, glyphs, num_glyphs);
+}
+
 NAN_METHOD(textPath) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -896,6 +939,35 @@ NAN_METHOD(showText) {
   cairo_show_text (cr, utf8);
 }
 
+NAN_METHOD(showGlyphs) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[0].As<Object>())->_data;
+  auto num_glyphs = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+
+  // function call
+  cairo_show_glyphs (cr, glyphs, num_glyphs);
+}
+
+NAN_METHOD(showTextGlyphs) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto utf8 = *Nan::Utf8String (info[0].As<String>());
+  auto utf8_len = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+  auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[2].As<Object>())->_data;
+  auto num_glyphs = Nan::To<int64_t>(info[3].As<Number>()).ToChecked();
+  auto clusters = Nan::ObjectWrap::Unwrap<TextCluster>(info[4].As<Object>())->_data;
+  auto num_clusters = Nan::To<int64_t>(info[5].As<Number>()).ToChecked();
+  auto cluster_flags = (cairo_text_cluster_flags_t) Nan::To<int64_t>(info[6].As<Number>()).ToChecked();
+
+  // function call
+  cairo_show_text_glyphs (cr, utf8, utf8_len, glyphs, num_glyphs, clusters, num_clusters, cluster_flags);
+}
+
 NAN_METHOD(fontExtents) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -929,6 +1001,28 @@ NAN_METHOD(textExtents) {
 
   // function call
   cairo_text_extents (cr, utf8, Nan::ObjectWrap::Unwrap<TextExtents>(extents)->_data);
+
+  // return
+  Local<Value> returnValue = extents;
+  info.GetReturnValue().Set(returnValue);
+}
+
+NAN_METHOD(glyphExtents) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[0].As<Object>())->_data;
+  auto num_glyphs = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+
+  // out-arguments
+  auto extents = Nan::NewInstance(
+          Nan::New<Function>(TextExtents::constructor),
+          0,
+          NULL).ToLocalChecked();
+
+  // function call
+  cairo_glyph_extents (cr, glyphs, num_glyphs, Nan::ObjectWrap::Unwrap<TextExtents>(extents)->_data);
 
   // return
   Local<Value> returnValue = extents;
@@ -1010,6 +1104,17 @@ NAN_METHOD(getFontOptions) {
   cairo_get_font_options (cr, options);
 }
 
+NAN_METHOD(setFontFace) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto font_face = Nan::ObjectWrap::Unwrap<FontFace>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_set_font_face (cr, font_face);
+}
+
 NAN_METHOD(getFontFace) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -1018,8 +1123,21 @@ NAN_METHOD(getFontFace) {
   cairo_font_face_t * result = cairo_get_font_face (cr);
 
   // return
-  Local<Value> returnValue = Nan::New (result);
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (FontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
   info.GetReturnValue().Set(returnValue);
+}
+
+NAN_METHOD(setScaledFont) {
+  auto self = info.This();
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
+
+  // in-arguments
+  auto scaled_font = Nan::ObjectWrap::Unwrap<ScaledFont>(info[0].As<Object>())->_data;
+
+  // function call
+  cairo_set_scaled_font (cr, scaled_font);
 }
 
 NAN_METHOD(getScaledFont) {
@@ -1030,7 +1148,9 @@ NAN_METHOD(getScaledFont) {
   cairo_scaled_font_t * result = cairo_get_scaled_font (cr);
 
   // return
-  Local<Value> returnValue = Nan::New (result);
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (ScaledFont::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
   info.GetReturnValue().Set(returnValue);
 }
 
@@ -1189,6 +1309,7 @@ NAN_METHOD(deviceToUserDistance) {
   info.GetReturnValue().Set(returnValue);
 }
 
+#if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
 NAN_METHOD(tagBegin) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -1200,7 +1321,9 @@ NAN_METHOD(tagBegin) {
   // function call
   cairo_tag_begin (cr, tag_name, attributes);
 }
+#endif
 
+#if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
 NAN_METHOD(tagEnd) {
   auto self = info.This();
   auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
@@ -1211,6 +1334,7 @@ NAN_METHOD(tagEnd) {
   // function call
   cairo_tag_end (cr, tag_name);
 }
+#endif
 
 #define SET_METHOD(tpl, name) Nan::SetPrototypeMethod(tpl, #name, name)
 
@@ -1226,6 +1350,7 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
   SET_METHOD(tpl, getGroupTarget);
   SET_METHOD(tpl, setSourceRgb);
   SET_METHOD(tpl, setSourceRgba);
+  SET_METHOD(tpl, setSource);
   SET_METHOD(tpl, setSourceSurface);
   SET_METHOD(tpl, getSource);
   SET_METHOD(tpl, setAntialias);
@@ -1256,6 +1381,7 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
   SET_METHOD(tpl, fillPreserve);
   SET_METHOD(tpl, fillExtents);
   SET_METHOD(tpl, inFill);
+  SET_METHOD(tpl, mask);
   SET_METHOD(tpl, maskSurface);
   SET_METHOD(tpl, paint);
   SET_METHOD(tpl, paintWithAlpha);
@@ -1280,21 +1406,27 @@ static void AttachMethods(Local<FunctionTemplate> tpl) {
   SET_METHOD(tpl, lineTo);
   SET_METHOD(tpl, moveTo);
   SET_METHOD(tpl, rectangle);
+  SET_METHOD(tpl, glyphPath);
   SET_METHOD(tpl, textPath);
   SET_METHOD(tpl, relCurveTo);
   SET_METHOD(tpl, relLineTo);
   SET_METHOD(tpl, relMoveTo);
   SET_METHOD(tpl, pathExtents);
   SET_METHOD(tpl, showText);
+  SET_METHOD(tpl, showGlyphs);
+  SET_METHOD(tpl, showTextGlyphs);
   SET_METHOD(tpl, fontExtents);
   SET_METHOD(tpl, textExtents);
+  SET_METHOD(tpl, glyphExtents);
   SET_METHOD(tpl, selectFontFace);
   SET_METHOD(tpl, setFontSize);
   SET_METHOD(tpl, setFontMatrix);
   SET_METHOD(tpl, getFontMatrix);
   SET_METHOD(tpl, setFontOptions);
   SET_METHOD(tpl, getFontOptions);
+  SET_METHOD(tpl, setFontFace);
   SET_METHOD(tpl, getFontFace);
+  SET_METHOD(tpl, setScaledFont);
   SET_METHOD(tpl, getScaledFont);
   SET_METHOD(tpl, translate);
   SET_METHOD(tpl, scale);
