@@ -135,7 +135,6 @@ NAN_METHOD(FontOptions::New) {
  * Methods
  */
 
-
 NAN_METHOD(FontOptions::status) {
   auto self = info.This();
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
@@ -148,7 +147,6 @@ NAN_METHOD(FontOptions::status) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(FontOptions::merge) {
   auto self = info.This();
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
@@ -159,7 +157,6 @@ NAN_METHOD(FontOptions::merge) {
   // function call
   cairo_font_options_merge (options, other);
 }
-
 
 NAN_METHOD(FontOptions::hash) {
   auto self = info.This();
@@ -172,7 +169,6 @@ NAN_METHOD(FontOptions::hash) {
   Local<Value> returnValue = Nan::New ((double) result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(FontOptions::equal) {
   auto self = info.This();
@@ -189,7 +185,6 @@ NAN_METHOD(FontOptions::equal) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(FontOptions::setAntialias) {
   auto self = info.This();
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
@@ -200,7 +195,6 @@ NAN_METHOD(FontOptions::setAntialias) {
   // function call
   cairo_font_options_set_antialias (options, antialias);
 }
-
 
 NAN_METHOD(FontOptions::getAntialias) {
   auto self = info.This();
@@ -214,7 +208,6 @@ NAN_METHOD(FontOptions::getAntialias) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(FontOptions::setSubpixelOrder) {
   auto self = info.This();
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
@@ -225,7 +218,6 @@ NAN_METHOD(FontOptions::setSubpixelOrder) {
   // function call
   cairo_font_options_set_subpixel_order (options, subpixel_order);
 }
-
 
 NAN_METHOD(FontOptions::getSubpixelOrder) {
   auto self = info.This();
@@ -239,7 +231,6 @@ NAN_METHOD(FontOptions::getSubpixelOrder) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(FontOptions::setHintStyle) {
   auto self = info.This();
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
@@ -250,7 +241,6 @@ NAN_METHOD(FontOptions::setHintStyle) {
   // function call
   cairo_font_options_set_hint_style (options, hint_style);
 }
-
 
 NAN_METHOD(FontOptions::getHintStyle) {
   auto self = info.This();
@@ -264,7 +254,6 @@ NAN_METHOD(FontOptions::getHintStyle) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(FontOptions::setHintMetrics) {
   auto self = info.This();
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
@@ -275,7 +264,6 @@ NAN_METHOD(FontOptions::setHintMetrics) {
   // function call
   cairo_font_options_set_hint_metrics (options, hint_metrics);
 }
-
 
 NAN_METHOD(FontOptions::getHintMetrics) {
   auto self = info.This();
@@ -289,7 +277,7 @@ NAN_METHOD(FontOptions::getHintMetrics) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
+#if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
 NAN_METHOD(FontOptions::getVariations) {
   auto self = info.This();
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
@@ -301,8 +289,9 @@ NAN_METHOD(FontOptions::getVariations) {
   Local<Value> returnValue = UTF8 (result);
   info.GetReturnValue().Set(returnValue);
 }
+#endif
 
-
+#if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
 NAN_METHOD(FontOptions::setVariations) {
   auto self = info.This();
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
@@ -313,6 +302,7 @@ NAN_METHOD(FontOptions::setVariations) {
   // function call
   cairo_font_options_set_variations (options, variations);
 }
+#endif
 
 
 

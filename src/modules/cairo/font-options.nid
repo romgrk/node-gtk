@@ -16,8 +16,8 @@ void cairo_font_options_set_hint_style (cairo_font_options_t *options, cairo_hin
 cairo_hint_style_t cairo_font_options_get_hint_style (const cairo_font_options_t *options);
 void cairo_font_options_set_hint_metrics (cairo_font_options_t *options, cairo_hint_metrics_t hint_metrics);
 cairo_hint_metrics_t cairo_font_options_get_hint_metrics (const cairo_font_options_t *options);
-const char * cairo_font_options_get_variations (cairo_font_options_t *options);
-void cairo_font_options_set_variations (cairo_font_options_t *options, const char *variations);
+[[version(1.16)]] const char * cairo_font_options_get_variations (cairo_font_options_t *options);
+[[version(1.16)]] void cairo_font_options_set_variations (cairo_font_options_t *options, const char *variations);
 /* typedef struct _cairo_font_options cairo_font_options_t; */
 
 // vim: ft=c

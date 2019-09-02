@@ -36,8 +36,12 @@ class FontOptions: public Nan::ObjectWrap {
     static NAN_METHOD(getHintStyle);
     static NAN_METHOD(setHintMetrics);
     static NAN_METHOD(getHintMetrics);
+    #if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
     static NAN_METHOD(getVariations);
+    #endif
+    #if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
     static NAN_METHOD(setVariations);
+    #endif
 
     FontOptions(cairo_font_options_t* data);
     ~FontOptions();

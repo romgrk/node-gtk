@@ -88,6 +88,7 @@ module.exports = {
   getInOutArguments,
   getTypeName,
   getJSName,
+  addVersionGuard,
 }
 
 // Functions
@@ -176,8 +177,8 @@ function getClassMethodSource(fn, options) {
   const outAndInoutArguments = outArguments.concat(inoutArguments)
   const hasResult = getTypeName(fn.type) !== 'void' || outAndInoutArguments.length > 0
 
-  return `
-    NAN_METHOD(${options.name}::${getJSName(fn.name, options.prefix)}) {${selfArgument ? `
+  return '    ' + addVersionGuard(fn,
+   `NAN_METHOD(${options.name}::${getJSName(fn.name, options.prefix)}) {${selfArgument ? `
       auto self = info.This();
       auto ${selfArgument.name} = Nan::ObjectWrap::Unwrap<${options.name}>(self)->_data;
 ` : ''}${inArguments.length > 0 ? `
@@ -195,8 +196,7 @@ function getClassMethodSource(fn, options) {
 ${hasResult ? `
       // return
       ${indent(6, getReturn(fn, outAndInoutArguments))}
-` : ''}    }
-  `
+` : ''}    }`, '    ') + '\n'
 }
 
 
@@ -382,4 +382,17 @@ function getTypeName(type) {
 function getJSName(originalName, prefix = 'cairo_') {
   const jsName = camelCase(originalName.replace(prefix, ''))
   return RESTRICTED.has(jsName) ? `${jsName}_` : jsName
+}
+
+function addVersionGuard(fn, text, indent) {
+  return (fn.attributes.version ? (() => {
+    const [major, minor, micro] = fn.attributes.version.split('.')
+    return '#if ' + [
+      (major ? 'CAIRO_VERSION_MAJOR >= ' + major : undefined),
+      (minor ? 'CAIRO_VERSION_MINOR >= ' + minor : undefined),
+      (micro ? 'CAIRO_VERSION_MICRO >= ' + micro : undefined),
+    ].filter(Boolean).join(' && ') + `\n${indent}`
+  })() : '')
+  + text
+  + (fn.attributes.version ? `\n${indent}#endif` : '')
 }

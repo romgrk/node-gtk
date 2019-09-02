@@ -15,6 +15,7 @@ const {
   getInArgumentSource,
   parseFile,
   getJSName,
+  addVersionGuard,
 } = require('./generator.js')
 
 
@@ -43,12 +44,6 @@ function generateCairoFontOptions() {
         fn.source = getClassMethodSource(fn, options)
         return fn
       })
-
-  /* functions.forEach(fn => {
-   *   console.log({ ...fn, source: undefined })
-   *   console.log(fn.source)
-   *   console.log('')
-   * }) */
 
   const header = generateHeader(options)
   const source = generateSource(options)
@@ -93,7 +88,7 @@ function generateSource(options) {
   const templateMethods  = generateTemplateMethods(options)
   const initializeMethod = generateInitializeMethod(options)
   const newMethod        = generateNewMethod(options)
-  const methods          = options.functions.map(fn => fn.source).join('\n')
+  const methods          = options.functions.map(fn => fn.source).join('\n').trimStart()
 
   return removeTrailingSpaces(unindent(`
 
@@ -185,7 +180,9 @@ function generateClassDeclaration(options) {
 
         static NAN_METHOD(New);
 
-        ${options.functions.map(fn => `static NAN_METHOD(${getJSName(fn.name, options.prefix)});`).join('\n        ')}
+        ${options.functions.map(fn =>
+          addVersionGuard(fn, `static NAN_METHOD(${getJSName(fn.name, options.prefix)});`, '        ')
+        ).join('\n        ')}
 
         ${options.name}(${options.type}* data);
         ~${options.name}();
