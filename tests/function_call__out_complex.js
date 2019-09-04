@@ -9,7 +9,6 @@ const Pango = gi.require('Pango')
 const PangoCairo = gi.require('PangoCairo')
 const common = require('./__common__.js')
 
-common.skip()
 
 const fontDescription = Pango.fontDescriptionFromString('monospace 12px')
 
