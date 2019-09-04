@@ -40,3 +40,25 @@ function generateCairoContext() {
   console.log(generateSource('CairoContext', functions))
 }
 
+function generateSource(name, functions) {
+  functions.forEach(fn => {
+    try {
+      fn.source = getSource(fn)
+      // console.log('##### ' + fn.name + ' #####')
+    } catch (e) {
+      fn.source = undefined
+      fn.error = e
+    }
+  })
+
+  const validFunctions = functions.filter(fn => fn.source)
+
+  const result = (
+    validFunctions.map(fn => fn.source).join('\n\n')
+    + '\n\n'
+    + getAttachMethods(name, validFunctions)
+  )
+
+  return result.replace(/^  /gm, '')
+}
+

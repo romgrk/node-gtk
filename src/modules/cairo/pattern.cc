@@ -35,7 +35,7 @@ Nan::Persistent<Function>         MeshPattern::constructor;
 
 
 /*
- * Initialize pattern.
+ * Initialize
  */
 
 Pattern::Pattern(cairo_pattern_t* data) : ObjectWrap() {
@@ -43,7 +43,7 @@ Pattern::Pattern(cairo_pattern_t* data) : ObjectWrap() {
 }
 
 /*
- * Destroy pattern..
+ * Destroy
  */
 
 Pattern::~Pattern() {
@@ -254,8 +254,8 @@ NAN_METHOD(Pattern::New) {
     return Nan::ThrowError("Cannot instantiate Pattern: use static creators");
   }
 
-  Pattern* pattern = new Pattern(data);
-  pattern->Wrap(info.This());
+  Pattern* instance = new Pattern(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -276,8 +276,8 @@ NAN_METHOD(LinearPattern::New) {
     return Nan::ThrowError("Cannot instantiate LinearPattern: use static creators");
   }
 
-  LinearPattern* pattern = new LinearPattern(data);
-  pattern->Wrap(info.This());
+  LinearPattern* instance = new LinearPattern(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -298,8 +298,8 @@ NAN_METHOD(RadialPattern::New) {
     return Nan::ThrowError("Cannot instantiate RadialPattern: use static creators");
   }
 
-  RadialPattern* pattern = new RadialPattern(data);
-  pattern->Wrap(info.This());
+  RadialPattern* instance = new RadialPattern(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -320,8 +320,8 @@ NAN_METHOD(MeshPattern::New) {
     return Nan::ThrowError("Cannot instantiate MeshPattern: use static creators");
   }
 
-  MeshPattern* pattern = new MeshPattern(data);
-  pattern->Wrap(info.This());
+  MeshPattern* instance = new MeshPattern(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -332,566 +332,528 @@ NAN_METHOD(MeshPattern::New) {
  * Methods
  */
 
-
 NAN_METHOD(Pattern::createRgb) {
-    // in-arguments
-    auto red = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto green = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto blue = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  // in-arguments
+  auto red = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto green = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto blue = Nan::To<double>(info[2].As<Number>()).ToChecked();
 
-    // function call
-    cairo_pattern_t * result = cairo_pattern_create_rgb (red, green, blue);
+  // function call
+  cairo_pattern_t * result = cairo_pattern_create_rgb (red, green, blue);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (Pattern::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Pattern::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::createRgba) {
-    // in-arguments
-    auto red = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto green = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto blue = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto alpha = Nan::To<double>(info[3].As<Number>()).ToChecked();
+  // in-arguments
+  auto red = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto green = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto blue = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  auto alpha = Nan::To<double>(info[3].As<Number>()).ToChecked();
 
-    // function call
-    cairo_pattern_t * result = cairo_pattern_create_rgba (red, green, blue, alpha);
+  // function call
+  cairo_pattern_t * result = cairo_pattern_create_rgba (red, green, blue, alpha);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (Pattern::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Pattern::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::createRadial) {
-    // in-arguments
-    auto cx0 = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto cy0 = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto radius0 = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto cx1 = Nan::To<double>(info[3].As<Number>()).ToChecked();
-    auto cy1 = Nan::To<double>(info[4].As<Number>()).ToChecked();
-    auto radius1 = Nan::To<double>(info[5].As<Number>()).ToChecked();
+  // in-arguments
+  auto cx0 = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto cy0 = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto radius0 = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  auto cx1 = Nan::To<double>(info[3].As<Number>()).ToChecked();
+  auto cy1 = Nan::To<double>(info[4].As<Number>()).ToChecked();
+  auto radius1 = Nan::To<double>(info[5].As<Number>()).ToChecked();
 
-    // function call
-    cairo_pattern_t * result = cairo_pattern_create_radial (cx0, cy0, radius0, cx1, cy1, radius1);
+  // function call
+  cairo_pattern_t * result = cairo_pattern_create_radial (cx0, cy0, radius0, cx1, cy1, radius1);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (RadialPattern::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (RadialPattern::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::createMesh) {
-    // function call
-    cairo_pattern_t * result = cairo_pattern_create_mesh ();
+  // function call
+  cairo_pattern_t * result = cairo_pattern_create_mesh ();
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (MeshPattern::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (MeshPattern::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::createLinear) {
-    // in-arguments
-    auto x0 = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto y0 = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto x1 = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto y1 = Nan::To<double>(info[3].As<Number>()).ToChecked();
+  // in-arguments
+  auto x0 = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto y0 = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto x1 = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  auto y1 = Nan::To<double>(info[3].As<Number>()).ToChecked();
 
-    // function call
-    cairo_pattern_t * result = cairo_pattern_create_linear (x0, y0, x1, y1);
+  // function call
+  cairo_pattern_t * result = cairo_pattern_create_linear (x0, y0, x1, y1);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (LinearPattern::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (LinearPattern::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::createForSurface) {
-    // in-arguments
-    auto surface = Nan::ObjectWrap::Unwrap<Surface>(info[0].As<Object>())->_data;
+  // in-arguments
+  auto surface = Nan::ObjectWrap::Unwrap<Surface>(info[0].As<Object>())->_data;
 
-    // function call
-    cairo_pattern_t * result = cairo_pattern_create_for_surface (surface);
+  // function call
+  cairo_pattern_t * result = cairo_pattern_create_for_surface (surface);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (Pattern::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Pattern::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::addColorStopRgb) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // in-arguments
-    auto offset = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto red = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto green = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto blue = Nan::To<double>(info[3].As<Number>()).ToChecked();
+  // in-arguments
+  auto offset = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto red = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto green = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  auto blue = Nan::To<double>(info[3].As<Number>()).ToChecked();
 
-    // function call
-    cairo_pattern_add_color_stop_rgb (pattern, offset, red, green, blue);
+  // function call
+  cairo_pattern_add_color_stop_rgb (pattern, offset, red, green, blue);
 }
-
 
 NAN_METHOD(Pattern::addColorStopRgba) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // in-arguments
-    auto offset = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto red = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto green = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto blue = Nan::To<double>(info[3].As<Number>()).ToChecked();
-    auto alpha = Nan::To<double>(info[4].As<Number>()).ToChecked();
+  // in-arguments
+  auto offset = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto red = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto green = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  auto blue = Nan::To<double>(info[3].As<Number>()).ToChecked();
+  auto alpha = Nan::To<double>(info[4].As<Number>()).ToChecked();
 
-    // function call
-    cairo_pattern_add_color_stop_rgba (pattern, offset, red, green, blue, alpha);
+  // function call
+  cairo_pattern_add_color_stop_rgba (pattern, offset, red, green, blue, alpha);
 }
-
 
 NAN_METHOD(Pattern::getColorStopCount) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // out-arguments
-    int count = 0;
+  // out-arguments
+  int count = 0;
 
-    // function call
-    cairo_status_t result = cairo_pattern_get_color_stop_count (pattern, &count);
+  // function call
+  cairo_status_t result = cairo_pattern_get_color_stop_count (pattern, &count);
 
-    // return
-    Local<Object> returnValue = Nan::New<Object> ();
-    Nan::Set (returnValue, UTF8 ("count"), Nan::New (count));
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Object> returnValue = Nan::New<Object> ();
+  Nan::Set (returnValue, UTF8 ("count"), Nan::New (count));
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::getColorStopRgba) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // in-arguments
-    auto index = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto index = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // out-arguments
-    double offset = 0.0;
-    double red = 0.0;
-    double green = 0.0;
-    double blue = 0.0;
-    double alpha = 0.0;
+  // out-arguments
+  double offset = 0.0;
+  double red = 0.0;
+  double green = 0.0;
+  double blue = 0.0;
+  double alpha = 0.0;
 
-    // function call
-    cairo_status_t result = cairo_pattern_get_color_stop_rgba (pattern, index, &offset, &red, &green, &blue, &alpha);
+  // function call
+  cairo_status_t result = cairo_pattern_get_color_stop_rgba (pattern, index, &offset, &red, &green, &blue, &alpha);
 
-    // return
-    Local<Object> returnValue = Nan::New<Object> ();
-    Nan::Set (returnValue, UTF8 ("offset"), Nan::New (offset));
-    Nan::Set (returnValue, UTF8 ("red"), Nan::New (red));
-    Nan::Set (returnValue, UTF8 ("green"), Nan::New (green));
-    Nan::Set (returnValue, UTF8 ("blue"), Nan::New (blue));
-    Nan::Set (returnValue, UTF8 ("alpha"), Nan::New (alpha));
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Object> returnValue = Nan::New<Object> ();
+  Nan::Set (returnValue, UTF8 ("offset"), Nan::New (offset));
+  Nan::Set (returnValue, UTF8 ("red"), Nan::New (red));
+  Nan::Set (returnValue, UTF8 ("green"), Nan::New (green));
+  Nan::Set (returnValue, UTF8 ("blue"), Nan::New (blue));
+  Nan::Set (returnValue, UTF8 ("alpha"), Nan::New (alpha));
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::getRgba) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // out-arguments
-    double red = 0.0;
-    double green = 0.0;
-    double blue = 0.0;
-    double alpha = 0.0;
+  // out-arguments
+  double red = 0.0;
+  double green = 0.0;
+  double blue = 0.0;
+  double alpha = 0.0;
 
-    // function call
-    cairo_status_t result = cairo_pattern_get_rgba (pattern, &red, &green, &blue, &alpha);
+  // function call
+  cairo_status_t result = cairo_pattern_get_rgba (pattern, &red, &green, &blue, &alpha);
 
-    // return
-    Local<Object> returnValue = Nan::New<Object> ();
-    Nan::Set (returnValue, UTF8 ("red"), Nan::New (red));
-    Nan::Set (returnValue, UTF8 ("green"), Nan::New (green));
-    Nan::Set (returnValue, UTF8 ("blue"), Nan::New (blue));
-    Nan::Set (returnValue, UTF8 ("alpha"), Nan::New (alpha));
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Object> returnValue = Nan::New<Object> ();
+  Nan::Set (returnValue, UTF8 ("red"), Nan::New (red));
+  Nan::Set (returnValue, UTF8 ("green"), Nan::New (green));
+  Nan::Set (returnValue, UTF8 ("blue"), Nan::New (blue));
+  Nan::Set (returnValue, UTF8 ("alpha"), Nan::New (alpha));
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::status) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // function call
-    cairo_status_t result = cairo_pattern_status (pattern);
+  // function call
+  cairo_status_t result = cairo_pattern_status (pattern);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::setExtend) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // in-arguments
-    auto extend = (cairo_extend_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto extend = (cairo_extend_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_pattern_set_extend (pattern, extend);
+  // function call
+  cairo_pattern_set_extend (pattern, extend);
 }
-
 
 NAN_METHOD(Pattern::getExtend) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // function call
-    cairo_extend_t result = cairo_pattern_get_extend (pattern);
+  // function call
+  cairo_extend_t result = cairo_pattern_get_extend (pattern);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::setFilter) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // in-arguments
-    auto filter = (cairo_filter_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto filter = (cairo_filter_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_pattern_set_filter (pattern, filter);
+  // function call
+  cairo_pattern_set_filter (pattern, filter);
 }
-
 
 NAN_METHOD(Pattern::getFilter) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // function call
-    cairo_filter_t result = cairo_pattern_get_filter (pattern);
+  // function call
+  cairo_filter_t result = cairo_pattern_get_filter (pattern);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::setMatrix) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // in-arguments
-    auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(info[0].As<Object>())->_data;
+  // in-arguments
+  auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(info[0].As<Object>())->_data;
 
-    // function call
-    cairo_pattern_set_matrix (pattern, matrix);
+  // function call
+  cairo_pattern_set_matrix (pattern, matrix);
 }
 
-
 NAN_METHOD(Pattern::getMatrix) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // out-arguments
-    auto matrix = Nan::NewInstance(
+  // out-arguments
+  auto matrix = Nan::NewInstance(
             Nan::New<Function>(Matrix::constructor),
             0,
             NULL).ToLocalChecked();
 
-    // function call
-    cairo_pattern_get_matrix (pattern, Nan::ObjectWrap::Unwrap<Matrix>(matrix)->_data);
+  // function call
+  cairo_pattern_get_matrix (pattern, Nan::ObjectWrap::Unwrap<Matrix>(matrix)->_data);
 
-    // return
-    Local<Value> returnValue = matrix;
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = matrix;
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::getType) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // function call
-    cairo_pattern_type_t result = cairo_pattern_get_type (pattern);
+  // function call
+  cairo_pattern_type_t result = cairo_pattern_get_type (pattern);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Pattern::getReferenceCount) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(self)->_data;
 
-    // function call
-    unsigned int result = cairo_pattern_get_reference_count (pattern);
+  // function call
+  unsigned int result = cairo_pattern_get_reference_count (pattern);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
-
 NAN_METHOD(LinearPattern::getLinearPoints) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<LinearPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<LinearPattern>(self)->_data;
 
-    // out-arguments
-    double x0 = 0.0;
-    double y0 = 0.0;
-    double x1 = 0.0;
-    double y1 = 0.0;
+  // out-arguments
+  double x0 = 0.0;
+  double y0 = 0.0;
+  double x1 = 0.0;
+  double y1 = 0.0;
 
-    // function call
-    cairo_status_t result = cairo_pattern_get_linear_points (pattern, &x0, &y0, &x1, &y1);
+  // function call
+  cairo_status_t result = cairo_pattern_get_linear_points (pattern, &x0, &y0, &x1, &y1);
 
-    // return
-    Local<Object> returnValue = Nan::New<Object> ();
-    Nan::Set (returnValue, UTF8 ("x0"), Nan::New (x0));
-    Nan::Set (returnValue, UTF8 ("y0"), Nan::New (y0));
-    Nan::Set (returnValue, UTF8 ("x1"), Nan::New (x1));
-    Nan::Set (returnValue, UTF8 ("y1"), Nan::New (y1));
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Object> returnValue = Nan::New<Object> ();
+  Nan::Set (returnValue, UTF8 ("x0"), Nan::New (x0));
+  Nan::Set (returnValue, UTF8 ("y0"), Nan::New (y0));
+  Nan::Set (returnValue, UTF8 ("x1"), Nan::New (x1));
+  Nan::Set (returnValue, UTF8 ("y1"), Nan::New (y1));
+  info.GetReturnValue().Set(returnValue);
 }
-
-
 NAN_METHOD(RadialPattern::getRadialCircles) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<RadialPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<RadialPattern>(self)->_data;
 
-    // out-arguments
-    double x0 = 0.0;
-    double y0 = 0.0;
-    double r0 = 0.0;
-    double x1 = 0.0;
-    double y1 = 0.0;
-    double r1 = 0.0;
+  // out-arguments
+  double x0 = 0.0;
+  double y0 = 0.0;
+  double r0 = 0.0;
+  double x1 = 0.0;
+  double y1 = 0.0;
+  double r1 = 0.0;
 
-    // function call
-    cairo_status_t result = cairo_pattern_get_radial_circles (pattern, &x0, &y0, &r0, &x1, &y1, &r1);
+  // function call
+  cairo_status_t result = cairo_pattern_get_radial_circles (pattern, &x0, &y0, &r0, &x1, &y1, &r1);
 
-    // return
-    Local<Object> returnValue = Nan::New<Object> ();
-    Nan::Set (returnValue, UTF8 ("x0"), Nan::New (x0));
-    Nan::Set (returnValue, UTF8 ("y0"), Nan::New (y0));
-    Nan::Set (returnValue, UTF8 ("r0"), Nan::New (r0));
-    Nan::Set (returnValue, UTF8 ("x1"), Nan::New (x1));
-    Nan::Set (returnValue, UTF8 ("y1"), Nan::New (y1));
-    Nan::Set (returnValue, UTF8 ("r1"), Nan::New (r1));
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Object> returnValue = Nan::New<Object> ();
+  Nan::Set (returnValue, UTF8 ("x0"), Nan::New (x0));
+  Nan::Set (returnValue, UTF8 ("y0"), Nan::New (y0));
+  Nan::Set (returnValue, UTF8 ("r0"), Nan::New (r0));
+  Nan::Set (returnValue, UTF8 ("x1"), Nan::New (x1));
+  Nan::Set (returnValue, UTF8 ("y1"), Nan::New (y1));
+  Nan::Set (returnValue, UTF8 ("r1"), Nan::New (r1));
+  info.GetReturnValue().Set(returnValue);
 }
-
-
 NAN_METHOD(MeshPattern::beginPatch) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // function call
-    cairo_mesh_pattern_begin_patch (pattern);
+  // function call
+  cairo_mesh_pattern_begin_patch (pattern);
 }
-
 
 NAN_METHOD(MeshPattern::endPatch) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // function call
-    cairo_mesh_pattern_end_patch (pattern);
+  // function call
+  cairo_mesh_pattern_end_patch (pattern);
 }
-
 
 NAN_METHOD(MeshPattern::moveTo) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto y = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  // in-arguments
+  auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto y = Nan::To<double>(info[1].As<Number>()).ToChecked();
 
-    // function call
-    cairo_mesh_pattern_move_to (pattern, x, y);
+  // function call
+  cairo_mesh_pattern_move_to (pattern, x, y);
 }
-
 
 NAN_METHOD(MeshPattern::lineTo) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto y = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  // in-arguments
+  auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto y = Nan::To<double>(info[1].As<Number>()).ToChecked();
 
-    // function call
-    cairo_mesh_pattern_line_to (pattern, x, y);
+  // function call
+  cairo_mesh_pattern_line_to (pattern, x, y);
 }
-
 
 NAN_METHOD(MeshPattern::curveTo) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto x1 = Nan::To<double>(info[0].As<Number>()).ToChecked();
-    auto y1 = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto x2 = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto y2 = Nan::To<double>(info[3].As<Number>()).ToChecked();
-    auto x3 = Nan::To<double>(info[4].As<Number>()).ToChecked();
-    auto y3 = Nan::To<double>(info[5].As<Number>()).ToChecked();
+  // in-arguments
+  auto x1 = Nan::To<double>(info[0].As<Number>()).ToChecked();
+  auto y1 = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto x2 = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  auto y2 = Nan::To<double>(info[3].As<Number>()).ToChecked();
+  auto x3 = Nan::To<double>(info[4].As<Number>()).ToChecked();
+  auto y3 = Nan::To<double>(info[5].As<Number>()).ToChecked();
 
-    // function call
-    cairo_mesh_pattern_curve_to (pattern, x1, y1, x2, y2, x3, y3);
+  // function call
+  cairo_mesh_pattern_curve_to (pattern, x1, y1, x2, y2, x3, y3);
 }
-
 
 NAN_METHOD(MeshPattern::setControlPoint) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto point_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
-    auto x = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto y = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  // in-arguments
+  auto point_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  auto x = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto y = Nan::To<double>(info[2].As<Number>()).ToChecked();
 
-    // function call
-    cairo_mesh_pattern_set_control_point (pattern, point_num, x, y);
+  // function call
+  cairo_mesh_pattern_set_control_point (pattern, point_num, x, y);
 }
-
 
 NAN_METHOD(MeshPattern::setCornerColorRgb) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto corner_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
-    auto red = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto green = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto blue = Nan::To<double>(info[3].As<Number>()).ToChecked();
+  // in-arguments
+  auto corner_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  auto red = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto green = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  auto blue = Nan::To<double>(info[3].As<Number>()).ToChecked();
 
-    // function call
-    cairo_mesh_pattern_set_corner_color_rgb (pattern, corner_num, red, green, blue);
+  // function call
+  cairo_mesh_pattern_set_corner_color_rgb (pattern, corner_num, red, green, blue);
 }
-
 
 NAN_METHOD(MeshPattern::setCornerColorRgba) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto corner_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
-    auto red = Nan::To<double>(info[1].As<Number>()).ToChecked();
-    auto green = Nan::To<double>(info[2].As<Number>()).ToChecked();
-    auto blue = Nan::To<double>(info[3].As<Number>()).ToChecked();
-    auto alpha = Nan::To<double>(info[4].As<Number>()).ToChecked();
+  // in-arguments
+  auto corner_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  auto red = Nan::To<double>(info[1].As<Number>()).ToChecked();
+  auto green = Nan::To<double>(info[2].As<Number>()).ToChecked();
+  auto blue = Nan::To<double>(info[3].As<Number>()).ToChecked();
+  auto alpha = Nan::To<double>(info[4].As<Number>()).ToChecked();
 
-    // function call
-    cairo_mesh_pattern_set_corner_color_rgba (pattern, corner_num, red, green, blue, alpha);
+  // function call
+  cairo_mesh_pattern_set_corner_color_rgba (pattern, corner_num, red, green, blue, alpha);
 }
-
 
 NAN_METHOD(MeshPattern::getPatchCount) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // out-arguments
-    unsigned int count = 0;
+  // out-arguments
+  unsigned int count = 0;
 
-    // function call
-    cairo_status_t result = cairo_mesh_pattern_get_patch_count (pattern, &count);
+  // function call
+  cairo_status_t result = cairo_mesh_pattern_get_patch_count (pattern, &count);
 
-    // return
-    Local<Object> returnValue = Nan::New<Object> ();
-    Nan::Set (returnValue, UTF8 ("count"), Nan::New (count));
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Object> returnValue = Nan::New<Object> ();
+  Nan::Set (returnValue, UTF8 ("count"), Nan::New (count));
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(MeshPattern::getPath) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto patch_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto patch_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_path_t * result = cairo_mesh_pattern_get_path (pattern, patch_num);
+  // function call
+  cairo_path_t * result = cairo_mesh_pattern_get_path (pattern, patch_num);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (Path::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Path::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(MeshPattern::getControlPoint) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto patch_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
-    auto point_num = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+  // in-arguments
+  auto patch_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  auto point_num = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
 
-    // out-arguments
-    double x = 0.0;
-    double y = 0.0;
+  // out-arguments
+  double x = 0.0;
+  double y = 0.0;
 
-    // function call
-    cairo_status_t result = cairo_mesh_pattern_get_control_point (pattern, patch_num, point_num, &x, &y);
+  // function call
+  cairo_status_t result = cairo_mesh_pattern_get_control_point (pattern, patch_num, point_num, &x, &y);
 
-    // return
-    Local<Object> returnValue = Nan::New<Object> ();
-    Nan::Set (returnValue, UTF8 ("x"), Nan::New (x));
-    Nan::Set (returnValue, UTF8 ("y"), Nan::New (y));
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Object> returnValue = Nan::New<Object> ();
+  Nan::Set (returnValue, UTF8 ("x"), Nan::New (x));
+  Nan::Set (returnValue, UTF8 ("y"), Nan::New (y));
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(MeshPattern::getCornerColorRgba) {
-    auto self = info.This();
-    auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
+  auto self = info.This();
+  auto pattern = Nan::ObjectWrap::Unwrap<MeshPattern>(self)->_data;
 
-    // in-arguments
-    auto patch_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
-    auto corner_num = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+  // in-arguments
+  auto patch_num = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  auto corner_num = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
 
-    // out-arguments
-    double red = 0.0;
-    double green = 0.0;
-    double blue = 0.0;
-    double alpha = 0.0;
+  // out-arguments
+  double red = 0.0;
+  double green = 0.0;
+  double blue = 0.0;
+  double alpha = 0.0;
 
-    // function call
-    cairo_status_t result = cairo_mesh_pattern_get_corner_color_rgba (pattern, patch_num, corner_num, &red, &green, &blue, &alpha);
+  // function call
+  cairo_status_t result = cairo_mesh_pattern_get_corner_color_rgba (pattern, patch_num, corner_num, &red, &green, &blue, &alpha);
 
-    // return
-    Local<Object> returnValue = Nan::New<Object> ();
-    Nan::Set (returnValue, UTF8 ("red"), Nan::New (red));
-    Nan::Set (returnValue, UTF8 ("green"), Nan::New (green));
-    Nan::Set (returnValue, UTF8 ("blue"), Nan::New (blue));
-    Nan::Set (returnValue, UTF8 ("alpha"), Nan::New (alpha));
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Object> returnValue = Nan::New<Object> ();
+  Nan::Set (returnValue, UTF8 ("red"), Nan::New (red));
+  Nan::Set (returnValue, UTF8 ("green"), Nan::New (green));
+  Nan::Set (returnValue, UTF8 ("blue"), Nan::New (blue));
+  Nan::Set (returnValue, UTF8 ("alpha"), Nan::New (alpha));
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 
 

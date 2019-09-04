@@ -1,7 +1,7 @@
 
 // Matrix:
 
-[[constructor]] void cairo_matrix_init (cairo_matrix_t *matrix, double xx, double yx, double xy, double yy, double x0, double y0);
+[[constructor]] void cairo_matrix_init ([[new]] cairo_matrix_t *matrix, double xx, double yx, double xy, double yy, double x0, double y0);
 [[static]] void cairo_matrix_init_identity ([[out]] cairo_matrix_t *matrix);
 [[static]] void cairo_matrix_init_translate ([[out]] cairo_matrix_t *matrix, double tx, double ty);
 [[static]] void cairo_matrix_init_scale ([[out]] cairo_matrix_t *matrix, double sx, double sy);

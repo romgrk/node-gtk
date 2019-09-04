@@ -20,7 +20,7 @@ Nan::Persistent<Function>         FontOptions::constructor;
 
 
 /*
- * Initialize font_options.
+ * Initialize
  */
 
 FontOptions::FontOptions(cairo_font_options_t* data) : ObjectWrap() {
@@ -28,7 +28,7 @@ FontOptions::FontOptions(cairo_font_options_t* data) : ObjectWrap() {
 }
 
 /*
- * Destroy font_options..
+ * Destroy
  */
 
 FontOptions::~FontOptions() {
@@ -62,6 +62,7 @@ void FontOptions::SetupTemplate() {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(Nan::New("CairoFontOptions").ToLocalChecked());
 
+
   SET_PROTOTYPE_METHOD(tpl, status);
   SET_PROTOTYPE_METHOD(tpl, merge);
   SET_PROTOTYPE_METHOD(tpl, hash);
@@ -83,6 +84,9 @@ void FontOptions::SetupTemplate() {
 
   constructorTemplate.Reset(tpl);
   constructor.Reset(ctor);
+
+
+
 }
 
 
@@ -123,8 +127,8 @@ NAN_METHOD(FontOptions::New) {
     data = cairo_font_options_create ();
   }
 
-  FontOptions* font_options = new FontOptions(data);
-  font_options->Wrap(info.This());
+  FontOptions* instance = new FontOptions(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -303,7 +307,6 @@ NAN_METHOD(FontOptions::setVariations) {
   cairo_font_options_set_variations (options, variations);
 }
 #endif
-
 
 
 

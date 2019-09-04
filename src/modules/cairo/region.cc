@@ -22,7 +22,7 @@ Nan::Persistent<Function>         Region::constructor;
 
 
 /*
- * Initialize region.
+ * Initialize
  */
 
 Region::Region(cairo_region_t* data) : ObjectWrap() {
@@ -30,7 +30,7 @@ Region::Region(cairo_region_t* data) : ObjectWrap() {
 }
 
 /*
- * Destroy region..
+ * Destroy
  */
 
 Region::~Region() {
@@ -64,6 +64,7 @@ void Region::SetupTemplate() {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(Nan::New("CairoRegion").ToLocalChecked());
 
+
   SET_PROTOTYPE_METHOD(tpl, status);
   SET_PROTOTYPE_METHOD(tpl, getExtents);
   SET_PROTOTYPE_METHOD(tpl, numRectangles);
@@ -88,6 +89,9 @@ void Region::SetupTemplate() {
 
   constructorTemplate.Reset(tpl);
   constructor.Reset(ctor);
+
+
+
 }
 
 
@@ -128,8 +132,8 @@ NAN_METHOD(Region::New) {
     data = cairo_region_create ();
   }
 
-  Region* region = new Region(data);
-  region->Wrap(info.This());
+  Region* instance = new Region(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -139,7 +143,6 @@ NAN_METHOD(Region::New) {
 /*
  * Methods
  */
-
 
 NAN_METHOD(Region::copy) {
   // in-arguments
@@ -155,7 +158,6 @@ NAN_METHOD(Region::copy) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::status) {
   auto self = info.This();
   auto region = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -167,7 +169,6 @@ NAN_METHOD(Region::status) {
   Local<Value> returnValue = Nan::New (result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Region::getExtents) {
   auto self = info.This();
@@ -187,7 +188,6 @@ NAN_METHOD(Region::getExtents) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::numRectangles) {
   auto self = info.This();
   auto region = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -199,7 +199,6 @@ NAN_METHOD(Region::numRectangles) {
   Local<Value> returnValue = Nan::New (result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Region::getRectangle) {
   auto self = info.This();
@@ -222,7 +221,6 @@ NAN_METHOD(Region::getRectangle) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::isEmpty) {
   auto self = info.This();
   auto region = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -234,7 +232,6 @@ NAN_METHOD(Region::isEmpty) {
   Local<Value> returnValue = Nan::New ((bool) result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Region::containsPoint) {
   auto self = info.This();
@@ -252,7 +249,6 @@ NAN_METHOD(Region::containsPoint) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::containsRectangle) {
   auto self = info.This();
   auto region = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -267,7 +263,6 @@ NAN_METHOD(Region::containsRectangle) {
   Local<Value> returnValue = Nan::New (result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Region::equal) {
   auto self = info.This();
@@ -284,7 +279,6 @@ NAN_METHOD(Region::equal) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::translate) {
   auto self = info.This();
   auto region = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -296,7 +290,6 @@ NAN_METHOD(Region::translate) {
   // function call
   cairo_region_translate (region, dx, dy);
 }
-
 
 NAN_METHOD(Region::intersect) {
   auto self = info.This();
@@ -313,7 +306,6 @@ NAN_METHOD(Region::intersect) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::intersectRectangle) {
   auto self = info.This();
   auto dst = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -328,7 +320,6 @@ NAN_METHOD(Region::intersectRectangle) {
   Local<Value> returnValue = Nan::New (result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Region::subtract) {
   auto self = info.This();
@@ -345,7 +336,6 @@ NAN_METHOD(Region::subtract) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::subtractRectangle) {
   auto self = info.This();
   auto dst = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -360,7 +350,6 @@ NAN_METHOD(Region::subtractRectangle) {
   Local<Value> returnValue = Nan::New (result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Region::union_) {
   auto self = info.This();
@@ -377,7 +366,6 @@ NAN_METHOD(Region::union_) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::unionRectangle) {
   auto self = info.This();
   auto dst = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -392,7 +380,6 @@ NAN_METHOD(Region::unionRectangle) {
   Local<Value> returnValue = Nan::New (result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Region::xor_) {
   auto self = info.This();
@@ -409,7 +396,6 @@ NAN_METHOD(Region::xor_) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Region::xorRectangle) {
   auto self = info.This();
   auto dst = Nan::ObjectWrap::Unwrap<Region>(self)->_data;
@@ -424,7 +410,6 @@ NAN_METHOD(Region::xorRectangle) {
   Local<Value> returnValue = Nan::New (result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 
 

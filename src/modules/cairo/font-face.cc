@@ -39,7 +39,7 @@ Nan::Persistent<Function>         QuartzFontFace::constructor;
 
 
 /*
- * Initialize font_face.
+ * Initialize
  */
 
 FontFace::FontFace(cairo_font_face_t* data) : ObjectWrap() {
@@ -47,7 +47,7 @@ FontFace::FontFace(cairo_font_face_t* data) : ObjectWrap() {
 }
 
 /*
- * Destroy font_face..
+ * Destroy
  */
 
 FontFace::~FontFace() {
@@ -286,8 +286,8 @@ NAN_METHOD(FontFace::New) {
     return Nan::ThrowError("Cannot instantiate FontFace: use static creators");
   }
 
-  FontFace* font_face = new FontFace(data);
-  font_face->Wrap(info.This());
+  FontFace* instance = new FontFace(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -308,8 +308,8 @@ NAN_METHOD(ToyFontFace::New) {
     return Nan::ThrowError("Cannot instantiate ToyFontFace: use static creators");
   }
 
-  ToyFontFace* font_face = new ToyFontFace(data);
-  font_face->Wrap(info.This());
+  ToyFontFace* instance = new ToyFontFace(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -330,8 +330,8 @@ NAN_METHOD(FtFontFace::New) {
     return Nan::ThrowError("Cannot instantiate FtFontFace: use static creators");
   }
 
-  FtFontFace* font_face = new FtFontFace(data);
-  font_face->Wrap(info.This());
+  FtFontFace* instance = new FtFontFace(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -352,8 +352,8 @@ NAN_METHOD(Win32FontFace::New) {
     return Nan::ThrowError("Cannot instantiate Win32FontFace: use static creators");
   }
 
-  Win32FontFace* font_face = new Win32FontFace(data);
-  font_face->Wrap(info.This());
+  Win32FontFace* instance = new Win32FontFace(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -374,8 +374,8 @@ NAN_METHOD(QuartzFontFace::New) {
     return Nan::ThrowError("Cannot instantiate QuartzFontFace: use static creators");
   }
 
-  QuartzFontFace* font_face = new QuartzFontFace(data);
-  font_face->Wrap(info.This());
+  QuartzFontFace* instance = new QuartzFontFace(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -386,257 +386,235 @@ NAN_METHOD(QuartzFontFace::New) {
  * Methods
  */
 
-
-
 NAN_METHOD(FontFace::status) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<FontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<FontFace>(self)->_data;
 
-    // function call
-    cairo_status_t result = cairo_font_face_status (font_face);
+  // function call
+  cairo_status_t result = cairo_font_face_status (font_face);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(FontFace::getType) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<FontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<FontFace>(self)->_data;
 
-    // function call
-    cairo_font_type_t result = cairo_font_face_get_type (font_face);
+  // function call
+  cairo_font_type_t result = cairo_font_face_get_type (font_face);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(FontFace::getReferenceCount) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<FontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<FontFace>(self)->_data;
 
-    // function call
-    unsigned int result = cairo_font_face_get_reference_count (font_face);
+  // function call
+  unsigned int result = cairo_font_face_get_reference_count (font_face);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(FontFace::create) {
-    // in-arguments
-    auto family = *Nan::Utf8String (info[0].As<String>());
-    auto slant = (cairo_font_slant_t) Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
-    auto weight = (cairo_font_weight_t) Nan::To<int64_t>(info[2].As<Number>()).ToChecked();
+  // in-arguments
+  auto family = *Nan::Utf8String (info[0].As<String>());
+  auto slant = (cairo_font_slant_t) Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+  auto weight = (cairo_font_weight_t) Nan::To<int64_t>(info[2].As<Number>()).ToChecked();
 
-    // function call
-    cairo_font_face_t * result = cairo_toy_font_face_create (family, slant, weight);
+  // function call
+  cairo_font_face_t * result = cairo_toy_font_face_create (family, slant, weight);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (ToyFontFace::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (ToyFontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(FontFace::createForFtFace) {
-    // in-arguments
-    auto face = (FT_Face) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
-    auto load_flags = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+  // in-arguments
+  auto face = (FT_Face) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  auto load_flags = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
 
-    // function call
-    cairo_font_face_t * result = cairo_ft_font_face_create_for_ft_face (face, load_flags);
+  // function call
+  cairo_font_face_t * result = cairo_ft_font_face_create_for_ft_face (face, load_flags);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (FtFontFace::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (FtFontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(FontFace::createForPattern) {
-    // in-arguments
-    auto pattern = (FcPattern *) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto pattern = (FcPattern *) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_font_face_t * result = cairo_ft_font_face_create_for_pattern (pattern);
+  // function call
+  cairo_font_face_t * result = cairo_ft_font_face_create_for_pattern (pattern);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (FtFontFace::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (FtFontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 #ifdef PLATFORM_WIN
 NAN_METHOD(FontFace::createForLogfontw) {
-    // in-arguments
-    auto logfont = (LOGFONTW *) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto logfont = (LOGFONTW *) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_font_face_t * result = cairo_win32_font_face_create_for_logfontw (logfont);
+  // function call
+  cairo_font_face_t * result = cairo_win32_font_face_create_for_logfontw (logfont);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (Win32FontFace::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Win32FontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
 #endif // PLATFORM_WIN
-
 
 #ifdef PLATFORM_WIN
 NAN_METHOD(FontFace::createForHfont) {
-    // in-arguments
-    auto font = (HFONT) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto font = (HFONT) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_font_face_t * result = cairo_win32_font_face_create_for_hfont (font);
+  // function call
+  cairo_font_face_t * result = cairo_win32_font_face_create_for_hfont (font);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (Win32FontFace::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Win32FontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
 #endif // PLATFORM_WIN
-
 
 #ifdef PLATFORM_WIN
 NAN_METHOD(FontFace::createForLogfontwHfont) {
-    // in-arguments
-    auto logfont = (LOGFONTW *) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
-    auto font = (HFONT) Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+  // in-arguments
+  auto logfont = (LOGFONTW *) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  auto font = (HFONT) Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
 
-    // function call
-    cairo_font_face_t * result = cairo_win32_font_face_create_for_logfontw_hfont (logfont, font);
+  // function call
+  cairo_font_face_t * result = cairo_win32_font_face_create_for_logfontw_hfont (logfont, font);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (Win32FontFace::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Win32FontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
 #endif // PLATFORM_WIN
 
-
 #ifdef PLATFORM_MAC
 NAN_METHOD(FontFace::createForCgfont) {
-    // in-arguments
-    auto font = (CGFontRef) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto font = (CGFontRef) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_font_face_t * result = cairo_quartz_font_face_create_for_cgfont (font);
+  // function call
+  cairo_font_face_t * result = cairo_quartz_font_face_create_for_cgfont (font);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (QuartzFontFace::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (QuartzFontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
 #endif // PLATFORM_MAC
-
 
 #ifdef PLATFORM_MAC
 NAN_METHOD(FontFace::createForAtsuFontId) {
-    // in-arguments
-    auto font_id = (ATSUFontID) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto font_id = (ATSUFontID) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_font_face_t * result = cairo_quartz_font_face_create_for_atsu_font_id (font_id);
+  // function call
+  cairo_font_face_t * result = cairo_quartz_font_face_create_for_atsu_font_id (font_id);
 
-    // return
-    Local<Value> args[] = { Nan::New<External> (result) };
-    Local<Function> constructor = Nan::New<Function> (QuartzFontFace::constructor);
-    Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (QuartzFontFace::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
 }
 #endif // PLATFORM_MAC
-
-
 NAN_METHOD(ToyFontFace::getFamily) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<ToyFontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<ToyFontFace>(self)->_data;
 
-    // function call
-    const char * result = cairo_toy_font_face_get_family (font_face);
+  // function call
+  const char * result = cairo_toy_font_face_get_family (font_face);
 
-    // return
-    Local<Value> returnValue = UTF8 (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = UTF8 (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(ToyFontFace::getSlant) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<ToyFontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<ToyFontFace>(self)->_data;
 
-    // function call
-    cairo_font_slant_t result = cairo_toy_font_face_get_slant (font_face);
+  // function call
+  cairo_font_slant_t result = cairo_toy_font_face_get_slant (font_face);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(ToyFontFace::getWeight) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<ToyFontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<ToyFontFace>(self)->_data;
 
-    // function call
-    cairo_font_weight_t result = cairo_toy_font_face_get_weight (font_face);
+  // function call
+  cairo_font_weight_t result = cairo_toy_font_face_get_weight (font_face);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
-
 NAN_METHOD(FtFontFace::getSynthesize) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<FtFontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<FtFontFace>(self)->_data;
 
-    // function call
-    unsigned int result = cairo_ft_font_face_get_synthesize (font_face);
+  // function call
+  unsigned int result = cairo_ft_font_face_get_synthesize (font_face);
 
-    // return
-    Local<Value> returnValue = Nan::New (result);
-    info.GetReturnValue().Set(returnValue);
+  // return
+  Local<Value> returnValue = Nan::New (result);
+  info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(FtFontFace::setSynthesize) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<FtFontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<FtFontFace>(self)->_data;
 
-    // in-arguments
-    auto synth_flags = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto synth_flags = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_ft_font_face_set_synthesize (font_face, synth_flags);
+  // function call
+  cairo_ft_font_face_set_synthesize (font_face, synth_flags);
 }
-
 
 NAN_METHOD(FtFontFace::unsetSynthesize) {
-    auto self = info.This();
-    auto font_face = Nan::ObjectWrap::Unwrap<FtFontFace>(self)->_data;
+  auto self = info.This();
+  auto font_face = Nan::ObjectWrap::Unwrap<FtFontFace>(self)->_data;
 
-    // in-arguments
-    auto synth_flags = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+  // in-arguments
+  auto synth_flags = Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
 
-    // function call
-    cairo_ft_font_face_unset_synthesize (font_face, synth_flags);
+  // function call
+  cairo_ft_font_face_unset_synthesize (font_face, synth_flags);
 }
-
-
 
 
 

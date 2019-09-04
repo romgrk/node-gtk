@@ -22,7 +22,7 @@ Nan::Persistent<Function>         Matrix::constructor;
 
 
 /*
- * Initialize matrix.
+ * Initialize
  */
 
 Matrix::Matrix(cairo_matrix_t* data) : ObjectWrap() {
@@ -30,7 +30,7 @@ Matrix::Matrix(cairo_matrix_t* data) : ObjectWrap() {
 }
 
 /*
- * Destroy matrix..
+ * Destroy
  */
 
 Matrix::~Matrix() {
@@ -64,6 +64,7 @@ void Matrix::SetupTemplate() {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(Nan::New("CairoMatrix").ToLocalChecked());
 
+
   SET_PROTOTYPE_METHOD(tpl, translate);
   SET_PROTOTYPE_METHOD(tpl, scale);
   SET_PROTOTYPE_METHOD(tpl, rotate);
@@ -81,6 +82,9 @@ void Matrix::SetupTemplate() {
 
   constructorTemplate.Reset(tpl);
   constructor.Reset(ctor);
+
+
+
 }
 
 
@@ -120,18 +124,15 @@ NAN_METHOD(Matrix::New) {
     auto x0 = Nan::To<double>(info[4].As<Number>()).ToChecked();
     auto y0 = Nan::To<double>(info[5].As<Number>()).ToChecked();
 
-    data = new cairo_matrix_t();
+    data = new cairo_matrix_t ();
     cairo_matrix_init (data, xx, yx, xy, yy, x0, y0);
   }
-  else if (info.Length() == 0) {
+  else {
     data = new cairo_matrix_t();
   }
-  else {
-    return Nan::ThrowError("Cannot instantiate Matrix: requires 6 arguments");
-  }
 
-  Matrix* matrix = new Matrix(data);
-  matrix->Wrap(info.This());
+  Matrix* instance = new Matrix(data);
+  instance->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
@@ -141,7 +142,6 @@ NAN_METHOD(Matrix::New) {
 /*
  * Methods
  */
-
 
 NAN_METHOD(Matrix::initIdentity) {
   // out-arguments
@@ -157,7 +157,6 @@ NAN_METHOD(Matrix::initIdentity) {
   Local<Value> returnValue = matrix;
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Matrix::initTranslate) {
   // in-arguments
@@ -178,7 +177,6 @@ NAN_METHOD(Matrix::initTranslate) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Matrix::initScale) {
   // in-arguments
   auto sx = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -198,7 +196,6 @@ NAN_METHOD(Matrix::initScale) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Matrix::initRotate) {
   // in-arguments
   auto radians = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -217,7 +214,6 @@ NAN_METHOD(Matrix::initRotate) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Matrix::translate) {
   auto self = info.This();
   auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(self)->_data;
@@ -229,7 +225,6 @@ NAN_METHOD(Matrix::translate) {
   // function call
   cairo_matrix_translate (matrix, tx, ty);
 }
-
 
 NAN_METHOD(Matrix::scale) {
   auto self = info.This();
@@ -243,7 +238,6 @@ NAN_METHOD(Matrix::scale) {
   cairo_matrix_scale (matrix, sx, sy);
 }
 
-
 NAN_METHOD(Matrix::rotate) {
   auto self = info.This();
   auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(self)->_data;
@@ -254,7 +248,6 @@ NAN_METHOD(Matrix::rotate) {
   // function call
   cairo_matrix_rotate (matrix, radians);
 }
-
 
 NAN_METHOD(Matrix::invert) {
   auto self = info.This();
@@ -267,7 +260,6 @@ NAN_METHOD(Matrix::invert) {
   Local<Value> returnValue = Nan::New (result);
   info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(Matrix::multiply) {
   // in-arguments
@@ -288,7 +280,6 @@ NAN_METHOD(Matrix::multiply) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Matrix::transformDistance) {
   auto self = info.This();
   auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(self)->_data;
@@ -307,7 +298,6 @@ NAN_METHOD(Matrix::transformDistance) {
   info.GetReturnValue().Set(returnValue);
 }
 
-
 NAN_METHOD(Matrix::transformPoint) {
   auto self = info.This();
   auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(self)->_data;
@@ -325,7 +315,6 @@ NAN_METHOD(Matrix::transformPoint) {
   Nan::Set (returnValue, UTF8 ("y"), Nan::New (y));
   info.GetReturnValue().Set(returnValue);
 }
-
 
 
 
