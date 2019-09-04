@@ -79,6 +79,24 @@ drawingArea.on('draw', (context) => {
   layout.setFontDescription(fontDescription)
   PangoCairo.showLayout(context, layout)
 
+  // Draw glyphs
+  // const fontFace = Cairo.FontFace.create('Arial', Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
+  // const scaledFont = Cairo.ScaledFont.create(fontFace, new Cairo.Matrix(), new Cairo.Matrix(), new Cairo.FontOptions())
+  const scaledFont = context.getScaledFont()
+  const text = 'Here are some glyphs'
+  const [glyphs] = scaledFont.textToGlyphs(10, 100, text, text.length)
+
+  // put paths for current cluster to context
+  // context.setScaledFont(scaledFont)
+  context.glyphPath(glyphs, glyphs.length)
+  const glyphExtents = context.glyphExtents(glyphs, glyphs.length)
+
+  // draw black text with green stroke
+  context.setSourceRgba(1, 1, 0.2, 1)
+  context.fillPreserve()
+  // context.setLineWidth(0.5)
+  // context.stroke()
+
   const path = context.copyPath()
   console.log(path, path.status)
 
