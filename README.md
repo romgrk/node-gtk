@@ -4,6 +4,7 @@
 
 ![NPM version](https://img.shields.io/npm/v/node-gtk.svg)
 ![Travis status](https://api.travis-ci.org/romgrk/node-gtk.svg?branch=master)
+[![install size](https://packagephobia.now.sh/badge?p=node-gtk)](https://packagephobia.now.sh/result?p=node-gtk)
 
 
 ### What is this ?
