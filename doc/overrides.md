@@ -1,9 +1,11 @@
+# Overrides
+
 ## Implementing overrides
 
- - [Functions that create GMainLoop](#functions-that-create-gmainloop)
- - [Length arguments](#length-arguments)
- - [Multiple return values](#multiple-return-values)
- - [Boolean result](#boolean-result)
+- [Functions that create GMainLoop](#functions-that-create-gmainloop)
+- [Length arguments](#length-arguments)
+- [Multiple return values](#multiple-return-values)
+- [Boolean result](#boolean-result)
 
 ### Functions that create GMainLoop
 
@@ -27,7 +29,7 @@ Gtk.main = function main() {
 ### Length arguments
 
 Some functions have return values that can be ignored, usually because they're not relevant in a javascript context.
-One such example is described here: https://gitlab.gnome.org/GNOME/gjs/issues/66
+One such example is described [here](https://gitlab.gnome.org/GNOME/gjs/issues/66)
 In those cases, we're left with a single relevant return value, which should be the JS return value.
 
 `g_key_file_load_from_data (GKeyFile *key_file, const gchar *data, gsize length, GError *error);`
@@ -40,14 +42,12 @@ GLib.KeyFile.loadFromData = function() {
 }
 ```
 
-
 ### Multiple return values
 
 Methods that return more than one relevant return value.
 In those cases, we need to return an object with properties named accordingly.
 
 E.g. `gtk_widget_get_request_size ( GtkWidget *widget, int *width, int *height );`
-
 
 ### Boolean result
 
