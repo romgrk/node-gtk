@@ -2,6 +2,7 @@
 *~
 .buildconfig
 .ycm_extra_conf.*
+.prettierrc
 */.tags
 \#*\#
 
