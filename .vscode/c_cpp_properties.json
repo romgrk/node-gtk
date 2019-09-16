@@ -1,0 +1,20 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/usr/include/glib-2.0",
+        "${HOME}/.node-gyp/12.9.1/include/node",
+        "/usr/lib/x86_64-linux-gnu/glib-2.0/include",
+        "/usr/include/gobject-introspection-1.0"
+      ],
+      "defines": [],
+      "compilerPath": "/usr/bin/clang-6.0",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "clang-x64"
+    }
+  ],
+  "version": 4
+}
