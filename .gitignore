@@ -12,3 +12,4 @@ build/
 node_modules/
 
 lib/binding
+.vscode/c_cpp_properties.json
