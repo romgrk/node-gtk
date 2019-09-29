@@ -1,11 +1,3 @@
-<p align="center">
-    <img
-      alt="NODE-GTK"
-      width="400"
-      src="https://raw.githubusercontent.com/romgrk/node-gtk/master/img/node-gtk-logo.svg"
-    />
-</p>
-
 # node-gtk
 
 ### GNOME Gtk+ bindings for NodeJS
@@ -55,21 +47,21 @@ You can use [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you
 ## Example
 
 ```javascript
-const gi = require("node-gtk");
-Gtk = gi.require("Gtk", "3.0");
+const gi = require('node-gtk')
+Gtk = gi.require('Gtk', '3.0')
 
-gi.startLoop();
-Gtk.init();
+gi.startLoop()
+Gtk.init()
 
-const win = new Gtk.Window();
-win.on("destroy", () => Gtk.mainQuit());
-win.on("delete-event", () => false);
+const win = new Gtk.Window()
+win.on('destroy', () => Gtk.mainQuit())
+win.on('delete-event', () => false)
 
-win.setDefaultSize(200, 80);
-win.add(new Gtk.Label({ label: "Hello Gtk+" }));
+win.setDefaultSize(200, 80)
+win.add(new Gtk.Label({ label: 'Hello Gtk+' }))
 
-win.showAll();
-Gtk.main();
+win.showAll()
+Gtk.main()
 ```
 
 ![Hello node-gtk!](img/hello-node-gtk.png)
@@ -125,32 +117,32 @@ from being propagated or preventing the default behavior. Refer to GTK documenta
 (E.g. [GtkWidget signals](https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget.signals))
 
 ```javascript
-const input = new Gtk.Entry();
+const input = new Gtk.Entry()
 
 /**
  * GObject.on - associates a callback to an event
  * @param {String} name - Name of the event
  * @param {Function} callback - Event handler
  */
-input.on("key-press-event", onKeyPress);
+input.on('key-press-event', onKeyPress)
 
 /**
  * GObject.off - dissociates callback from an event
  * @param {String} name - Name of the event
  * @param {Function} callback - Event handler
  */
-input.off("key-press-event", onKeyPress);
+input.off('key-press-event', onKeyPress)
 
 /**
  * GObject.once - as GObject.on, but only runs once
  * @param {String} name - Name of the event
  * @param {Function} callback - Event handler
  */
-input.once("key-press-event", onKeyPress);
+input.once('key-press-event', onKeyPress)
 
 function onKeyPress(event) {
   // event.__proto__ === Gdk.EventKey
-  console.log(event.string, event.keyval);
+  console.log(event.string, event.keyval)
 }
 ```
 
