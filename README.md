@@ -1,3 +1,11 @@
+<p align="center">
+    <img
+      alt="NODE-GTK"
+      width="400"
+      src="https://raw.githubusercontent.com/romgrk/node-gtk/master/img/node-gtk-logo.svg"
+    />
+</p>
+
 # node-gtk
 
 ### GNOME Gtk+ bindings for NodeJS
