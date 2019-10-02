@@ -1,9 +1,11 @@
 <p align="center">
-    <img
-      alt="NODE-GTK"
-      width="400"
-      src="https://raw.githubusercontent.com/romgrk/node-gtk/master/img/node-gtk-logo.svg"
-    />
+    <a>
+      <img
+        alt="NODE-GTK"
+        width="250"
+        src="https://raw.githubusercontent.com/romgrk/node-gtk/master/img/node-gtk-logo.svg?sanitize=true""
+      />
+    </a>
 </p>
 
 # node-gtk
