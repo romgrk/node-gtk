@@ -3,9 +3,11 @@
   "version": "0.3.0",
   "description": "GNOME Gtk+ bindings for NodeJS",
   "main": "lib/index.js",
+  "types": "typesGenerator/typings.d.ts",
   "scripts": {
     "install": "if [ \"$(uname)\" = \"Darwin\" ] && [ \"$(which brew)\" != \"\" ]; then export PKG_CONFIG_PATH=$(brew --prefix libffi)/lib/pkgconfig; fi; node-pre-gyp install --fallback-to-build",
     "test": "mocha tests/__run__.js",
+    "generate-types-test": "npx ts-node typesGenerator/test1Render.ts && echo 'test files generated: '; ls tmp*",
     "build": "node-pre-gyp rebuild",
     "build:incremental": "node-pre-gyp build"
   },
@@ -38,10 +40,14 @@
     "node-pre-gyp-github": "^1.4.3"
   },
   "devDependencies": {
+    "@types/lodash.camelcase": "^4.3.6",
+    "@types/node": "^12.7.11",
     "assert": "^1.5.0",
     "aws-sdk": "^2.452.0",
     "chalk": "^2.4.2",
-    "mocha": "^5.2.0"
+    "mocha": "^5.2.0",
+    "ts-node": "^8.4.1",
+    "typescript": "^3.6.3"
   },
   "files": [
     "/lib",

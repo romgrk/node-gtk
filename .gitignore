@@ -8,6 +8,8 @@
 npm-debug.log
 
 build/
+typesGenerator/dist
+tmp*
 node_modules/
 
 lib/binding
