@@ -58,7 +58,7 @@ You can use [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you
 
 ```javascript
 const gi = require('node-gtk')
-Gtk = gi.require('Gtk', '3.0')
+const Gtk = gi.require('Gtk', '3.0')
 
 gi.startLoop()
 Gtk.init()
