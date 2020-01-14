@@ -119,6 +119,8 @@ static void AssociateGObject(Isolate *isolate, Local<Object> object, GObject *go
 }
 
 static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
+    warn("allocating GObjectConstructor");
+
     Isolate *isolate = info.GetIsolate ();
 
     /* The flow of this function is a bit twisty.
@@ -182,6 +184,8 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
 }
 
 static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
+    warn("releasing GObjectDestroyed");
+
     GObject *gobject = data.GetParameter ();
 
     void *type_data = g_object_get_qdata (gobject, GNodeJS::object_quark());
