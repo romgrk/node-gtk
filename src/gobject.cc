@@ -269,11 +269,11 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &in
         return;
     }
 
-    const char *signal_name = *Nan::Utf8String (TO_STRING (info[0]));
     Local<Function> callback = info[1].As<Function>();
     GType gtype = (GType) TO_LONG (Nan::Get(info.This(), UTF8("__gtype__")).ToLocalChecked());
 
     GIBaseInfo *object_info = g_irepository_find_by_gtype (NULL, gtype);
+    const char *signal_name = *Nan::Utf8String (TO_STRING (info[0]));
     GISignalInfo *signal_info = FindSignalInfo (object_info, signal_name);
 
     if (signal_info == NULL) {
