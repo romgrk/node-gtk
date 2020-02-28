@@ -49,7 +49,7 @@ static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
     GObject *gobject = NULL;
 
     for (int i = 0; i < n_properties; i++) {
-        Local<String> name = TO_STRING (properties->Get(i));
+        Local<String> name = TO_STRING (Nan::Get(properties, i).ToLocalChecked());
         const char *name_string = g_strdup (*Nan::Utf8String(name));
         Local<Value> value = Nan::Get(property_hash, name).ToLocalChecked();
 
