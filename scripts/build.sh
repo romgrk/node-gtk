@@ -47,6 +47,10 @@ function npm_test() {
     fi;
 }
 
+if [ "$(uname)" = "Linux" ]; then
+    apt-cache policy libglib2.0-dev
+fi
+
 # test installing from source
 if [[ $PUBLISH_BINARIES == false ]] && [[ $REPUBLISH_BINARIES == false ]]; then
     npm install --build-from-source
