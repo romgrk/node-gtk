@@ -51,7 +51,7 @@ static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
     for (int i = 0; i < n_properties; i++) {
         Local<String> name = TO_STRING (properties->Get(i));
         const char *name_string = g_strdup (*Nan::Utf8String(name));
-        Local<Value> value = property_hash->Get (name);
+        Local<Value> value = Nan::Get(property_hash, name).ToLocalChecked();
 
         GType value_gtype = g_object_class_find_property (G_OBJECT_CLASS (klass), name_string)->value_type;
 

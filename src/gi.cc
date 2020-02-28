@@ -36,7 +36,7 @@ static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInf
     const char *function_name = g_base_info_get_name ((GIBaseInfo *) info);
     Local<Function> fn = GNodeJS::MakeFunction (info);
 
-    module_obj->Set(String::NewFromUtf8(isolate, function_name), fn);
+    Nan::Set(module_obj, UTF8(function_name), fn);
 }
 
 static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info, const char *base_name) {

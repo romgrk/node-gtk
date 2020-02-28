@@ -326,7 +326,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
         g_array = g_array_sized_new (zero_terminated, FALSE, element_size, length);
 
         for (int i = 0; i < length; i++) {
-            auto value = array->Get(i);
+            auto value = Nan::Get(array, i).ToLocalChecked();
             GIArgument arg;
 
             if (V8ToGIArgument(element_info, &arg, value, true)) {
@@ -368,7 +368,7 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
     void *result = malloc(element_size * (length + (is_zero_terminated ? 1 : 0)));
 
     for (int i = 0; i < length; i++) {
-        auto value = array->Get(i);
+        auto value = Nan::Get(array, i).ToLocalChecked();
 
         GIArgument arg;
 
@@ -419,7 +419,7 @@ gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value) {
 
     for (int i = 0; i < length; i++) {
         GIArgument arg;
-        Local<Value> value = array->Get(i);
+        Local<Value> value = Nan::Get(array, i).ToLocalChecked();
 
         if (!V8ToGIArgument(element_info, &arg, value, false)) {
             g_warning("V8ToGList: couldnt convert value #%i to GIArgument", i);
