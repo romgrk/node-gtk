@@ -25,6 +25,9 @@ jobs:
      # Linux
      - os: linux
        dist: bionic
+       env: NODE_VERSION="13" CC="gcc-8" CXX="g++-8"
+     - os: linux
+       dist: bionic
        env: NODE_VERSION="12" CC="gcc-8" CXX="g++-8"
      - os: linux
        dist: bionic
@@ -40,6 +43,9 @@ jobs:
        env: NODE_VERSION="8" CC="gcc-8" CXX="g++-8"
 
      # OS X
+     - os: osx
+       compiler: clang
+       env: NODE_VERSION="13" # node abi 79
      - os: osx
        compiler: clang
        env: NODE_VERSION="12" # node abi 72
