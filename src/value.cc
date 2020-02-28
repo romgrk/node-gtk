@@ -3,6 +3,7 @@
 //#include <nan.h>
 #include <glib.h>
 
+#include "error.h"
 #include "boxed.h"
 #include "function.h"
 #include "gi.h"
@@ -1105,19 +1106,19 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
         g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Nan::ThrowTypeError("Value is not instance of GObject");
+            Throw::InvalidGType("GObject", G_VALUE_TYPE (gvalue));
             return false;
         }
         g_value_set_object (gvalue, GObjectFromWrapper (value));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Nan::ThrowTypeError("Value is not instance of boxed");
+            Throw::InvalidGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
         }
         g_value_set_boxed (gvalue, BoxedFromWrapper(value));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Nan::ThrowTypeError("Value is not instance of GParamSpec");
+            Throw::InvalidGType("GParamSpec", G_VALUE_TYPE (gvalue));
             return false;
         }
         g_value_set_param (gvalue, ParamSpec::FromWrapper(value));
