@@ -71,6 +71,16 @@ void InvalidGType (const char *category, GType gtype) {
     g_free(message);
 }
 
+void GTypeNotFound (GIBaseInfo *info, const char* error) {
+    char* message = g_strdup_printf (
+            "Couldn't load %s.%s: %s",
+            g_base_info_get_namespace(info),
+            g_base_info_get_name(info),
+            error);
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
 }; // namespace Throw
 
 }; // namespace GNodeJS

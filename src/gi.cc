@@ -154,7 +154,9 @@ NAN_METHOD(MakeVirtualFunction) {
 
 NAN_METHOD(MakeObjectClass) {
     BaseInfo gi_info(info[0]);
-    info.GetReturnValue().Set(GNodeJS::MakeClass(*gi_info));
+    auto klass = GNodeJS::MakeClass(*gi_info);
+    if (!klass.IsEmpty())
+        info.GetReturnValue().Set(klass.ToLocalChecked());
 }
 
 NAN_METHOD(MakeBoxedClass) {

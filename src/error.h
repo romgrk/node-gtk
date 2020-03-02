@@ -30,6 +30,8 @@ namespace GNodeJS {
 
     void InvalidGType (const char *category, GType gtype);
 
+    void GTypeNotFound (GIBaseInfo *info, const char* error);
+
   }; // namespace Throw
 
 }; // namespace GNodeJS
