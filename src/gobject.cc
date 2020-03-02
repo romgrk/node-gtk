@@ -35,59 +35,42 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data);
 
 static Local<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info);
 
-static bool InitGParameterFromProperty(GParameter    *parameter,
-                                       void          *klass,
-                                       Local<String>  name,
-                                       Local<Value>   value) {
-    Nan::Utf8String name_utf8 (name);
-    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_CLASS (klass), *name_utf8);
+static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
+    if (!object->IsObject ())
+        return (GObject*) g_object_new(gtype, NULL);
 
-    // Ignore additionnal keys in options, thus return true
-    if (pspec == NULL)
-        return true;
-
-    GType value_type = G_PARAM_SPEC_VALUE_TYPE (pspec);
-    parameter->name = pspec->name;
-    g_value_init (&parameter->value, value_type);
-
-    if (!CanConvertV8ToGValue(&parameter->value, value)) {
-        char* message = g_strdup_printf("Cannot convert value for property \"%s\", expected type %s",
-                *name_utf8, g_type_name(value_type));
-        Nan::ThrowTypeError(message);
-        free(message);
-        return false;
-    }
-
-    if (!V8ToGValue (&parameter->value, value)) {
-        char* message = g_strdup_printf("Couldn't convert value for property \"%s\", expected type %s",
-                *name_utf8, g_type_name(value_type));
-        Nan::ThrowTypeError(message);
-        free(message);
-        return false;
-    }
-
-    return true;
-}
-
-static bool InitGParametersFromProperty(GParameter    **parameters_p,
-                                        int            *n_parameters_p,
-                                        void           *klass,
-                                        Local<Object>  property_hash) {
+    Local<Object> property_hash = TO_OBJECT (object);
     Local<Array> properties = Nan::GetOwnPropertyNames (property_hash).ToLocalChecked();
-    int n_parameters = properties->Length ();
-    GParameter *parameters = g_new0 (GParameter, n_parameters);
+    int n_properties = properties->Length ();
+    const char **names = g_new0 (const char*, n_properties + 1);
+    GValue *values = g_new0 (GValue, n_properties);
 
-    for (int i = 0; i < n_parameters; i++) {
-        Local<String> name = TO_STRING (properties->Get(i));
-        Local<Value> value = property_hash->Get (name);
+    void *klass = g_type_class_ref (gtype);
+    GObject *gobject = NULL;
 
-        if (!InitGParameterFromProperty (&parameters[i], klass, TO_STRING (name), value))
-            return false;
+    for (int i = 0; i < n_properties; i++) {
+        Local<String> name = TO_STRING (Nan::Get(properties, i).ToLocalChecked());
+        const char *name_string = g_strdup (*Nan::Utf8String(name));
+        Local<Value> value = Nan::Get(property_hash, name).ToLocalChecked();
+
+        GType value_gtype = g_object_class_find_property (G_OBJECT_CLASS (klass), name_string)->value_type;
+
+        g_value_init(&values[i], value_gtype);
+
+        if (!V8ToGValue(&values[i], value))
+            goto out;
+
+        names[i] = name_string;
     }
 
-    *parameters_p = parameters;
-    *n_parameters_p = n_parameters;
-    return true;
+    gobject = (GObject*) g_object_new_with_properties(gtype, n_properties, names, values);
+
+out:
+    g_strfreev ((gchar**) names);
+    g_free (values);
+    g_type_class_unref (klass);
+
+    return gobject;
 }
 
 static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down) {
@@ -152,21 +135,14 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         GObject *gobject;
         GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*info.Data ())->Value ();
         GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
-        void *klass = g_type_class_ref (gtype);
 
-        GParameter *parameters = NULL;
-        int n_parameters = 0;
+        gobject = CreateGObjectFromObject (gtype, info[0]);
 
-        if (info[0]->IsObject ()) {
-            Local<Object> property_hash = TO_OBJECT (info[0]);
-
-            if (!InitGParametersFromProperty (&parameters, &n_parameters, klass, property_hash)) {
-                // Error will already be thrown from InitGParametersFromProperty
-                goto out;
-            }
+        if (gobject == NULL) {
+            // Error will already be thrown from CreateGObjectFromObject
+            return;
         }
 
-        gobject = (GObject *) g_object_newv (gtype, n_parameters, parameters);
         AssociateGObject (isolate, self, gobject);
 
         Nan::DefineOwnProperty(self,
@@ -174,10 +150,6 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
                 Nan::New<Number>(gtype),
                 (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
         );
-
-    out:
-        g_free (parameters);
-        g_type_class_unref (klass);
     }
 }
 

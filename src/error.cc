@@ -62,6 +62,14 @@ void UnsupportedCallback (GIBaseInfo* info) {
     g_free(message);
 }
 
+void InvalidGType (const char *category, GType gtype) {
+    char* message = g_strdup_printf (
+            "Value is not instance of %s %s",
+            category,
+            g_type_name (gtype));
+    Nan::ThrowTypeError(message);
+    g_free(message);
+}
 
 }; // namespace Throw
 

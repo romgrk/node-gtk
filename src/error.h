@@ -28,6 +28,8 @@ namespace GNodeJS {
 
     void UnsupportedCallback (GIBaseInfo* info);
 
+    void InvalidGType (const char *category, GType gtype);
+
   }; // namespace Throw
 
 }; // namespace GNodeJS

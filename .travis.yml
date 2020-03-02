@@ -1,4 +1,3 @@
-sudo: enabled
 
 language: generic
 
@@ -21,26 +20,32 @@ addons:
       - 'libsoup2.4'
       - 'gir1.2-soup-2.4'
 
-matrix:
+jobs:
   include:
      # Linux
      - os: linux
-       dist: xenial
+       dist: bionic
+       env: NODE_VERSION="13" CC="gcc-8" CXX="g++-8"
+     - os: linux
+       dist: bionic
        env: NODE_VERSION="12" CC="gcc-8" CXX="g++-8"
      - os: linux
-       dist: xenial
+       dist: bionic
        env: NODE_VERSION="11" CC="gcc-8" CXX="g++-8"
      - os: linux
-       dist: xenial
+       dist: bionic
        env: NODE_VERSION="10" CC="gcc-8" CXX="g++-8"
      - os: linux
-       dist: xenial
+       dist: bionic
        env: NODE_VERSION="9" CC="gcc-8" CXX="g++-8"
      - os: linux
-       dist: xenial
+       dist: bionic
        env: NODE_VERSION="8" CC="gcc-8" CXX="g++-8"
 
      # OS X
+     - os: osx
+       compiler: clang
+       env: NODE_VERSION="13" # node abi 79
      - os: osx
        compiler: clang
        env: NODE_VERSION="12" # node abi 72

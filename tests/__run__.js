@@ -9,6 +9,12 @@ const child_process = require('child_process')
 
 const files = fs.readdirSync(__dirname).filter(f => !path.basename(f).startsWith('__'))
 
+const watchdog = setTimeout(() => {
+  console.error('Error: 10 minutes timeout reached')
+  process.exit(1)
+}, 10 * 60 * 1000)
+watchdog.unref()
+
 files.forEach(file => {
 
   it(file, function(done) {

@@ -69,6 +69,8 @@ common.describe('calls the callback (GDestroyNotify after, user_data)', () => {
   list.prepend(row)
 
   window.add(list)
+  const { defaultHeight, defaultWidth } = window
+  console.log({ defaultHeight, defaultWidth })
   window.showAll()
 
   list.setHeaderFunc((row, before) => {
