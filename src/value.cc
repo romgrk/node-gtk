@@ -549,7 +549,7 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
     case GI_INFO_TYPE_UNION:
-        arg->v_pointer = BoxedFromWrapper(value);
+        arg->v_pointer = PointerFromWrapper(value);
         break;
 
     case GI_INFO_TYPE_FLAGS:
@@ -1115,7 +1115,7 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
             Throw::InvalidGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
         }
-        g_value_set_boxed (gvalue, BoxedFromWrapper(value));
+        g_value_set_boxed (gvalue, PointerFromWrapper(value));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Throw::InvalidGType("GParamSpec", G_VALUE_TYPE (gvalue));

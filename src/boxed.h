@@ -30,6 +30,6 @@ public:
 Local<Function>         MakeBoxedClass   (GIBaseInfo *info);
 Local<FunctionTemplate> GetBoxedTemplate (GIBaseInfo *info, GType gtype);
 Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data);
-void *                  BoxedFromWrapper (Local<Value>);
+void *                  PointerFromWrapper (Local<Value>);
 
 };
