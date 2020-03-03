@@ -1199,9 +1199,12 @@ Local<Value> GValueToV8(const GValue *gvalue) {
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
-        GType type = G_VALUE_TYPE (gvalue);
-        g_type_ensure(type);
-        GIBaseInfo *info = g_irepository_find_by_gtype(NULL, type);
+        GType gtype = G_VALUE_TYPE (gvalue);
+        GIBaseInfo *info = g_irepository_find_by_gtype(NULL, gtype);
+        if (info == NULL) {
+            Throw::InvalidGType(NULL, gtype);
+            return Nan::Null(); // FIXME(return a MaybeLocal instead?)
+        }
         Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue));
         g_base_info_unref(info);
         return obj;

@@ -63,11 +63,13 @@ void UnsupportedCallback (GIBaseInfo* info) {
 }
 
 void InvalidGType (const char *category, GType gtype) {
-    char* message = g_strdup_printf (
-            "Value is not instance of %s %s",
-            category,
-            g_type_name (gtype));
-    Nan::ThrowTypeError(message);
+    char* message =
+        g_strdup_printf (
+                "Metadata for GType \"%s\" (category: %s) was not found. "
+                "You might need to load additional required modules.",
+            g_type_name (gtype),
+            category);
+    Nan::ThrowError(message);
     g_free(message);
 }
 
