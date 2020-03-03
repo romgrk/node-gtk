@@ -22,8 +22,14 @@ const notOurFaultPatterns = [
 describe('gi.require() works for all modules', async () => {
 
   const searchPaths = gi._GIRepository.Repository_get_search_path()
+
+  console.log('Search path:')
+  console.log(searchPaths)
+  console.log('')
+
   const modules =
-    searchPaths.map(path => fs.readdirSync(path).map(parseModule))
+    searchPaths.filter(path => fs.existsSync(path))
+               .map(path => fs.readdirSync(path).map(parseModule))
                .reduce((acc, cur) => acc.concat(cur), [])
 
   console.log(`${modules.length} modules found`)
