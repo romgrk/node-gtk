@@ -125,8 +125,16 @@ NAN_METHOD(GetConstantValue) {
     }
 
     GIArgument gi_arg;
-    g_constant_info_get_value((GIConstantInfo *) gi_info, &gi_arg);
-    info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg));
+    gint size = g_constant_info_get_value((GIConstantInfo *) gi_info, &gi_arg);
+    // Catches an invalid case for Granite.options
+    if (size != 0)
+        info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg));
+    else
+        warn("Couldn't load %s.%s: invalid constant size: %i",
+                g_base_info_get_namespace (gi_info),
+                g_base_info_get_name (gi_info),
+                size);
+    g_constant_info_free_value(gi_info, &gi_arg);
 }
 
 NAN_METHOD(MakeFunction) {
@@ -154,7 +162,9 @@ NAN_METHOD(MakeVirtualFunction) {
 
 NAN_METHOD(MakeObjectClass) {
     BaseInfo gi_info(info[0]);
-    info.GetReturnValue().Set(GNodeJS::MakeClass(*gi_info));
+    auto klass = GNodeJS::MakeClass(*gi_info);
+    if (!klass.IsEmpty())
+        info.GetReturnValue().Set(klass.ToLocalChecked());
 }
 
 NAN_METHOD(MakeBoxedClass) {

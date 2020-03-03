@@ -3,6 +3,7 @@
  */
 
 const chalk = require('chalk')
+const deasync = require('deasync')
 
 module.exports = {
   assert,
@@ -34,15 +35,34 @@ function expect(value, expected) {
 function describe(message, fn) {
   currentTest = message
   calledIt = false
-  try {
+
+  const isAsync = fn.toString().startsWith('async')
+
+  if (isAsync) {
+    let done = false
+
     fn()
-  } catch(e) {
-    _failed()
-    console.error(e)
-    process.exit(1)
+    .then(() => { done = true })
+    .catch(e => {
+      _failed()
+      console.error(e)
+      process.exit(1)
+    })
+    deasync.loopWhile(function(){ return !done })
   }
+  else {
+    try {
+      fn()
+    } catch(e) {
+      _failed()
+      console.error(e)
+      process.exit(1)
+    }
+  }
+
   if (!calledIt)
     _success()
+
   currentTest = undefined
 }
 

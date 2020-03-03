@@ -19,7 +19,7 @@ files.forEach(file => {
 
   it(file, function(done) {
     const currentTest = this
-    currentTest.timeout(15000)
+    currentTest.timeout(45 * 1000)
 
     const cmd = `node --expose-gc "${path.join(__dirname, file)}"`
     const options = {
