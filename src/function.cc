@@ -53,7 +53,7 @@ static void* AllocateArgument (GIBaseInfo *arg_info) {
 
     GIBaseInfo* base_info = g_type_info_get_interface (&arg_type);
     size_t size = Boxed::GetSize (base_info);
-    void* pointer = g_slice_alloc0 (size);
+    void* pointer = calloc(1, size);
 
     g_base_info_unref(base_info);
     return pointer;
