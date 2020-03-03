@@ -32,7 +32,6 @@
   },
   "homepage": "https://github.com/romgrk/node-gtk#readme",
   "dependencies": {
-    "deasync": "^0.1.19",
     "lodash.camelcase": "4.3.0",
     "nan": "2.14.0",
     "node-gyp": "^4.0.0",
@@ -43,6 +42,7 @@
     "assert": "^1.5.0",
     "aws-sdk": "^2.452.0",
     "chalk": "^2.4.2",
+    "deasync": "^0.1.19",
     "mocha": "^7.1.0"
   },
   "files": [
