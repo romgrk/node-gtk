@@ -112,9 +112,9 @@ webView.on('load-changed', (loadEvent) => {
 })
 
 // configure buttons actions
-button.back.on('clicked',    webView.goBack)
-button.forward.on('clicked', webView.goForward)
-button.refresh.on('clicked', webView.reload)
+button.back.on('clicked',    () => webView.goBack())
+button.forward.on('clicked', () => webView.goForward())
+button.refresh.on('clicked', () => webView.reload())
 
 // define "enter" / call-to-action event (whenever the url changes on the bar)
 urlBar.on('activate', () => {
