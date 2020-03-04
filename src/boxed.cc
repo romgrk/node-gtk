@@ -198,6 +198,14 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         }
     }
 
+    Boxed *box = NULL;
+
+    box = (Boxed *) g_tree_lookup(boxedMap, boxed);
+    if (box != NULL) {
+        RETURN (Nan::New(box->persistent));
+        return;
+    }
+
     self->SetAlignedPointerInInternalField (0, boxed);
 
     Nan::DefineOwnProperty(self,
@@ -206,38 +214,43 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
     );
 
-    auto* box = new Boxed();
+    box = new Boxed();
     box->data = boxed;
     box->size = size;
-    box->g_type = gtype;
+    box->gtype = gtype;
     box->info = g_base_info_ref (gi_info);
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
+
+    g_tree_insert(boxedMap, boxed, box);
 }
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     Boxed *box = info.GetParameter();
+    void *data = box->data;
 
-    if (G_TYPE_IS_BOXED(box->g_type)) {
-        g_boxed_free(box->g_type, box->data);
+    if (G_TYPE_IS_BOXED(box->gtype)) {
+        g_boxed_free(box->gtype, data);
     }
     else if (box->size != 0) {
         // Allocated in ./function.cc @ AllocateArgument
-        free(box->data);
+        free(data);
     }
-    else if (box->data != NULL) {
+    else if (data != NULL) {
         /*
          * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
          */
         warn("boxed possibly not freed (%s.%s : %s)",
                 g_base_info_get_namespace (box->info),
                 g_base_info_get_name (box->info),
-                g_type_name (box->g_type));
+                g_type_name (box->gtype));
     }
 
     g_base_info_unref (box->info);
     delete box->persistent;
     delete box;
+
+    g_tree_remove(boxedMap, data);
 }
 
 static void BoxedClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {

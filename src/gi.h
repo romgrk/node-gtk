@@ -16,6 +16,14 @@ using v8::Value;
 
 namespace GNodeJS {
 
+
+/*
+ * Map from pointer -> JS wrapper
+ */
+
+extern GTree *boxedMap;
+
+
 /*
  * Object containing all modules loaded
  */

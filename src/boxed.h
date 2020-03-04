@@ -19,7 +19,7 @@ namespace GNodeJS {
 class Boxed {
 public:
     void* data;
-    GType g_type;
+    GType gtype;
     GIBaseInfo * info;
     unsigned long size;
     Nan::Persistent<Object> *persistent;

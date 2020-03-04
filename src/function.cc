@@ -542,7 +542,8 @@ Local<Value> FunctionInfo::GetReturnValue (
         int length_i = g_type_info_get_array_length(return_type);
         if (length_i >= 0)
             length = callable_arg_values[length_i].v_long;
-        // This can be removed when https://github.com/romgrk/node-gtk/issues/165 is fixed
+        // When a method returns the instance itself, skip the conversion and just return the
+        // existent wrapper
         bool isReturningSelf = is_method && PointerFromWrapper(self) == return_value->v_pointer;
         ADD_RETURN (isReturningSelf ? self : GIArgumentToV8 (return_type, return_value, length))
     }

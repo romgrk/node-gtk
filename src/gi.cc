@@ -24,6 +24,8 @@ namespace GNodeJS {
     G_DEFINE_QUARK(gnode_js_constructor, constructor);
     G_DEFINE_QUARK(gnode_js_function,    function);
 
+    GTree *boxedMap;
+
     Nan::Persistent<Object> moduleCache(Nan::New<Object>());
 
     Local<Object> GetModuleCache() {
@@ -31,6 +33,10 @@ namespace GNodeJS {
     }
 }
 
+
+static gint comparePointers (gconstpointer a, gconstpointer b) {
+    return (ulong) b - (ulong) a;
+}
 
 static void DefineFunction(Isolate *isolate, Local<Object> module_obj, GIBaseInfo *info) {
     const char *function_name = g_base_info_get_name ((GIBaseInfo *) info);
@@ -335,6 +341,9 @@ NAN_METHOD(GetModuleCache) {
 }
 
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
+
+    GNodeJS::boxedMap = g_tree_new(comparePointers);
+
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetModuleCache);
     NAN_EXPORT(exports, GetConstantValue);
