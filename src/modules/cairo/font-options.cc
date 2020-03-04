@@ -75,8 +75,12 @@ void FontOptions::SetupTemplate() {
   SET_PROTOTYPE_METHOD(tpl, getHintStyle);
   SET_PROTOTYPE_METHOD(tpl, setHintMetrics);
   SET_PROTOTYPE_METHOD(tpl, getHintMetrics);
+  #if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
   SET_PROTOTYPE_METHOD(tpl, getVariations);
+  #endif
+  #if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
   SET_PROTOTYPE_METHOD(tpl, setVariations);
+  #endif
 
   auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 

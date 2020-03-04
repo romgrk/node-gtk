@@ -310,9 +310,14 @@ function generateTemplateMethods(options, namespaces) {
       tpl->SetClassName(Nan::New("Cairo${options.name}").ToLocalChecked());
 ${!options.isBase ?  `      tpl->Inherit (parentTpl);` : '' }
 
-      ${methods.map(fn =>
-        addVersionGuard(fn, `SET_PROTOTYPE_METHOD(tpl, ${getJSName(fn.name, base.prefix)});`, '      ')
-      ).join('\n      ')
+      ${methods.map(fn => {
+        const jsName = getJSName(fn.name, base.prefix)
+        const declaration =
+          RESTRICTED.has(jsName.slice(0, -1)) ?
+            `Nan::SetPrototypeMethod(tpl, "${jsName.slice(0, -1)}", ${jsName});` :
+            `SET_PROTOTYPE_METHOD(tpl, ${jsName});`
+        return addVersionGuard(fn, declaration, '      ')
+      }).join('\n      ')
       }
 
       auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
@@ -406,7 +411,7 @@ function getInArgumentSource(p, n) {
   if (typeName === 'int')
     return `auto ${p.name} = Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
 
-  if (typeName === 'unsigned int')
+  if (typeName === 'unsigned int' || typeName === 'int unsigned')
     return `auto ${p.name} = Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
 
   if (typeName === 'const char *')
@@ -436,7 +441,7 @@ function getOutArgumentDeclaration(p, n) {
   if (p.type.name === 'int')
     return `int ${p.name} = 0;`
 
-  if (p.type.name === 'unsigned int')
+  if (p.type.name === 'unsigned int' || p.type.name === 'int unsigned')
     return `unsigned int ${p.name} = 0;`
 
   if (p.type.pointer === '*' && baseName in ENUM_TYPE)
@@ -570,7 +575,7 @@ function getInOutArguments(fn) {
 function getTypeName(type) {
   const result = type.name + (type.pointer ? ' ' + type.pointer : '')
   return result
-        .replace(/long unsigned/, 'unsigned long')
+        .replace(/(.*) unsigned/, 'unsigned $1')
 }
 
 function getJSName(originalName, prefix = 'cairo_') {
