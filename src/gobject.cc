@@ -411,7 +411,7 @@ MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
     return MaybeLocal<Function> (Nan::GetFunction (tpl.ToLocalChecked()));
 }
 
-Local<Value> WrapperFromGObject(GObject *gobject, GIBaseInfo *object_info) {
+Local<Value> WrapperFromGObject(GObject *gobject) {
     if (gobject == NULL)
         return Nan::Null();
 
@@ -425,10 +425,9 @@ Local<Value> WrapperFromGObject(GObject *gobject, GIBaseInfo *object_info) {
 
     } else {
         GType gtype = G_OBJECT_TYPE(gobject);
-        g_type_ensure (gtype); //void *klass = g_type_class_ref (type);
-        // We don't use the gtype above, but maybe we can register that type using the type's interface's object_info.
+        auto realInfo = g_irepository_find_by_gtype(NULL, gtype);
 
-        auto maybeTpl = GetClassTemplateFromGI(object_info);
+        auto maybeTpl = GetClassTemplateFromGI(realInfo);
         if (maybeTpl.IsEmpty())
             return Nan::Null();
         auto tpl = maybeTpl.ToLocalChecked();

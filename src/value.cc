@@ -121,7 +121,7 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length)
                 if (G_IS_PARAM_SPEC(arg->v_pointer))
                     value = ParamSpec::FromGParamSpec((GParamSpec *)arg->v_pointer);
                 else
-                    value = WrapperFromGObject((GObject *)arg->v_pointer, interface_info);
+                    value = WrapperFromGObject((GObject *)arg->v_pointer);
                 break;
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:

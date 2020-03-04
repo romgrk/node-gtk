@@ -200,12 +200,6 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     Boxed *box = NULL;
 
-    box = (Boxed *) g_tree_lookup(boxedMap, boxed);
-    if (box != NULL) {
-        RETURN (Nan::New(box->persistent));
-        return;
-    }
-
     self->SetAlignedPointerInInternalField (0, boxed);
 
     Nan::DefineOwnProperty(self,
@@ -221,8 +215,6 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     box->info = g_base_info_ref (gi_info);
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
-
-    g_tree_insert(boxedMap, boxed, box);
 }
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
@@ -249,8 +241,6 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     g_base_info_unref (box->info);
     delete box->persistent;
     delete box;
-
-    g_tree_remove(boxedMap, data);
 }
 
 static void BoxedClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
