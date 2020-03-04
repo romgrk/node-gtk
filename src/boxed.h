@@ -29,7 +29,7 @@ public:
 
 Local<Function>         MakeBoxedClass   (GIBaseInfo *info);
 Local<FunctionTemplate> GetBoxedTemplate (GIBaseInfo *info, GType gtype);
-Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data);
+Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data, bool mustCopy = false);
 void *                  PointerFromWrapper (Local<Value>);
 
 };

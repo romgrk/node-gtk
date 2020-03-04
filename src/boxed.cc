@@ -14,6 +14,7 @@
 #include "value.h"
 
 using v8::Array;
+using v8::Boolean;
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -153,9 +154,20 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     if (info[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
+        bool mustCopy = Nan::To<bool> (info[1]).ToChecked();
 
         boxed = External::Cast(*info[0])->Value();
 
+        if (mustCopy) {
+            if (gtype != G_TYPE_NONE) {
+                boxed = g_boxed_copy (gtype, boxed);
+            }
+            else if ((size = Boxed::GetSize(gi_info)) != 0) {
+                void *boxedCopy = malloc(size);
+                memcpy(boxedCopy, boxed, size);
+                boxed = boxedCopy;
+            }
+        }
     } else {
         /* User code calling `new Pango.AttrList()` */
 
@@ -370,16 +382,17 @@ Local<Function> MakeBoxedClass(GIBaseInfo *info) {
     return GetBoxedFunction (info, gtype);
 }
 
-Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
+Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, bool mustCopy) {
     if (data == NULL)
         return Nan::Null();
 
     Local<Function> constructor = MakeBoxedClass (info);
 
     Local<Value> boxed_external = Nan::New<External> (data);
-    Local<Value> args[] = { boxed_external };
+    Local<Value> must_copy_value = Nan::New<Boolean> (mustCopy);
+    Local<Value> args[] = { boxed_external, must_copy_value };
 
-    MaybeLocal<Object> instance = Nan::NewInstance(constructor, 1, args);
+    MaybeLocal<Object> instance = Nan::NewInstance(constructor, 2, args);
 
     // FIXME(we should propage failure here)
     if (instance.IsEmpty())

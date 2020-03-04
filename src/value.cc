@@ -35,7 +35,7 @@ static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info);
 static bool IsUint8Array (GITypeInfo *type_info);
 
 
-Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length) {
+Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length, bool mustCopy) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
@@ -126,7 +126,7 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length)
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
-                value = WrapperFromBoxed (interface_info, arg->v_pointer);
+                value = WrapperFromBoxed (interface_info, arg->v_pointer, mustCopy);
                 break;
             case GI_INFO_TYPE_ENUM:
             case GI_INFO_TYPE_FLAGS:
