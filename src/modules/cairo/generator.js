@@ -12,6 +12,7 @@ const { indent, unindent } = require('./indent.js')
 const CAST_TYPE = {
   cairo_bool_t: 'bool',
   'unsigned long': 'double',
+  'long unsigned': 'double',
 }
 
 const ENUM_TYPE = {
@@ -309,7 +310,10 @@ function generateTemplateMethods(options, namespaces) {
       tpl->SetClassName(Nan::New("Cairo${options.name}").ToLocalChecked());
 ${!options.isBase ?  `      tpl->Inherit (parentTpl);` : '' }
 
-      ${methods.map(fn => `SET_PROTOTYPE_METHOD(tpl, ${getJSName(fn.name, base.prefix)});`).join('\n      ')}
+      ${methods.map(fn =>
+        addVersionGuard(fn, `SET_PROTOTYPE_METHOD(tpl, ${getJSName(fn.name, base.prefix)});`, '      ')
+      ).join('\n      ')
+      }
 
       auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
@@ -564,7 +568,9 @@ function getInOutArguments(fn) {
 }
 
 function getTypeName(type) {
-  return type.name + (type.pointer ? ' ' + type.pointer : '')
+  const result = type.name + (type.pointer ? ' ' + type.pointer : '')
+  return result
+        .replace(/long unsigned/, 'unsigned long')
 }
 
 function getJSName(originalName, prefix = 'cairo_') {
