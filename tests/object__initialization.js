@@ -6,25 +6,33 @@
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk')
 const Soup = gi.require('Soup')
-const common = require('./__common__.js')
+const { describe, it, mustThrow, expect, assert } = require('./__common__.js')
 
 Gtk.init()
 
 
-common.describe('new GObject({ ... })', () => {
-  const message = new Soup.Message({
-    method: 'GET',
-    uri: new Soup.URI('http://google.com'),
+describe('new GObject({ ... })', () => {
+
+  it('works', () => {
+    const uri = new Soup.URI('http://google.com')
+    const message = new Soup.Message({
+      method: 'GET',
+      uri: uri,
+    })
+
+    expect(message.method, 'GET')
+    assert(message.uri instanceof Soup.URI, 'message.uri not instanceof Soup.URI')
   })
 
-  common.expect(message.method, 'GET')
-  common.assert(message.uri instanceof Soup.URI, 'message.uri not instanceof Soup.URI')
-
-  console.log(message)
+  it('fails with wrong argument types',
+    mustThrow('Metadata for GType "SoupURI" (category: boxed) was not found. You might need to load additional required modules.', () => {
+      const message = new Soup.Message({
+        uri: 'http://google.com', // invalid type, should be SoupURI
+      })
+    }))
 })
 
 
-common.describe('WrapperFromGObject', () => {
+describe('WrapperFromGObject', () => {
   const result = Gtk.Button.newFromStock(Gtk.STOCK_YES)
-  console.log(result)
 })

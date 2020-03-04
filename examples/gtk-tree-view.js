@@ -3,7 +3,7 @@
  */
 
 
-const gi = require('../lib/')
+const gi = require('../lib')
 const Gtk = gi.require('Gtk', '3.0')
 const GObject = gi.require('GObject')
 
@@ -11,31 +11,23 @@ gi.startLoop()
 Gtk.init()
 
 
-// https://github.com/GNOME/pygobject/blob/fc50ca98835b0b1d6395a4e05e128d759044eab8/gi/_constants.py
-const TYPE_FLOAT  = GObject.typeFromName('gfloat')
-const TYPE_STRING = GObject.typeFromName('gchararray')
-
-const TYPE = {
-  'string': TYPE_STRING,
-  'number': TYPE_FLOAT,
-}
-
-// https://developer.gnome.org/gobject/stable/gobject-Standard-Parameter-and-Value-Types.html
+// Types:     https://github.com/romgrk/node-gtk/blob/master/lib/overrides/GObject.js#L12-L35
+// Functions: https://developer.gnome.org/gobject/stable/gobject-Standard-Parameter-and-Value-Types.html
 const TYPE_FN = {
-  'string': 'setString',
-  'number': 'setFloat',
+  [GObject.TYPE_STRING]: GObject.Value.prototype.setString,
+  [GObject.TYPE_FLOAT]:  GObject.Value.prototype.setFloat,
 }
 
-function appendRow(store, row) {
+function appendRow(store, row, types) {
   const iter = store.append()
 
   for (let i = 0; i < row.length; i++) {
     const item = row[i]
-    const type = TYPE[typeof item]
-    const typeFn = TYPE_FN[typeof item]
+    const type = types[i]
+    const typeFn = TYPE_FN[type]
     const value = new GObject.Value()
     value.init(type)
-    value[typeFn](item)
+    typeFn.call(value, item)
     store.setValue(iter, i, value)
   }
 }
@@ -43,6 +35,7 @@ function appendRow(store, row) {
 
 // Model
 
+const types = [GObject.TYPE_STRING, GObject.TYPE_STRING, GObject.TYPE_FLOAT]
 const books = [
   ['L\'étranger',                             'Albert Camus',   10.76],
   ['L\'élégance du Hérisson',                 'Muriel Barbery', 25.94],
@@ -50,9 +43,9 @@ const books = [
 ]
 
 const store = new Gtk.ListStore()
-store.setColumnTypes([TYPE_STRING, TYPE_STRING, TYPE_FLOAT])
+store.setColumnTypes(types)
 
-books.forEach(book => appendRow(store, book))
+books.forEach(book => appendRow(store, book, types))
 
 
 
@@ -93,10 +86,8 @@ window.setResizable(true)
 window.add(treeView)
 
 
-window.on('show', () => {
-  Gtk.main()
-})
-window.on('destroy', () => Gtk.mainQuit())
+window.on('show', Gtk.main)
+window.on('destroy', Gtk.mainQuit)
 window.on('delete-event', () => false)
 
 

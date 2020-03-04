@@ -6,8 +6,9 @@
   "scripts": {
     "install": "if [ \"$(uname)\" = \"Darwin\" ] && [ \"$(which brew)\" != \"\" ]; then export PKG_CONFIG_PATH=$(brew --prefix libffi)/lib/pkgconfig; fi; node-pre-gyp install --fallback-to-build",
     "test": "mocha tests/__run__.js",
-    "build": "node-pre-gyp rebuild",
-    "build:incremental": "node-pre-gyp build"
+    "build": "node-pre-gyp build",
+    "build:full": "node-pre-gyp rebuild",
+    "configure": "node-pre-gyp configure --debug"
   },
   "repository": {
     "type": "git",
@@ -45,7 +46,8 @@
     "assert": "^1.5.0",
     "aws-sdk": "^2.452.0",
     "chalk": "^2.4.2",
-    "mocha": "^5.2.0"
+    "deasync": "^0.1.19",
+    "mocha": "^7.1.0"
   },
   "files": [
     "/lib",

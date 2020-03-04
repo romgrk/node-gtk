@@ -3,6 +3,7 @@
 //#include <nan.h>
 #include <glib.h>
 
+#include "error.h"
 #include "boxed.h"
 #include "function.h"
 #include "gi.h"
@@ -325,7 +326,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
         g_array = g_array_sized_new (zero_terminated, FALSE, element_size, length);
 
         for (int i = 0; i < length; i++) {
-            auto value = array->Get(i);
+            auto value = Nan::Get(array, i).ToLocalChecked();
             GIArgument arg;
 
             if (V8ToGIArgument(element_info, &arg, value, true)) {
@@ -367,7 +368,7 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
     void *result = malloc(element_size * (length + (is_zero_terminated ? 1 : 0)));
 
     for (int i = 0; i < length; i++) {
-        auto value = array->Get(i);
+        auto value = Nan::Get(array, i).ToLocalChecked();
 
         GIArgument arg;
 
@@ -418,7 +419,7 @@ gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value) {
 
     for (int i = 0; i < length; i++) {
         GIArgument arg;
-        Local<Value> value = array->Get(i);
+        Local<Value> value = Nan::Get(array, i).ToLocalChecked();
 
         if (!V8ToGIArgument(element_info, &arg, value, false)) {
             g_warning("V8ToGList: couldnt convert value #%i to GIArgument", i);
@@ -1105,19 +1106,19 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
         g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Nan::ThrowTypeError("Value is not instance of GObject");
+            Throw::InvalidGType("GObject", G_VALUE_TYPE (gvalue));
             return false;
         }
         g_value_set_object (gvalue, GObjectFromWrapper (value));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Nan::ThrowTypeError("Value is not instance of boxed");
+            Throw::InvalidGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
         }
         g_value_set_boxed (gvalue, BoxedFromWrapper(value));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Nan::ThrowTypeError("Value is not instance of GParamSpec");
+            Throw::InvalidGType("GParamSpec", G_VALUE_TYPE (gvalue));
             return false;
         }
         g_value_set_param (gvalue, ParamSpec::FromWrapper(value));
@@ -1198,9 +1199,12 @@ Local<Value> GValueToV8(const GValue *gvalue) {
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
-        GType type = G_VALUE_TYPE (gvalue);
-        g_type_ensure(type);
-        GIBaseInfo *info = g_irepository_find_by_gtype(NULL, type);
+        GType gtype = G_VALUE_TYPE (gvalue);
+        GIBaseInfo *info = g_irepository_find_by_gtype(NULL, gtype);
+        if (info == NULL) {
+            Throw::InvalidGType(NULL, gtype);
+            return Nan::Null(); // FIXME(return a MaybeLocal instead?)
+        }
         Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue));
         g_base_info_unref(info);
         return obj;

@@ -15,11 +15,17 @@ const files =
   .reduce((acc, cur) => acc.concat(cur), [])
   .filter(f => f.endsWith('.js') && !path.basename(f).startsWith('__'))
 
+const watchdog = setTimeout(() => {
+  console.error('Error: 10 minutes timeout reached')
+  process.exit(1)
+}, 10 * 60 * 1000)
+watchdog.unref()
+
 files.forEach(file => {
 
   it(file, function(done) {
     const currentTest = this
-    currentTest.timeout(15000)
+    currentTest.timeout(45 * 1000)
 
     const cmd = `node --expose-gc "${path.join(__dirname, file)}"`
     const options = {
