@@ -11,10 +11,17 @@
 #define FUNCTION_NAME __func__
 #endif
 
+#define WARN(f,s) \
+    do { \
+        printf("\x1b[1;38;5;202m"); \
+        printf(f, s); \
+        printf("\x1b[0m\n"); } \
+    while (0)
+
 #ifdef NDEBUG
-#define DEBUG(...) do {} while(0)
+#define debug(...) do {} while(0)
 #else
-#define DEBUG(...) \
+#define debug(...) \
     do { \
         printf("\x1b[1;38;5;226m[DEBUG] "); \
         printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
@@ -24,9 +31,9 @@
 #endif
 
 #ifdef NDEBUG
-#define WARN(...) do {} while(0)
+#define warn(...) do {} while(0)
 #else
-#define WARN(...) \
+#define warn(...) \
     do { \
         printf("\x1b[1;38;5;202m[WARN] "); \
         printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
@@ -36,9 +43,9 @@
 #endif
 
 #ifdef NDEBUG
-#define INFO(...) do {} while(0)
+#define info(...) do {} while(0)
 #else
-#define INFO(...) \
+#define info(...) \
     do { \
         printf("\x1b[1;38;5;33m[INFO] "); \
         printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \

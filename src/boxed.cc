@@ -38,7 +38,7 @@ size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
     } else if (type == GI_INFO_TYPE_UNION) {
         return g_union_info_get_size((GIUnionInfo*)boxed_info);
     } else {
-        WARN("received bad type: %s", g_info_type_to_string (type));
+        warn("received bad type: %s", g_info_type_to_string (type));
         g_assert_not_reached();
     }
 }
@@ -225,7 +225,7 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
         /*
          * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
          */
-        WARN("boxed possibly not freed (%s.%s : %s)",
+        warn("boxed possibly not freed (%s.%s : %s)",
                 g_base_info_get_namespace (box->info),
                 g_base_info_get_name (box->info),
                 g_type_name (box->g_type));

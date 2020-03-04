@@ -69,7 +69,7 @@ void Closure::Marshal(GClosure *base,
         CallMicrotaskHandlers ();
     }
     else {
-        INFO("'%s' did throw", g_base_info_get_name (closure->info));
+        info("'%s' did throw", g_base_info_get_name (closure->info));
 
         GNodeJS::QuitLoopStack();
 
