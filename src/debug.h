@@ -43,9 +43,9 @@
 #endif
 
 #ifdef NDEBUG
-#define info(...) do {} while(0)
+#define log(...) do {} while(0)
 #else
-#define info(...) \
+#define log(...) \
     do { \
         printf("\x1b[1;38;5;33m[INFO] "); \
         printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
