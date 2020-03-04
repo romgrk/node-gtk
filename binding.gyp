@@ -76,6 +76,7 @@
                         "/msys64/mingw64/lib/libffi-3.2.1/include",
                         "/msys64/mingw64/include/glib-2.0",
                         "/msys64/mingw64/lib/glib-2.0/include",
+                        "/msys64/mingw64/include/cairo"
                     ]
                 }]
             ]

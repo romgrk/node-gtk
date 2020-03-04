@@ -244,7 +244,8 @@ sudo dnf install \
   @development-tools \
   nodejs \
   gobject-introspection \
-  gtk3
+  gtk3 \
+  cairo
 ```
 
 After installing of packages, run `npm install node-gtk`.
@@ -335,7 +336,7 @@ Once VS and its C++ compiler is available and MSYS2 installed, launch the MinGW 
 pacman -Syyu --noconfirm
 
 # install git, gtk3 and extra dependencie
-pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config}
+pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config,cairo}
 
 # where to put the repository clone?
 # pick your flder or use ~/oss (Open Source Software)
