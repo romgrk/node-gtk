@@ -244,10 +244,11 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
         /*
          * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
          */
-        warn("boxed possibly not freed (%s.%s : %s)",
-                g_base_info_get_namespace (box->info),
-                g_base_info_get_name (box->info),
-                g_type_name (box->gtype));
+        if (strcmp(g_base_info_get_name (box->info), "Typelib") != 0)
+            warn("boxed possibly not freed (%s.%s : %s)",
+                    g_base_info_get_namespace (box->info),
+                    g_base_info_get_name (box->info),
+                    g_type_name (box->gtype));
     }
 
     g_base_info_unref (box->info);
