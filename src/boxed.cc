@@ -14,6 +14,7 @@
 #include "value.h"
 
 using v8::Array;
+using v8::Boolean;
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -153,9 +154,20 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     if (info[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
+        bool mustCopy = Nan::To<bool> (info[1]).ToChecked();
 
         boxed = External::Cast(*info[0])->Value();
 
+        if (mustCopy) {
+            if (gtype != G_TYPE_NONE) {
+                boxed = g_boxed_copy (gtype, boxed);
+            }
+            else if ((size = Boxed::GetSize(gi_info)) != 0) {
+                void *boxedCopy = malloc(size);
+                memcpy(boxedCopy, boxed, size);
+                boxed = boxedCopy;
+            }
+        }
     } else {
         /* User code calling `new Pango.AttrList()` */
 
@@ -185,7 +197,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             boxed = return_value.v_pointer;
 
         } else if ((size = Boxed::GetSize(gi_info)) != 0) {
-            boxed = g_slice_alloc0(size);
+            boxed = calloc(1, size);
 
         } else {
             Nan::ThrowError("Boxed allocation failed: no constructor found");
@@ -198,6 +210,8 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         }
     }
 
+    Boxed *box = NULL;
+
     self->SetAlignedPointerInInternalField (0, boxed);
 
     Nan::DefineOwnProperty(self,
@@ -206,10 +220,10 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
     );
 
-    auto* box = new Boxed();
+    box = new Boxed();
     box->data = boxed;
     box->size = size;
-    box->g_type = gtype;
+    box->gtype = gtype;
     box->info = g_base_info_ref (gi_info);
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
@@ -217,22 +231,24 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     Boxed *box = info.GetParameter();
+    void *data = box->data;
 
-    if (G_TYPE_IS_BOXED(box->g_type)) {
-        g_boxed_free(box->g_type, box->data);
+    if (G_TYPE_IS_BOXED(box->gtype)) {
+        g_boxed_free(box->gtype, data);
     }
     else if (box->size != 0) {
         // Allocated in ./function.cc @ AllocateArgument
-        g_slice_free1(box->size, box->data);
+        free(data);
     }
-    else if (box->data != NULL) {
+    else if (data != NULL) {
         /*
          * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
          */
-        warn("boxed possibly not freed (%s.%s : %s)",
-                g_base_info_get_namespace (box->info),
-                g_base_info_get_name (box->info),
-                g_type_name (box->g_type));
+        if (strcmp(g_base_info_get_name (box->info), "Typelib") != 0)
+            warn("boxed possibly not freed (%s.%s : %s)",
+                    g_base_info_get_namespace (box->info),
+                    g_base_info_get_name (box->info),
+                    g_type_name (box->gtype));
     }
 
     g_base_info_unref (box->info);
@@ -367,16 +383,17 @@ Local<Function> MakeBoxedClass(GIBaseInfo *info) {
     return GetBoxedFunction (info, gtype);
 }
 
-Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
+Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, bool mustCopy) {
     if (data == NULL)
         return Nan::Null();
 
     Local<Function> constructor = MakeBoxedClass (info);
 
     Local<Value> boxed_external = Nan::New<External> (data);
-    Local<Value> args[] = { boxed_external };
+    Local<Value> must_copy_value = Nan::New<Boolean> (mustCopy);
+    Local<Value> args[] = { boxed_external, must_copy_value };
 
-    MaybeLocal<Object> instance = Nan::NewInstance(constructor, 1, args);
+    MaybeLocal<Object> instance = Nan::NewInstance(constructor, 2, args);
 
     // FIXME(we should propage failure here)
     if (instance.IsEmpty())
@@ -385,7 +402,7 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data) {
     return instance.ToLocalChecked();
 }
 
-void* BoxedFromWrapper(Local<Value> value) {
+void* PointerFromWrapper(Local<Value> value) {
     Local<Object> object = TO_OBJECT (value);
     g_assert(object->InternalFieldCount() > 0);
     void *boxed = object->GetAlignedPointerFromInternalField(0);
