@@ -26,7 +26,8 @@ describe('FontOptions:', () => {
     other.setSubpixelOrder(Cairo.SubpixelOrder.RGB)
     other.setHintStyle(Cairo.HintStyle.MEDIUM)
     other.setHintMetrics(Cairo.HintMetrics.ON)
-    other.setVariations('wght=200,wdth=140.5')
+    if (typeof options.getVariations == 'function')
+      other.setVariations('wght=200,wdth=140.5')
 
     options.merge(other)
 
@@ -34,7 +35,8 @@ describe('FontOptions:', () => {
     expect(options.getSubpixelOrder(), Cairo.SubpixelOrder.RGB)
     expect(options.getHintStyle(), Cairo.HintStyle.MEDIUM)
     expect(options.getHintMetrics(), Cairo.HintMetrics.ON)
-    expect(options.getVariations(), 'wght=200,wdth=140.5')
+    if (typeof options.getVariations == 'function')
+      expect(options.getVariations(), 'wght=200,wdth=140.5')
 
     console.log({
       status: options.status(),
