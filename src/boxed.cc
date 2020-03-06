@@ -136,6 +136,24 @@ static GIFunctionInfo* FindBoxedConstructor (GIBaseInfo* info, GType gtype) {
     return fn_info;
 }
 
+static void InitBoxedFromObject(Local<Object> wrapper, Local<Value> object) {
+    if (!object->IsObject ())
+        return;
+
+    Local<Object> property_hash = TO_OBJECT (object);
+    Local<Array> keys = Nan::GetOwnPropertyNames (property_hash).ToLocalChecked();
+    int n_keys = keys->Length ();
+
+    for (int i = 0; i < n_keys; i++) {
+        Local<String> key = TO_STRING (Nan::Get(keys, i).ToLocalChecked());
+        Local<Value> value = Nan::Get(property_hash, key).ToLocalChecked();
+
+        Nan::Set(wrapper, key, value);
+    }
+
+    return;
+}
+
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info);
 
 static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -144,6 +162,8 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         Nan::ThrowTypeError("Not a construct call");
         return;
     }
+
+    GIFunctionInfo* constructorInfo = NULL;
 
     void *boxed = NULL;
     unsigned long size = 0;
@@ -171,17 +191,17 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     } else {
         /* User code calling `new Pango.AttrList()` */
 
-        GIFunctionInfo* fn_info = FindBoxedConstructor(gi_info, gtype);
+        GIFunctionInfo* constructorInfo = FindBoxedConstructor(gi_info, gtype);
 
-        if (fn_info != NULL) {
+        if (constructorInfo != NULL) {
 
-            FunctionInfo func(fn_info);
+            FunctionInfo func(constructorInfo);
             GIArgument return_value;
             GError *error = NULL;
 
             auto jsResult = FunctionCall (&func, info, &return_value, &error);
 
-            g_base_info_unref (fn_info);
+            g_base_info_unref (constructorInfo);
 
             if (jsResult.IsEmpty()) {
                 // func->Init() or func->TypeCheck() have thrown
@@ -227,6 +247,9 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     box->info = g_base_info_ref (gi_info);
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
+
+    if (constructorInfo == NULL || g_callable_info_get_n_args(constructorInfo) == 0)
+        InitBoxedFromObject(self, info[0]);
 }
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
