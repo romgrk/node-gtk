@@ -7,6 +7,7 @@ This is the documentation for the API of node-gtk itself. For documentation on t
 - **[require(ns, [version])](#require)**
 - **[prependSearchPath(path)](#prepend-search-path)**
 - **[prependLibraryPath(path)](#prepend-library-path)**
+- **[listAvailableModules()](#list-available-modules)**
 
 <a id="require" />
 
@@ -40,6 +41,15 @@ Prepends a path to GObject-Introspection library path (for shared libraries)
 | Param | Type     |
 | ----- | -------- |
 | path  | `string` |
+
+<a id="list-available-modules" />
+
+#### listAvailableModules()
+
+Returns a list of available modules
+
+**Returns**: `Promise<ModuleDescription[]>`
+
 
 ### Signals (event handlers)
 
