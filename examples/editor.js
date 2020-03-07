@@ -11,6 +11,7 @@ const Path   = require('path');
 const ChildP = require('child_process');
 const spawnSync = ChildP.spawnSync;
 
+Gdk.init([])
 Gtk.init()
 
 const schemeManager = GtkSource.StyleSchemeManager.getDefault();
@@ -62,12 +63,12 @@ textView.highlightCurrentLine = true;
 // textView.get_style_context().add_provider(css, 9999);
 
 const buffer = textView.getBuffer();
-buffer.setHighlightSyntax(true);
-buffer.setStyleScheme(scheme);
+buffer.highlightSyntax = true;
+buffer.styleScheme = scheme;
 
-grid.attach(header, 0, 0, 2, 1);
+grid.attach(header,     0, 0, 2, 1);
 grid.attach(scrollView, 0, 1, 2, 1);
-grid.attach(entryView, 0, 2, 2, 1);
+grid.attach(entryView,  0, 2, 2, 1);
 
 win.add(grid);
 
@@ -77,13 +78,16 @@ function loadFile(filename) {
         const lang = langManager.guessLanguage(filename, null)
             || langManager.guessLanguage('file.js', null);
         label.setText(filename);
-        buffer.setLanguage(lang);
-        buffer.setText(content, -1);
+
+        buffer.language = lang;
+        buffer.text = content
         buffer.filename = filename;
-        return textView.grabFocus();
+
+        textView.grabFocus();
     } catch (error) {
-        buffer.setLanguage(null);
-        return buffer.setText(error.toString(), -1);
+        console.error(error)
+        buffer.language = null;
+        buffer.text = error.toString()
     }
 }
 
@@ -153,10 +157,10 @@ const execute = function(command) {
 
 
 textView.on('key-press-event', function(event) {
-    let keyname = Gdk.keyvalName(event.keyval);
-    let label = Gtk.acceleratorGetLabel(event.keyval, event.state);
+    const keyname = Gdk.keyvalName(event.keyval);
+    const label = Gtk.acceleratorGetLabel(event.keyval, event.state);
 
-    console.log(event.keyval, keyname, label)
+    console.log(event, event.keyval, keyname, label)
 
     btn.label = label;
 
@@ -173,17 +177,14 @@ textView.on('key-press-event', function(event) {
         buffer.placeCursor(start)
         return true;
     }
+
     return false;
 });
 
-entryView.history = ['pop.get_children()'];
 entryView.on('key-press-event', function(event) {
     btn.label = Gtk.acceleratorGetLabel(event.keyval, event.state);
+
     switch (event.keyval) {
-        case Gdk.KEY_Tab: {
-            entryView.setText(entryView.history[0]);
-            break;
-        }
         case Gdk.KEY_Escape: {
             textView.grabFocus();
             break;
@@ -191,7 +192,6 @@ entryView.on('key-press-event', function(event) {
         case Gdk.KEY_Return: {
             let text = entryView.getText();
             entryView.setText('');
-            entryView.history.unshift(text);
             execute(text);
             break;
         }

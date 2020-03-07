@@ -17,6 +17,7 @@ using v8::Value;
 
 namespace GNodeJS {
 
+
 /*
  * Object containing all modules loaded
  */
@@ -49,7 +50,7 @@ public:
     BaseInfo (Local<Value> value) {
         Local<Object> object = value.As<Object>();
         _info = g_base_info_ref(
-                (GIBaseInfo *) GNodeJS::BoxedFromWrapper(object));
+                (GIBaseInfo *) GNodeJS::PointerFromWrapper(object));
     };
     ~BaseInfo () {
         g_base_info_unref(_info);

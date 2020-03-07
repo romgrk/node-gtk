@@ -50,7 +50,7 @@ void Closure::Marshal(GClosure *base,
         g_callable_info_load_arg(closure->info, i - 1, &arg_info);
         g_arg_info_load_type(&arg_info, &type_info);
 
-        js_args[i - 1] = GIArgumentToV8(&type_info, &argument);
+        js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, true);
     }
 
     Local<Object> self = func;

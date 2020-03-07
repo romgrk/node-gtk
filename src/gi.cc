@@ -117,7 +117,7 @@ NAN_METHOD(Bootstrap) {
 }
 
 NAN_METHOD(GetConstantValue) {
-    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::BoxedFromWrapper (info[0]);
+    GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::PointerFromWrapper (info[0]);
     GITypeInfo *type = g_constant_info_get_type ((GIConstantInfo *) gi_info);
 
     if (type == NULL) {
@@ -232,8 +232,8 @@ NAN_METHOD(StructFieldSetter) {
     Local<Object> fieldInfo    = info[1].As<Object>();
     Local<Value>  value        = info[2];
 
-    void        *boxed = GNodeJS::BoxedFromWrapper(boxedWrapper);
-    GIFieldInfo *field = (GIFieldInfo *) GNodeJS::BoxedFromWrapper(fieldInfo);
+    void        *boxed = GNodeJS::PointerFromWrapper(boxedWrapper);
+    GIFieldInfo *field = (GIFieldInfo *) GNodeJS::PointerFromWrapper(fieldInfo);
     GITypeInfo  *field_type = g_field_info_get_type(field);
 
     g_assert(boxed);
@@ -286,8 +286,8 @@ NAN_METHOD(StructFieldGetter) {
         return;
     }
 
-    void        *boxed = GNodeJS::BoxedFromWrapper(boxedWrapper);
-    GIFieldInfo *field = (GIFieldInfo *) GNodeJS::BoxedFromWrapper(fieldInfo);
+    void        *boxed = GNodeJS::PointerFromWrapper(boxedWrapper);
+    GIFieldInfo *field = (GIFieldInfo *) GNodeJS::PointerFromWrapper(fieldInfo);
 
     if (boxed == NULL) {
         Nan::ThrowError("StructFieldGetter: instance is NULL");
@@ -321,7 +321,7 @@ NAN_METHOD(GetBaseClass) {
 }
 
 NAN_METHOD(GetTypeSize) {
-    GITypeInfo *gi_info = (GITypeInfo *) GNodeJS::BoxedFromWrapper (info[0]);
+    GITypeInfo *gi_info = (GITypeInfo *) GNodeJS::PointerFromWrapper (info[0]);
     auto size = GNodeJS::GetTypeSize (gi_info);
     info.GetReturnValue().Set(Nan::New<Number>(size));
 }
@@ -336,6 +336,7 @@ NAN_METHOD(GetModuleCache) {
 }
 
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
+
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetModuleCache);
     NAN_EXPORT(exports, GetConstantValue);

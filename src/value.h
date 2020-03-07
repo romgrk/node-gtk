@@ -15,7 +15,7 @@ Local<Value> GListToV8  (GITypeInfo *info, GList  *glist);
 Local<Value> GSListToV8 (GITypeInfo *info, GSList *glist);
 Local<Value> GHashToV8 (GITypeInfo *info, GHashTable *hash);
 Local<Value> ArrayToV8  (GITypeInfo *info, gpointer data, long length = -1);
-Local<Value> GIArgumentToV8 (GITypeInfo *type_info, GIArgument *argument, long length = -1);
+Local<Value> GIArgumentToV8 (GITypeInfo *type_info, GIArgument *argument, long length = -1, bool mustCopy = false);
 
 bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value);
 bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value, bool may_be_null);

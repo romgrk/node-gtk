@@ -19,7 +19,7 @@ namespace GNodeJS {
 class Boxed {
 public:
     void* data;
-    GType g_type;
+    GType gtype;
     GIBaseInfo * info;
     unsigned long size;
     Nan::Persistent<Object> *persistent;
@@ -29,7 +29,7 @@ public:
 
 Local<Function>         MakeBoxedClass   (GIBaseInfo *info);
 Local<FunctionTemplate> GetBoxedTemplate (GIBaseInfo *info, GType gtype);
-Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data);
-void *                  BoxedFromWrapper (Local<Value>);
+Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data, bool mustCopy = false);
+void *                  PointerFromWrapper (Local<Value>);
 
 };

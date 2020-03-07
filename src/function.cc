@@ -53,7 +53,7 @@ static void* AllocateArgument (GIBaseInfo *arg_info) {
 
     GIBaseInfo* base_info = g_type_info_get_interface (&arg_type);
     size_t size = Boxed::GetSize (base_info);
-    void* pointer = g_slice_alloc0 (size);
+    void* pointer = calloc(1, size);
 
     g_base_info_unref(base_info);
     return pointer;
@@ -276,6 +276,7 @@ Local<Value> FunctionCall (
         }
     } else if (!use_return_value) {
         jsReturnValue = func->GetReturnValue (
+                info.This(),
                 &return_type,
                 use_return_value ? return_value : &return_value_stack,
                 callable_arg_values);
@@ -519,7 +520,11 @@ bool FunctionInfo::TypeCheck (const Nan::FunctionCallbackInfo<Value> &arguments)
  * Creates the JS return value from the C arguments list
  * @returns the JS return value
  */
-Local<Value> FunctionInfo::GetReturnValue (GITypeInfo* return_type, GIArgument* return_value, GIArgument* callable_arg_values) {
+Local<Value> FunctionInfo::GetReturnValue (
+        Local<Value> self,
+        GITypeInfo* return_type,
+        GIArgument* return_value,
+        GIArgument* callable_arg_values) {
 
     Local<Value> jsReturnValue;
     int jsReturnIndex = 0;
@@ -537,7 +542,10 @@ Local<Value> FunctionInfo::GetReturnValue (GITypeInfo* return_type, GIArgument* 
         int length_i = g_type_info_get_array_length(return_type);
         if (length_i >= 0)
             length = callable_arg_values[length_i].v_long;
-        ADD_RETURN (GIArgumentToV8 (return_type, return_value, length))
+        // When a method returns the instance itself, skip the conversion and just return the
+        // existent wrapper
+        bool isReturningSelf = is_method && PointerFromWrapper(self) == return_value->v_pointer;
+        ADD_RETURN (isReturningSelf ? self : GIArgumentToV8 (return_type, return_value, length))
     }
 
     for (int i = 0; i < n_callable_args; i++) {

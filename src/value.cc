@@ -35,7 +35,7 @@ static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info);
 static bool IsUint8Array (GITypeInfo *type_info);
 
 
-Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length) {
+Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length, bool mustCopy) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
@@ -121,12 +121,12 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length)
                 if (G_IS_PARAM_SPEC(arg->v_pointer))
                     value = ParamSpec::FromGParamSpec((GParamSpec *)arg->v_pointer);
                 else
-                    value = WrapperFromGObject((GObject *)arg->v_pointer, interface_info);
+                    value = WrapperFromGObject((GObject *)arg->v_pointer);
                 break;
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
-                value = WrapperFromBoxed (interface_info, arg->v_pointer);
+                value = WrapperFromBoxed (interface_info, arg->v_pointer, mustCopy);
                 break;
             case GI_INFO_TYPE_ENUM:
             case GI_INFO_TYPE_FLAGS:
@@ -549,7 +549,7 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
     case GI_INFO_TYPE_UNION:
-        arg->v_pointer = BoxedFromWrapper(value);
+        arg->v_pointer = PointerFromWrapper(value);
         break;
 
     case GI_INFO_TYPE_FLAGS:
@@ -1115,7 +1115,7 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
             Throw::InvalidGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
         }
-        g_value_set_boxed (gvalue, BoxedFromWrapper(value));
+        g_value_set_boxed (gvalue, PointerFromWrapper(value));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Throw::InvalidGType("GParamSpec", G_VALUE_TYPE (gvalue));
