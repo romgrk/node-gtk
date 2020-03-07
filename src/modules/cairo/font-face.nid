@@ -1,0 +1,72 @@
+
+// FontFace:
+
+namespace FontFace {
+
+/* cairo_font_face_t * cairo_font_face_reference (cairo_font_face_t *font_face); */
+/* void cairo_font_face_destroy (cairo_font_face_t *font_face); */
+cairo_status_t cairo_font_face_status (cairo_font_face_t *font_face);
+cairo_font_type_t cairo_font_face_get_type (cairo_font_face_t *font_face);
+unsigned int cairo_font_face_get_reference_count (cairo_font_face_t *font_face);
+/* cairo_status_t cairo_font_face_set_user_data (cairo_font_face_t *font_face, const cairo_user_data_key_t *key, void *user_data, cairo_destroy_func_t destroy); */
+/* void * cairo_font_face_get_user_data (cairo_font_face_t *font_face, const cairo_user_data_key_t *key); */
+/* typedef struct _cairo_font_face cairo_font_face_t; */
+
+[[static]] [[returns(wrap:ToyFontFace)]] cairo_font_face_t * cairo_toy_font_face_create (const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
+[[static]] [[returns(wrap:FtFontFace)]] cairo_font_face_t * cairo_ft_font_face_create_for_ft_face (FT_Face face, int load_flags);
+[[static]] [[returns(wrap:FtFontFace)]] cairo_font_face_t * cairo_ft_font_face_create_for_pattern (FcPattern *pattern);
+[[static]] [[returns(wrap:Win32FontFace)]] [[ifdef(PLATFORM_WIN)]] cairo_font_face_t * cairo_win32_font_face_create_for_logfontw (LOGFONTW *logfont);
+[[static]] [[returns(wrap:Win32FontFace)]] [[ifdef(PLATFORM_WIN)]] cairo_font_face_t * cairo_win32_font_face_create_for_hfont (HFONT font);
+[[static]] [[returns(wrap:Win32FontFace)]] [[ifdef(PLATFORM_WIN)]] cairo_font_face_t * cairo_win32_font_face_create_for_logfontw_hfont (LOGFONTW *logfont, HFONT font);
+[[static]] [[returns(wrap:QuartzFontFace)]] [[ifdef(PLATFORM_MAC)]] cairo_font_face_t * cairo_quartz_font_face_create_for_cgfont (CGFontRef font);
+[[static]] [[returns(wrap:QuartzFontFace)]] [[ifdef(PLATFORM_MAC)]] cairo_font_face_t * cairo_quartz_font_face_create_for_atsu_font_id (ATSUFontID font_id); 
+
+}
+
+// FontFace > ToyFontFace:
+
+namespace ToyFontFace {
+
+const char * cairo_toy_font_face_get_family (cairo_font_face_t *font_face);
+cairo_font_slant_t cairo_toy_font_face_get_slant (cairo_font_face_t *font_face);
+cairo_font_weight_t cairo_toy_font_face_get_weight (cairo_font_face_t *font_face);
+
+}
+
+// FontFace > FtFontFace:
+
+namespace FtFontFace {
+
+/* void cairo_ft_font_options_substitute (const cairo_font_options_t *options, FcPattern *pattern);
+ * FT_Face cairo_ft_scaled_font_lock_face (cairo_scaled_font_t *scaled_font);
+ * void cairo_ft_scaled_font_unlock_face (cairo_scaled_font_t *scaled_font); */
+unsigned int cairo_ft_font_face_get_synthesize (cairo_font_face_t *font_face);
+void cairo_ft_font_face_set_synthesize (cairo_font_face_t *font_face, unsigned int synth_flags);
+void cairo_ft_font_face_unset_synthesize (cairo_font_face_t *font_face, unsigned int synth_flags);
+// #define CAIRO_HAS_FT_FONT 1
+// #define CAIRO_HAS_FC_FONT 1
+
+}
+
+// FontFace > Win32FontFace:
+
+namespace Win32FontFace {
+
+/* cairo_status_t cairo_win32_scaled_font_select_font (cairo_scaled_font_t *scaled_font, HDC hdc);
+ * void cairo_win32_scaled_font_done_font (cairo_scaled_font_t *scaled_font);
+ * double cairo_win32_scaled_font_get_metrics_factor (cairo_scaled_font_t *scaled_font);
+ * void cairo_win32_scaled_font_get_logical_to_device (cairo_scaled_font_t *scaled_font, cairo_matrix_t *logical_to_device);
+ * void cairo_win32_scaled_font_get_device_to_logical (cairo_scaled_font_t *scaled_font, cairo_matrix_t *device_to_logical); */
+// #define CAIRO_HAS_WIN32_FONT 1
+
+}
+
+// FontFace > QuartzFontFace:
+
+namespace QuartzFontFace {
+
+// #define CAIRO_HAS_QUARTZ_FONT 1
+
+}
+
+// vim: ft=c

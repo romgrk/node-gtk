@@ -7,6 +7,7 @@
 #include <nan.h>
 #include <girepository.h>
 #include "boxed.h"
+#include "util.h"
 
 
 using v8::Object;
@@ -40,6 +41,7 @@ GQuark function_quark (void);
 /*
  * Class for dealing with GIBaseInfo
  */
+
 class BaseInfo {
 public:
     GIBaseInfo * _info;

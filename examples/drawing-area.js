@@ -5,6 +5,8 @@
 const gi = require('../')
 const Gtk = gi.require('Gtk', '3.0')
 const Cairo = gi.require('cairo')
+const Pango = gi.require('Pango')
+const PangoCairo = gi.require('PangoCairo')
 
 Gtk.init()
 
@@ -13,31 +15,104 @@ const window = new Gtk.Window({
   type : Gtk.WindowType.TOPLEVEL
 })
 
+// Button
+const button = Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK)
+
 // Draw area
 const drawingArea = new Gtk.DrawingArea()
 drawingArea.on('draw', (context) => {
   const width = drawingArea.getAllocatedWidth()
   const height = drawingArea.getAllocatedHeight()
 
-  console.log({ width, height })
-  console.log(context.__proto__)
-  console.log(context.__proto__.prototype)
+  console.log(['draw', { width, height }])
 
   // Cairo in GJS uses camelCase function names
-  // cr.setSourceRGB(1.0, 0.0, 0.0);
-  // cr.setOperator(Cairo.Operator.DEST_OVER);
-  // cr.arc(16, 16, 16, 0, 2*Math.PI);
-  // cr.fill();
+  context.setSourceRgba(1, 0.0, 0.0, 1)
+  context.arc(16, 16, 16, 0, 2 * Math.PI);
+  context.fill()
 
-  console.log(['draw', context])
+  context.selectFontFace('Fantasque Sans Mono', Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
+  context.setFontSize(12)
+
+  const extents = context.textExtents('Disziplin ist Macht.')
+  console.log({
+    xAdvance: extents.xAdvance,
+    yAdvance: extents.yAdvance,
+    width:    extents.width,
+    height:   extents.height,
+    xBearing: extents.xBearing,
+    yBearing: extents.yBearing,
+  })
+
+  const fontExtents = context.fontExtents()
+  console.log({
+    ascent:      fontExtents.ascent,
+    descent:     fontExtents.descent,
+    height:      fontExtents.height,
+    maxXAdvance: fontExtents.maxXAdvance,
+    maxYAdvance: fontExtents.maxYAdvance,
+  })
+
+  context.setSourceRgba(0.1, 0.1, 0.1, 1)
+  context.rectangle(10, 40, extents.xAdvance, extents.height - extents.yBearing)
+  context.fill()
+
+  context.moveTo(10, 50)
+  context.setSourceRgba(1, 0.0, 0.0, 1)
+  context.showText('Disziplin ist Macht.')
+
+
+  context.setLineWidth (2)
+
+  context.moveTo(200, 100)
+  context.lineTo(200, 300)
+
+  context.moveTo(100, 200)
+  context.lineTo(300, 200)
+
+  context.stroke()
+
+  context.setSourceRgb(0, 0, 0)
+  const layout = PangoCairo.createLayout(context)
+  const fontDescription = Pango.fontDescriptionFromString('Fantasque Sans Mono 9')
+  layout.setText('text', -1)
+  layout.setFontDescription(fontDescription)
+  PangoCairo.showLayout(context, layout)
+
+  // Draw glyphs
+  // const fontFace = Cairo.FontFace.create('Arial', Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
+  // const scaledFont = Cairo.ScaledFont.create(fontFace, new Cairo.Matrix(), new Cairo.Matrix(), new Cairo.FontOptions())
+  const scaledFont = context.getScaledFont()
+  const text = 'Here are some glyphs'
+  const [glyphs] = scaledFont.textToGlyphs(10, 100, text, text.length)
+
+  // put paths for current cluster to context
+  // context.setScaledFont(scaledFont)
+  context.glyphPath(glyphs, glyphs.length)
+  const glyphExtents = context.glyphExtents(glyphs, glyphs.length)
+
+  // draw black text with green stroke
+  context.setSourceRgba(1, 1, 0.2, 1)
+  context.fillPreserve()
+  // context.setLineWidth(0.5)
+  // context.stroke()
+
+  const path = context.copyPath()
+  console.log(path, path.status)
 
   return true
 })
 
+// Containing box
+const vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
+vbox.packStart(button,      false, true, 0)
+vbox.packStart(drawingArea, true, true, 0)
+
+
 // configure main window
-window.setDefaultSize(1200, 720)
+window.setDefaultSize(600, 400)
 window.setResizable(true)
-window.add(drawingArea)
+window.add(vbox)
 
 // window show event
 window.on('show', () => {

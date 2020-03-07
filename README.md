@@ -110,7 +110,9 @@ sudo apt-get install \
   build-essential git \
   nodejs \
   gobject-introspection \
-  libgirepository1.0-dev
+  libgirepository1.0-dev \
+  libcairo2 \
+  libcairo2-dev
 ```
 
 At this point `npm install node-gtk` should already install, fallback and build `node-gtk` without problems.
@@ -124,7 +126,8 @@ sudo dnf install \
   @development-tools \
   nodejs \
   gobject-introspection \
-  gtk3
+  gtk3 \
+  cairo
 ```
 
 After installing of packages, run `npm install node-gtk`.
@@ -137,7 +140,8 @@ The following should be the bare minimum to be able to build the project.
 pacman -S --needed \
   base-devel git \
   nodejs npm \
-  gtk3 gobject-introspection
+  gtk3 gobject-introspection \
+  cairo
 ```
 
 Feel free to install all `base-devel` utilities.
@@ -150,7 +154,7 @@ Assuming you have [brew](http://brew.sh) installed, the following has been succe
 
 ```sh
 # basic dependencies to build this repo
-brew install git node gobject-introspection gtk+3
+brew install git node gobject-introspection gtk+3 cairo
 ```
 
 At this point `npm install node-gtk` should already install, fallback and build `node-gtk` without problems.
@@ -212,7 +216,7 @@ Once VS and its C++ compiler is available and MSYS2 installed, launch the MinGW 
 pacman -Syyu --noconfirm
 
 # install git, gtk3 and extra dependencie
-pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config}
+pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config,cairo}
 
 # where to put the repository clone?
 # pick your flder or use ~/oss (Open Source Software)

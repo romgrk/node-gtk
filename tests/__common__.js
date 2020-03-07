@@ -3,6 +3,7 @@
  */
 
 const chalk = require('chalk')
+const isEqual = require('lodash.isequal')
 const deasync = require('deasync')
 
 module.exports = {
@@ -28,7 +29,7 @@ function assert(condition, message) {
 }
 
 function expect(value, expected) {
-  assert(value === expected,
+  assert(isEqual(value, expected),
     `Expected: "${expected}", got: "${value}"`)
 }
 
@@ -145,6 +146,10 @@ function _failed(...args) {
       + (args.length > 0 ? ':' : ''), ...args)
   else
     console.error(chalk.red.bold('Failed:'), ...args)
+
+  const line = new Error().stack.split('\n').slice(1).find(l => !l.includes('__common__'))
+  console.log(line)
+
 }
 
 function _success(...args) {

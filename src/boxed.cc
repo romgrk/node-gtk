@@ -12,6 +12,7 @@
 #include "type.h"
 #include "util.h"
 #include "value.h"
+#include "modules/cairo/cairo.h"
 
 using v8::Array;
 using v8::Boolean;
@@ -31,7 +32,6 @@ namespace GNodeJS {
 
 
 
-
 size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
     GIInfoType type = g_base_info_get_type(boxed_info);
     if (type == GI_INFO_TYPE_STRUCT) {
@@ -39,7 +39,7 @@ size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
     } else if (type == GI_INFO_TYPE_UNION) {
         return g_union_info_get_size((GIUnionInfo*)boxed_info);
     } else {
-        warn("received bad type: %s", g_info_type_to_string (type));
+        WARN("received bad type: %s", g_info_type_to_string (type));
         g_assert_not_reached();
     }
 }
@@ -234,11 +234,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     self->SetAlignedPointerInInternalField (0, boxed);
 
-    Nan::DefineOwnProperty(self,
-            UTF8("__gtype__"),
-            Nan::New<Number>(gtype),
-            (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
-    );
+    SET_OBJECT_GTYPE (self, gtype);
 
     box = new Boxed();
     box->data = boxed;
@@ -268,7 +264,7 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
          * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
          */
         if (strcmp(g_base_info_get_name (box->info), "Typelib") != 0)
-            warn("boxed possibly not freed (%s.%s : %s)",
+            WARN("boxed possibly not freed (%s.%s : %s)",
                     g_base_info_get_namespace (box->info),
                     g_base_info_get_name (box->info),
                     g_type_name (box->gtype));
@@ -326,15 +322,21 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
      * Template not created yet
      */
 
-    auto tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    Local<FunctionTemplate> tpl;
+    MaybeLocal<FunctionTemplate> cairoTpl = Cairo::GetTemplate (info);
 
-    if (gtype != G_TYPE_NONE) {
-        const char *class_name = g_type_name(gtype);
-        tpl->SetClassName (UTF8(class_name));
-    } else {
-        const char *class_name = g_base_info_get_name (info);
-        tpl->SetClassName (UTF8(class_name));
+    if (!cairoTpl.IsEmpty()) {
+        tpl = cairoTpl.ToLocalChecked();
+    }
+    else {
+        tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
+        tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+        if (gtype != G_TYPE_NONE) {
+            tpl->SetClassName (UTF8 (g_type_name (gtype)));
+        } else {
+            tpl->SetClassName (UTF8 (g_base_info_get_name (info)));
+        }
     }
 
     if (gtype == G_TYPE_NONE)
@@ -368,8 +370,8 @@ Local<Function> GetBoxedFunction(GIBaseInfo *info, GType gtype) {
 
     if (data) {
         auto *persistent = (Persistent<Function> *) data;
-        auto tpl = Nan::New<Function> (*persistent);
-        return tpl;
+        auto fn = Nan::New<Function> (*persistent);
+        return fn;
     }
 
     Local<FunctionTemplate> tpl = GetBoxedTemplate (info, gtype);

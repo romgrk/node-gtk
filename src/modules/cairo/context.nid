@@ -1,0 +1,124 @@
+// vim: ft=c
+
+/* cairo_t * cairo_create (cairo_surface_t *target); */
+/* cairo_t * cairo_reference (cairo_t *cr); */
+/* void cairo_destroy (cairo_t *cr); */
+cairo_status_t cairo_status (cairo_t *cr);
+void cairo_save (cairo_t *cr);
+void cairo_restore (cairo_t *cr);
+cairo_surface_t * cairo_get_target (cairo_t *cr);
+void cairo_push_group (cairo_t *cr);
+void cairo_push_group_with_content (cairo_t *cr, cairo_content_t content);
+cairo_pattern_t * cairo_pop_group (cairo_t *cr);
+void cairo_pop_group_to_source (cairo_t *cr);
+cairo_surface_t * cairo_get_group_target (cairo_t *cr);
+void cairo_set_source_rgb (cairo_t *cr, double red, double green, double blue);
+void cairo_set_source_rgba (cairo_t *cr, double red, double green, double blue, double alpha);
+void cairo_set_source (cairo_t *cr, cairo_pattern_t *source);
+void cairo_set_source_surface (cairo_t *cr, cairo_surface_t *surface, double x, double y);
+cairo_pattern_t * cairo_get_source (cairo_t *cr);
+void cairo_set_antialias (cairo_t *cr, cairo_antialias_t antialias);
+cairo_antialias_t cairo_get_antialias (cairo_t *cr);
+void cairo_set_dash (cairo_t *cr, const double *dashes, int num_dashes, double offset);
+int cairo_get_dash_count (cairo_t *cr);
+void cairo_get_dash (cairo_t *cr, [[out]] double *dashes, [[out]] double *offset);
+void cairo_set_fill_rule (cairo_t *cr, cairo_fill_rule_t fill_rule);
+cairo_fill_rule_t cairo_get_fill_rule (cairo_t *cr);
+void cairo_set_line_cap (cairo_t *cr, cairo_line_cap_t line_cap);
+cairo_line_cap_t cairo_get_line_cap (cairo_t *cr);
+void cairo_set_line_join (cairo_t *cr, cairo_line_join_t line_join);
+cairo_line_join_t cairo_get_line_join (cairo_t *cr);
+void cairo_set_line_width (cairo_t *cr, double width);
+double cairo_get_line_width (cairo_t *cr);
+void cairo_set_miter_limit (cairo_t *cr, double limit);
+double cairo_get_miter_limit (cairo_t *cr);
+void cairo_set_operator (cairo_t *cr, cairo_operator_t op);
+cairo_operator_t cairo_get_operator (cairo_t *cr);
+void cairo_set_tolerance (cairo_t *cr, double tolerance);
+double cairo_get_tolerance (cairo_t *cr);
+void cairo_clip (cairo_t *cr);
+void cairo_clip_preserve (cairo_t *cr);
+void cairo_clip_extents (cairo_t *cr, [[out]] double *x1, [[out]] double *y1, [[out]] double *x2, [[out]] double *y2);
+cairo_bool_t cairo_in_clip (cairo_t *cr, double x, double y);
+void cairo_reset_clip (cairo_t *cr);
+void cairo_rectangle_list_destroy (cairo_rectangle_list_t *rectangle_list);
+cairo_rectangle_list_t * cairo_copy_clip_rectangle_list (cairo_t *cr);
+void cairo_fill (cairo_t *cr);
+void cairo_fill_preserve (cairo_t *cr);
+void cairo_fill_extents (cairo_t *cr, [[out]] double *x1, [[out]] double *y1, [[out]] double *x2, [[out]] double *y2);
+cairo_bool_t cairo_in_fill (cairo_t *cr, double x, double y);
+void cairo_mask (cairo_t *cr, cairo_pattern_t *pattern);
+void cairo_mask_surface (cairo_t *cr, cairo_surface_t *surface, double surface_x, double surface_y);
+void cairo_paint (cairo_t *cr);
+void cairo_paint_with_alpha (cairo_t *cr, double alpha);
+void cairo_stroke (cairo_t *cr);
+void cairo_stroke_preserve (cairo_t *cr);
+void cairo_stroke_extents (cairo_t *cr, [[out]] double *x1, [[out]] double *y1, [[out]] double *x2, [[out]] double *y2);
+cairo_bool_t cairo_in_stroke (cairo_t *cr, double x, double y);
+void cairo_copy_page (cairo_t *cr);
+void cairo_show_page (cairo_t *cr);
+unsigned int cairo_get_reference_count (cairo_t *cr);
+/* cairo_status_t cairo_set_user_data (cairo_t *cr, const cairo_user_data_key_t *key, void *user_data, cairo_destroy_func_t destroy); */
+/* void * cairo_get_user_data (cairo_t *cr, const cairo_user_data_key_t *key); */
+/* typedef struct _cairo cairo_t;
+ * typedef struct { double x, y, width, height; } cairo_rectangle_t;
+ * typedef struct { cairo_status_t status; cairo_rectangle_t *rectangles; int num_rectangles; } cairo_rectangle_list_t; */
+
+cairo_path_t * cairo_copy_path (cairo_t *cr);
+cairo_path_t * cairo_copy_path_flat (cairo_t *cr);
+/* void cairo_path_destroy (cairo_path_t *path); */
+void cairo_append_path (cairo_t *cr, const cairo_path_t *path);
+cairo_bool_t cairo_has_current_point (cairo_t *cr);
+void cairo_get_current_point (cairo_t *cr, [[out]] double *x, [[out]] double *y);
+void cairo_new_path (cairo_t *cr);
+void cairo_new_sub_path (cairo_t *cr);
+void cairo_close_path (cairo_t *cr);
+void cairo_arc (cairo_t *cr, double xc, double yc, double radius, double angle1, double angle2);
+void cairo_arc_negative (cairo_t *cr, double xc, double yc, double radius, double angle1, double angle2);
+void cairo_curve_to (cairo_t *cr, double x1, double y1, double x2, double y2, double x3, double y3);
+void cairo_line_to (cairo_t *cr, double x, double y);
+void cairo_move_to (cairo_t *cr, double x, double y);
+void cairo_rectangle (cairo_t *cr, double x, double y, double width, double height);
+void cairo_glyph_path (cairo_t *cr, const cairo_glyph_t *glyphs, int num_glyphs);
+void cairo_text_path (cairo_t *cr, const char *utf8);
+void cairo_rel_curve_to (cairo_t *cr, double dx1, double dy1, double dx2, double dy2, double dx3, double dy3);
+void cairo_rel_line_to (cairo_t *cr, double dx, double dy);
+void cairo_rel_move_to (cairo_t *cr, double dx, double dy);
+void cairo_path_extents (cairo_t *cr, [[out]] double *x1, [[out]] double *y1, [[out]] double *x2, [[out]] double *y2);
+/* typedef struct { cairo_status_t status; cairo_path_data_t *data; int num_data; } cairo_path_t; */
+
+void cairo_show_text (cairo_t *cr, const char *utf8);
+void cairo_show_glyphs (cairo_t *cr, const cairo_glyph_t *glyphs, int num_glyphs);
+void cairo_show_text_glyphs (cairo_t *cr, const char *utf8, int utf8_len, const cairo_glyph_t *glyphs, int num_glyphs, const cairo_text_cluster_t *clusters, int num_clusters, cairo_text_cluster_flags_t cluster_flags);
+void cairo_font_extents (cairo_t *cr, [[out]] cairo_font_extents_t *extents);
+void cairo_text_extents (cairo_t *cr, const char *utf8, [[out]] cairo_text_extents_t *extents);
+void cairo_glyph_extents (cairo_t *cr, const cairo_glyph_t *glyphs, int num_glyphs, [[out]] cairo_text_extents_t *extents);
+void cairo_select_font_face (cairo_t *cr, const char *family, cairo_font_slant_t slant, cairo_font_weight_t weight);
+void cairo_set_font_size (cairo_t *cr, double size);
+
+void cairo_set_font_matrix (cairo_t *cr, const cairo_matrix_t *matrix);
+void cairo_get_font_matrix (cairo_t *cr, [[out]] cairo_matrix_t *matrix);
+
+void cairo_set_font_options (cairo_t *cr, const cairo_font_options_t *options);
+void cairo_get_font_options (cairo_t *cr, cairo_font_options_t *options);
+
+void cairo_set_font_face (cairo_t *cr, cairo_font_face_t *font_face);
+cairo_font_face_t * cairo_get_font_face (cairo_t *cr);
+
+void cairo_set_scaled_font (cairo_t *cr, const cairo_scaled_font_t *scaled_font);
+cairo_scaled_font_t * cairo_get_scaled_font (cairo_t *cr);
+
+void cairo_translate (cairo_t *cr, double tx, double ty);
+void cairo_scale (cairo_t *cr, double sx, double sy);
+void cairo_rotate (cairo_t *cr, double angle);
+void cairo_transform (cairo_t *cr, const cairo_matrix_t *matrix);
+void cairo_set_matrix (cairo_t *cr, const cairo_matrix_t *matrix);
+void cairo_get_matrix (cairo_t *cr, [[out]] cairo_matrix_t *matrix);
+void cairo_identity_matrix (cairo_t *cr);
+void cairo_user_to_device (cairo_t *cr, [[out]] double *x, [[out]] double *y);
+void cairo_user_to_device_distance (cairo_t *cr, [[out]] double *dx, [[out]] double *dy);
+void cairo_device_to_user (cairo_t *cr, [[out]] double *x, [[out]] double *y);
+void cairo_device_to_user_distance (cairo_t *cr, [[out]] double *dx, [[out]] double *dy);
+
+[[version(1.16)]] void cairo_tag_begin (cairo_t *cr, const char *tag_name, const char *attributes);
+[[version(1.16)]] void cairo_tag_end (cairo_t *cr, const char *tag_name); 

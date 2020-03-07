@@ -1,0 +1,19 @@
+
+// Matrix:
+
+[[constructor]] void cairo_matrix_init ([[new]] cairo_matrix_t *matrix, double xx, double yx, double xy, double yy, double x0, double y0);
+[[static]] void cairo_matrix_init_identity ([[out]] cairo_matrix_t *matrix);
+[[static]] void cairo_matrix_init_translate ([[out]] cairo_matrix_t *matrix, double tx, double ty);
+[[static]] void cairo_matrix_init_scale ([[out]] cairo_matrix_t *matrix, double sx, double sy);
+[[static]] void cairo_matrix_init_rotate ([[out]] cairo_matrix_t *matrix, double radians);
+void cairo_matrix_translate (cairo_matrix_t *matrix, double tx, double ty);
+void cairo_matrix_scale (cairo_matrix_t *matrix, double sx, double sy);
+void cairo_matrix_rotate (cairo_matrix_t *matrix, double radians);
+cairo_status_t cairo_matrix_invert (cairo_matrix_t *matrix);
+[[static]] void cairo_matrix_multiply ([[out]] cairo_matrix_t *result, const cairo_matrix_t *a, const cairo_matrix_t *b);
+void cairo_matrix_transform_distance (const cairo_matrix_t *matrix, [[inout]] double *dx, [[inout]] double *dy);
+void cairo_matrix_transform_point (const cairo_matrix_t *matrix, [[inout]] double *x, [[inout]] double *y);
+
+/* typedef struct { double xx; double yx; double xy; double yy; double x0; double y0; } cairo_matrix_t; */
+
+// vim: ft=c

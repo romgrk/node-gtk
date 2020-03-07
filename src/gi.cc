@@ -13,6 +13,7 @@
 #include "util.h"
 #include "value.h"
 #include "modules/system.h"
+#include "modules/cairo/cairo.h"
 
 using namespace v8;
 using GNodeJS::BaseInfo;
@@ -130,7 +131,7 @@ NAN_METHOD(GetConstantValue) {
     if (size != 0)
         info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg));
     else
-        warn("Couldn't load %s.%s: invalid constant size: %i",
+        WARN("Couldn't load %s.%s: invalid constant size: %i",
                 g_base_info_get_namespace (gi_info),
                 g_base_info_get_name (gi_info),
                 size);
@@ -353,6 +354,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, GetLoopStack);
 
     Nan::Set(exports, UTF8("System"), GNodeJS::System::GetModule());
+    Nan::Set(exports, UTF8("Cairo"),  GNodeJS::Cairo::GetModule());
 }
 
 NODE_MODULE(node_gtk, InitModule)
