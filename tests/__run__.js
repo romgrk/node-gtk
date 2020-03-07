@@ -21,7 +21,12 @@ const watchdog = setTimeout(() => {
 }, 10 * 60 * 1000)
 watchdog.unref()
 
+const skipPattern = process.argv.find(a => a.startsWith('--skip='))
+
 files.forEach(file => {
+
+  if (skipPattern && skipPattern.test(file))
+    return
 
   it(file, function(done) {
     const currentTest = this
@@ -48,3 +53,8 @@ files.forEach(file => {
     })
   })
 })
+
+function parseSkip(flag) {
+    const pattern = flag.split('=')[1]
+    return new RegExp(pattern)
+}

@@ -76,7 +76,7 @@ function testRequire(module, i, modules) {
         return resolve({ ok: true, loaded: true, module, output })
       }
 
-      if (!notOurFaultPatterns.some(p => p.test(message))) {
+      if (notOurFaultPatterns.some(p => p.test(error.message))) {
         if (output.includes('[WARN]') && showWarnings)
           console.log(output)
         return resolve({ ok: true, loaded: false, module, error, output })
