@@ -238,7 +238,7 @@ NAN_METHOD(ScaledFont::textToGlyphs) {
   auto y = Nan::To<double>(info[1].As<Number>()).ToChecked();
   auto utf8 = *Nan::Utf8String (info[2].As<String>());
   auto utf8_len = info[2].As<String>()->Length();
-  auto get_clusters = info.Length() == 4 ? Nan::To<bool>(info[3].As<Boolean>()).ToChecked() : false;
+  auto get_clusters = info.Length() == 4 ? Nan::To<bool>(info[3].As<v8::Boolean>()).ToChecked() : false;
 
   // out-arguments
   cairo_glyph_t *glyphs = NULL;
