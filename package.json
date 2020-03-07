@@ -20,7 +20,7 @@
     "GObject",
     "Gtk+",
     "Gtk",
-    "bindings"
+    "cairo"
   ],
   "author": "Jasper St. Pierre",
   "contributors": [
