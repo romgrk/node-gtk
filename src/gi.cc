@@ -131,7 +131,7 @@ NAN_METHOD(GetConstantValue) {
     if (size != 0)
         info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg));
     else
-        warn("Couldn't load %s.%s: invalid constant size: %i",
+        WARN("Couldn't load %s.%s: invalid constant size: %i",
                 g_base_info_get_namespace (gi_info),
                 g_base_info_get_name (gi_info),
                 size);
