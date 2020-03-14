@@ -17,6 +17,7 @@
 #include "debug.h"
 
 using v8::Array;
+using v8::TypedArray;
 using v8::Boolean;
 using v8::Integer;
 using v8::Local;
@@ -237,12 +238,12 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
     auto array_type = g_type_info_get_array_type (type_info);
     auto* elem_type_info = g_type_info_get_param_type (type_info, 0);
     auto  element_size = GetTypeSize (elem_type_info);
-    auto is_zero_terminated = g_type_info_is_zero_terminated (type_info);
+    auto isZeroTerminated = g_type_info_is_zero_terminated (type_info);
 
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-                if (is_zero_terminated) {
+                if (isZeroTerminated) {
                     length = g_strv_length ((gchar **)data);
                 }
                 else if (length == -1) {
@@ -346,27 +347,15 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
     return g_array;
 }
 
-void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
-    bool is_zero_terminated = g_type_info_is_zero_terminated(type_info);
-
-    if (value->IsString()) {
-        Local<String> string = TO_STRING (value);
-        const char *utf8_data = *Nan::Utf8String(string);
-        return g_strdup(utf8_data);
-    }
-
-    if (!value->IsArray()) {
-        Nan::ThrowTypeError("Expected value to be an array");
-        return NULL;
-    }
-
+static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     auto array = Local<Array>::Cast (TO_OBJECT (value));
     int length = array->Length();
 
+    bool isZeroTerminated = g_type_info_is_zero_terminated(type_info);
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
     gsize element_size = GetTypeSize(element_info);
 
-    void *result = malloc(element_size * (length + (is_zero_terminated ? 1 : 0)));
+    void *result = malloc(element_size * (length + (isZeroTerminated ? 1 : 0)));
 
     for (int i = 0; i < length; i++) {
         auto value = Nan::Get(array, i).ToLocalChecked();
@@ -377,18 +366,59 @@ void * V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
             void* pointer = (void*)((ulong)result + i * element_size);
             memcpy(pointer, &arg, element_size);
         } else {
-            g_warning("V8ToGArray: couldnt convert value: %s",
-                    *Nan::Utf8String(TO_STRING (value)) );
+            WARN("couldnt convert value: %s", *Nan::Utf8String(TO_STRING (value)));
         }
     }
 
-    if (is_zero_terminated) {
+    if (isZeroTerminated) {
         void* pointer = (void*)((ulong)result + length * element_size);
         memset(pointer, 0, element_size);
     }
 
     g_base_info_unref (element_info);
     return result;
+}
+
+static void *V8TypedArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
+    auto array = Local<TypedArray>::Cast (TO_OBJECT (value));
+    size_t length = array->ByteLength();
+
+    bool isZeroTerminated = g_type_info_is_zero_terminated(type_info);
+    GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
+    gsize element_size = GetTypeSize(element_info);
+
+    void *result = malloc(element_size * (length + (isZeroTerminated ? 1 : 0)));
+
+    array->CopyContents(result, length);
+
+    if (isZeroTerminated) {
+        void* pointer = (void*)((ulong)result + length * element_size);
+        memset(pointer, 0, element_size);
+    }
+
+    g_base_info_unref (element_info);
+
+    return result;
+}
+
+void *V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
+    if (value->IsString()) {
+        Local<String> string = TO_STRING (value);
+        const char *utf8_data = *Nan::Utf8String(string);
+        return g_strdup(utf8_data);
+    }
+
+    if (value->IsArray()) {
+        return V8ArrayToCArray(type_info, value);
+    }
+
+    if (value->IsTypedArray()) {
+        return V8TypedArrayToCArray(type_info, value);
+    }
+
+    Nan::ThrowTypeError("Expected value to be an array");
+
+    return NULL;
 }
 
 gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value) {
@@ -777,10 +807,13 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     case GI_TYPE_TAG_GLIST:
     case GI_TYPE_TAG_GSLIST:
         {
-            if (value->IsString () && IsUint8Array(type_info))
+            if (value->IsString() && IsUint8Array(type_info))
                 return true;
 
-            if (!value->IsArray ())
+            if (value->IsTypedArray())
+                return true;
+
+            if (!value->IsArray())
                 return false;
 
             auto array = TO_OBJECT (value);
@@ -999,12 +1032,12 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
 
     if (free_elements) {
         gsize element_size = GetTypeSize (element_info);
-        bool is_zero_terminated = g_type_info_is_zero_terminated (type_info);
+        bool isZeroTerminated = g_type_info_is_zero_terminated (type_info);
 
         switch (array_type) {
             case GI_ARRAY_TYPE_C:
                 {
-                    if (is_zero_terminated) {
+                    if (isZeroTerminated) {
                         length = g_strv_length ((gchar **)data);
                     }
                     else if (length == -1) {

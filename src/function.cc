@@ -13,6 +13,7 @@
 #include "value.h"
 
 using v8::Array;
+using v8::TypedArray;
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -38,6 +39,8 @@ static int GetV8ArrayLength (Local<Value> value) {
         return Local<Array>::Cast (TO_OBJECT (value))->Length();
     else if (value->IsString())
         return TO_STRING (value)->Length();
+    else if (value->IsTypedArray())
+        return Local<TypedArray>::Cast (TO_OBJECT (value))->Length();
     else if (value->IsNull() || value->IsUndefined())
         return 0;
 
