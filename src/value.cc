@@ -100,11 +100,12 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
             return str;
         }
 
-    case GI_TYPE_TAG_UTF8:
+    case GI_TYPE_TAG_UTF8: {
         if (arg->v_string)
             return New<String>(arg->v_string).ToLocalChecked();
         else
             return Nan::EmptyString();
+    }
 
     case GI_TYPE_TAG_INTERFACE:
         {
