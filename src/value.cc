@@ -133,10 +133,10 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
             case GI_INFO_TYPE_FLAGS:
                 value = New<Number>(arg->v_long);
                 break;
-            case GI_INFO_TYPE_INTERFACE:
-                g_warning ("GIArgumentToV8: Unsuported conversion: from interface. Using null placeholder");
-                value = Nan::Null();
+            case GI_INFO_TYPE_INTERFACE: {
+                value = WrapperFromGObject((GObject *)arg->v_pointer);
                 break;
+            }
             default:
                 print_info (interface_info);
                 g_assert_not_reached ();
