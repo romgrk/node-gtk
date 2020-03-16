@@ -24,6 +24,8 @@ namespace GNodeJS {
 
     void InvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Value> value);
 
+    void UnhandledType (const char *typeName);
+
     void InvalidReturnValue (GITypeInfo *type_info, Local<Value> value);
 
     void UnsupportedCallback (GIBaseInfo* info);
@@ -31,6 +33,10 @@ namespace GNodeJS {
     void InvalidGType (const char *category, GType gtype);
 
     void GTypeNotFound (GIBaseInfo *info, const char* error);
+
+    void SignalNotFound(GIBaseInfo *object_info, const char* signal_name);
+
+    void InvalidSignal(GIBaseInfo *object_info, const char* signal_name);
 
   }; // namespace Throw
 

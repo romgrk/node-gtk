@@ -43,6 +43,12 @@ void InvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Value> value) {
     g_free(msg);
 }
 
+void UnhandledType (const char *typeName) {
+    char* message = g_strdup_printf("Unhandled type: %s (please report this)", typeName);
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
 void InvalidReturnValue (GITypeInfo *type_info, Local<Value> value) {
     char *expected = GetTypeName (type_info);
     char *msg = g_strdup_printf(
@@ -79,6 +85,20 @@ void GTypeNotFound (GIBaseInfo *info, const char* error) {
             g_base_info_get_namespace(info),
             g_base_info_get_name(info),
             error);
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
+void SignalNotFound(GIBaseInfo *object_info, const char* signal_name) {
+    char *message = g_strdup_printf("Signal \"%s\" not found for instance of %s",
+            signal_name, GetInfoName(object_info));
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
+void InvalidSignal(GIBaseInfo *object_info, const char* signal_name) {
+    char *message = g_strdup_printf("Invalid signal for instance of %s: \"%s\"",
+            GetInfoName(object_info), signal_name);
     Nan::ThrowError(message);
     g_free(message);
 }
