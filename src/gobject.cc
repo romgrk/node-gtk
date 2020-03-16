@@ -324,16 +324,13 @@ NAN_METHOD(SignalEmit) {
 
     guint signalId;
     GQuark detailId;
-    gboolean success;
 
     if (signalInfo == NULL) {
         Throw::SignalNotFound(objectInfo, detailedSignal);
         goto out;
     }
 
-    success = g_signal_parse_name(detailedSignal, gtype, &signalId, &detailId, FALSE);
-
-    if (!success) {
+    if (!g_signal_parse_name(detailedSignal, gtype, &signalId, &detailId, FALSE)) {
         Throw::InvalidSignal(objectInfo, detailedSignal);
         goto out__signal;
     }
