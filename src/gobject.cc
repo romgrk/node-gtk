@@ -181,41 +181,42 @@ static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) 
 }
 
 static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *signal_detail) {
-    char* signal_name = Util::GetSignalName(signal_detail);
+    char* signalName = Util::GetSignalName(signal_detail);
 
-    GISignalInfo *signal_info = NULL;
+    GISignalInfo *signalInfo = NULL;
 
-    GIBaseInfo *parent = g_base_info_ref(info);
+    GIBaseInfo *current = g_base_info_ref(info);
 
-    while (parent) {
+    while (current) {
         // Find on GObject
-        signal_info = g_object_info_find_signal (parent, signal_name);
-        if (signal_info)
+        signalInfo = g_object_info_find_signal (current, signalName);
+        if (signalInfo)
             break;
 
         // Find on Interfaces
-        int n_interfaces = g_object_info_get_n_interfaces (info);
+        int n_interfaces = g_object_info_get_n_interfaces (current);
         for (int i = 0; i < n_interfaces; i++) {
-            GIBaseInfo* interface_info = g_object_info_get_interface (info, i);
-            signal_info = g_interface_info_find_signal (interface_info, signal_name);
+            GIBaseInfo* interface_info = g_object_info_get_interface (current, i);
+            signalInfo = g_interface_info_find_signal (interface_info, signalName);
             g_base_info_unref (interface_info);
-            if (signal_info)
+
+            if (signalInfo)
                 goto out;
         }
 
-        GIBaseInfo* next_parent = g_object_info_get_parent(parent);
-        g_base_info_unref(parent);
-        parent = next_parent;
+        GIBaseInfo* parent = g_object_info_get_parent(current);
+        g_base_info_unref(current);
+        current = parent;
     }
 
 out:
 
-    if (parent)
-        g_base_info_unref(parent);
+    if (current)
+        g_base_info_unref(current);
 
-    g_free(signal_name);
+    g_free(signalName);
 
-    return signal_info;
+    return signalInfo;
 }
 
 static void ThrowSignalNotFound(GIBaseInfo *object_info, const char* signal_name) {
