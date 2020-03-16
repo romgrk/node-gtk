@@ -219,14 +219,14 @@ out:
     return signalInfo;
 }
 
-static void ThrowSignalNotFound(GIBaseInfo *object_info, const char* signal_name) {
-    char *message = g_strdup_printf("Signal \"%s\" not found for instance of %s",
-            signal_name, GetInfoName(object_info));
-    Nan::ThrowError(message);
-    g_free(message);
+static bool HasReturnValue(GICallableInfo *signalInfo, GITypeInfo *returnInfo) {
+    auto tag = g_type_info_get_tag(returnInfo);
+    return !g_callable_info_skip_return(signalInfo) && tag != GI_TYPE_TAG_VOID;
 }
 
-static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &info, bool after) {
+NAN_METHOD(SignalConnect) {
+    bool after = false;
+
     GObject *gobject = GObjectFromWrapper (info.This ());
 
     if (!gobject) {
@@ -254,23 +254,24 @@ static void SignalConnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &in
         return;
     }
 
-    const char *signal_name = *Nan::Utf8String (TO_STRING (info[0]));
-    GISignalInfo *signal_info = FindSignalInfo (object_info, signal_name);
+    const char *signalName = *Nan::Utf8String (TO_STRING (info[0]));
+    GISignalInfo *signal_info = FindSignalInfo (object_info, signalName);
 
     if (signal_info == NULL) {
-        ThrowSignalNotFound(object_info, signal_name);
+        Throw::SignalNotFound(object_info, signalName);
     }
     else {
         GClosure *gclosure = MakeClosure (callback, signal_info);
-        ulong handler_id = g_signal_connect_closure (gobject, signal_name, gclosure, after);
+        ulong handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
         info.GetReturnValue().Set((double)handler_id);
     }
 
+    g_base_info_unref(signal_info);
     g_base_info_unref(object_info);
 }
 
-static void SignalDisconnectInternal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+NAN_METHOD(SignalDisconnect) {
     GObject *gobject = GObjectFromWrapper (info.This ());
 
     if (!gobject) {
@@ -290,12 +291,98 @@ static void SignalDisconnectInternal(const Nan::FunctionCallbackInfo<v8::Value> 
     info.GetReturnValue().Set((double)handler_id);
 }
 
-NAN_METHOD(SignalConnect) {
-    SignalConnectInternal(info, false);
-}
+NAN_METHOD(SignalEmit) {
 
-NAN_METHOD(SignalDisconnect) {
-    SignalDisconnectInternal(info);
+    if (!info[0]->IsString()) {
+        Nan::ThrowTypeError("Signal name should be a string");
+        return;
+    }
+
+    Local<Object> self = info.This();
+    GObject *gobject = GObjectFromWrapper (self);
+    GType gtype = (GType) TO_LONG (Nan::Get(self, UTF8("__gtype__")).ToLocalChecked());
+
+    GIBaseInfo *objectInfo = g_irepository_find_by_gtype (NULL, gtype);
+
+    if (objectInfo == NULL) {
+        Throw::InvalidGType(NULL, gtype);
+        return;
+    }
+
+    const char *detailedSignal = *Nan::Utf8String(TO_STRING(info[0]));
+    GISignalInfo *signalInfo = FindSignalInfo (objectInfo, detailedSignal);
+    GITypeInfo *returnInfo;
+
+    auto jsArgs = info.Length() - 1;
+    guint nArgs;
+    size_t argc;
+    GValue* args;
+
+    GValue gReturnValue = {};
+    GIArgInfo argInfo;
+    GITypeInfo typeInfo;
+
+    guint signalId;
+    GQuark detailId;
+    gboolean success;
+
+    if (signalInfo == NULL) {
+        Throw::SignalNotFound(objectInfo, detailedSignal);
+        goto out;
+    }
+
+    success = g_signal_parse_name(detailedSignal, gtype, &signalId, &detailId, FALSE);
+
+    if (!success) {
+        Throw::InvalidSignal(objectInfo, detailedSignal);
+        goto out__signal;
+    }
+
+    signalInfo = FindSignalInfo(objectInfo, detailedSignal);
+    nArgs = g_callable_info_get_n_args(signalInfo);
+
+    if (jsArgs < nArgs) {
+        Throw::NotEnoughArguments(nArgs - 1, jsArgs);
+        goto out__signal;
+    }
+
+    /*
+     * For signals, the instance and user_data are implicit parameters,
+     * therefore we add space for 2 more arguments.
+     */
+    argc = nArgs + 2;
+    args = new GValue[argc]();
+
+    g_value_init(&args[0], G_TYPE_OBJECT);
+    g_value_set_object(&args[0], PointerFromWrapper(self));
+
+    for (uint i = 0; i < nArgs; i++) {
+        g_callable_info_load_arg(signalInfo, i, &argInfo);
+        g_arg_info_load_type(&argInfo, &typeInfo);
+
+        print_info(&typeInfo);
+        if (!V8ToGValue(&args[i + 1], info[i + 1], &typeInfo))
+            goto out__args;
+    }
+
+    g_value_init(&args[argc - 1], G_TYPE_POINTER);
+    g_value_set_pointer(&args[argc - 1], NULL);
+
+    returnInfo = g_callable_info_get_return_type (signalInfo);
+    InitGValue(&gReturnValue, returnInfo);
+
+    g_signal_emitv(args, signalId, detailId, &gReturnValue);
+
+    if (HasReturnValue(signalInfo, returnInfo))
+        RETURN (GValueToV8(&gReturnValue));
+
+    g_base_info_unref(returnInfo);
+out__args:
+    delete[] args;
+out__signal:
+    g_base_info_unref(signalInfo);
+out:
+    g_base_info_unref(objectInfo);
 }
 
 NAN_METHOD(GObjectToString) {
@@ -328,6 +415,7 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
         Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>();
         Nan::SetPrototypeMethod(tpl, "connect", SignalConnect);
         Nan::SetPrototypeMethod(tpl, "disconnect", SignalDisconnect);
+        Nan::SetPrototypeMethod(tpl, "emit", SignalEmit);
         Nan::SetPrototypeMethod(tpl, "toString", GObjectToString);
         baseTemplate.Reset(tpl);
     }

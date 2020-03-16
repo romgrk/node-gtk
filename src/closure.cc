@@ -89,7 +89,7 @@ void Closure::Invalidated (gpointer data, GClosure *base) {
 GClosure *MakeClosure (Local<Function> function, GICallableInfo* info) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
     closure->persistent.Reset(function);
-    closure->info = info;
+    closure->info = g_base_info_ref (info);
     GClosure *gclosure = &closure->base;
     g_closure_set_marshal (gclosure, Closure::Marshal);
     g_closure_add_invalidate_notifier (gclosure, NULL, Closure::Invalidated);

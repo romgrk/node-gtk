@@ -924,6 +924,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         GIInfoType  i_type = g_base_info_get_type(i_info);
         switch (i_type) {
             case GI_INFO_TYPE_OBJECT:
+            case GI_INFO_TYPE_INTERFACE: // TODO(validate interface are handled)
                 // handled by gobject.cc/boxed.cc
                 break;
             case GI_INFO_TYPE_BOXED:
@@ -942,8 +943,9 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
                     break;
             }
             default:
-                g_warning("FreeArgument: unhandled interface: %s",
-                        g_base_info_get_name(i_info));
+                WARN("unhandled interface: %s (%s)",
+                        g_base_info_get_name(i_info),
+                        g_info_type_to_string(i_type));
                 break;
         }
         g_base_info_unref(i_info);
@@ -1113,14 +1115,90 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     }
 }
 
+bool InitGValue(GValue *gvalue, GITypeInfo *typeInfo) {
+    assert(GI_IS_TYPE_INFO(typeInfo));
 
-bool V8ToGValue(GValue *gvalue, Local<Value> value) {
+    GType gtype;
+    auto tag = g_type_info_get_tag(typeInfo);
+    switch (tag) {
+    case GI_TYPE_TAG_VOID:      gtype = G_TYPE_NONE; break;
+    case GI_TYPE_TAG_BOOLEAN:   gtype = G_TYPE_BOOLEAN; break;
+    case GI_TYPE_TAG_INT8:      gtype = G_TYPE_CHAR; break;
+    case GI_TYPE_TAG_UINT8:     gtype = G_TYPE_UCHAR; break;
+    case GI_TYPE_TAG_INT16:     gtype = G_TYPE_INT; break;
+    case GI_TYPE_TAG_UINT16:    gtype = G_TYPE_UINT; break;
+    case GI_TYPE_TAG_INT32:     gtype = G_TYPE_INT; break;
+    case GI_TYPE_TAG_UINT32:    gtype = G_TYPE_UINT; break;
+    case GI_TYPE_TAG_INT64:     gtype = G_TYPE_INT64; break;
+    case GI_TYPE_TAG_UINT64:    gtype = G_TYPE_UINT64; break;
+    case GI_TYPE_TAG_FLOAT:     gtype = G_TYPE_FLOAT; break;
+    case GI_TYPE_TAG_DOUBLE:    gtype = G_TYPE_DOUBLE; break;
+    case GI_TYPE_TAG_GTYPE:     gtype = G_TYPE_GTYPE; break;
+    case GI_TYPE_TAG_UTF8:      gtype = G_TYPE_STRING; break;
+    case GI_TYPE_TAG_FILENAME:  gtype = G_TYPE_STRING; break;
+    case GI_TYPE_TAG_INTERFACE: {
+        GIBaseInfo *interfaceInfo = g_type_info_get_interface (typeInfo);
+        GIInfoType infoType = g_base_info_get_type (interfaceInfo);
+
+        switch (infoType) {
+        case GI_INFO_TYPE_OBJECT:
+        case GI_INFO_TYPE_INTERFACE:
+        case GI_INFO_TYPE_BOXED:
+        case GI_INFO_TYPE_STRUCT:
+        case GI_INFO_TYPE_UNION:
+            gtype = g_registered_type_info_get_g_type (interfaceInfo);
+            break;
+        case GI_INFO_TYPE_FLAGS:
+            gtype = G_TYPE_FLAGS;
+            break;
+        case GI_INFO_TYPE_ENUM:
+            gtype = G_TYPE_ENUM;
+            break;
+        case GI_INFO_TYPE_CALLBACK:
+        default:
+            ERROR("Unhandled type: %s", g_info_type_to_string(infoType));
+            g_assert_not_reached ();
+        }
+
+        g_base_info_unref(interfaceInfo);
+        break;
+    }
+    case GI_TYPE_TAG_GLIST:     gtype = G_TYPE_POINTER; break;
+    case GI_TYPE_TAG_GSLIST:    gtype = G_TYPE_POINTER; break;
+    case GI_TYPE_TAG_GHASH:     gtype = G_TYPE_POINTER; break;
+    case GI_TYPE_TAG_ERROR:     gtype = G_TYPE_POINTER; break;
+    case GI_TYPE_TAG_UNICHAR:   gtype = G_TYPE_UINT64; break;
+    case GI_TYPE_TAG_ARRAY:
+        WARN("Unhandled type: %s (please report this)", g_type_tag_to_string(tag));
+        Throw::UnhandledType(g_type_tag_to_string(tag));
+        return false;
+    }
+
+    LOG("init: %lu, %s, tag = %s", gtype, g_type_name(gtype), g_type_tag_to_string(tag));
+    g_value_init(gvalue, gtype);
+
+    return true;
+}
+
+bool V8ToGValue(GValue *gvalue, Local<Value> value, GITypeInfo *typeInfo) {
+    /*
+     * Must initialize the GValue before usage
+     */
+    if (typeInfo != NULL) {
+        if (!InitGValue(gvalue, typeInfo))
+            return false;
+    }
+
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, Nan::To<bool> (value).ToChecked());
-    } else if (G_VALUE_HOLDS_INT (gvalue) || G_VALUE_HOLDS_LONG (gvalue)) {
+    } else if (G_VALUE_HOLDS_INT (gvalue)) {
         g_value_set_int (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         g_value_set_uint (gvalue, Nan::To<uint32_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_LONG (gvalue)) { // TODO(update when int64 is suported by V8)
+        g_value_set_long (gvalue, Nan::To<int32_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_ULONG (gvalue)) { // TODO(update when uint64 is suported by V8)
+        g_value_set_ulong (gvalue, Nan::To<uint32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         g_value_set_float (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
@@ -1166,6 +1244,8 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
         printf("G_VALUE_HOLDS_VARIANT");
         g_assert_not_reached ();
     } else {
+        ERROR("Unhandled GValue type: %s (please report this)",
+                g_type_name(G_VALUE_TYPE(gvalue)));
         g_assert_not_reached ();
     }
     return true;
