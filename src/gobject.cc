@@ -347,10 +347,15 @@ NAN_METHOD(SignalEmit) {
 
         g_value_init(gvalue, signal_query.param_types[i] & ~G_SIGNAL_TYPE_STATIC_SCOPE);
 
+        /*
+         * XXX(romgrk): in some cases, I think the value should be copied.
+         * We currently never copy the value, we pass it by reference. This
+         * should probably be investigated further to handle it correctly.
+         */
         if ((signal_query.param_types[i] & G_SIGNAL_TYPE_STATIC_SCOPE) != 0)
-            failed = !V8ToGValue(gvalue, info[i + 1]); // XXX(no copy!)
+            failed = !V8ToGValue(gvalue, info[i + 1]); // no-copy
         else
-            failed = !V8ToGValue(gvalue, info[i + 1]);
+            failed = !V8ToGValue(gvalue, info[i + 1]); // copy (fix this case)
 
         if (failed)
             break;
