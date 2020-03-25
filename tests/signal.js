@@ -56,16 +56,25 @@ window.on('show', () => {
       assert(result, 'Couldn\'t emit "can-activate-accel" signal on GtkButton')
     })
 
+    it('works with interface types', () => {
+      const event = new Gdk.EventKey()
+      const result = button.emit('key-press-event', event)
+      console.log(result)
+      assert(
+        typeof result === 'boolean',
+        'Couldn\'t emit "key-press-event" signal on GtkButton'
+      )
+    })
+
     it('fails when missing arguments', mustThrow(/Not enough arguments/, () => {
       const result = button.emit('can-activate-accel')
     }))
 
-    it('fails with incorrect argument types', () => {
-      const event = new Gdk.EventKey()
-      console.log(event)
-      const result = button.emit('key-press-event', event)
-      assert(result, 'Couldn\'t emit "can-activate-accel" signal on GtkButton')
-    })
+    it('fails with incorrect argument types',
+      mustThrow(/Couldn't convert value to "GdkEvent"/, () => {
+        button.emit('key-press-event', 42)
+      })
+    )
   })
 
   window.close()

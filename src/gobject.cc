@@ -250,7 +250,7 @@ NAN_METHOD(SignalConnect) {
     GIBaseInfo *object_info = g_irepository_find_by_gtype (NULL, gtype);
 
     if (object_info == NULL) {
-        Throw::InvalidGType(NULL, gtype);
+        Throw::InvalidGType(gtype);
         return;
     }
 
@@ -300,86 +300,77 @@ NAN_METHOD(SignalEmit) {
 
     Local<Object> self = info.This();
     GObject *gobject = GObjectFromWrapper (self);
-    GType gtype = (GType) TO_LONG (Nan::Get(self, UTF8("__gtype__")).ToLocalChecked());
+    GType gtype = G_OBJECT_TYPE (gobject);
 
-    GIBaseInfo *objectInfo = g_irepository_find_by_gtype (NULL, gtype);
+    size_t argc;
+    bool failed;
 
-    if (objectInfo == NULL) {
-        Throw::InvalidGType(NULL, gtype);
+    guint signal_id;
+    GQuark detail_id;
+    GSignalQuery signal_query;
+    GValue rvalue = G_VALUE_INIT;
+    GValue* args;
+
+    const char *detailedSignal = *Nan::Utf8String(TO_STRING(info[0]));
+    LOG("signal: %s", detailedSignal);
+
+    LOG("signal: %s", detailedSignal);
+    if (!g_signal_parse_name(detailedSignal, gtype, &signal_id, &detail_id, FALSE)) {
+        LOG("signal: %s", detailedSignal);
+        Throw::InvalidSignal(g_type_name(gtype), detailedSignal);
         return;
     }
 
-    const char *detailedSignal = *Nan::Utf8String(TO_STRING(info[0]));
-    GISignalInfo *signalInfo = FindSignalInfo (objectInfo, detailedSignal);
-    GITypeInfo *returnInfo;
-
-    auto jsArgs = info.Length() - 1;
-    guint nArgs;
-    size_t argc;
-    GValue* args;
-
-    GValue gReturnValue = {};
-    GIArgInfo argInfo;
-    GITypeInfo typeInfo;
-
-    guint signalId;
-    GQuark detailId;
-
-    if (signalInfo == NULL) {
-        Throw::SignalNotFound(objectInfo, detailedSignal);
-        goto out;
-    }
-
-    if (!g_signal_parse_name(detailedSignal, gtype, &signalId, &detailId, FALSE)) {
-        Throw::InvalidSignal(objectInfo, detailedSignal);
-        goto out__signal;
-    }
-
-    signalInfo = FindSignalInfo(objectInfo, detailedSignal);
-    nArgs = g_callable_info_get_n_args(signalInfo);
-
-    if (jsArgs < nArgs) {
-        Throw::NotEnoughArguments(nArgs - 1, jsArgs);
-        goto out__signal;
-    }
+    g_signal_query(signal_id, &signal_query);
 
     /*
-     * For signals, the instance and user_data are implicit parameters,
-     * therefore we add space for 2 more arguments.
+     * For signals, the instance is an implicit parameter,
+     * therefore we add space for 1 more argument.
      */
-    argc = nArgs + 2;
-    args = new GValue[argc]();
+    argc = signal_query.n_params + 1;
 
-    g_value_init(&args[0], G_TYPE_OBJECT);
-    g_value_set_object(&args[0], PointerFromWrapper(self));
-
-    for (uint i = 0; i < nArgs; i++) {
-        g_callable_info_load_arg(signalInfo, i, &argInfo);
-        g_arg_info_load_type(&argInfo, &typeInfo);
-
-        print_info(&typeInfo);
-        if (!V8ToGValue(&args[i + 1], info[i + 1], &typeInfo))
-            goto out__args;
+    if ((info.Length() - 1) < (int) signal_query.n_params) {
+        Throw::NotEnoughArguments(signal_query.n_params + 1, info.Length());
+        return;
     }
 
-    g_value_init(&args[argc - 1], G_TYPE_POINTER);
-    g_value_set_pointer(&args[argc - 1], NULL);
+    if (signal_query.return_type != G_TYPE_NONE) {
+        g_value_init(&rvalue, signal_query.return_type & ~G_SIGNAL_TYPE_STATIC_SCOPE);
+    }
 
-    returnInfo = g_callable_info_get_return_type (signalInfo);
-    InitGValue(&gReturnValue, returnInfo);
+    args = g_newa(GValue, argc);
+    memset(args, 0, sizeof(GValue) * argc);
 
-    g_signal_emitv(args, signalId, detailId, &gReturnValue);
+    g_value_init(&args[0], G_OBJECT_TYPE (gobject));
+    g_value_set_object(&args[0], gobject);
 
-    if (HasReturnValue(signalInfo, returnInfo))
-        RETURN (GValueToV8(&gReturnValue));
+    failed = false;
+    for (uint i = 0; i < signal_query.n_params; i++) {
+        GValue *gvalue = &args[i + 1];
 
-    g_base_info_unref(returnInfo);
-out__args:
-    delete[] args;
-out__signal:
-    g_base_info_unref(signalInfo);
-out:
-    g_base_info_unref(objectInfo);
+        g_value_init(gvalue, signal_query.param_types[i] & ~G_SIGNAL_TYPE_STATIC_SCOPE);
+
+        if ((signal_query.param_types[i] & G_SIGNAL_TYPE_STATIC_SCOPE) != 0)
+            failed = !V8ToGValue(gvalue, info[i + 1]); // XXX(no copy!)
+        else
+            failed = !V8ToGValue(gvalue, info[i + 1]);
+
+        if (failed)
+            break;
+    }
+
+    if (!failed) {
+        g_signal_emitv(args, signal_id, detail_id, &rvalue);
+
+        if (signal_query.return_type != G_TYPE_NONE) {
+            RETURN (GValueToV8(&rvalue));
+            g_value_unset(&rvalue);
+        }
+    }
+
+    for (uint i = 0; i < argc; i++) {
+        g_value_unset(&args[i]);
+    }
 }
 
 NAN_METHOD(GObjectToString) {

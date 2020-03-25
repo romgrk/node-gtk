@@ -30,13 +30,15 @@ namespace GNodeJS {
 
     void UnsupportedCallback (GIBaseInfo* info);
 
-    void InvalidGType (const char *category, GType gtype);
+    void InvalidGType (GType gtype);
+
+    void CannotConvertGType (const char *category, GType gtype);
 
     void GTypeNotFound (GIBaseInfo *info, const char* error);
 
     void SignalNotFound(GIBaseInfo *object_info, const char* signal_name);
 
-    void InvalidSignal(GIBaseInfo *object_info, const char* signal_name);
+    void InvalidSignal(const char* instance_name, const char* signal_name);
 
   }; // namespace Throw
 

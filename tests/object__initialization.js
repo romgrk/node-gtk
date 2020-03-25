@@ -25,7 +25,7 @@ describe('new GObject({ ... })', () => {
   })
 
   it('fails with wrong argument types',
-    mustThrow('Metadata for GType "SoupURI" (category: boxed) was not found. You might need to load additional required modules.', () => {
+    mustThrow(`Couldn't convert value to "SoupURI" (category: boxed).`, () => {
       const message = new Soup.Message({
         uri: 'http://google.com', // invalid type, should be SoupURI
       })
