@@ -312,11 +312,8 @@ NAN_METHOD(SignalEmit) {
     GValue* args;
 
     const char *detailedSignal = *Nan::Utf8String(TO_STRING(info[0]));
-    LOG("signal: %s", detailedSignal);
 
-    LOG("signal: %s", detailedSignal);
     if (!g_signal_parse_name(detailedSignal, gtype, &signal_id, &detail_id, FALSE)) {
-        LOG("signal: %s", detailedSignal);
         Throw::InvalidSignal(g_type_name(gtype), detailedSignal);
         return;
     }
