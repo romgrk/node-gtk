@@ -88,6 +88,14 @@ function onKeyPress(event) {
   // event.__proto__ === Gdk.EventKey
   console.log(event.string, event.keyval)
 }
+
+/**
+ * GObject.emit - Emits a signal on the GObject
+ * @param {String} name - Name of the signal
+ * @param {...*} args - Signal's arguments (refer to the library doc)
+ */
+input.emit('key-press-event', new Gdk.EventKey({ keyval: Gdk.Key_g }))
+
 ```
 
 Low-level methods `.connect(name: String, callback: Function) : Number` and
