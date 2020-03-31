@@ -2,7 +2,7 @@
 #include <nan.h>
 
 #include "closure.h"
-#include "debug.h"
+#include "macros.h"
 #include "loop.h"
 #include "type.h"
 #include "value.h"
