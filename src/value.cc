@@ -1116,6 +1116,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
 }
 
 bool V8ToGValue(GValue *gvalue, Local<Value> value) {
+    // by-value types
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, Nan::To<bool> (value).ToChecked());
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
@@ -1131,18 +1132,18 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         g_value_set_double (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        GType type;
-        if (value->IsString())
-            type = g_type_from_name(*Nan::Utf8String(value));
-        else
-            type = Nan::To<int64_t> (value).ToChecked();
-        g_value_set_gtype(gvalue, type);
-    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+        GType type = Nan::To<int64_t> (value).ToChecked();
+        g_value_set_gtype (gvalue, type);
+    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
+        g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
+        g_value_set_flags (gvalue, Nan::To<int32_t> (value).ToChecked());
+    }
+    // by-reference types
+      else if (G_VALUE_HOLDS_STRING (gvalue)) {
         Nan::Utf8String str (value);
         const char *data = *str;
         g_value_set_string (gvalue, data);
-    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
-        g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Throw::CannotConvertGType("GObject", G_VALUE_TYPE (gvalue));
@@ -1161,9 +1162,6 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
             return false;
         }
         g_value_set_param (gvalue, ParamSpec::FromWrapper(value));
-    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
-        printf("G_VALUE_HOLDS_FLAGS");
-        g_assert_not_reached ();
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
         printf("G_VALUE_HOLDS_POINTER");
         g_assert_not_reached ();
