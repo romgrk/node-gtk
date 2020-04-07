@@ -22,6 +22,8 @@ struct Closure {
             g_base_info_unref (info);
     }
 
+    static GClosure *New(v8::Local<v8::Function> function, GICallableInfo* info);
+
     static void Marshal(GClosure *closure,
                         GValue   *g_return_value,
                         uint argc, const GValue *g_argv,
@@ -30,7 +32,5 @@ struct Closure {
 
     static void Invalidated(gpointer data, GClosure *closure);
 };
-
-GClosure *MakeClosure(v8::Local<v8::Function> function, GICallableInfo* info);
 
 };

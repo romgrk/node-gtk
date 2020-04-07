@@ -244,8 +244,12 @@ NAN_METHOD(SignalConnect) {
         return;
     }
 
+    if (info[2]->IsBoolean()) {
+        after = true;
+    }
+
     Local<Function> callback = info[1].As<Function>();
-    GType gtype = (GType) TO_LONG (Nan::Get(info.This(), UTF8("__gtype__")).ToLocalChecked());
+    GType gtype = GET_OBJECT_GTYPE (info.This());
 
     GIBaseInfo *object_info = g_irepository_find_by_gtype (NULL, gtype);
 
@@ -261,7 +265,7 @@ NAN_METHOD(SignalConnect) {
         Throw::SignalNotFound(object_info, signalName);
     }
     else {
-        GClosure *gclosure = MakeClosure (callback, signal_info);
+        GClosure *gclosure = Closure::New (callback, signal_info);
         ulong handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
         info.GetReturnValue().Set((double)handler_id);
