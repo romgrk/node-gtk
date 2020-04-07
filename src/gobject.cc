@@ -245,7 +245,7 @@ NAN_METHOD(SignalConnect) {
     }
 
     if (info[2]->IsBoolean()) {
-        after = true;
+        after = Nan::To<bool>(info[2]).ToChecked();
     }
 
     Local<Function> callback = info[1].As<Function>();
