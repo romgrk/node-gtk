@@ -67,8 +67,9 @@ const input = new Gtk.Entry()
  * GObject.on - associates a callback to an event
  * @param {String} name - Name of the event
  * @param {Function} callback - Event handler
+ * @param {Boolean} [after=false] - Run after the signal
  */
-input.on('key-press-event', onKeyPress)
+input.on('key-press-event', onKeyPress, false)
 
 /**
  * GObject.off - dissociates callback from an event
