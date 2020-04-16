@@ -147,6 +147,7 @@ gsize GetTypeSize (GITypeInfo *type_info) {
                 case GI_INFO_TYPE_OBJECT:
                 case GI_INFO_TYPE_INTERFACE:
                 case GI_INFO_TYPE_CALLBACK:
+                    DEBUG("size for %s", g_info_type_to_string(info_type));
                     break;
                 case GI_INFO_TYPE_VFUNC:
                 case GI_INFO_TYPE_FUNCTION:
@@ -160,8 +161,7 @@ gsize GetTypeSize (GITypeInfo *type_info) {
                 case GI_INFO_TYPE_INVALID:
                 case GI_INFO_TYPE_UNRESOLVED:
                 default:
-                    printf("info type: %s\n", g_info_type_to_string(info_type));
-                    g_assert_not_reached();
+                    ERROR("info type: %s", g_info_type_to_string(info_type));
                     break;
             }
 
@@ -181,6 +181,40 @@ gsize GetTypeSize (GITypeInfo *type_info) {
     }
 
     return size;
+}
+
+gsize GetComplexTypeSize (GIBaseInfo *info) {
+    GIInfoType info_type = g_base_info_get_type (info);
+    gsize size = sizeof (gpointer);
+
+    switch (info_type) {
+        case GI_INFO_TYPE_STRUCT:
+            return g_struct_info_get_size ( (GIStructInfo *) info);
+        case GI_INFO_TYPE_UNION:
+            return g_union_info_get_size ( (GIUnionInfo *) info);
+        case GI_INFO_TYPE_ENUM:
+        case GI_INFO_TYPE_FLAGS:
+            return GetTypeTagSize (g_enum_info_get_storage_type ( (GIEnumInfo *) info));
+        case GI_INFO_TYPE_BOXED:
+        case GI_INFO_TYPE_OBJECT:
+        case GI_INFO_TYPE_INTERFACE:
+        case GI_INFO_TYPE_CALLBACK:
+            DEBUG("size for %s", g_info_type_to_string(info_type));
+            return sizeof(gpointer);
+        case GI_INFO_TYPE_VFUNC:
+        case GI_INFO_TYPE_FUNCTION:
+        case GI_INFO_TYPE_CONSTANT:
+        case GI_INFO_TYPE_VALUE:
+        case GI_INFO_TYPE_SIGNAL:
+        case GI_INFO_TYPE_PROPERTY:
+        case GI_INFO_TYPE_FIELD:
+        case GI_INFO_TYPE_ARG:
+        case GI_INFO_TYPE_TYPE:
+        case GI_INFO_TYPE_INVALID:
+        case GI_INFO_TYPE_UNRESOLVED:
+        default:
+            ERROR("info type: %s", g_info_type_to_string(info_type));
+    }
 }
 
 gsize GetTypeTagSize (GITypeTag type_tag) {

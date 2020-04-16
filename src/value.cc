@@ -1278,8 +1278,11 @@ bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
          * used by introspectable libs. (e.g. CairoContext objects)
          * In this case, we'll just make sure that the object contains at
          * least a pointer to something.
+         * This case is also hit for boxeds that aren't registered but
+         * can be used as registered boxeds. For example, GdkEventKey isn't
+         * registered but can be used as a GdkEvent.
          */
-        return object->InternalFieldCount() == 1;
+        return object->InternalFieldCount() > 0;
     }
 
     return g_type_is_a(object_type, g_type);

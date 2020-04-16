@@ -230,19 +230,18 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         }
     }
 
-    Boxed *box = NULL;
-
-    self->SetAlignedPointerInInternalField (0, boxed);
-
-    SET_OBJECT_GTYPE (self, gtype);
-
-    box = new Boxed();
+    Boxed *box = new Boxed();
     box->data = boxed;
     box->size = size;
     box->gtype = gtype;
     box->info = g_base_info_ref (gi_info);
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
+
+    self->SetAlignedPointerInInternalField (0, boxed);
+    self->SetAlignedPointerInInternalField (1, box);
+
+    SET_OBJECT_GTYPE (self, gtype);
 
     if (constructorInfo == NULL || g_callable_info_get_n_args(constructorInfo) == 0)
         InitBoxedFromObject(self, info[0]);
@@ -330,7 +329,7 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     }
     else {
         tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
-        tpl->InstanceTemplate()->SetInternalFieldCount(1);
+        tpl->InstanceTemplate()->SetInternalFieldCount(2);
 
         if (gtype != G_TYPE_NONE) {
             tpl->SetClassName (UTF8 (g_type_name (gtype)));
