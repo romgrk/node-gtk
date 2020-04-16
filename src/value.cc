@@ -1171,7 +1171,6 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
     } else {
         ERROR("Unhandled GValue type: %s (please report this)",
                 g_type_name(G_VALUE_TYPE(gvalue)));
-        g_assert_not_reached ();
     }
     return true;
 }

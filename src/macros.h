@@ -46,6 +46,7 @@
         printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
         printf(__VA_ARGS__); \
         printf("\n"); \
+        g_assert_not_reached(); \
     } while (0)
 
 
