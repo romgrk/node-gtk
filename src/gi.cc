@@ -192,7 +192,7 @@ NAN_METHOD(ObjectPropertyGetter) {
     g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
     g_object_get_property (gobject, prop_name, &value);
 
-    RETURN(GNodeJS::GValueToV8(&value));
+    RETURN(GNodeJS::GValueToV8(&value, true));
 
     g_value_unset(&value);
 }

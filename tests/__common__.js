@@ -41,6 +41,7 @@ function isntUndefined(value, message) {
 function expect(value, expected) {
   assert(isEqual(value, expected),
     `Expected: "${expected}", got: "${value}"`)
+  return value
 }
 
 function describe(message, fn) {
