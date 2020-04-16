@@ -18,8 +18,8 @@ using Nan::Persistent;
 
 namespace GNodeJS {
 
-GClosure *Closure::New (Local<Function> function, GICallableInfo* info) {
-    Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
+GClosure *Closure::New (Local<Function> function, GICallableInfo* info, guint signalId) {
+    Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), GUINT_TO_POINTER(signalId));
     closure->persistent.Reset(function);
     closure->info = g_base_info_ref (info);
     GClosure *gclosure = &closure->base;
@@ -28,21 +28,22 @@ GClosure *Closure::New (Local<Function> function, GICallableInfo* info) {
     return gclosure;
 }
 
-void Closure::Marshal(GClosure *base,
-                      GValue   *g_return_value,
-                      uint argc, const GValue *g_argv,
-                      gpointer  invocation_hint,
-                      gpointer  marshal_data) {
+void Closure::Marshal(GClosure     *base,
+                      GValue       *g_return_value,
+                      uint          n_param_values,
+                      const GValue *param_values,
+                      gpointer      invocation_hint,
+                      gpointer      marshal_data) {
 
-    // TODO: make this use g_signal_query as in GObject::SignalEmit
-    // make sure to copy how GJS is doing it
+    auto closure = (Closure *) base;
+    auto func = Nan::New<Function> (closure->persistent);
+    auto signal_id = GPOINTER_TO_UINT(marshal_data);
+    GSignalQuery signal_query = { 0, };
 
-    Closure *closure = (Closure *) base;
-
-    Local<Function> func = Nan::New<Function> (closure->persistent);
+    g_signal_query(signal_id, &signal_query);
 
     // We don't pass the implicit instance as first argument
-    uint n_js_args = argc - 1;
+    uint n_js_args = n_param_values - 1;
 
     #ifndef __linux__
         Local<Value>* js_args = new Local<Value>[n_js_args];
@@ -54,12 +55,16 @@ void Closure::Marshal(GClosure *base,
     GIArgInfo arg_info;
     GITypeInfo type_info;
 
-    for (uint i = 1; i < argc; i++) {
-        memcpy(&argument, &g_argv[i].data[0], sizeof(GIArgument));
+    for (uint i = 1; i < n_param_values; i++) {
+        memcpy(&argument, &param_values[i].data[0], sizeof(GIArgument));
         g_callable_info_load_arg(closure->info, i - 1, &arg_info);
         g_arg_info_load_type(&arg_info, &type_info);
 
         bool mustCopy = true;
+
+        if (signal_query.signal_id) {
+            mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+        }
 
         js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, mustCopy);
     }
@@ -76,7 +81,7 @@ void Closure::Marshal(GClosure *base,
         if (g_return_value) {
             if (G_VALUE_TYPE(g_return_value) == G_TYPE_INVALID)
                 WARN ("Marshal: return value has invalid g_type");
-            else if (!V8ToGValue (g_return_value, return_value))
+            else if (!V8ToGValue (g_return_value, return_value, true))
                 WARN ("Marshal: could not convert return value");
         }
 

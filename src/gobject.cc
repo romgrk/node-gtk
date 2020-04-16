@@ -59,7 +59,7 @@ static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
 
         g_value_init(&values[i], value_gtype);
 
-        if (!V8ToGValue(&values[i], value))
+        if (!V8ToGValue(&values[i], value, true))
             goto out;
 
         names[i] = name_string;
@@ -258,19 +258,27 @@ NAN_METHOD(SignalConnect) {
         return;
     }
 
+    guint signalId;
+    GQuark detail;
+    GClosure *gclosure;
+    ulong handler_id;
+
     const char *signalName = *Nan::Utf8String (TO_STRING (info[0]));
     GISignalInfo *signal_info = FindSignalInfo (object_info, signalName);
 
     if (signal_info == NULL) {
         Throw::SignalNotFound(object_info, signalName);
-    }
-    else {
-        GClosure *gclosure = Closure::New (callback, signal_info);
-        ulong handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
-
-        info.GetReturnValue().Set((double)handler_id);
+        goto out;
     }
 
+    g_signal_parse_name (signalName, gtype, &signalId, &detail, FALSE);
+
+    gclosure = Closure::New (callback, signal_info, signalId);
+    handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
+
+    info.GetReturnValue().Set((double)handler_id);
+
+out:
     g_base_info_unref(signal_info);
     g_base_info_unref(object_info);
 }
@@ -351,15 +359,10 @@ NAN_METHOD(SignalEmit) {
 
         g_value_init(gvalue, signal_query.param_types[i] & ~G_SIGNAL_TYPE_STATIC_SCOPE);
 
-        /*
-         * XXX(romgrk): in some cases, I think the value should be copied.
-         * We currently never copy the value, we pass it by reference. This
-         * should probably be investigated further to handle it correctly.
-         */
         if ((signal_query.param_types[i] & G_SIGNAL_TYPE_STATIC_SCOPE) != 0)
-            failed = !V8ToGValue(gvalue, info[i + 1]); // no-copy
+            failed = !V8ToGValue(gvalue, info[i + 1], false); // no-copy
         else
-            failed = !V8ToGValue(gvalue, info[i + 1]); // copy (fix this case)
+            failed = !V8ToGValue(gvalue, info[i + 1], true); // copy
 
         if (failed)
             break;

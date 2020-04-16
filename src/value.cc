@@ -2,6 +2,7 @@
 //#include <node.h>
 //#include <nan.h>
 #include <glib.h>
+#include <glib-object.h>
 
 #include "error.h"
 #include "boxed.h"
@@ -1115,7 +1116,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     }
 }
 
-bool V8ToGValue(GValue *gvalue, Local<Value> value) {
+bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
     // by-value types
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, Nan::To<bool> (value).ToChecked());
@@ -1155,7 +1156,10 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
             Throw::CannotConvertGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
         }
-        g_value_set_boxed (gvalue, PointerFromWrapper(value));
+        if (mustCopy)
+            g_value_set_boxed (gvalue, PointerFromWrapper(value));
+        else
+            g_value_set_static_boxed (gvalue, PointerFromWrapper(value));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Throw::CannotConvertGType("GParamSpec", G_VALUE_TYPE (gvalue));
@@ -1163,11 +1167,9 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value) {
         }
         g_value_set_param (gvalue, ParamSpec::FromWrapper(value));
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
-        printf("G_VALUE_HOLDS_POINTER");
-        g_assert_not_reached ();
+        ERROR("Unsupported type: pointer");
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        printf("G_VALUE_HOLDS_VARIANT");
-        g_assert_not_reached ();
+        ERROR("Unsupported type: variant");
     } else {
         ERROR("Unhandled GValue type: %s (please report this)",
                 g_type_name(G_VALUE_TYPE(gvalue)));
@@ -1212,28 +1214,41 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
     return true;
 }
 
-Local<Value> GValueToV8(const GValue *gvalue) {
+Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
-        if (g_value_get_boolean (gvalue))
-            return New<Boolean>(true);
-        else
-            return New<Boolean>(false);
+        return New<Boolean>(g_value_get_boolean (gvalue));
+    } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
+        return New<Integer>(g_value_get_schar (gvalue));
+    } else if (G_VALUE_HOLDS_UCHAR (gvalue)) {
+        return New<Integer>(g_value_get_uchar (gvalue));
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
         return New<Integer>(g_value_get_int (gvalue));
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         return New<v8::Uint32>(g_value_get_uint (gvalue));
+    } else if (G_VALUE_HOLDS_LONG (gvalue)) {
+        return New<Number>(g_value_get_long (gvalue));
+    } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
+        return New<Number>(g_value_get_ulong (gvalue));
+    } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
+        return New<Number>(g_value_get_int64 (gvalue));
+    } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
+        return New<Number>(g_value_get_uint64 (gvalue));
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         return New<Number>(g_value_get_float (gvalue));
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         return New<Number>(g_value_get_double (gvalue));
-    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
-        auto str = g_value_get_string (gvalue);
-        if (str)
-            return New<String>(str).ToLocalChecked();
-        else
-            return Nan::EmptyString();
+    } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
+        return New<Number>(g_value_get_gtype (gvalue));
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return New<Integer>(g_value_get_enum (gvalue));
+    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
+        return New<Integer>(g_value_get_flags (gvalue));
+    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+        auto string = g_value_get_string (gvalue);
+        if (string)
+            return New<String>(string).ToLocalChecked();
+        else
+            return Nan::EmptyString();
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
@@ -1243,11 +1258,18 @@ Local<Value> GValueToV8(const GValue *gvalue) {
             Throw::InvalidGType(gtype);
             return Nan::Null(); // FIXME(return a MaybeLocal instead?)
         }
-        Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue));
+        Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue), mustCopy);
         g_base_info_unref(info);
         return obj;
+    } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
+        GParamSpec *param_spec = g_value_get_param (gvalue);
+        return ParamSpec::FromGParamSpec(param_spec);
+    } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
+        ERROR("Unsuported type: pointer");
+    } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
+        ERROR("Unsuported type: variant");
     } else {
-        g_assert_not_reached ();
+        ERROR("%s", G_VALUE_TYPE_NAME(gvalue));
     }
 }
 
