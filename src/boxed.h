@@ -22,6 +22,7 @@ public:
     GType gtype;
     GIBaseInfo * info;
     unsigned long size;
+    bool owns_memory;
     Nan::Persistent<Object> *persistent;
 
     static size_t GetSize (GIBaseInfo *boxed_info) ;

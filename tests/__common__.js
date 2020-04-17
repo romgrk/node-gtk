@@ -9,6 +9,7 @@ const deasync = require('deasync')
 module.exports = {
   assert,
   expect,
+  isntUndefined,
   describe,
   it,
   mustThrow,
@@ -21,7 +22,16 @@ let currentSubtest
 
 function assert(condition, message) {
   if (condition)
-    return;
+    return condition;
+
+  _failed(message)
+
+  process.exit(1)
+}
+
+function isntUndefined(value, message) {
+  if (value !== undefined)
+    return value;
 
   _failed(message)
 
@@ -31,6 +41,7 @@ function assert(condition, message) {
 function expect(value, expected) {
   assert(isEqual(value, expected),
     `Expected: "${expected}", got: "${value}"`)
+  return value
 }
 
 function describe(message, fn) {

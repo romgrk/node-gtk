@@ -43,6 +43,12 @@ void InvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Value> value) {
     g_free(msg);
 }
 
+void UnhandledType (const char *typeName) {
+    char* message = g_strdup_printf("Unhandled type: %s (please report this)", typeName);
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
 void InvalidReturnValue (GITypeInfo *type_info, Local<Value> value) {
     char *expected = GetTypeName (type_info);
     char *msg = g_strdup_printf(
@@ -62,14 +68,23 @@ void UnsupportedCallback (GIBaseInfo* info) {
     g_free(message);
 }
 
-void InvalidGType (const char *category, GType gtype) {
+void InvalidGType (GType gtype) {
     char* message =
         g_strdup_printf (
-                "Metadata for GType \"%s\" (category: %s) was not found. "
+                "Metadata for GType \"%s\" was not found. "
                 "You might need to load additional required modules.",
+            g_type_name (gtype));
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
+void CannotConvertGType (const char *category, GType gtype) {
+    char* message =
+        g_strdup_printf (
+            "Couldn't convert value to \"%s\" (category: %s).",
             g_type_name (gtype),
             category);
-    Nan::ThrowError(message);
+    Nan::ThrowTypeError(message);
     g_free(message);
 }
 
@@ -79,6 +94,20 @@ void GTypeNotFound (GIBaseInfo *info, const char* error) {
             g_base_info_get_namespace(info),
             g_base_info_get_name(info),
             error);
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
+void SignalNotFound(GIBaseInfo *object_info, const char* signal_name) {
+    char *message = g_strdup_printf("Signal \"%s\" not found for instance of %s",
+            signal_name, GetInfoName(object_info));
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
+void InvalidSignal(const char* instance_name, const char* signal_name) {
+    char *message = g_strdup_printf("Invalid signal for instance of %s: \"%s\"",
+            instance_name, signal_name);
     Nan::ThrowError(message);
     g_free(message);
 }

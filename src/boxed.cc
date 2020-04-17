@@ -167,6 +167,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     void *boxed = NULL;
     unsigned long size = 0;
+    bool owns_memory = true;
 
     Local<Object> self = info.This ();
     GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*info.Data ())->Value ();
@@ -187,6 +188,9 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
                 memcpy(boxedCopy, boxed, size);
                 boxed = boxedCopy;
             }
+        }
+        else {
+            owns_memory = false;
         }
     } else {
         /* User code calling `new Pango.AttrList()` */
@@ -230,19 +234,19 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         }
     }
 
-    Boxed *box = NULL;
-
-    self->SetAlignedPointerInInternalField (0, boxed);
-
-    SET_OBJECT_GTYPE (self, gtype);
-
-    box = new Boxed();
+    Boxed *box = new Boxed();
     box->data = boxed;
     box->size = size;
+    box->owns_memory = owns_memory;
     box->gtype = gtype;
     box->info = g_base_info_ref (gi_info);
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
+
+    self->SetAlignedPointerInInternalField (0, boxed);
+    self->SetAlignedPointerInInternalField (1, box);
+
+    SET_OBJECT_GTYPE (self, gtype);
 
     if (constructorInfo == NULL || g_callable_info_get_n_args(constructorInfo) == 0)
         InitBoxedFromObject(self, info[0]);
@@ -250,24 +254,29 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
 static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     Boxed *box = info.GetParameter();
-    void *data = box->data;
 
-    if (G_TYPE_IS_BOXED(box->gtype)) {
-        g_boxed_free(box->gtype, data);
-    }
-    else if (box->size != 0) {
-        // Allocated in ./function.cc @ AllocateArgument
-        free(data);
-    }
-    else if (data != NULL) {
-        /*
-         * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
-         */
-        if (strcmp(g_base_info_get_name (box->info), "Typelib") != 0)
-            WARN("boxed possibly not freed (%s.%s : %s)",
-                    g_base_info_get_namespace (box->info),
-                    g_base_info_get_name (box->info),
-                    g_type_name (box->gtype));
+    /*
+     * box->owns_memory is false usually for objects in GIRepository,
+     * such as Typelib and BaseInfo.
+     */
+    if (box->owns_memory) {
+        if (G_TYPE_IS_BOXED(box->gtype)) {
+            g_boxed_free(box->gtype, box->data);
+        }
+        else if (box->size != 0) {
+            // Allocated in ./function.cc @ AllocateArgument
+            free(box->data);
+        }
+        else if (box->data != NULL) {
+            /*
+             * TODO(find informations on what to do here. Only seems to be reached for GI.Typelib)
+             */
+            if (strcmp(g_base_info_get_name (box->info), "Typelib") != 0)
+                WARN("boxed possibly not freed (%s.%s : %s)",
+                        g_base_info_get_namespace (box->info),
+                        g_base_info_get_name (box->info),
+                        g_type_name (box->gtype));
+        }
     }
 
     g_base_info_unref (box->info);
@@ -330,7 +339,7 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     }
     else {
         tpl = New<FunctionTemplate>(BoxedConstructor, New<External>(info));
-        tpl->InstanceTemplate()->SetInternalFieldCount(1);
+        tpl->InstanceTemplate()->SetInternalFieldCount(2);
 
         if (gtype != G_TYPE_NONE) {
             tpl->SetClassName (UTF8 (g_type_name (gtype)));

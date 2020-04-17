@@ -8,6 +8,48 @@
 #define FUNCTION_NAME __func__
 #endif
 
+#ifdef NDEBUG
+#define DEBUG(...) do {} while(0)
+#else
+#define DEBUG(...) \
+    do { \
+        printf("\x1b[1;38;5;226m[DEBUG] "); \
+        printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+    } while (0)
+#endif
+
+#ifdef NDEBUG
+#define LOG(...) do {} while(0)
+#else
+#define LOG(...) \
+    do { \
+        printf("\x1b[1;38;5;33m[INFO] "); \
+        printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+    } while (0)
+#endif
+
+#define WARN(...) \
+    do { \
+        printf("\x1b[1;38;5;202m[WARN] "); \
+        printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+    } while (0)
+
+#define ERROR(...) \
+    do { \
+        printf("\x1b[91m[ERROR] "); \
+        printf("%s:\x1b[0m\x1b[1m %s: %i: \x1b[0m", FILE_NAME, FUNCTION_NAME, __LINE__); \
+        printf(__VA_ARGS__); \
+        printf("\n"); \
+        g_assert_not_reached(); \
+    } while (0)
+
+
 #define assert_printf(condition, ...) \
     do { \
         if (G_UNLIKELY(!(condition))) { \

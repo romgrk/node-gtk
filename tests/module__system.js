@@ -30,6 +30,10 @@ common.describe('system', () => {
   common.it('.addressOf()', () => {
     const btn = new Gtk.Button()
     const result = system.addressOf(btn)
-    common.assert(/0x[0-9a-fA-F]{2,}/.test(result), 'internalFieldCount() result isnt valid: ' + result)
+    console.log('0x' + result.toString(16))
+    common.assert(
+      typeof result === 'number' && result > 0,
+      'internalFieldCount() result isnt valid: ' + result
+    )
   })
 })

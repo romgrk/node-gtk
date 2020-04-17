@@ -22,6 +22,7 @@ namespace GNodeJS {
 char *    GetInfoName (GIBaseInfo* info);
 char *    GetTypeName    (GITypeInfo *type_info);
 gsize     GetTypeSize    (GITypeInfo *type_info);
+gsize     GetComplexTypeSize (GIBaseInfo *info);
 gsize     GetTypeTagSize (GITypeTag type_tag);
 GITypeTag GetStorageType (GITypeInfo *type_info);
 

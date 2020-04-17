@@ -7,8 +7,10 @@
 
 
 #include "../gi.h"
+#include "../boxed.h"
 #include "../gobject.h"
 #include "../macros.h"
+#include "../type.h"
 #include "../value.h"
 #include "system.h"
 
@@ -19,16 +21,25 @@ namespace GNodeJS {
 
 namespace System {
 
+static gsize GetObjectSize (Local<Object> object) {
+    // Boxed
+    if (object->InternalFieldCount() == 2) {
+        auto box = static_cast<Boxed*>(object->GetAlignedPointerFromInternalField(1));
+        return GetComplexTypeSize(box->info);
+    }
+    // GObject
+    else {
+        GType gtype = GET_OBJECT_GTYPE(object);
+        auto base_info = BaseInfo(g_irepository_find_by_gtype(NULL, gtype));
+        return GetComplexTypeSize(*base_info);
+    }
+}
+
 
 NAN_METHOD(AddressOf) {
     Local<Object> object = info[0].As<Object>();
-    void *ptr = object->GetAlignedPointerFromInternalField (0);
-
-    char* pointer_string = g_strdup_printf("%p", ptr);
-
-    RETURN(UTF8(pointer_string));
-
-    g_free(pointer_string);
+    void *pointer = object->GetAlignedPointerFromInternalField (0);
+    RETURN(Nan::New<Number>((uint64_t)pointer));
 }
 
 NAN_METHOD(RefCount) {
@@ -43,6 +54,33 @@ NAN_METHOD(InternalFieldCount) {
     RETURN(obj->InternalFieldCount());
 }
 
+NAN_METHOD(GetSize) {
+    RETURN(Nan::New<Number>((uint32_t) GetObjectSize(info[0].As<Object>())));
+}
+
+NAN_METHOD(GetMemoryContent) {
+    uint8_t *address;
+    uint64_t size;
+
+    if (info.Length() == 2) {
+        address = (uint8_t *) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
+        size    = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+    }
+    else {
+        auto object = info[0].As<Object>();
+        address = (uint8_t *) object->GetAlignedPointerFromInternalField (0);
+        size    = GetObjectSize(object);
+    }
+
+    auto result = Nan::New<v8::Array>(size);
+
+    for (size_t i = 0; i < size; i++) {
+        Nan::Set(result, i, Nan::New<v8::Uint32>(address[i]));
+    }
+
+    RETURN(result);
+}
+
 NAN_METHOD(Breakpoint) {
     G_BREAKPOINT ();
 }
@@ -53,6 +91,8 @@ Local<Object> GetModule() {
     Nan::Export(exports, "addressOf", AddressOf);
     Nan::Export(exports, "refCount", RefCount);
     Nan::Export(exports, "internalFieldCount", InternalFieldCount);
+    Nan::Export(exports, "getSize", GetSize);
+    Nan::Export(exports, "getMemoryContent", GetMemoryContent);
     Nan::Export(exports, "breakpoint", Breakpoint);
 
     return exports;

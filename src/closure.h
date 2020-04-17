@@ -8,6 +8,9 @@
 #include <ffi.h>
 #include <girffi.h>
 
+using v8::Function;
+using v8::Local;
+
 namespace GNodeJS {
 
 struct Closure {
@@ -17,10 +20,12 @@ struct Closure {
 
     ~Closure() {
         persistent.Reset();
-
-        if (info)
-            g_base_info_unref (info);
+        g_base_info_unref (info);
     }
+
+    static GClosure *New(Local<Function> function,
+                         GICallableInfo* info,
+                         guint signalId);
 
     static void Marshal(GClosure *closure,
                         GValue   *g_return_value,
@@ -30,7 +35,5 @@ struct Closure {
 
     static void Invalidated(gpointer data, GClosure *closure);
 };
-
-GClosure *MakeClosure(v8::Local<v8::Function> function, GICallableInfo* info);
 
 };

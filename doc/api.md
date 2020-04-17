@@ -67,13 +67,16 @@ const input = new Gtk.Entry()
  * GObject.on - associates a callback to an event
  * @param {String} name - Name of the event
  * @param {Function} callback - Event handler
+ * @param {Boolean} [after=false] - Run after the signal
+ * @returns {GObject}
  */
-input.on('key-press-event', onKeyPress)
+input.on('key-press-event', onKeyPress, /* optional */ false)
 
 /**
  * GObject.off - dissociates callback from an event
  * @param {String} name - Name of the event
  * @param {Function} callback - Event handler
+ * @returns {GObject}
  */
 input.off('key-press-event', onKeyPress)
 
@@ -81,13 +84,23 @@ input.off('key-press-event', onKeyPress)
  * GObject.once - as GObject.on, but only runs once
  * @param {String} name - Name of the event
  * @param {Function} callback - Event handler
+ * @param {Boolean} [after=false] - Run after the signal
+ * @returns {GObject}
  */
-input.once('key-press-event', onKeyPress)
+input.once('key-press-event', onKeyPress, /* optional */ false)
 
 function onKeyPress(event) {
   // event.__proto__ === Gdk.EventKey
   console.log(event.string, event.keyval)
 }
+
+/**
+ * GObject.emit - Emits a signal on the GObject
+ * @param {String} name - Name of the signal
+ * @param {...*} args - Signal's arguments (refer to the library doc)
+ */
+input.emit('key-press-event', new Gdk.EventKey({ keyval: Gdk.Key_g }))
+
 ```
 
 Low-level methods `.connect(name: String, callback: Function) : Number` and

@@ -2,6 +2,7 @@
 //#include <node.h>
 //#include <nan.h>
 #include <glib.h>
+#include <glib-object.h>
 
 #include "error.h"
 #include "boxed.h"
@@ -924,6 +925,7 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         GIInfoType  i_type = g_base_info_get_type(i_info);
         switch (i_type) {
             case GI_INFO_TYPE_OBJECT:
+            case GI_INFO_TYPE_INTERFACE: // TODO(validate interface are handled)
                 // handled by gobject.cc/boxed.cc
                 break;
             case GI_INFO_TYPE_BOXED:
@@ -942,8 +944,9 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
                     break;
             }
             default:
-                g_warning("FreeArgument: unhandled interface: %s",
-                        g_base_info_get_name(i_info));
+                WARN("unhandled interface: %s (%s)",
+                        g_base_info_get_name(i_info),
+                        g_info_type_to_string(i_type));
                 break;
         }
         g_base_info_unref(i_info);
@@ -1113,60 +1116,63 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     }
 }
 
-
-bool V8ToGValue(GValue *gvalue, Local<Value> value) {
+bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
+    // by-value types
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, Nan::To<bool> (value).ToChecked());
-    } else if (G_VALUE_HOLDS_INT (gvalue) || G_VALUE_HOLDS_LONG (gvalue)) {
+    } else if (G_VALUE_HOLDS_INT (gvalue)) {
         g_value_set_int (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         g_value_set_uint (gvalue, Nan::To<uint32_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_LONG (gvalue)) { // TODO(update when int64 is suported by V8)
+        g_value_set_long (gvalue, Nan::To<int32_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_ULONG (gvalue)) { // TODO(update when uint64 is suported by V8)
+        g_value_set_ulong (gvalue, Nan::To<uint32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         g_value_set_float (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         g_value_set_double (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        GType type;
-        if (value->IsString())
-            type = g_type_from_name(*Nan::Utf8String(value));
-        else
-            type = Nan::To<int64_t> (value).ToChecked();
-        g_value_set_gtype(gvalue, type);
-    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+        GType type = Nan::To<int64_t> (value).ToChecked();
+        g_value_set_gtype (gvalue, type);
+    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
+        g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
+        g_value_set_flags (gvalue, Nan::To<int32_t> (value).ToChecked());
+    }
+    // by-reference types
+      else if (G_VALUE_HOLDS_STRING (gvalue)) {
         Nan::Utf8String str (value);
         const char *data = *str;
         g_value_set_string (gvalue, data);
-    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
-        g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Throw::InvalidGType("GObject", G_VALUE_TYPE (gvalue));
+            Throw::CannotConvertGType("GObject", G_VALUE_TYPE (gvalue));
             return false;
         }
         g_value_set_object (gvalue, GObjectFromWrapper (value));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Throw::InvalidGType("boxed", G_VALUE_TYPE (gvalue));
+            Throw::CannotConvertGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
         }
-        g_value_set_boxed (gvalue, PointerFromWrapper(value));
+        if (mustCopy)
+            g_value_set_boxed (gvalue, PointerFromWrapper(value));
+        else
+            g_value_set_static_boxed (gvalue, PointerFromWrapper(value));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            Throw::InvalidGType("GParamSpec", G_VALUE_TYPE (gvalue));
+            Throw::CannotConvertGType("GParamSpec", G_VALUE_TYPE (gvalue));
             return false;
         }
         g_value_set_param (gvalue, ParamSpec::FromWrapper(value));
-    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
-        printf("G_VALUE_HOLDS_FLAGS");
-        g_assert_not_reached ();
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
-        printf("G_VALUE_HOLDS_POINTER");
-        g_assert_not_reached ();
+        ERROR("Unsupported type: pointer");
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        printf("G_VALUE_HOLDS_VARIANT");
-        g_assert_not_reached ();
+        ERROR("Unsupported type: variant");
     } else {
-        g_assert_not_reached ();
+        ERROR("Unhandled GValue type: %s (please report this)",
+                g_type_name(G_VALUE_TYPE(gvalue)));
     }
     return true;
 }
@@ -1208,42 +1214,62 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
     return true;
 }
 
-Local<Value> GValueToV8(const GValue *gvalue) {
+Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
-        if (g_value_get_boolean (gvalue))
-            return New<Boolean>(true);
-        else
-            return New<Boolean>(false);
+        return New<Boolean>(g_value_get_boolean (gvalue));
+    } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
+        return New<Integer>(g_value_get_schar (gvalue));
+    } else if (G_VALUE_HOLDS_UCHAR (gvalue)) {
+        return New<Integer>(g_value_get_uchar (gvalue));
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
         return New<Integer>(g_value_get_int (gvalue));
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         return New<v8::Uint32>(g_value_get_uint (gvalue));
+    } else if (G_VALUE_HOLDS_LONG (gvalue)) {
+        return New<Number>(g_value_get_long (gvalue));
+    } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
+        return New<Number>(g_value_get_ulong (gvalue));
+    } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
+        return New<Number>(g_value_get_int64 (gvalue));
+    } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
+        return New<Number>(g_value_get_uint64 (gvalue));
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         return New<Number>(g_value_get_float (gvalue));
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         return New<Number>(g_value_get_double (gvalue));
-    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
-        auto str = g_value_get_string (gvalue);
-        if (str)
-            return New<String>(str).ToLocalChecked();
-        else
-            return Nan::EmptyString();
+    } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
+        return New<Number>(g_value_get_gtype (gvalue));
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return New<Integer>(g_value_get_enum (gvalue));
+    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
+        return New<Integer>(g_value_get_flags (gvalue));
+    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+        auto string = g_value_get_string (gvalue);
+        if (string)
+            return New<String>(string).ToLocalChecked();
+        else
+            return Nan::EmptyString();
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         GType gtype = G_VALUE_TYPE (gvalue);
         GIBaseInfo *info = g_irepository_find_by_gtype(NULL, gtype);
         if (info == NULL) {
-            Throw::InvalidGType(NULL, gtype);
+            Throw::InvalidGType(gtype);
             return Nan::Null(); // FIXME(return a MaybeLocal instead?)
         }
-        Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue));
+        Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue), mustCopy);
         g_base_info_unref(info);
         return obj;
+    } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
+        GParamSpec *param_spec = g_value_get_param (gvalue);
+        return ParamSpec::FromGParamSpec(param_spec);
+    } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
+        ERROR("Unsuported type: pointer");
+    } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
+        ERROR("Unsuported type: variant");
     } else {
-        g_assert_not_reached ();
+        ERROR("%s", G_VALUE_TYPE_NAME(gvalue));
     }
 }
 
@@ -1266,16 +1292,19 @@ bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
         return false;
 
     Local<Object> object = TO_OBJECT (value);
-    GType object_type = GET_OBJECT_GTYPE (object);
+    GType object_type = (GType) TO_LONG (Nan::Get(object, UTF8("__gtype__")).ToLocalChecked());
 
-    if (object_type == NOT_A_GTYPE) {
+    if (object_type == NOT_A_GTYPE || object_type == G_TYPE_NONE) {
         /*
          * Happens for objects that aren't GObjects but that are still
          * used by introspectable libs. (e.g. CairoContext objects)
          * In this case, we'll just make sure that the object contains at
          * least a pointer to something.
+         * This case is also hit for boxeds that aren't registered but
+         * can be used as registered boxeds. For example, GdkEventKey isn't
+         * registered but can be used as a GdkEvent.
          */
-        return object->InternalFieldCount() == 1;
+        return object->InternalFieldCount() > 0;
     }
 
     return g_type_is_a(object_type, g_type);
