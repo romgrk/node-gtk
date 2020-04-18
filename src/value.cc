@@ -1116,25 +1116,80 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     }
 }
 
+
+/*
+ * GValue conversion functions
+ */
+
+bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
+    if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
+        return value->IsBoolean() || value->IsNumber();
+    } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_UCHAR (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_INT (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_UINT (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_LONG (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+        return value->IsString();
+    } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
+        return ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue));
+    } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
+        return ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue));
+    } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
+        return value->IsObject();
+    } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
+        return false;
+    } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
+        return false;
+    }
+
+    ERROR("Unhandled GValue type: %s (please report this)",
+            G_VALUE_TYPE_NAME (gvalue));
+}
+
 bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
     // by-value types
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, Nan::To<bool> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
+        g_value_set_schar (gvalue, Nan::To<int32_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_UCHAR (gvalue)) {
+        g_value_set_uchar (gvalue, Nan::To<uint32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
         g_value_set_int (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         g_value_set_uint (gvalue, Nan::To<uint32_t> (value).ToChecked());
-    } else if (G_VALUE_HOLDS_LONG (gvalue)) { // TODO(update when int64 is suported by V8)
-        g_value_set_long (gvalue, Nan::To<int32_t> (value).ToChecked());
-    } else if (G_VALUE_HOLDS_ULONG (gvalue)) { // TODO(update when uint64 is suported by V8)
+    } else if (G_VALUE_HOLDS_LONG (gvalue)) {
+        g_value_set_long (gvalue, Nan::To<int64_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
         g_value_set_ulong (gvalue, Nan::To<uint32_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
+        g_value_set_int64 (gvalue, Nan::To<int64_t> (value).ToChecked());
+    } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
+        g_value_set_uint64 (gvalue, Nan::To<uint32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         g_value_set_float (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         g_value_set_double (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        GType type = Nan::To<int64_t> (value).ToChecked();
-        g_value_set_gtype (gvalue, type);
+        g_value_set_gtype (gvalue, Nan::To<int64_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
@@ -1177,44 +1232,8 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
     return true;
 }
 
-bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
-    if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
-        return true;
-    } else if (G_VALUE_HOLDS_INT (gvalue) || G_VALUE_HOLDS_LONG (gvalue)) {
-        return true;
-    } else if (G_VALUE_HOLDS_UINT (gvalue)) {
-        return true;
-    } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
-        return true;
-    } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
-        return true;
-    } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        return true;
-    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
-        return true;
-    } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
-        return true;
-    } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
-        if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            return false;
-        }
-    } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
-        if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
-            return false;
-        }
-    } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
-        return false;
-    } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
-        return false;
-    } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        return false;
-    } else {
-        return false;
-    }
-    return true;
-}
-
 Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
+    // by-value types
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         return New<Boolean>(g_value_get_boolean (gvalue));
     } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
@@ -1243,7 +1262,9 @@ Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
         return New<Integer>(g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
         return New<Integer>(g_value_get_flags (gvalue));
-    } else if (G_VALUE_HOLDS_STRING (gvalue)) {
+    }
+    // by-reference types
+      else if (G_VALUE_HOLDS_STRING (gvalue)) {
         auto string = g_value_get_string (gvalue);
         if (string)
             return New<String>(string).ToLocalChecked();
@@ -1273,6 +1294,10 @@ Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
     }
 }
 
+
+/*
+ * JSValue utility functions
+ */
 
 bool ValueHasInternalField(Local<Value> value) {
     if (!value->IsObject())
@@ -1310,6 +1335,10 @@ bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
     return g_type_is_a(object_type, g_type);
 }
 
+
+/*
+ * Helpers
+ */
 
 static gpointer GIArgumentToHashPointer (const GIArgument *arg, GITypeInfo *type_info) {
     GITypeTag type_tag = GetStorageType(type_info);
