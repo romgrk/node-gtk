@@ -135,10 +135,7 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         );
     } else {
         /* User code calling `new Gtk.Widget({ ... })` */
-
         GObject *gobject;
-        // GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*info.Data ())->Value ();
-        // GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
         GType gtype = (GType) External::Cast(*info.Data())->Value();
 
         gobject = CreateGObjectFromObject (gtype, info[0]);
@@ -430,10 +427,6 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GIBaseInfo *info, GType gt
 
     const char *class_name = g_type_name (gtype);
 
-    // TODO: info seem not necessary
-    // auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External> (info));
-
-
     auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External>((void *) gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -522,10 +515,7 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
 
     } else {
         GType gtype = G_OBJECT_TYPE(gobject);
-        // auto realInfo = g_irepository_find_by_gtype(NULL, gtype);
         auto maybeTpl = GetClassTemplate(NULL, gtype);
-
-        // auto maybeTpl = GetClassTemplateFromGI(realInfo);
         if (maybeTpl.IsEmpty())
             return Nan::Null();
         auto tpl = maybeTpl.ToLocalChecked();
