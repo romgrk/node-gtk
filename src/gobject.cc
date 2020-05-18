@@ -36,6 +36,8 @@ static Nan::Persistent<FunctionTemplate> baseTemplate;
 static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data);
 
 static MaybeLocal<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info);
+static MaybeLocal<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType gtype);
+
 
 static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
     if (!object->IsObject ())
@@ -135,8 +137,9 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         /* User code calling `new Gtk.Widget({ ... })` */
 
         GObject *gobject;
-        GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*info.Data ())->Value ();
-        GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
+        // GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*info.Data ())->Value ();
+        // GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
+        GType gtype = (GType) External::Cast(*info.Data())->Value();
 
         gobject = CreateGObjectFromObject (gtype, info[0]);
 
@@ -427,18 +430,24 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GIBaseInfo *info, GType gt
 
     const char *class_name = g_type_name (gtype);
 
-    auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External> (info));
+    // TODO: info seem not necessary
+    // auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External> (info));
+
+
+    auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External>((void *) gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-    GIObjectInfo *parent_info = g_object_info_get_parent (info);
-    if (parent_info) {
-        auto parent_tpl = GetClassTemplateFromGI ((GIBaseInfo *) parent_info);
+    GType parent_type = g_type_parent(gtype);
+    if (parent_type == 0) {
+        tpl->Inherit(GetBaseClassTemplate());
+    } else {
+        GIObjectInfo *parent_info = NULL;
+        if (info != NULL) parent_info = g_object_info_get_parent (info);
+        auto parent_tpl = GetClassTemplate ((GIBaseInfo *) parent_info, parent_type);
         if (parent_tpl.IsEmpty())
             return MaybeLocal<FunctionTemplate> ();
         tpl->Inherit(parent_tpl.ToLocalChecked());
-    } else {
-        tpl->Inherit(GetBaseClassTemplate());
     }
 
     return MaybeLocal<FunctionTemplate> (tpl);
@@ -456,7 +465,7 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType 
     if (gi_info == NULL)
         gi_info = g_irepository_find_by_gtype(NULL, gtype);
 
-    assert_printf (gi_info != NULL, "Missing GIR info for: %s\n", g_type_name (gtype));
+    // assert_printf (gi_info != NULL, "Missing GIR info for: %s\n", g_type_name (gtype));
 
     auto maybeTpl = NewClassTemplate(gi_info, gtype);
     if (maybeTpl.IsEmpty())
@@ -464,11 +473,13 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType 
 
     auto tpl = maybeTpl.ToLocalChecked();
     auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
-    persistent->SetWeak (
-            g_base_info_ref (gi_info),
-            GObjectClassDestroyed,
-            WeakCallbackType::kParameter);
 
+    if (gi_info != NULL) {
+        persistent->SetWeak (
+                g_base_info_ref (gi_info),
+                GObjectClassDestroyed,
+                WeakCallbackType::kParameter);
+    }
     g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
     return MaybeLocal<FunctionTemplate> (tpl);
 }
@@ -511,9 +522,10 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
 
     } else {
         GType gtype = G_OBJECT_TYPE(gobject);
-        auto realInfo = g_irepository_find_by_gtype(NULL, gtype);
+        // auto realInfo = g_irepository_find_by_gtype(NULL, gtype);
+        auto maybeTpl = GetClassTemplate(NULL, gtype);
 
-        auto maybeTpl = GetClassTemplateFromGI(realInfo);
+        // auto maybeTpl = GetClassTemplateFromGI(realInfo);
         if (maybeTpl.IsEmpty())
             return Nan::Null();
         auto tpl = maybeTpl.ToLocalChecked();
