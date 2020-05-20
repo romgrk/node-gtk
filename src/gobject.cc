@@ -168,15 +168,15 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     g_object_unref (gobject);
 }
 
-static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
-    GIBaseInfo *gi_info = info.GetParameter ();
-    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
+static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GType> &info) {
+    GType* gtypePtr = info.GetParameter();
+    GType gtype = *gtypePtr;
 
     auto *persistent = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::template_quark());
     delete persistent;
 
     g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
-    g_base_info_unref (gi_info);
+    g_free(gtypePtr);
 }
 
 static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *signal_detail) {
@@ -421,7 +421,7 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
     return tpl;
 }
 
-static MaybeLocal<FunctionTemplate> NewClassTemplate (GIBaseInfo *info, GType gtype) {
+static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     g_assert(gtype != G_TYPE_NONE && gtype != G_TYPE_INVALID);
 
     const char *class_name = g_type_name (gtype);
@@ -452,21 +452,16 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
         return tpl;
     }
 
-    GIBaseInfo* gi_info = g_irepository_find_by_gtype(NULL, gtype);
-
-    auto maybeTpl = NewClassTemplate(gi_info, gtype);
+    auto maybeTpl = NewClassTemplate(gtype);
     if (maybeTpl.IsEmpty())
         return MaybeLocal<FunctionTemplate> ();
 
     auto tpl = maybeTpl.ToLocalChecked();
     auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
 
-    if (gi_info != NULL) {
-        persistent->SetWeak (
-                g_base_info_ref (gi_info),
-                GObjectClassDestroyed,
-                WeakCallbackType::kParameter);
-    }
+    GType *gtypePtr = g_new(GType, 1);
+    persistent->SetWeak(gtypePtr, GObjectClassDestroyed,
+                        WeakCallbackType::kParameter);
     g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
     return MaybeLocal<FunctionTemplate> (tpl);
 }
