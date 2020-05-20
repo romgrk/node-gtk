@@ -471,25 +471,15 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     return MaybeLocal<FunctionTemplate> (tpl);
 }
 
-static MaybeLocal<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info) {
+MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
 
     if (gtype == G_TYPE_NONE || gtype == G_TYPE_INVALID) {
         const char *error = g_module_error();
         Throw::GTypeNotFound(info, error);
-        return MaybeLocal<FunctionTemplate>();
+        return MaybeLocal<Function>();
     }
-
     auto tpl = GetClassTemplate(gtype);
-
-    if (tpl.IsEmpty())
-        return MaybeLocal<FunctionTemplate> ();
-
-    return MaybeLocal<FunctionTemplate> (tpl);
-}
-
-MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
-    auto tpl = GetClassTemplateFromGI (info);
     if (tpl.IsEmpty())
         return MaybeLocal<Function> ();
     return MaybeLocal<Function> (Nan::GetFunction (tpl.ToLocalChecked()));
