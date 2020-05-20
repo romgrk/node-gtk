@@ -432,7 +432,7 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GIBaseInfo *info, GType gt
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
     GType parent_type = g_type_parent(gtype);
-    if (parent_type == 0) {
+    if (parent_type == G_TYPE_INVALID) {
         tpl->Inherit(GetBaseClassTemplate());
     } else {
         GIObjectInfo *parent_info = NULL;
@@ -457,8 +457,6 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType 
 
     if (gi_info == NULL)
         gi_info = g_irepository_find_by_gtype(NULL, gtype);
-
-    // assert_printf (gi_info != NULL, "Missing GIR info for: %s\n", g_type_name (gtype));
 
     auto maybeTpl = NewClassTemplate(gi_info, gtype);
     if (maybeTpl.IsEmpty())
