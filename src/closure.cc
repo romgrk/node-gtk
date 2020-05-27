@@ -99,6 +99,7 @@ void Closure::Invalidated (gpointer data, GClosure *base) {
     closure->~Closure();
 }
 
+// locking and signalling adapted from https://github.com/node-ffi-napi/node-ffi-napi
 uv_async_t Closure::asyncHandle;
 
 void Closure::QueueHandler(uv_async_t* handle) {
@@ -126,7 +127,6 @@ void Closure::Initialize() {
     uv_unref(reinterpret_cast<uv_handle_t *>(&handle));
     uv_async_send(&handle);
 }
-
 
 CallbackWrapper::CallbackWrapper() {
   uv_mutex_init(&mutex);
