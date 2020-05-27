@@ -3,6 +3,7 @@
 #include <nan.h>
 
 #include "boxed.h"
+#include "closure.h"
 #include "debug.h"
 #include "function.h"
 #include "gi.h"
@@ -337,6 +338,7 @@ NAN_METHOD(GetModuleCache) {
 }
 
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
+    GNodeJS::Closure::Initialize();
 
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetModuleCache);

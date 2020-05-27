@@ -261,12 +261,12 @@ NAN_METHOD(SignalConnect) {
     Local<Function> callback = info[1].As<Function>();
     GType gtype = GET_OBJECT_GTYPE (info.This());
 
-    GIBaseInfo *object_info = g_irepository_find_by_gtype (NULL, gtype);
+    // GIBaseInfo *object_info = g_irepository_find_by_gtype (NULL, gtype);
 
-    if (object_info == NULL) {
-        Throw::InvalidGType(gtype);
-        return;
-    }
+    // if (object_info == NULL) {
+    //     Throw::InvalidGType(gtype);
+    //     return;
+    // }
 
     guint signalId;
     GQuark detail;
@@ -274,23 +274,24 @@ NAN_METHOD(SignalConnect) {
     ulong handler_id;
 
     const char *signalName = *Nan::Utf8String (TO_STRING (info[0]));
-    GISignalInfo *signal_info = FindSignalInfo (object_info, signalName);
+    // TODO: check signal
+    // GISignalInfo *signal_info = FindSignalInfo (object_info, signalName);
 
-    if (signal_info == NULL) {
-        Throw::SignalNotFound(object_info, signalName);
-        goto out;
-    }
+    // if (signal_info == NULL) {
+    //     Throw::SignalNotFound(object_info, signalName);
+    //     goto out;
+    // }
 
     g_signal_parse_name (signalName, gtype, &signalId, &detail, FALSE);
 
-    gclosure = Closure::New (callback, signal_info, signalId);
+    gclosure = Closure::New (callback, signalId);
     handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
     info.GetReturnValue().Set((double)handler_id);
 
-out:
-    g_base_info_unref(signal_info);
-    g_base_info_unref(object_info);
+// out:
+    // g_base_info_unref(signal_info);
+    // g_base_info_unref(object_info);
 }
 
 NAN_METHOD(SignalDisconnect) {
