@@ -19,7 +19,7 @@ using Nan::Persistent;
 namespace GNodeJS {
 
 GClosure *Closure::New(Local<Function> function, guint signalId) {
-    Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), GUINT_TO_POINTER(signalId));
+    Closure *closure = (Closure *) g_closure_new_simple (sizeof(Closure), NULL);
     closure->persistent.Reset(function);
     GClosure *gclosure = &closure->base;
     g_closure_set_marshal (gclosure, Closure::Marshal);
@@ -75,11 +75,7 @@ void Closure::Marshal(GClosure     *base,
                       const GValue *param_values,
                       gpointer      invocation_hint,
                       gpointer      marshal_data) {
-
     auto closure = (Closure *) base;
-    // auto signal_id = GPOINTER_TO_UINT(marshal_data);
-    // TODO: handle signal information?
-
     // We don't pass the implicit instance as first argument
     AsyncCallEnvironment* env = reinterpret_cast<AsyncCallEnvironment *>(Closure::asyncHandle.data);
     uv_thread_t thread = uv_thread_self();
@@ -101,6 +97,34 @@ void Closure::Marshal(GClosure     *base,
 void Closure::Invalidated (gpointer data, GClosure *base) {
     Closure *closure = (Closure *) base;
     closure->~Closure();
+}
+
+uv_async_t Closure::asyncHandle;
+
+void Closure::QueueHandler(uv_async_t* handle) {
+    AsyncCallEnvironment* data = reinterpret_cast<AsyncCallEnvironment *>(handle->data);
+    uv_mutex_lock(&data->mutex);
+
+    while (!data->queue.empty()) {
+        CallbackWrapper* cb = data->queue.front();
+        cb->Execute();
+        data->queue.pop();
+        delete cb;
+    }
+
+    uv_mutex_unlock(&data->mutex);
+}
+
+void Closure::Initialize() {
+    auto& handle = Closure::asyncHandle;
+    AsyncCallEnvironment* env = new AsyncCallEnvironment();
+    handle.data = env;
+    env->mainThread = uv_thread_self();
+    uv_loop_t* loop = uv_default_loop();
+    uv_async_init(loop, &handle, Closure::QueueHandler);
+    uv_mutex_init(&env->mutex);
+    uv_unref(reinterpret_cast<uv_handle_t *>(&handle));
+    uv_async_send(&handle);
 }
 
 
@@ -140,34 +164,6 @@ void CallbackWrapper::Done() {
 }
 void CallbackWrapper::Wait() {
     uv_cond_wait(&cond, &mutex);
-}
-
-uv_async_t Closure::asyncHandle;
-
-void Closure::QueueHandler(uv_async_t* handle) {
-    AsyncCallEnvironment* data = reinterpret_cast<AsyncCallEnvironment *>(handle->data);
-    uv_mutex_lock(&data->mutex);
-
-    while (!data->queue.empty()) {
-        CallbackWrapper* cb = data->queue.front();
-        cb->Execute();
-        data->queue.pop();
-        delete cb;
-    }
-
-    uv_mutex_unlock(&data->mutex);
-}
-
-void Closure::Initialize() {
-    auto& handle = Closure::asyncHandle;
-    AsyncCallEnvironment* env = new AsyncCallEnvironment();
-    handle.data = env;
-    env->mainThread = uv_thread_self();
-    uv_loop_t* loop = uv_default_loop();
-    uv_async_init(loop, &handle, Closure::QueueHandler);
-    uv_mutex_init(&env->mutex);
-    uv_unref(reinterpret_cast<uv_handle_t *>(&handle));
-    uv_async_send(&handle);
 }
 
 };
