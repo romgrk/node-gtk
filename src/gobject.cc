@@ -259,19 +259,20 @@ NAN_METHOD(SignalConnect) {
     }
 
     Local<Function> callback = info[1].As<Function>();
-    GType gtype = GET_OBJECT_GTYPE(info.This());
+    GType gtype = GET_OBJECT_GTYPE (info.This());
 
+    guint signalId;
+    GQuark detail;
     ulong handler_id;
 
     const char* signalName = *Nan::Utf8String(TO_STRING(info[0]));
-    uint signalId = g_signal_lookup(signalName, gtype);
-    if (signalId == 0) {
+    if (!g_signal_parse_name(signalName, gtype, &signalId, &detail, FALSE)) {
         Nan::ThrowTypeError("Signal name is invalid");
         return;
     }
 
-    GClosure* gclosure = Closure::New(callback, signalId);
-    handler_id = g_signal_connect_closure(gobject, signalName, gclosure, after);
+    GClosure* gclosure = Closure::New (callback, signalId);
+    handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
     info.GetReturnValue().Set((double)handler_id);
 }
