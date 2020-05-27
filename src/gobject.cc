@@ -35,7 +35,8 @@ static Nan::Persistent<FunctionTemplate> baseTemplate;
 
 static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data);
 
-static MaybeLocal<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info);
+static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
+
 
 static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
     if (!object->IsObject ())
@@ -133,10 +134,8 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         );
     } else {
         /* User code calling `new Gtk.Widget({ ... })` */
-
         GObject *gobject;
-        GIBaseInfo *gi_info = (GIBaseInfo *) External::Cast (*info.Data ())->Value ();
-        GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
+        GType gtype = (GType) External::Cast(*info.Data())->Value();
 
         gobject = CreateGObjectFromObject (gtype, info[0]);
 
@@ -169,15 +168,15 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     g_object_unref (gobject);
 }
 
-static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
-    GIBaseInfo *gi_info = info.GetParameter ();
-    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
+static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GType> &info) {
+    GType* gtypePtr = info.GetParameter();
+    GType gtype = *gtypePtr;
 
     auto *persistent = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::template_quark());
     delete persistent;
 
     g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
-    g_base_info_unref (gi_info);
+    g_free(gtypePtr);
 }
 
 static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *signal_detail) {
@@ -422,29 +421,29 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
     return tpl;
 }
 
-static MaybeLocal<FunctionTemplate> NewClassTemplate (GIBaseInfo *info, GType gtype) {
-    g_assert(gtype != G_TYPE_NONE);
+static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
+    g_assert(gtype != G_TYPE_NONE && gtype != G_TYPE_INVALID);
 
     const char *class_name = g_type_name (gtype);
 
-    auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External> (info));
+    auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External>((void *) gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-    GIObjectInfo *parent_info = g_object_info_get_parent (info);
-    if (parent_info) {
-        auto parent_tpl = GetClassTemplateFromGI ((GIBaseInfo *) parent_info);
+    GType parent_type = g_type_parent(gtype);
+    if (parent_type == G_TYPE_INVALID) {
+        tpl->Inherit(GetBaseClassTemplate());
+    } else {
+        auto parent_tpl = GetClassTemplate(parent_type);
         if (parent_tpl.IsEmpty())
             return MaybeLocal<FunctionTemplate> ();
         tpl->Inherit(parent_tpl.ToLocalChecked());
-    } else {
-        tpl->Inherit(GetBaseClassTemplate());
     }
 
     return MaybeLocal<FunctionTemplate> (tpl);
 }
 
-static MaybeLocal<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType gtype) {
+static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
 
     if (data) {
@@ -453,47 +452,33 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GIBaseInfo *gi_info, GType 
         return tpl;
     }
 
-    if (gi_info == NULL)
-        gi_info = g_irepository_find_by_gtype(NULL, gtype);
-
-    assert_printf (gi_info != NULL, "Missing GIR info for: %s\n", g_type_name (gtype));
-
-    auto maybeTpl = NewClassTemplate(gi_info, gtype);
+    auto maybeTpl = NewClassTemplate(gtype);
     if (maybeTpl.IsEmpty())
         return MaybeLocal<FunctionTemplate> ();
 
     auto tpl = maybeTpl.ToLocalChecked();
     auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
-    persistent->SetWeak (
-            g_base_info_ref (gi_info),
-            GObjectClassDestroyed,
-            WeakCallbackType::kParameter);
 
+    GType *gtypePtr = g_new(GType, 1);
+    persistent->SetWeak(gtypePtr, GObjectClassDestroyed,
+                        WeakCallbackType::kParameter);
     g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
     return MaybeLocal<FunctionTemplate> (tpl);
 }
 
-static MaybeLocal<FunctionTemplate> GetClassTemplateFromGI(GIBaseInfo *info) {
+MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
 
-    if (gtype == G_TYPE_NONE) {
+    if (gtype == G_TYPE_NONE || gtype == G_TYPE_INVALID) {
         const char *error = g_module_error();
         Throw::GTypeNotFound(info, error);
-        return MaybeLocal<FunctionTemplate>();
+        return MaybeLocal<Function>();
     }
 
-    auto tpl = GetClassTemplate(info, gtype);
-
-    if (tpl.IsEmpty())
-        return MaybeLocal<FunctionTemplate> ();
-
-    return MaybeLocal<FunctionTemplate> (tpl);
-}
-
-MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
-    auto tpl = GetClassTemplateFromGI (info);
+    auto tpl = GetClassTemplate(gtype);
     if (tpl.IsEmpty())
         return MaybeLocal<Function> ();
+
     return MaybeLocal<Function> (Nan::GetFunction (tpl.ToLocalChecked()));
 }
 
@@ -511,9 +496,7 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
 
     } else {
         GType gtype = G_OBJECT_TYPE(gobject);
-        auto realInfo = g_irepository_find_by_gtype(NULL, gtype);
-
-        auto maybeTpl = GetClassTemplateFromGI(realInfo);
+        auto maybeTpl = GetClassTemplate(gtype);
         if (maybeTpl.IsEmpty())
             return Nan::Null();
         auto tpl = maybeTpl.ToLocalChecked();

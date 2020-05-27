@@ -21,6 +21,9 @@ addons:
       - 'gir1.2-soup-2.4'
       - 'libcairo2'
       - 'libcairo2-dev'
+      - 'libgstreamer1.0-0'
+      - 'gstreamer1.0-plugins-base'
+      - 'gir1.2-gstreamer-1.0'
 
 jobs:
   include:
@@ -78,7 +81,7 @@ install:
 # put node-pre-gyp on path
 - export PATH=./node_modules/.bin/:$PATH
 - if [[ $(uname -s) == 'Darwin' ]]; then
-    brew install git node gtk+3 gobject-introspection glib libsoup cairo;
+    brew install git node gtk+3 gobject-introspection glib libsoup cairo gstreamer gst-plugins-base;
     clang --version;
   fi;
 
