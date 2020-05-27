@@ -23,6 +23,10 @@ Gtk.init()
 
   common.assert(button.getLabel() === 'test', 'button.setLabel did not set the label, got: ' + button.getLabel())
   common.assert(didNotify, 'notify::label not emitted')
+
+  common.mustThrow('invalid signal name', () => {
+    button.connect('notifx::label', () => {})
+  })
 }
 
 console.log('done')
