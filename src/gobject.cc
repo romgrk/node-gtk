@@ -474,9 +474,11 @@ MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
         Throw::GTypeNotFound(info, error);
         return MaybeLocal<Function>();
     }
+
     auto tpl = GetClassTemplate(gtype);
     if (tpl.IsEmpty())
         return MaybeLocal<Function> ();
+
     return MaybeLocal<Function> (Nan::GetFunction (tpl.ToLocalChecked()));
 }
 
