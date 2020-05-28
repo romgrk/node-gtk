@@ -91,6 +91,7 @@ void Closure::Marshal(GClosure     *base,
         uv_async_send(&Closure::asyncHandle);
 
         cb->Wait();
+        delete cb;
     }
 }
 
@@ -110,7 +111,6 @@ void Closure::QueueHandler(uv_async_t* handle) {
         CallbackWrapper* cb = data->queue.front();
         cb->Execute();
         data->queue.pop();
-        delete cb;
     }
 
     uv_mutex_unlock(&data->mutex);
