@@ -131,10 +131,12 @@ void Closure::Initialize() {
 
 CallbackWrapper::CallbackWrapper() {
     uv_mutex_init(&mutex);
+    uv_mutex_lock(&mutex);
     uv_cond_init(&cond);
 }
 
 CallbackWrapper::~CallbackWrapper() {
+    uv_mutex_unlock(&mutex);
     uv_cond_destroy(&cond);
     uv_mutex_destroy(&mutex);
 }
