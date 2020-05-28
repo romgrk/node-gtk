@@ -128,14 +128,15 @@ void Closure::Initialize() {
     uv_async_send(&handle);
 }
 
+
 CallbackWrapper::CallbackWrapper() {
-  uv_mutex_init(&mutex);
-  uv_cond_init(&cond);
+    uv_mutex_init(&mutex);
+    uv_cond_init(&cond);
 }
 
 CallbackWrapper::~CallbackWrapper() {
-  uv_cond_destroy(&cond);
-  uv_mutex_destroy(&mutex);
+    uv_cond_destroy(&cond);
+    uv_mutex_destroy(&mutex);
 }
 
 void CallbackWrapper::Execute() {
