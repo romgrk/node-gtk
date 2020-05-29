@@ -137,10 +137,12 @@ void Closure::Marshal(GClosure     *base,
     /* Case 1: same thread */
     if (uv_thread_equal(&thread, &env->mainThread)) {
         Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
+        printf("Calling from same thread...\n");
         return;
     }
 
     /* Case 2: different thread */
+    printf("Calling from different thread...\n");
     CallbackWrapper cb(closure->info, signal_id, &closure->persistent, g_return_value, n_param_values, param_values);
 
     uv_mutex_lock(&env->mutex);
@@ -179,7 +181,7 @@ CallbackWrapper::CallbackWrapper(GICallableInfo *info, guint signal_id,
     uv_cond_init(&cond);
 
     // copy values
-    g_base_info_ref(info);
+    if (info) g_base_info_ref(info);
     this->values = new GValue[nValues];
     for (uint i = 0; i < nValues; ++i) {
         this->values[i] = G_VALUE_INIT;
@@ -189,7 +191,7 @@ CallbackWrapper::CallbackWrapper(GICallableInfo *info, guint signal_id,
 }
 
 CallbackWrapper::~CallbackWrapper() {
-    g_base_info_unref(info);
+    if (info) g_base_info_unref(info);
     for (uint i = 0; i < nValues; ++i) {
         g_value_unset(&values[i]);
     }
