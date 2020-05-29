@@ -27,19 +27,21 @@ GClosure *Closure::New(Local<Function> function) {
     return gclosure;
 }
 
-void Closure::Execute(const Nan::Persistent<v8::Function>& persFn, GValue *returnValue, uint nValues, const GValue *values) {
+void Closure::Execute(const Nan::Persistent<v8::Function>& persFn, GValue *g_return_value, uint n_param_values, const GValue *param_values) {
     Nan::HandleScope scope;
     auto fn = Nan::New<Function>(persFn);
 
+    uint n_js_args = n_param_values - 1;
     #ifndef __linux__
-        Local<Value>* jsArgs = new Local<Value>[nValues];
+        Local<Value>* js_args = new Local<Value>[n_js_args];
     #else
-        Local<Value> jsArgs[nValues];
+        Local<Value> js_args[n_js_args];
     #endif
 
-    for (uint i = 1; i < nValues; i++) {
+
+    for (uint i = 1; i < n_js_args; i++) {
         bool mustCopy = true; // TODO: get information about mustCopy
-        jsArgs[i] = GValueToV8(&values[i], mustCopy);
+        js_args[i] = GValueToV8(&param_values[i], mustCopy);
     }
 
     Local<Object> self = fn;
@@ -47,14 +49,14 @@ void Closure::Execute(const Nan::Persistent<v8::Function>& persFn, GValue *retur
 
     Nan::TryCatch try_catch;
 
-    auto result = Nan::Call(fn, self, nValues, jsArgs);
+    auto result = Nan::Call(fn, self, n_js_args, js_args);
 
     if (!try_catch.HasCaught()
             && result.ToLocal(&return_value)) {
-        if (returnValue) {
-            if (G_VALUE_TYPE(returnValue) == G_TYPE_INVALID)
+        if (g_return_value) {
+            if (G_VALUE_TYPE(g_return_value) == G_TYPE_INVALID)
                 WARN ("Marshal: return value has invalid g_type");
-            else if (!V8ToGValue (returnValue, return_value, true))
+            else if (!V8ToGValue (g_return_value, return_value, true))
                 WARN ("Marshal: could not convert return value");
         }
         CallMicrotaskHandlers();
@@ -65,7 +67,7 @@ void Closure::Execute(const Nan::Persistent<v8::Function>& persFn, GValue *retur
     }
 
     #ifndef __linux__
-        delete[] jsArgs;
+        delete[] js_args;
     #endif
 }
 
