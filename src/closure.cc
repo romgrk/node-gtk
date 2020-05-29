@@ -190,6 +190,10 @@ CallbackWrapper::CallbackWrapper(GICallableInfo *info, guint signal_id,
 
 CallbackWrapper::~CallbackWrapper() {
     g_base_info_unref(info);
+    for (uint i = 0; i < nValues; ++i) {
+        g_value_unset(&values[i]);
+    }
+    delete[] values;
 
     uv_mutex_unlock(&mutex);
     uv_cond_destroy(&cond);
