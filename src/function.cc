@@ -81,6 +81,24 @@ static inline bool IsDirectionIn (GIDirection direction) {
     return (direction == GI_DIRECTION_IN  || direction == GI_DIRECTION_INOUT);
 }
 
+static inline bool IsPointerType(GITypeInfo *type_info) {
+    auto tag = g_type_info_get_tag (type_info);
+
+    if (tag != GI_TYPE_TAG_INTERFACE)
+        return false;
+
+    auto interface_info = g_type_info_get_interface (type_info);
+    auto interface_type = g_base_info_get_type (interface_info);
+
+    bool isPointer =
+        interface_type != GI_INFO_TYPE_ENUM &&
+        interface_type != GI_INFO_TYPE_FLAGS;
+
+    g_base_info_unref(interface_info);
+
+    return isPointer;
+}
+
 bool IsDestroyNotify (GIBaseInfo *info) {
     return strcmp(g_base_info_get_name(info), "DestroyNotify") == 0
         && strcmp(g_base_info_get_namespace(info), "GLib") == 0;
@@ -582,9 +600,7 @@ Local<Value> FunctionInfo::GetReturnValue (
 
             } else if (param.type == ParameterType::NORMAL) {
 
-                bool isPointer = g_type_info_get_tag (&arg_type) == GI_TYPE_TAG_INTERFACE;
-
-                if (isPointer) {
+                if (IsPointerType(&arg_type)) {
                     void *pointer = &arg_value.v_pointer;
                     ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) pointer))
                 }

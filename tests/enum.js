@@ -27,7 +27,8 @@ common.describe('enum', () => {
   common.it('are returned', () => {
     const btn = new Gtk.Button()
     btn.setHalign(Gtk.Align.CENTER)
-    const result = btn.getHalign()
-    common.expect(result, Gtk.Align.CENTER)
+    const align = btn.getHalign()
+    common.expect(align, Gtk.Align.CENTER)
+    console.log({ align })
   })
 })

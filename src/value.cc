@@ -132,8 +132,10 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
                 value = WrapperFromBoxed (interface_info, arg->v_pointer, mustCopy);
                 break;
             case GI_INFO_TYPE_ENUM:
+                value = New<Number>(arg->v_int);
+                break;
             case GI_INFO_TYPE_FLAGS:
-                value = New<Number>(arg->v_long);
+                value = New<Number>(arg->v_uint);
                 break;
             case GI_INFO_TYPE_INTERFACE: {
                 value = WrapperFromGObject((GObject *)arg->v_pointer);
