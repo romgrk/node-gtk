@@ -274,7 +274,7 @@ NAN_METHOD(SignalConnect) {
     GISignalInfo* signal_info = NULL;
     if (object_info) signal_info = FindSignalInfo (object_info, signalName);
 
-    GClosure* gclosure = Closure::New(callback, signal_info);
+    GClosure* gclosure = Closure::New(callback, signal_info, signalId);
     handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
     info.GetReturnValue().Set((double)handler_id);

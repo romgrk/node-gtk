@@ -33,8 +33,8 @@ void Closure::Initialize() {
     uv_async_send(&handle);
 }
 
-GClosure *Closure::New(Local<Function> function, GICallableInfo* info) {
-    Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
+GClosure *Closure::New(Local<Function> function, GICallableInfo* info, guint signalId) {
+    Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), GUINT_TO_POINTER(signalId));
     closure->persistent.Reset(function);
     if (info) {
         closure->info = g_base_info_ref(info);
@@ -87,7 +87,11 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
     } else {
         /* CallableInfo is not available: use GValueToV8 */
         for (uint i = 0; i < n_js_args; i++) {
-            bool mustCopy = true; // TODO: Get info about mustCopy
+            bool mustCopy = true;
+
+            if (signal_query.signal_id) {
+                mustCopy = (signal_query.param_types[i] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+            }
             js_args[i] = GValueToV8(&param_values[i + 1], mustCopy);
         }
     }

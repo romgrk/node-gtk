@@ -24,7 +24,8 @@ struct Closure {
     }
 
     static void Initialize();
-    static GClosure* New(Local<Function> function,  GICallableInfo* info);
+    static GClosure *New(Local<Function> function, GICallableInfo *info,
+                         guint signalId);
     static void Execute(GICallableInfo *info, guint signal_id,
                         const Nan::Persistent<v8::Function> &persFn,
                         GValue *returnValue, uint nValues,
