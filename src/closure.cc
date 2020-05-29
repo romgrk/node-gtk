@@ -39,9 +39,9 @@ void Closure::Execute(const Nan::Persistent<v8::Function>& persFn, GValue *g_ret
     #endif
 
 
-    for (uint i = 1; i < n_js_args; i++) {
+    for (uint i = 0; i < n_js_args; i++) {
         bool mustCopy = true; // TODO: get information about mustCopy
-        js_args[i] = GValueToV8(&param_values[i], mustCopy);
+        js_args[i] = GValueToV8(&param_values[i + 1], mustCopy);
     }
 
     Local<Object> self = fn;
