@@ -21,7 +21,9 @@ const watchdog = setTimeout(() => {
 }, 10 * 60 * 1000)
 watchdog.unref()
 
-const skipPattern = process.argv.find(a => a.startsWith('--skip='))
+const skipPattern = process.argv
+  .filter(a => a.startsWith('--skip='))
+  .map(a => new RegExp(a.replace('--skip=', '')))[0]
 
 files.forEach(file => {
 
