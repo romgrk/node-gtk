@@ -14,9 +14,13 @@ Gtk.init()
 Gdk.init([])
 
 const window = new Gtk.Window({ type: Gtk.WindowType.TOPLEVEL })
+const vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
 const button = new Gtk.Button()
+const input = new Gtk.Entry()
 
-window.add(button)
+vbox.add(button)
+vbox.add(input)
+window.add(vbox)
 
 // configure main window
 window.setDefaultSize(400, 100)
@@ -74,6 +78,26 @@ window.on('show', () => {
       mustThrow(/Couldn't convert value to "GdkEvent"/, () => {
         button.emit('key-press-event', 42)
       })
+    )
+  })
+
+  describe('types are as correct as possible', () => {
+    const event = new Gdk.EventKey()
+    event.window = input.getWindow()
+    event.time = 0
+    event.state = 0
+    event.keyval = Gdk.KEY_G
+
+    input.on('key-press-event', (event) => {
+      expect(event.keyval, Gdk.KEY_G)
+    })
+
+    const result = input.emit('key-press-event', event)
+
+    console.log(result)
+    assert(
+      typeof result === 'boolean',
+      'Couldn\'t emit "key-press-event" signal on GtkButton'
     )
   })
 
