@@ -21,6 +21,18 @@ namespace GNodeJS {
 // locking and signalling adapted from https://github.com/node-ffi-napi/node-ffi-napi
 uv_async_t Closure::asyncHandle;
 
+void Closure::Initialize() {
+    auto& handle = Closure::asyncHandle;
+    AsyncCallEnvironment* env = new AsyncCallEnvironment();
+    handle.data = env;
+    env->mainThread = uv_thread_self();
+    uv_loop_t* loop = uv_default_loop();
+    uv_async_init(loop, &handle, Closure::QueueHandler);
+    uv_mutex_init(&env->mutex);
+    uv_unref(reinterpret_cast<uv_handle_t *>(&handle));
+    uv_async_send(&handle);
+}
+
 GClosure *Closure::New(Local<Function> function) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
     closure->persistent.Reset(function);
@@ -120,18 +132,6 @@ void Closure::QueueHandler(uv_async_t* handle) {
     }
 
     uv_mutex_unlock(&data->mutex);
-}
-
-void Closure::Initialize() {
-    auto& handle = Closure::asyncHandle;
-    AsyncCallEnvironment* env = new AsyncCallEnvironment();
-    handle.data = env;
-    env->mainThread = uv_thread_self();
-    uv_loop_t* loop = uv_default_loop();
-    uv_async_init(loop, &handle, Closure::QueueHandler);
-    uv_mutex_init(&env->mutex);
-    uv_unref(reinterpret_cast<uv_handle_t *>(&handle));
-    uv_async_send(&handle);
 }
 
 

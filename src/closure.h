@@ -22,6 +22,7 @@ struct Closure {
         persistent.Reset();
     }
 
+    static void Initialize();
     static GClosure* New(Local<Function> function);
     static void Execute(const Nan::Persistent<v8::Function> &persFn,
                         GValue *returnValue, uint nValues,
@@ -33,7 +34,6 @@ struct Closure {
                         gpointer  marshal_data);
     static void Invalidated(gpointer data, GClosure *closure);
     static void QueueHandler(uv_async_t* asyncHandle);
-    static void Initialize();
 };
 
 struct CallbackWrapper {
