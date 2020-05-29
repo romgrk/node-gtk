@@ -19,7 +19,7 @@ using Nan::Persistent;
 namespace GNodeJS {
 
 GClosure *Closure::New(Local<Function> function) {
-    Closure *closure = (Closure *) g_closure_new_simple (sizeof(Closure), NULL);
+    Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
     closure->persistent.Reset(function);
     GClosure *gclosure = &closure->base;
     g_closure_set_marshal (gclosure, Closure::Marshal);
@@ -75,24 +75,28 @@ void Closure::Marshal(GClosure     *base,
                       const GValue *param_values,
                       gpointer      invocation_hint,
                       gpointer      marshal_data) {
+
     auto closure = (Closure *) base;
-    // We don't pass the implicit instance as first argument
+
     AsyncCallEnvironment* env = reinterpret_cast<AsyncCallEnvironment *>(Closure::asyncHandle.data);
     uv_thread_t thread = uv_thread_self();
+
+    /* Case 1: same thread */
     if (uv_thread_equal(&thread, &env->mainThread)) {
-        Closure::Execute(closure->persistent, g_return_value, n_param_values - 1, param_values + 1);
-    } else {
-        CallbackWrapper* cb = new CallbackWrapper();
-        cb->Prepare(&closure->persistent, g_return_value, n_param_values - 1, param_values + 1);
-
-        uv_mutex_lock(&env->mutex);
-        env->queue.push(cb);
-        uv_mutex_unlock(&env->mutex);
-        uv_async_send(&Closure::asyncHandle);
-
-        cb->Wait();
-        delete cb;
+        Closure::Execute(closure->persistent, g_return_value, n_param_values, param_values);
+        return;
     }
+
+    /* Case 2: different thread */
+    CallbackWrapper cb = CallbackWrapper();
+    cb.Prepare(&closure->persistent, g_return_value, n_param_values, param_values);
+
+    uv_mutex_lock(&env->mutex);
+    env->queue.push(&cb);
+    uv_mutex_unlock(&env->mutex);
+    uv_async_send(&Closure::asyncHandle);
+
+    cb.Wait();
 }
 
 void Closure::Invalidated (gpointer data, GClosure *base) {
