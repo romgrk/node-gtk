@@ -6,7 +6,7 @@
 const gi = require('../lib/')
 const Gdk = gi.require('Gdk')
 const Pango = gi.require('Pango')
-const { describe, it, mustThrow, expect, assert } = require('./__common__.js')
+const { describe, it, mustThrow, expect, assert, skip } = require('./__common__.js')
 
 Gdk.init([])
 
@@ -27,6 +27,8 @@ describe('Boxed initialization', () => {
     const attr = new Pango.AttrSize(10)
     expect(attr.toString(), '[object AttrSize]')
   })
+
+  skip() // above is run, below is skipped
 
   it('fails with non-zero-args constructor and bad arguments',
     mustThrow("Expected argument of type Number for parameter size, got 'abc'", () => {
