@@ -21,8 +21,7 @@ struct Closure {
         persistent.Reset();
     }
 
-    static GClosure *New(Local<Function> function,
-                         guint signalId);
+    static GClosure* New(Local<Function> function);
 
     static void Execute(const Nan::Persistent<v8::Function> &persFn,
                         GValue *returnValue, uint nValues,

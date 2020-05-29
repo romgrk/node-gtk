@@ -271,7 +271,7 @@ NAN_METHOD(SignalConnect) {
         return;
     }
 
-    GClosure* gclosure = Closure::New (callback, signalId);
+    GClosure* gclosure = Closure::New(callback);
     handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
     info.GetReturnValue().Set((double)handler_id);

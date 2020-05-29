@@ -18,7 +18,7 @@ using Nan::Persistent;
 
 namespace GNodeJS {
 
-GClosure *Closure::New(Local<Function> function, guint signalId) {
+GClosure *Closure::New(Local<Function> function) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof(Closure), NULL);
     closure->persistent.Reset(function);
     GClosure *gclosure = &closure->base;
