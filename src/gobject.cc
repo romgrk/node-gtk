@@ -264,6 +264,7 @@ NAN_METHOD(SignalConnect) {
 
     guint signalId;
     GQuark detail;
+    GClosure* gclosure;
     ulong handler_id;
 
     const char* signalName = *Nan::Utf8String(TO_STRING(info[0]));
@@ -272,12 +273,22 @@ NAN_METHOD(SignalConnect) {
         return;
     }
     GISignalInfo* signal_info = NULL;
-    if (object_info) signal_info = FindSignalInfo (object_info, signalName);
+    if (object_info) {
+        signal_info = FindSignalInfo (object_info, signalName);
+        if (signal_info == NULL) {
+            Throw::SignalNotFound(object_info, signalName);
+            goto out;
+        }
+    }
 
-    GClosure* gclosure = Closure::New(callback, signal_info, signalId);
+    gclosure = Closure::New(callback, signal_info, signalId);
     handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
     info.GetReturnValue().Set((double)handler_id);
+
+out:
+    if (signal_info) g_base_info_unref(signal_info);
+    if (object_info) g_base_info_unref(object_info);
 }
 
 NAN_METHOD(SignalDisconnect) {

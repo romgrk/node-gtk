@@ -189,6 +189,8 @@ CallbackWrapper::CallbackWrapper(GICallableInfo *info, guint signal_id,
 }
 
 CallbackWrapper::~CallbackWrapper() {
+    g_base_info_unref(info);
+
     uv_mutex_unlock(&mutex);
     uv_cond_destroy(&cond);
     uv_mutex_destroy(&mutex);
