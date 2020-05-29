@@ -18,6 +18,9 @@ using Nan::Persistent;
 
 namespace GNodeJS {
 
+// locking and signalling adapted from https://github.com/node-ffi-napi/node-ffi-napi
+uv_async_t Closure::asyncHandle;
+
 GClosure *Closure::New(Local<Function> function) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), NULL);
     closure->persistent.Reset(function);
@@ -105,9 +108,6 @@ void Closure::Invalidated (gpointer data, GClosure *base) {
     Closure *closure = (Closure *) base;
     closure->~Closure();
 }
-
-// locking and signalling adapted from https://github.com/node-ffi-napi/node-ffi-napi
-uv_async_t Closure::asyncHandle;
 
 void Closure::QueueHandler(uv_async_t* handle) {
     AsyncCallEnvironment* data = reinterpret_cast<AsyncCallEnvironment *>(handle->data);
