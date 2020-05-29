@@ -51,22 +51,33 @@ static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
     void *klass = g_type_class_ref (gtype);
     GObject *gobject = NULL;
 
+    int n_valid_properties = 0;
+    int index = 0;
+
     for (int i = 0; i < n_properties; i++) {
         Local<String> name = TO_STRING (Nan::Get(properties, i).ToLocalChecked());
         const char *name_string = g_strdup (*Nan::Utf8String(name));
         Local<Value> value = Nan::Get(property_hash, name).ToLocalChecked();
 
-        GType value_gtype = g_object_class_find_property (G_OBJECT_CLASS (klass), name_string)->value_type;
-
-        g_value_init(&values[i], value_gtype);
-
-        if (!V8ToGValue(&values[i], value, true))
+        auto value_spec = g_object_class_find_property (G_OBJECT_CLASS (klass), name_string);
+        if (value_spec == NULL) {
+            Throw::InvalidPropertyName(name_string);
             goto out;
+        }
 
-        names[i] = name_string;
+        index = n_valid_properties++;
+
+        g_value_init(&values[index], value_spec->value_type);
+
+        if (!V8ToGValue(&values[index], value, true)) {
+            // V8ToGValue throws the error
+            goto out;
+        }
+
+        names[index] = name_string;
     }
 
-    gobject = (GObject*) g_object_new_with_properties(gtype, n_properties, names, values);
+    gobject = (GObject*) g_object_new_with_properties(gtype, n_valid_properties, names, values);
 
 out:
     g_strfreev ((gchar**) names);

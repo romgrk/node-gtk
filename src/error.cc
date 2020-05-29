@@ -112,6 +112,12 @@ void InvalidSignal(const char* instance_name, const char* signal_name) {
     g_free(message);
 }
 
+void InvalidPropertyName (const char *propName) {
+    char* message = g_strdup_printf("Invalid property name: %s", propName);
+    Nan::ThrowError(message);
+    g_free(message);
+}
+
 }; // namespace Throw
 
 }; // namespace GNodeJS

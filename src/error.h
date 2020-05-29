@@ -40,6 +40,8 @@ namespace GNodeJS {
 
     void InvalidSignal(const char* instance_name, const char* signal_name);
 
+    void InvalidPropertyName (const char *propName);
+
   }; // namespace Throw
 
 }; // namespace GNodeJS

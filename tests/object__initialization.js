@@ -11,6 +11,12 @@ const { describe, it, mustThrow, expect, assert } = require('./__common__.js')
 Gtk.init()
 
 
+describe('WrapperFromGObject', () => {
+  it('works', () => {
+    const result = Gtk.Button.newFromStock(Gtk.STOCK_YES)
+  })
+})
+
 describe('new GObject({ ... })', () => {
 
   it('works', () => {
@@ -24,15 +30,15 @@ describe('new GObject({ ... })', () => {
     assert(message.uri instanceof Soup.URI, 'message.uri not instanceof Soup.URI')
   })
 
-  it('fails with wrong argument types',
+  it('fails with wrong property types',
     mustThrow(`Couldn't convert value to "SoupURI" (category: boxed).`, () => {
       const message = new Soup.Message({
         uri: 'http://google.com', // invalid type, should be SoupURI
       })
     }))
-})
 
-
-describe('WrapperFromGObject', () => {
-  const result = Gtk.Button.newFromStock(Gtk.STOCK_YES)
+  it('fails when passed invalid properties',
+    mustThrow(`Invalid property name: INVALID_PROP_NAME`, () => {
+      const mark = new Gtk.TextMark({ name: 'mark-name', INVALID_PROP_NAME: false })
+    }))
 })
