@@ -137,12 +137,10 @@ void Closure::Marshal(GClosure     *base,
     /* Case 1: same thread */
     if (uv_thread_equal(&thread, &env->mainThread)) {
         Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
-        printf("Calling from same thread...\n");
         return;
     }
 
     /* Case 2: different thread */
-    printf("Calling from different thread...\n");
     CallbackWrapper cb(closure->info, signal_id, &closure->persistent, g_return_value, n_param_values, param_values);
 
     uv_mutex_lock(&env->mutex);
