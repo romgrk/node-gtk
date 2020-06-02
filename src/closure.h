@@ -25,6 +25,10 @@ struct Closure {
 
     static GClosure *New(Local<Function> function, GICallableInfo *info,
                          guint signalId);
+    static void Execute(GICallableInfo *info, guint signal_id,
+                        const Nan::Persistent<v8::Function> &persFn,
+                        GValue *g_return_value, uint n_param_values,
+                        const GValue *param_values);
     static void Marshal(GClosure *closure,
                         GValue   *g_return_value,
                         uint argc, const GValue *g_argv,
