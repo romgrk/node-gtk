@@ -169,11 +169,15 @@ void Closure::QueueHandler(uv_async_t* handle) {
     uv_mutex_unlock(&data->mutex);
 }
 
-
-CallbackWrapper::CallbackWrapper(GICallableInfo *info, guint signal_id,
-                                 const Nan::Persistent<v8::Function> *persistent,
-                                 GValue *returnValue, uint nValues,
-                                 const GValue *values) : info(info), signal_id(signal_id), persistent(persistent), returnValue(returnValue), nValues(nValues) {
+CallbackWrapper::CallbackWrapper(
+    GICallableInfo *info, guint signal_id,
+    const Nan::Persistent<v8::Function> *persistent, GValue *returnValue,
+    uint nValues, const GValue *values)
+    : info(info),
+      signal_id(signal_id),
+      persistent(persistent),
+      returnValue(returnValue),
+      nValues(nValues) {
     uv_mutex_init(&mutex);
     uv_mutex_lock(&mutex);
     uv_cond_init(&cond);
