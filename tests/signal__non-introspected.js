@@ -31,7 +31,8 @@ describe('signal handlers are available for non-introspected objects', async () 
     }
   
     typefind.once('have-type', (probability, caps) => {
-      console.log(`Got type with probability ${probability}: ${caps.toString()}`)
+      expect(probability, 100);
+      assert(caps instanceof Gst.Caps)
       clearTimeout(timeout)
       pipeline.unref()
       resolve()
