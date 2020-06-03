@@ -18,7 +18,7 @@ using Nan::Persistent;
 
 namespace GNodeJS {
 
-GClosure *Closure::New(Local<Function> function, GICallableInfo* info, guint signalId) {
+GClosure *Closure::New (Local<Function> function, GICallableInfo* info, guint signalId) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), GUINT_TO_POINTER(signalId));
     closure->persistent.Reset(function);
     if (info) {
@@ -37,14 +37,16 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
                       GValue *g_return_value, uint n_param_values,
                       const GValue *param_values) {
     Nan::HandleScope scope;
-    auto fn = Nan::New<Function>(persFn);
+    auto func = Nan::New<Function>(persFn);
 
     GSignalQuery signal_query = { 0, };
+
     g_signal_query(signal_id, &signal_query);
 
     uint n_js_args = n_param_values - 1;
+
     #ifndef __linux__
-        Local<Value> *js_args = new Local<Value>[n_js_args];
+        Local<Value>* js_args = new Local<Value>[n_js_args];
     #else
         Local<Value> js_args[n_js_args];
     #endif
@@ -81,24 +83,26 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
         }
     }
 
-    Local<Object> self = fn;
+    Local<Object> self = func;
     Local<Value> return_value;
 
     Nan::TryCatch try_catch;
 
-    auto result = Nan::Call(fn, self, n_js_args, js_args);
+    auto result = Nan::Call(func, self, n_js_args, js_args);
 
-    if (!try_catch.HasCaught() && result.ToLocal(&return_value)) {
+    if (!try_catch.HasCaught()
+            && result.ToLocal(&return_value)) {
         if (g_return_value) {
             if (G_VALUE_TYPE(g_return_value) == G_TYPE_INVALID)
-            WARN("Marshal: return value has invalid g_type");
-            else if (!V8ToGValue(g_return_value, return_value, true))
-            WARN("Marshal: could not convert return value");
+                WARN("Marshal: return value has invalid g_type");
+            else if (!V8ToGValue (g_return_value, return_value, true))
+                WARN("Marshal: could not convert return value");
         }
+
         CallMicrotaskHandlers();
     } else {
         GNodeJS::QuitLoopStack();
-        Nan::FatalException(try_catch);
+        Nan::FatalException (try_catch);
     }
 
     #ifndef __linux__
