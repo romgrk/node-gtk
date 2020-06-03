@@ -74,14 +74,20 @@ void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data
     Callback *callback = static_cast<Callback *>(user_data);
 
     int n_native_args = g_callable_info_get_n_args(callback->info);
+    GIArgument **gi_args = reinterpret_cast<GIArgument **>(args);
+
+    AsyncCallEnvironment* env = reinterpret_cast<AsyncCallEnvironment *>(AsyncCallEnvironment::asyncHandle.data);
+    env->Call([&]() {
+    Isolate *isolate = Isolate::GetCurrent ();
+    HandleScope scope(isolate);
+    Local<Context> context = Context::New(isolate);
+    Context::Scope context_scope(context);
 
     #ifndef __linux__
         Local<Value>* js_args = new Local<Value>[n_native_args];
     #else
         Local<Value> js_args[n_native_args];
     #endif
-
-    GIArgument **gi_args = reinterpret_cast<GIArgument **>(args);
 
     for (int i = 0; i < n_native_args; i++) {
         GIArgInfo arg_info;
@@ -95,10 +101,6 @@ void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data
     Local<Function> function = Nan::New<Function>(callback->persistent);
     Local<Object> self = Nan::GetCurrentContext()->Global();
 
-    Isolate *isolate = Isolate::GetCurrent ();
-    HandleScope scope(isolate);
-    Local<Context> context = Context::New(isolate);
-    Context::Scope context_scope(context);
     Nan::TryCatch try_catch;
 
     callbackLevel++;
@@ -128,6 +130,7 @@ void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data
     #ifndef __linux__
         delete[] js_args;
     #endif
+    });
 
     if (callback->scope_type == GI_SCOPE_TYPE_ASYNC) {
         delete callback;
