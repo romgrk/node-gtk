@@ -25,7 +25,7 @@ struct Closure {
     }
 
     static GClosure *New(Local<Function> function,
-                         GICallableInfo *info,
+                         GICallableInfo* info,
                          guint signalId);
 
     static void Execute(GICallableInfo *info, guint signal_id,

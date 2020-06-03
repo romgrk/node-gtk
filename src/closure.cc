@@ -43,6 +43,7 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
 
     g_signal_query(signal_id, &signal_query);
 
+    // We don't pass the implicit instance as first argument
     uint n_js_args = n_param_values - 1;
 
     #ifndef __linux__
@@ -57,29 +58,29 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
         GIArgument argument;
         GIArgInfo arg_info;
         GITypeInfo type_info;
-        for (uint i = 0; i < n_js_args; i++) {
-            memcpy(&argument, &param_values[i + 1].data[0], sizeof(GIArgument));
-            g_callable_info_load_arg(info, i, &arg_info);
+        for (uint i = 1; i < n_param_values; i++) {
+            memcpy(&argument, &param_values[i].data[0], sizeof(GIArgument));
+            g_callable_info_load_arg(info, i - 1, &arg_info);
             g_arg_info_load_type(&arg_info, &type_info);
 
             bool mustCopy = true;
 
             if (signal_query.signal_id) {
-                mustCopy = (signal_query.param_types[i] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+                mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
             }
 
-            js_args[i] = GIArgumentToV8(&type_info, &argument, -1, mustCopy);
+            js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, mustCopy);
         }
         g_base_info_unref(info);
     } else {
         /* CallableInfo is not available: use GValueToV8 */
-        for (uint i = 0; i < n_js_args; i++) {
+        for (uint i = 1; i < n_param_values; i++) {
             bool mustCopy = true;
 
             if (signal_query.signal_id) {
-                mustCopy = (signal_query.param_types[i] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+                mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
             }
-            js_args[i] = GValueToV8(&param_values[i + 1], mustCopy);
+            js_args[i - 1] = GValueToV8(&param_values[i], mustCopy);
         }
     }
 
@@ -126,7 +127,6 @@ void Closure::Marshal(GClosure     *base,
         Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
     });
 }
-
 void Closure::Invalidated (gpointer data, GClosure *base) {
     Closure *closure = (Closure *) base;
     closure->~Closure();
