@@ -94,13 +94,14 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
             && result.ToLocal(&return_value)) {
         if (g_return_value) {
             if (G_VALUE_TYPE(g_return_value) == G_TYPE_INVALID)
-                WARN("Marshal: return value has invalid g_type");
+                WARN ("Marshal: return value has invalid g_type");
             else if (!V8ToGValue (g_return_value, return_value, true))
-                WARN("Marshal: could not convert return value");
+                WARN ("Marshal: could not convert return value");
         }
 
-        CallMicrotaskHandlers();
-    } else {
+        CallMicrotaskHandlers ();
+    }
+    else {
         GNodeJS::QuitLoopStack();
         Nan::FatalException (try_catch);
     }
