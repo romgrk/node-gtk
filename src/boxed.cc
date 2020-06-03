@@ -421,6 +421,11 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, bool mustCopy) {
     if (data == NULL)
         return Nan::Null();
 
+    GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
+    if (g_type_is_a(gtype, G_TYPE_VALUE)) {
+        return GValueToV8(reinterpret_cast<const GValue *>(data), mustCopy);
+    }
+
     Local<Function> constructor = MakeBoxedClass (info);
 
     Local<Value> boxed_external = Nan::New<External> (data);
