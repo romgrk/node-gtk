@@ -4,7 +4,6 @@
 
 #include "async_call_environment.h"
 #include "boxed.h"
-#include "closure.h"
 #include "debug.h"
 #include "function.h"
 #include "gi.h"

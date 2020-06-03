@@ -21,19 +21,24 @@ struct Closure {
 
     ~Closure() {
         persistent.Reset();
+        if (info) g_base_info_unref (info);
     }
 
-    static GClosure *New(Local<Function> function, GICallableInfo *info,
+    static GClosure *New(Local<Function> function,
+                         GICallableInfo *info,
                          guint signalId);
+
     static void Execute(GICallableInfo *info, guint signal_id,
                         const Nan::Persistent<v8::Function> &persFn,
                         GValue *g_return_value, uint n_param_values,
                         const GValue *param_values);
+
     static void Marshal(GClosure *closure,
                         GValue   *g_return_value,
                         uint argc, const GValue *g_argv,
                         gpointer  invocation_hint,
                         gpointer  marshal_data);
+
     static void Invalidated(gpointer data, GClosure *closure);
 };
 
