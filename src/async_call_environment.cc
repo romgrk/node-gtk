@@ -29,16 +29,12 @@ void AsyncCallEnvironment::QueueHandler(uv_async_t* handle) {
     uv_mutex_unlock(&data->mutex);
 }
 
-void AsyncCallEnvironment::Call(std::function<void()> fn) {
+bool AsyncCallEnvironment::IsSameThread() const {
     uv_thread_t thread = uv_thread_self();
+    return uv_thread_equal(&thread, &mainThread);
+}
 
-    /* Case 1: same thread */
-    if (uv_thread_equal(&thread, &mainThread)) {
-        fn();
-        return;
-    }
-
-    /* Case 2: different thread */
+void AsyncCallEnvironment::Call(std::function<void()> fn) {
     AsyncCallWrapper fnWrapper(fn);
     uv_mutex_lock(&mutex);
     queue.push(&fnWrapper);

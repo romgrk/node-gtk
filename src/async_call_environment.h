@@ -16,6 +16,7 @@ struct AsyncCallEnvironment {
 
     static void Initialize();
     static void QueueHandler(uv_async_t* asyncHandle);
+    bool IsSameThread() const;
     void Call(std::function<void()> fn);
 };
 

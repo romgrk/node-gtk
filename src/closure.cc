@@ -121,9 +121,16 @@ void Closure::Marshal(GClosure     *base,
     auto signal_id = GPOINTER_TO_UINT(marshal_data);
 
     AsyncCallEnvironment* env = reinterpret_cast<AsyncCallEnvironment *>(AsyncCallEnvironment::asyncHandle.data);
-    env->Call([&]() {
+
+    if (env->IsSameThread()) {
+        /* Case 1: same thread */
         Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
-    });
+    } else {
+        /* Case 2: different thread */
+        env->Call([&]() {
+            Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
+        });
+    }
 }
 void Closure::Invalidated (gpointer data, GClosure *base) {
     Closure *closure = (Closure *) base;
