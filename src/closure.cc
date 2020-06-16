@@ -54,7 +54,6 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
 
     if (info) {
         /* CallableInfo is available: use GIArgumentToV8 */
-        g_base_info_ref(info);
         GIArgument argument;
         GIArgInfo arg_info;
         GITypeInfo type_info;
@@ -71,7 +70,6 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
 
             js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, mustCopy);
         }
-        g_base_info_unref(info);
     } else {
         /* CallableInfo is not available: use GValueToV8 */
         for (uint i = 1; i < n_param_values; i++) {
