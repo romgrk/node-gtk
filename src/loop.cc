@@ -52,7 +52,7 @@ static gboolean loop_source_prepare (GSource *base, int *timeout) {
 
 static gboolean loop_source_dispatch (GSource *base, GSourceFunc callback, gpointer user_data) {
     struct uv_loop_source *source = (struct uv_loop_source *) base;
-    uv_run (source->loop, UV_RUN_ONCE);
+    uv_run (source->loop, UV_RUN_NOWAIT);
     CallMicrotaskHandlers ();
     return G_SOURCE_CONTINUE;
 }
