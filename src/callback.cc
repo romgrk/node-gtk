@@ -70,13 +70,14 @@ void Callback::AsyncFree () {
 /**
  * FFI closure callback
  */
-void Callback::Execute (void *result, GIArgument **args, Callback *callback) {
+void Callback::Execute (void *result, GIArgument **gi_args, Callback *callback) {
     Isolate *isolate = Isolate::GetCurrent ();
     HandleScope scope(isolate);
     Local<Context> context = Context::New(isolate);
     Context::Scope context_scope(context);
 
     int n_native_args = g_callable_info_get_n_args(callback->info);
+
     #ifndef __linux__
         Local<Value>* js_args = new Local<Value>[n_native_args];
     #else
@@ -89,7 +90,7 @@ void Callback::Execute (void *result, GIArgument **args, Callback *callback) {
         g_callable_info_load_arg (callback->info, i, &arg_info);
         g_arg_info_load_type (&arg_info, &arg_type);
 
-        js_args[i] = GIArgumentToV8 (&arg_type, args[i]);
+        js_args[i] = GIArgumentToV8 (&arg_type, gi_args[i]);
     }
 
     Local<Function> function = Nan::New<Function>(callback->persistent);
