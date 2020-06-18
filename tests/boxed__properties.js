@@ -4,7 +4,7 @@
 
 
 const gi = require('../lib/')
-const Gdk = gi.require('Gdk')
+const Gdk = gi.require('Gdk', '3.0')
 const Pango = gi.require('Pango')
 const { describe, it, mustThrow, expect, assert } = require('./__common__.js')
 

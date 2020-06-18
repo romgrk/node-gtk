@@ -6,7 +6,7 @@
 const path = require('path')
 const gi = require('../lib/')
 const GLib = gi.require('GLib')
-const Gdk = gi.require('Gdk')
+const Gdk = gi.require('Gdk', '3.0')
 const common = require('./__common__.js')
 
 const tk = new GLib.TokenValue()

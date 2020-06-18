@@ -6,8 +6,8 @@
 const path = require('path')
 const gi = require('../lib/')
 const GLib = gi.require('GLib')
-const Gdk = gi.require('Gdk')
-const Gtk = gi.require('Gtk')
+const Gdk = gi.require('Gdk', '3.0')
+const Gtk = gi.require('Gtk', '3.0')
 const common = require('./__common__.js')
 
 Gtk.init()

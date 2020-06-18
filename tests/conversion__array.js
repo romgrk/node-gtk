@@ -7,7 +7,7 @@ const fs = require('fs')
 const path = require('path')
 const gi = require('../lib/')
 const glib = gi.require('GLib')
-const gtk = gi.require('Gtk')
+const gtk = gi.require('Gtk', '3.0')
 const common = require('./__common__.js')
 
 /*
