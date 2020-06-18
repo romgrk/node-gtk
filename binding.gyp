@@ -3,6 +3,8 @@
         {
             "target_name": "node_gtk",
             "sources": [
+                "src/async_call_environment.cc",
+                "src/async_call_wrapper.cc",
                 "src/boxed.cc",
                 "src/callback.cc",
                 "src/closure.cc",
