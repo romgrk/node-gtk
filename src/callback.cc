@@ -111,7 +111,7 @@ void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data
 
         bool didConvert = V8ToGIArgument (
                 &type_info,
-                (GIArgument *) &result,
+                (GIArgument *) result,
                 return_value.ToLocalChecked(),
                 g_callable_info_may_return_null (callback->info));
 
