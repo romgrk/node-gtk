@@ -263,25 +263,24 @@ NAN_METHOD(SignalConnect) {
 
     GIBaseInfo *object_info = g_irepository_find_by_gtype (NULL, gtype);
 
-    if (object_info == NULL) {
-        Throw::InvalidGType(gtype);
-        return;
-    }
-
     guint signalId;
     GQuark detail;
     GClosure *gclosure;
     ulong handler_id;
 
     const char *signalName = *Nan::Utf8String (TO_STRING (info[0]));
-    GISignalInfo *signal_info = FindSignalInfo (object_info, signalName);
-
-    if (signal_info == NULL) {
-        Throw::SignalNotFound(object_info, signalName);
-        goto out;
+    if (!g_signal_parse_name(signalName, gtype, &signalId, &detail, FALSE)) {
+        Nan::ThrowTypeError("Signal name is invalid");
+        return;
     }
-
-    g_signal_parse_name (signalName, gtype, &signalId, &detail, FALSE);
+    GISignalInfo* signal_info = NULL;
+    if (object_info) {
+        signal_info = FindSignalInfo (object_info, signalName);
+        if (signal_info == NULL) {
+            Throw::SignalNotFound(object_info, signalName);
+            goto out;
+        }
+    }
 
     gclosure = Closure::New (callback, signal_info, signalId);
     handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
@@ -289,8 +288,8 @@ NAN_METHOD(SignalConnect) {
     info.GetReturnValue().Set((double)handler_id);
 
 out:
-    g_base_info_unref(signal_info);
-    g_base_info_unref(object_info);
+    if (signal_info) g_base_info_unref(signal_info);
+    if (object_info) g_base_info_unref(object_info);
 }
 
 NAN_METHOD(SignalDisconnect) {

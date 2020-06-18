@@ -21,23 +21,24 @@ namespace GNodeJS {
 GClosure *Closure::New (Local<Function> function, GICallableInfo* info, guint signalId) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), GUINT_TO_POINTER(signalId));
     closure->persistent.Reset(function);
-    closure->info = g_base_info_ref (info);
+    if (info) {
+        closure->info = g_base_info_ref(info);
+    } else {
+        closure->info = NULL;
+    }
     GClosure *gclosure = &closure->base;
     g_closure_set_marshal (gclosure, Closure::Marshal);
     g_closure_add_invalidate_notifier (gclosure, NULL, Closure::Invalidated);
     return gclosure;
 }
 
-void Closure::Marshal(GClosure     *base,
-                      GValue       *g_return_value,
-                      uint          n_param_values,
-                      const GValue *param_values,
-                      gpointer      invocation_hint,
-                      gpointer      marshal_data) {
+void Closure::Execute(GICallableInfo *info, guint signal_id,
+                      const Nan::Persistent<v8::Function> &persFn,
+                      GValue *g_return_value, uint n_param_values,
+                      const GValue *param_values) {
+    Nan::HandleScope scope;
+    auto func = Nan::New<Function>(persFn);
 
-    auto closure = (Closure *) base;
-    auto func = Nan::New<Function> (closure->persistent);
-    auto signal_id = GPOINTER_TO_UINT(marshal_data);
     GSignalQuery signal_query = { 0, };
 
     g_signal_query(signal_id, &signal_query);
@@ -51,22 +52,34 @@ void Closure::Marshal(GClosure     *base,
         Local<Value> js_args[n_js_args];
     #endif
 
-    GIArgument argument;
-    GIArgInfo arg_info;
-    GITypeInfo type_info;
+    if (info) {
+        /* CallableInfo is available: use GIArgumentToV8 */
+        GIArgument argument;
+        GIArgInfo arg_info;
+        GITypeInfo type_info;
+        for (uint i = 1; i < n_param_values; i++) {
+            memcpy(&argument, &param_values[i].data[0], sizeof(GIArgument));
+            g_callable_info_load_arg(info, i - 1, &arg_info);
+            g_arg_info_load_type(&arg_info, &type_info);
 
-    for (uint i = 1; i < n_param_values; i++) {
-        memcpy(&argument, &param_values[i].data[0], sizeof(GIArgument));
-        g_callable_info_load_arg(closure->info, i - 1, &arg_info);
-        g_arg_info_load_type(&arg_info, &type_info);
+            bool mustCopy = true;
 
-        bool mustCopy = true;
+            if (signal_query.signal_id) {
+                mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+            }
 
-        if (signal_query.signal_id) {
-            mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+            js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, mustCopy);
         }
+    } else {
+        /* CallableInfo is not available: use GValueToV8 */
+        for (uint i = 1; i < n_param_values; i++) {
+            bool mustCopy = true;
 
-        js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, mustCopy);
+            if (signal_query.signal_id) {
+                mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+            }
+            js_args[i - 1] = GValueToV8(&param_values[i], mustCopy);
+        }
     }
 
     Local<Object> self = func;
@@ -97,6 +110,28 @@ void Closure::Marshal(GClosure     *base,
     #endif
 }
 
+void Closure::Marshal(GClosure     *base,
+                      GValue       *g_return_value,
+                      uint          n_param_values,
+                      const GValue *param_values,
+                      gpointer      invocation_hint,
+                      gpointer      marshal_data) {
+
+    auto closure = (Closure *) base;
+    auto signal_id = GPOINTER_TO_UINT(marshal_data);
+
+    AsyncCallEnvironment* env = reinterpret_cast<AsyncCallEnvironment *>(AsyncCallEnvironment::asyncHandle.data);
+
+    if (env->IsSameThread()) {
+        /* Case 1: same thread */
+        Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
+    } else {
+        /* Case 2: different thread */
+        env->Call([&]() {
+            Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
+        });
+    }
+}
 void Closure::Invalidated (gpointer data, GClosure *base) {
     Closure *closure = (Closure *) base;
     closure->~Closure();
