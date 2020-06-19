@@ -20,21 +20,21 @@ const button = Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK)
 
 // Draw area
 const drawingArea = new Gtk.DrawingArea()
-drawingArea.on('draw', (context) => {
+drawingArea.on('draw', (_) => {
   const width = drawingArea.getAllocatedWidth()
   const height = drawingArea.getAllocatedHeight()
 
   console.log(['draw', { width, height }])
 
   // Cairo in GJS uses camelCase function names
-  context.setSourceRgba(1, 0.0, 0.0, 1)
-  context.arc(16, 16, 16, 0, 2 * Math.PI);
-  context.fill()
+  _.setSourceRgba(1, 0.0, 0.0, 1)
+  _.arc(16, 16, 16, 0, 2 * Math.PI);
+  _.fill()
 
-  context.selectFontFace('Fantasque Sans Mono', Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
-  context.setFontSize(12)
+  _.selectFontFace('Fantasque Sans Mono', Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
+  _.setFontSize(12)
 
-  const extents = context.textExtents('Disziplin ist Macht.')
+  const extents = _.textExtents('Disziplin ist Macht.')
   console.log({
     xAdvance: extents.xAdvance,
     yAdvance: extents.yAdvance,
@@ -44,7 +44,7 @@ drawingArea.on('draw', (context) => {
     yBearing: extents.yBearing,
   })
 
-  const fontExtents = context.fontExtents()
+  const fontExtents = _.fontExtents()
   console.log({
     ascent:      fontExtents.ascent,
     descent:     fontExtents.descent,
@@ -53,51 +53,61 @@ drawingArea.on('draw', (context) => {
     maxYAdvance: fontExtents.maxYAdvance,
   })
 
-  context.setSourceRgba(0.1, 0.1, 0.1, 1)
-  context.rectangle(10, 40, extents.xAdvance, extents.height - extents.yBearing)
-  context.fill()
+  _.setSourceRgba(0.1, 0.1, 0.1, 1)
+  _.rectangle(10, 40, extents.xAdvance, extents.height - extents.yBearing)
+  _.fill()
 
-  context.moveTo(10, 50)
-  context.setSourceRgba(1, 0.0, 0.0, 1)
-  context.showText('Disziplin ist Macht.')
+  _.moveTo(10, 50)
+  _.setSourceRgba(1, 0.0, 0.0, 1)
+  _.showText('Disziplin ist Macht.')
 
 
-  context.setLineWidth (2)
+  /* Lines */
+  {
+    _.setSourceRgb(1, 1, 1)
+    _.setLineWidth(1)
+    _.moveTo(250, 100)
+    _.lineTo(250, 200)
+    _.moveTo(200, 150)
+    _.lineTo(300, 150)
+    _.stroke()
+  }
+  {
+    _.setSourceRgb(1, 1, 1)
+    _.setLineWidth(1)
+    _.moveTo(400.5, 100.5)
+    _.lineTo(400.5, 200.5)
+    _.moveTo(350.5, 150.5)
+    _.lineTo(450.5, 150.5)
+    _.stroke()
+  }
 
-  context.moveTo(200, 100)
-  context.lineTo(200, 300)
-
-  context.moveTo(100, 200)
-  context.lineTo(300, 200)
-
-  context.stroke()
-
-  context.setSourceRgb(0, 0, 0)
-  const layout = PangoCairo.createLayout(context)
+  _.setSourceRgb(0, 0, 0)
+  const layout = PangoCairo.createLayout(_)
   const fontDescription = Pango.fontDescriptionFromString('Fantasque Sans Mono 9')
   layout.setText('text', -1)
   layout.setFontDescription(fontDescription)
-  PangoCairo.showLayout(context, layout)
+  PangoCairo.showLayout(_, layout)
 
   // Draw glyphs
   // const fontFace = Cairo.FontFace.create('Arial', Cairo.FontSlant.NORMAL, Cairo.FontWeight.NORMAL)
   // const scaledFont = Cairo.ScaledFont.create(fontFace, new Cairo.Matrix(), new Cairo.Matrix(), new Cairo.FontOptions())
-  const scaledFont = context.getScaledFont()
+  const scaledFont = _.getScaledFont()
   const text = 'Here are some glyphs'
-  const [glyphs] = scaledFont.textToGlyphs(10, 100, text, text.length)
+  const [glyphs] = scaledFont.textToGlyphs(10, 100, text, true)
 
-  // put paths for current cluster to context
-  // context.setScaledFont(scaledFont)
-  context.glyphPath(glyphs, glyphs.length)
-  const glyphExtents = context.glyphExtents(glyphs, glyphs.length)
+  // put paths for current cluster to _
+  // _.setScaledFont(scaledFont)
+  _.glyphPath(glyphs, glyphs.length)
+  const glyphExtents = _.glyphExtents(glyphs, glyphs.length)
 
   // draw black text with green stroke
-  context.setSourceRgba(1, 1, 0.2, 1)
-  context.fillPreserve()
-  // context.setLineWidth(0.5)
-  // context.stroke()
+  _.setSourceRgba(1, 1, 0.2, 1)
+  _.fillPreserve()
+  // _.setLineWidth(0.5)
+  // _.stroke()
 
-  const path = context.copyPath()
+  const path = _.copyPath()
   console.log(path, path.status)
 
   return true
