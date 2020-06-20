@@ -70,8 +70,11 @@ void Callback::AsyncFree () {
 /**
  * FFI closure callback
  */
-void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data) {
-    Callback *callback = static_cast<Callback *>(user_data);
+void Callback::Execute (void *result, GIArgument **gi_args, Callback *callback) {
+    Isolate *isolate = Isolate::GetCurrent ();
+    HandleScope scope(isolate);
+    Local<Context> context = Context::New(isolate);
+    Context::Scope context_scope(context);
 
     int n_native_args = g_callable_info_get_n_args(callback->info);
 
@@ -80,8 +83,6 @@ void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data
     #else
         Local<Value> js_args[n_native_args];
     #endif
-
-    GIArgument **gi_args = reinterpret_cast<GIArgument **>(args);
 
     for (int i = 0; i < n_native_args; i++) {
         GIArgInfo arg_info;
@@ -95,10 +96,6 @@ void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data
     Local<Function> function = Nan::New<Function>(callback->persistent);
     Local<Object> self = Nan::GetCurrentContext()->Global();
 
-    Isolate *isolate = Isolate::GetCurrent ();
-    HandleScope scope(isolate);
-    Local<Context> context = Context::New(isolate);
-    Context::Scope context_scope(context);
     Nan::TryCatch try_catch;
 
     callbackLevel++;
@@ -128,6 +125,20 @@ void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data
     #ifndef __linux__
         delete[] js_args;
     #endif
+}
+
+void Callback::Call (ffi_cif *cif, void *result, void **args, gpointer user_data) {
+    Callback *callback = static_cast<Callback *>(user_data);
+    GIArgument **gi_args = reinterpret_cast<GIArgument **>(args);
+
+    AsyncCallEnvironment* env = reinterpret_cast<AsyncCallEnvironment *>(AsyncCallEnvironment::asyncHandle.data);
+    if (env->IsSameThread()) {
+        Callback::Execute(result, gi_args, callback);
+    } else {
+        env->Call([&]() {
+            Callback::Execute(result, gi_args, callback);
+        });
+    }
 
     if (callback->scope_type == GI_SCOPE_TYPE_ASYNC) {
         delete callback;
