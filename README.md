@@ -266,31 +266,11 @@ run `npm run configure`. You can then build the project with `npm run build`.
  - https://v8docs.nodesource.com/
  - https://github.com/nodejs/nan#api
 
-## Features that are supported
+Don't hesitate to join our [Discord channel](https://discord.gg/r2VqPUV).
 
-There are still less used features that are not supported, but everything you should need to start building
-a working Gtk application is supported.
+## Contributors
 
-- [x] primitive data types (int, char, …)
-- [x] complex data types (arrays, GArray, GList, GHashTable, …)
-- [x] GObjects
-- [x] Interfaces: methods on GObjects
-- [ ] Interfaces: raw C struct conversion to JS
-- [x] Signals (`.connect('signal', cb)` or `.on('signal', cb)`)
-- [x] Boxed (struct and union) (opaque, with `new`)
-- [x] Boxed (struct and union) (opaque, without `new`)
-- [x] Boxed (struct and union) (allocation with size)
-- [x] Error handling
-- [x] Callback arguments
-- [x] Function call: IN, OUT & INOUT arguments
-- [x] Properties (on GObjects)
-- [x] Fields (on Boxeds)
-- [x] Event loop (main)
-- [ ] Additional event loops (e.g. `g_timeout_add_seconds`)
-- [ ] GParamSpec
-- [ ] Javascript inheritance of C classes
-- [x] Memory management
-
-## Support
-
-If you are interested in this project or need help with this project, don't hesitate to join our [Discord channel](https://discord.gg/r2VqPUV).
+ - [magcius](https://github.com/magcius)
+ - [WebReflection](https://github.com/WebReflection)
+ - [romgrk](https://github.com/romgrk)
+ - [wotzlaff](https://github.com/wotzlaff)
