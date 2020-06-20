@@ -5,7 +5,7 @@ const common = require('./__common__.js')
 
 gi.startLoop()
 
-common.describe('callback value should be set', async () => {
+common.describe('callback should be called from another thread', async () => {
   await new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject('timeout')
