@@ -75,8 +75,9 @@ install:
 # put node-pre-gyp on path
 - export PATH=./node_modules/.bin/:$PATH
 - if [[ $(uname -s) == 'Darwin' ]]; then
-    brew install $MACOS_DEPENDENCIES;
     clang --version;
+    BREW_INSTALL_CMD="brew install $MACOS_DEPENDENCIES";
+    eval $BREW_INSTALL_CMD;
   fi;
 
 before_script:
