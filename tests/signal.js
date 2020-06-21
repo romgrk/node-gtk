@@ -82,22 +82,25 @@ window.on('show', () => {
   })
 
   describe('types are as correct as possible', () => {
-    const event = new Gdk.EventKey()
-    event.window = input.getWindow()
+    const event = new Gdk.EventButton()
+    event.type = Gdk.EventType.BUTTON_PRESS
+    event.window = button.getWindow()
+    event.sendEvent = 1
     event.time = 0
-    event.state = 0
-    event.keyval = Gdk.KEY_G
+    event.x = 10
+    event.y = 10
+    event.button = 3
 
-    input.on('key-press-event', (event) => {
-      expect(event.keyval, Gdk.KEY_G)
+    button.on('button-press-event', (event) => {
+      expect(event.button, 3)
     })
 
-    const result = input.emit('key-press-event', event)
+    const result = button.emit('button-press-event', event)
 
     console.log(result)
     assert(
       typeof result === 'boolean',
-      'Couldn\'t emit "key-press-event" signal on GtkButton'
+      'Couldn\'t emit "button-press-event" signal on GtkButton'
     )
   })
 
