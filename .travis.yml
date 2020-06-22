@@ -29,6 +29,7 @@ addons:
       - 'libcairo2-dev'
       - 'libgstreamer1.0-0'
       - 'gstreamer1.0-plugins-base'
+      - 'gstreamer1.0-plugins-bad'
       - 'gir1.2-gstreamer-1.0'
 
 jobs:
@@ -75,7 +76,7 @@ install:
 - export PATH=./node_modules/.bin/:$PATH
 - if [[ $(uname -s) == 'Darwin' ]]; then
     clang --version;
-    brew install gtk+3 gobject-introspection glib libsoup cairo gstreamer gst-plugins-base;
+    brew install gtk+3 gobject-introspection glib libsoup cairo gstreamer gst-plugins-base gst-plugins-bad;
   fi;
 
 before_script:
