@@ -1,6 +1,5 @@
 const gi = require('../lib/')
 const GLib = gi.require('GLib', '2.0')
-const GstSdp = gi.require('GstSdp', '1.0')
 const common = require('./__common__.js')
 
 common.describe('get output arguments type struct', () => {
