@@ -600,7 +600,7 @@ Local<Value> FunctionInfo::GetReturnValue (
 
             } else if (param.type == ParameterType::NORMAL) {
 
-                if (IsPointerType(&arg_type)) {
+                if (IsPointerType(&arg_type) && g_arg_info_is_caller_allocates(&arg_info)) {
                     void *pointer = &arg_value.v_pointer;
                     ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) pointer))
                 }
