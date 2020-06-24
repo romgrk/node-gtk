@@ -874,26 +874,13 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
 
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
-    switch (type_tag) {
-    case GI_TYPE_TAG_VOID:
-    case GI_TYPE_TAG_BOOLEAN:
-    case GI_TYPE_TAG_INT8:
-    case GI_TYPE_TAG_UINT8:
-    case GI_TYPE_TAG_INT16:
-    case GI_TYPE_TAG_UINT16:
-    case GI_TYPE_TAG_INT32:
-    case GI_TYPE_TAG_UINT32:
-    case GI_TYPE_TAG_INT64:
-    case GI_TYPE_TAG_UINT64:
-    case GI_TYPE_TAG_FLOAT:
-    case GI_TYPE_TAG_DOUBLE:
-    case GI_TYPE_TAG_GTYPE:
-    case GI_TYPE_TAG_UNICHAR:
+    if (G_TYPE_TAG_IS_BASIC(type_tag))
         return;
 
 
-    case GI_TYPE_TAG_UTF8:
+    switch (type_tag) {
     case GI_TYPE_TAG_FILENAME:
+    case GI_TYPE_TAG_UTF8:
     {
         g_free (arg->v_pointer);
         break;
