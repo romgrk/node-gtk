@@ -1,11 +1,7 @@
-/*
- * gvalue__return.js
- */
-
 const gi = require('../lib/')
-const Gst = gi.require('Gst')
-const GObject = gi.require('GObject')
-const { assert, describe, expect, it } = require('./__common__.js')
+const Gst = gi.require('Gst', '1.0')
+const GObject = gi.require('GObject', '2.0')
+const { describe, expect, it } = require('./__common__.js')
 
 gi.startLoop()
 Gst.init()
