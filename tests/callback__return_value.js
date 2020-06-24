@@ -7,7 +7,7 @@ gi.startLoop()
 common.describe('callback value should be set', () => {
   const loop = new GLib.MainLoop(null, false)
   let i = 0
-  GLib.idleAdd(GLib.PRIORITY_DEFAULT_IDLE, () => {
+  GLib.timeoutAdd(GLib.PRIORITY_HIGH, 0, () => {
     console.log(`count ${i}`)
     if (i++ == 3) {
       loop.quit()
