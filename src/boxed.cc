@@ -261,11 +261,9 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
      */
     if (box->owns_memory) {
         if (G_TYPE_IS_BOXED(box->gtype)) {
-            DEBUG("%s %p", g_type_name(box->gtype), box->data);
             g_boxed_free(box->gtype, box->data);
         }
         else if (box->size != 0) {
-            DEBUG("(not boxed) %p", box->data);
             // Allocated in ./function.cc @ AllocateArgument
             free(box->data);
         }
