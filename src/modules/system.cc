@@ -58,6 +58,16 @@ NAN_METHOD(GetSize) {
     RETURN(Nan::New<Number>((uint32_t) GetObjectSize(info[0].As<Object>())));
 }
 
+NAN_METHOD(ConvertGValue) {
+    Local<Object> obj = info[0].As<Object>();
+    if (!ValueHasInternalField(obj)) {
+        RETURN(Nan::Undefined());
+        return;
+    }
+    void *ptr = obj->GetAlignedPointerFromInternalField (0);
+    RETURN(GValueToV8(reinterpret_cast<GValue *>(ptr), false));
+}
+
 NAN_METHOD(GetMemoryContent) {
     uint8_t *address;
     uint64_t size;
@@ -94,6 +104,7 @@ Local<Object> GetModule() {
     Nan::Export(exports, "getSize", GetSize);
     Nan::Export(exports, "getMemoryContent", GetMemoryContent);
     Nan::Export(exports, "breakpoint", Breakpoint);
+    Nan::Export(exports, "convertGValue", ConvertGValue);
 
     return exports;
 }
