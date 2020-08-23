@@ -14,6 +14,7 @@
 #include "value.h"
 
 using v8::Array;
+using v8::Boolean;
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -431,6 +432,64 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
     return tpl;
 }
 
+static void GObjectFallbackPropertyGetter(Local<v8::Name> property,
+                                            const v8::PropertyCallbackInfo<Value>& info) {
+    auto self = info.Holder();
+    GObject *gobject = GObjectFromWrapper (self);
+
+    g_assert(gobject != NULL);
+
+    Nan::Utf8String prop_name_v (TO_STRING (property));
+    const char *prop_name_camel = *prop_name_v;
+
+    if (strstr(prop_name_camel, "-")) {
+        // Has dash, not a camel-case property name.
+        RETURN(Nan::Undefined());
+        return;
+    }
+
+    char *prop_name = Util::ToDashed(prop_name_camel);
+
+    RETURN(GetGObjectProperty(gobject, prop_name));
+
+    g_free(prop_name);
+}
+
+static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value> value,
+                                            const v8::PropertyCallbackInfo<Value>& info) {
+    auto self = info.Holder();
+    GObject *gobject = GNodeJS::GObjectFromWrapper (self);
+
+    Nan::Utf8String prop_name_v (TO_STRING (property));
+    const char *prop_name_camel = *prop_name_v;
+
+    if (strstr(prop_name_camel, "-")) {
+        // Has dash, not a camel-case property name.
+        return;
+    }
+
+    char *prop_name = Util::ToDashed(prop_name_camel);
+
+    if (gobject == NULL) {
+        WARN("ObjectPropertySetter: null GObject; cant set %s", prop_name);
+        g_free(prop_name);
+        return;
+    }
+
+    v8::TryCatch trycatch(info.GetIsolate());
+    auto setResult = SetGObjectProperty(gobject, prop_name, value);
+    if (setResult.IsEmpty()) {
+        // Non-existent property. We catch the exception and consider the set
+        // not intercepted by not setting return value;
+    } else {
+        // Property exists. Whether we can convert the value and set the
+        // property or not, consider the set intercepted.
+        RETURN(value);
+    }
+
+    g_free(prop_name);
+}
+
 static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     g_assert(gtype != G_TYPE_NONE && gtype != G_TYPE_INVALID);
 
@@ -449,6 +508,17 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
             return MaybeLocal<FunctionTemplate> ();
         tpl->Inherit(parent_tpl.ToLocalChecked());
     }
+
+    // Set the fallback accessor to allow non-introspected property.
+    // Nan::SetNamedPropertyHandler() does not support flags. Thus, using
+    // V8 interface directly.
+    v8::NamedPropertyHandlerConfiguration config;
+    config.getter = GObjectFallbackPropertyGetter;
+    config.setter = GObjectFallbackPropertySetter;
+    config.flags = static_cast<v8::PropertyHandlerFlags>(
+        static_cast<int>(v8::PropertyHandlerFlags::kNonMasking) |
+        static_cast<int>(v8::PropertyHandlerFlags::kOnlyInterceptStrings));
+    tpl->InstanceTemplate()->SetHandler(config);
 
     return MaybeLocal<FunctionTemplate> (tpl);
 }
@@ -528,6 +598,48 @@ GObject * GObjectFromWrapper(Local<Value> value) {
     void    *ptr     = object->GetAlignedPointerFromInternalField (0);
     GObject *gobject = G_OBJECT (ptr);
     return gobject;
+}
+
+Local<Value> GetGObjectProperty(GObject * gobject, const char *prop_name) {
+    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
+
+    if (pspec == NULL) {
+        return Nan::Undefined();
+    }
+
+    GValue value = G_VALUE_INIT;
+    g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
+    g_object_get_property (gobject, prop_name, &value);
+
+    auto ret = GNodeJS::GValueToV8(&value, true);
+
+    g_value_unset(&value);
+
+    return ret;
+}
+
+Local<Boolean> SetGObjectProperty(GObject * gobject, const char *prop_name, Local<Value> value) {
+    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
+
+    if (pspec == NULL) {
+        Nan::ThrowError("Unexistent property");
+        return Local<Boolean> ();
+    }
+
+    Local<Boolean> ret;
+
+    GValue gvalue = G_VALUE_INIT;
+    g_value_init(&gvalue, G_PARAM_SPEC_VALUE_TYPE (pspec));
+
+    if (GNodeJS::V8ToGValue (&gvalue, value, true)) {
+        g_object_set_property (gobject, prop_name, &gvalue);
+        ret = Nan::True();
+    } else {
+        ret = Nan::False();
+    }
+
+    g_value_unset(&gvalue);
+    return ret;
 }
 
 };

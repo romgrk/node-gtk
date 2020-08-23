@@ -21,7 +21,7 @@ describe('create introspected objected', () => {
 })
 
 describe('create non-introspected objected', () => {
-  const src = Gst.ElementFactory.make('videotestsrc')
+  const src = Gst.ElementFactory.make('videotestsrc', 'src')
   expect(src.constructor.name, 'GstVideoTestSrc')
   expect(typeof src.addPad, 'function')
 
@@ -30,5 +30,25 @@ describe('create non-introspected objected', () => {
     assert(src instanceof Gst.Object)
     assert(src instanceof GObject.InitiallyUnowned)
     assert(src instanceof GObject.Object)
+  })
+
+  it('has introspected properties', () => {
+    expect(src.name, 'src');
+  })
+
+  it('has non-introspected properties', () => {
+    expect(src.pattern, 0)
+    expect(src.timestampOffset, 0)
+    expect(src.isLive, false)
+  })
+
+  it('does not have dashed properties', () => {
+    expect(src['is-live'], undefined);
+  })
+
+  it('correctly pass-through non-gobject propertties', () => {
+    expect(src.notAVideoTestSrcProperty, undefined)
+    src.notAVideoTestSrcProperty = '42';
+    expect(src.notAVideoTestSrcProperty, '42')
   })
 })
