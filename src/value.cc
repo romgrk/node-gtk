@@ -629,6 +629,10 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
     switch (type_tag) {
     case GI_TYPE_TAG_VOID:
+        if (g_type_info_is_pointer(type_info)) {
+            arg->v_pointer = PointerFromWrapper(value);
+            break;
+        }
         arg->v_pointer = NULL;
         break;
     case GI_TYPE_TAG_BOOLEAN:
