@@ -25,7 +25,8 @@ describe('Boxed initialization', () => {
 
   it('works with non-zero-args constructor', () => {
     const attr = new Pango.AttrSize(10)
-    expect(attr.toString(), '[object AttrSize]')
+    assert(attr instanceof Pango.AttrSize, 'attr isnt an instance of Pango.AttrSize')
+    expect(attr.size, 10)
   })
 
   skip() // above is run, below is skipped
