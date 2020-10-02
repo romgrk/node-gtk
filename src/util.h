@@ -58,4 +58,6 @@ namespace Util
 
     char*          GetSignalName(const char* signal_detail);
 
+    char*          ToDashed(const char* camel_case);
+
 } /* Util */

@@ -45,4 +45,22 @@ char* GetSignalName(const char* signal_detail) {
     return signal_name;
 }
 
+char* ToDashed(const char* camel_case) {
+    // Over-allocate; in the worst case the string become 2 times as long.
+    char* dashed = (char*)g_malloc((strlen(camel_case) * 2) + 1);
+
+    int j = 0;
+    for (int i = 0; camel_case[i] != '\0'; i++) {
+        if (isupper(camel_case[i])) {
+            dashed[j++] = '-';
+            dashed[j++] = tolower(camel_case[i]);
+        } else {
+            dashed[j++] = camel_case[i];
+        }
+    }
+
+    dashed[j++] = '\0';
+    return dashed;
+}
+
 }
