@@ -35,8 +35,8 @@
     "lodash.camelcase": "4.3.0",
     "lodash.isequal": "4.5.0",
     "nan": "2.14.0",
-    "node-gyp": "^4.0.0",
-    "node-pre-gyp": "^0.13.0",
+    "node-gyp": "^7.1.2",
+    "node-pre-gyp": "^0.15.0",
     "node-pre-gyp-github": "^1.4.3",
     "remove-trailing-spaces": "^1.0.7",
     "unindent": "^2.0.0"
