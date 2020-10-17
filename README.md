@@ -38,6 +38,7 @@ You can use [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you
 
 - [Example](#example)
 - [Documentation](#documentation)
+  - [Common pitfalls](#common-pitfalls)
 - [Installing and building](#installing-and-building)
   - [Target Platforms (so far)](#target-platforms-so-far)
   - [Requirements](#requirements)
@@ -78,6 +79,19 @@ Gtk.main()
 
 [Read our documentation here](./doc/api.md)
 
+### Common pitfalls
+
+The bindings are sometimes a bit raw in that they provide you direct access to C functions.
+It is very possible for you to cause a segfault by misusing any library. Here are a few common errors.
+
+#### Gtk & Gdk initialization
+
+Call `Gtk.init()` and `Gdk.init()` before using anything from those modules.
+
+#### Trying to get a Gdk display causes a segfault
+
+If you're under X11, you'll need to call `gi.require('GdkX11', 'x.x')`.
+
 ## Installing and building
 
 ### Target Platforms (so far)
@@ -94,13 +108,7 @@ In the _not-working-yet_ Windows platform, all dependencies must be available un
 
 ### How to build on Ubuntu
 
-Be sure `node` is version **8** or higher.
-Ignore the following step iv `node --version` is already 8 or higher.
-
-```sh
-# setup node 10
-curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
-```
+Be sure `node` is version **10** or higher.
 
 Install basic dependencies.
 
@@ -108,7 +116,6 @@ Install basic dependencies.
 # install dependencies
 sudo apt-get install \
   build-essential git \
-  nodejs \
   gobject-introspection \
   libgirepository1.0-dev \
   libcairo2 \

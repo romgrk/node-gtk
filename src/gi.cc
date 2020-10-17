@@ -182,20 +182,7 @@ NAN_METHOD(ObjectPropertyGetter) {
     Nan::Utf8String prop_name_v (TO_STRING (info[1]));
     const char *prop_name = *prop_name_v;
 
-    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
-
-    if (pspec == NULL) {
-        WARN("ObjectPropertyGetter: no property %s", prop_name);
-        return;
-    }
-
-    GValue value = G_VALUE_INIT;
-    g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-    g_object_get_property (gobject, prop_name, &value);
-
-    RETURN(GNodeJS::GValueToV8(&value, true));
-
-    g_value_unset(&value);
+    RETURN(GNodeJS::GetGObjectProperty(gobject, prop_name));
 }
 
 NAN_METHOD(ObjectPropertySetter) {
@@ -208,25 +195,7 @@ NAN_METHOD(ObjectPropertySetter) {
         RETURN(Nan::False());
     }
 
-    GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
-
-    if (pspec == NULL) {
-        WARN("ObjectPropertySetter: no property %s", prop_name);
-        Nan::ThrowError("Unexistent property");
-        return;
-    }
-
-    GValue value = G_VALUE_INIT;
-    g_value_init(&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
-
-    if (GNodeJS::V8ToGValue (&value, info[2], true)) {
-        g_object_set_property (gobject, prop_name, &value);
-        RETURN(Nan::True());
-    } else {
-        RETURN(Nan::False());
-    }
-
-    g_value_unset(&value);
+    RETURN(GNodeJS::SetGObjectProperty(gobject, prop_name, info[2]));
 }
 
 NAN_METHOD(StructFieldSetter) {
