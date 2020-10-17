@@ -29,8 +29,6 @@ describe('Boxed initialization', () => {
     expect(attr.size, 10)
   })
 
-  skip() // above is run, below is skipped
-
   it('fails with non-zero-args constructor and bad arguments',
     mustThrow("Expected argument of type Number for parameter size, got 'abc'", () => {
       const attr = new Pango.AttrSize('abc')
