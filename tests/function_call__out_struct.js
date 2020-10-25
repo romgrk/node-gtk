@@ -1,26 +1,37 @@
 const gi = require('../lib/')
+const GObject = gi.require('GObject', '2.0')
 const GLib = gi.require('GLib', '2.0')
-const common = require('./__common__.js')
+const { describe, expect, it } = require('./__common__.js')
 
-common.describe('get output arguments type struct', () => {
-  // transfer = NOTHING
-  const [res0, time] = GLib.timeValFromIso8601('2020-06-22T09:50:37Z')
-  const isoString = time.toIso8601()
-  common.expect(isoString, '2020-06-22T09:50:37Z')
+describe('get output arguments type struct', () => {
 
-  // transfer = EVERYTHING
-  const regex = new GLib.Regex('[A-Z]+', 0, 0)
-  const [res1, match] = regex.match('Hello World', 0)
-  const matches = []
-  while (match.matches()) {
-    const word = match.fetch(0)
-    matches.push(word)
-    match.next(null)
-  }
-  match.free()
-  regex.unref()
+  it('works with transfer == "NOTHING"', () => {
+    const [res0, time] = GLib.timeValFromIso8601('2020-06-22T09:50:37Z')
+    const isoString = time.toIso8601()
+    expect(isoString, '2020-06-22T09:50:37Z')
+  })
 
-  common.expect(matches.length, 2)
-  common.expect(matches[0], 'H')
-  common.expect(matches[1], 'W')
+  // it('works with transfer == "EVERYTHING"', () => {})
+  // it('works with transfer == "CONTAINER"',  () => {})
+
+  /*
+   * No viable candidate found for the cases above, but some
+   * might be found by investagating more libraries. This script
+   * will return candidates:
+   * @example
+   *   const i = require('../lib/inspect')
+   *
+   *   i.parseNamespace('Gtk', '3.0')
+   *   // i.parseNamespace(...)
+   *
+   *   const candidates = i.infos.filter(i =>
+   *     i.infoType === 'function'
+   *     && i.n_args > 0
+   *     && !i.isConstructor
+   *     && i.args.some(a =>
+   *       (a.direction === 'OUT' || a.direction === 'INOUT')
+   *       && a.transfer !== 'NOTHING'
+   *       && a.type.startsWith('struct.')))
+   *
+   */
 })

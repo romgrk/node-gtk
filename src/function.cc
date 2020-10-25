@@ -126,8 +126,8 @@ Local<Value> FunctionCall (
     bool use_return_value = return_value != NULL;
     bool use_error = error != NULL;
 
-    bool debug_mode = strcmp(g_base_info_get_name(gi_info), "create_similar_surface") == 0;
-    // bool debug_mode = false;
+    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "parse") == 0;
+    bool debug_mode = false;
 
     if (debug_mode)
         print_callable_info(gi_info);
