@@ -235,13 +235,14 @@ Local<Value> GHashToV8 (GITypeInfo *type_info, GHashTable *hash_table) {
 }
 
 Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err) {
+    auto err_copy = g_error_copy(err);
     auto gtype = g_error_get_type();
     auto tpl = GetClassTemplate(gtype).ToLocalChecked();
     Nan::SetInstanceTemplate(tpl, "message", Nan::New(err->message).ToLocalChecked());
     Nan::SetInstanceTemplate(tpl, "code", Nan::New(err->code));
     Nan::SetInstanceTemplate(tpl, "domain", Nan::New(err->domain));
     Local<Function> constructor = Nan::GetFunction (tpl).ToLocalChecked();
-    Local<Value> err_external = New<External> (err);
+    Local<Value> err_external = New<External> (err_copy);
     Local<Value> args[] = { err_external };
     Local<Object> obj = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
     return obj;
@@ -743,7 +744,11 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         }
         break;
 
-    //case GI_TYPE_TAG_ERROR: FIXME
+    case GI_TYPE_TAG_ERROR:
+        {
+            arg->v_pointer = (GError *) PointerFromWrapper(value);
+        }
+        break;
 
     case GI_TYPE_TAG_UNICHAR: // FIXME
         arg->v_uint32 = Nan::To<uint32_t> (value).ToChecked();
@@ -862,7 +867,8 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     case GI_TYPE_TAG_GHASH:
         return value->IsObject();
 
-    //case GI_TYPE_TAG_ERROR: FIXME
+    case GI_TYPE_TAG_ERROR:
+        return true;
 
     default:
         printf("type tag: %s\n", g_type_tag_to_string(type_tag));
