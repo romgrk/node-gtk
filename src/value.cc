@@ -162,6 +162,9 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     case GI_TYPE_TAG_GHASH:
         return GHashToV8(type_info, (GHashTable *)arg->v_pointer);
 
+    case GI_TYPE_TAG_ERROR:
+        return GErrorToV8(type_info, (GError *)arg->v_pointer);
+
     default:
         g_critical("Tag: %s", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
@@ -229,6 +232,19 @@ Local<Value> GHashToV8 (GITypeInfo *type_info, GHashTable *hash_table) {
     g_base_info_unref(value_info);
 
     return object;
+}
+
+Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err) {
+    auto gtype = g_error_get_type();
+    auto tpl = GetClassTemplate(gtype).ToLocalChecked();
+    Nan::SetInstanceTemplate(tpl, "message", Nan::New(err->message).ToLocalChecked());
+    Nan::SetInstanceTemplate(tpl, "code", Nan::New(err->code));
+    Nan::SetInstanceTemplate(tpl, "domain", Nan::New(err->domain));
+    Local<Function> constructor = Nan::GetFunction (tpl).ToLocalChecked();
+    Local<Value> err_external = New<External> (err);
+    Local<Value> args[] = { err_external };
+    Local<Object> obj = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+    return obj;
 }
 
 Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {

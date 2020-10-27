@@ -20,6 +20,7 @@ MaybeLocal<Function>    MakeClass            (GIBaseInfo *info);
 Local<Value>            WrapperFromGObject   (GObject *object);
 GObject *               GObjectFromWrapper   (Local<Value> value);
 Local<FunctionTemplate> GetBaseClassTemplate ();
+MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
 Local<Value>            GetGObjectProperty   (GObject * gobject, const char *prop_name);
 Local<Boolean>          SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);
 
