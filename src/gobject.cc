@@ -36,6 +36,8 @@ static Nan::Persistent<FunctionTemplate> baseTemplate;
 
 static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data);
 
+static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
+
 
 static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
     if (!object->IsObject ())
@@ -521,7 +523,7 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     return MaybeLocal<FunctionTemplate> (tpl);
 }
 
-MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
+static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
 
     if (data) {
