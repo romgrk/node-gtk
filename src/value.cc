@@ -237,9 +237,6 @@ Local<Value> GHashToV8 (GITypeInfo *type_info, GHashTable *hash_table) {
 Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err) {
     auto err_info = g_irepository_find_by_name(NULL, "GLib", "Error");
     auto obj = WrapperFromBoxed (err_info, err, true);
-    Nan::DefineOwnProperty(TO_OBJECT(obj), Nan::New("message").ToLocalChecked(), Nan::New(err->message).ToLocalChecked());
-    Nan::DefineOwnProperty(TO_OBJECT(obj), Nan::New("code").ToLocalChecked(), Nan::New(err->code));
-    Nan::DefineOwnProperty(TO_OBJECT(obj), Nan::New("domain").ToLocalChecked(), Nan::New(err->domain));
     return obj;
 }
 
