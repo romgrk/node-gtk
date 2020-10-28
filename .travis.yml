@@ -77,7 +77,7 @@ install:
 - export PATH=./node_modules/.bin/:$PATH
 - if [[ $(uname -s) == 'Darwin' ]]; then
     clang --version;
-    brew install gtk+3 gobject-introspection glib libsoup cairo gstreamer gst-plugins-base gst-plugins-bad;
+    brew install gtk+3 gobject-introspection glib libsoup cairo gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad libnice;
   fi;
 
 before_script:
