@@ -162,6 +162,9 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     case GI_TYPE_TAG_GHASH:
         return GHashToV8(type_info, (GHashTable *)arg->v_pointer);
 
+    case GI_TYPE_TAG_ERROR:
+        return GErrorToV8(type_info, (GError *)arg->v_pointer);
+
     default:
         g_critical("Tag: %s", g_type_tag_to_string(type_tag));
         g_assert_not_reached ();
@@ -229,6 +232,12 @@ Local<Value> GHashToV8 (GITypeInfo *type_info, GHashTable *hash_table) {
     g_base_info_unref(value_info);
 
     return object;
+}
+
+Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err) {
+    auto err_info = g_irepository_find_by_name(NULL, "GLib", "Error");
+    auto obj = WrapperFromBoxed (err_info, err, true);
+    return obj;
 }
 
 Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
@@ -727,7 +736,11 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         }
         break;
 
-    //case GI_TYPE_TAG_ERROR: FIXME
+    case GI_TYPE_TAG_ERROR:
+        {
+            arg->v_pointer = (GError *) PointerFromWrapper(value);
+        }
+        break;
 
     case GI_TYPE_TAG_UNICHAR: // FIXME
         arg->v_uint32 = Nan::To<uint32_t> (value).ToChecked();
@@ -846,7 +859,8 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     case GI_TYPE_TAG_GHASH:
         return value->IsObject();
 
-    //case GI_TYPE_TAG_ERROR: FIXME
+    case GI_TYPE_TAG_ERROR:
+        return true;
 
     default:
         printf("type tag: %s\n", g_type_tag_to_string(type_tag));
