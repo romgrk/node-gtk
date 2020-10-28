@@ -4,6 +4,12 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v0.5.0
+
+- Added support for GError
+- Added `getProperty` and `setProperty` to GObject
+- Improve handling of non-introspected objects
+
 ## v0.4.0
 
 - Added `cairo` bindings
