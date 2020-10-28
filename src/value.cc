@@ -19,7 +19,6 @@
 
 using v8::Array;
 using v8::TypedArray;
-using v8::Boolean;
 using v8::Integer;
 using v8::Local;
 using v8::Number;
@@ -44,7 +43,7 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     case GI_TYPE_TAG_VOID:
         return Nan::Undefined ();
     case GI_TYPE_TAG_BOOLEAN:
-        return New<Boolean>((bool)arg->v_boolean);
+        return New<v8::Boolean>((bool)arg->v_boolean);
     case GI_TYPE_TAG_INT32:
         return New<v8::Int32> (arg->v_int);
     case GI_TYPE_TAG_UINT32:
@@ -1267,7 +1266,7 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
 Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
     // by-value types
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
-        return New<Boolean>(g_value_get_boolean (gvalue));
+        return New<v8::Boolean>(g_value_get_boolean (gvalue));
     } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
         return New<Integer>(g_value_get_schar (gvalue));
     } else if (G_VALUE_HOLDS_UCHAR (gvalue)) {

@@ -6,7 +6,6 @@
 #include <girepository.h>
 #include <glib-object.h>
 
-using v8::Boolean;
 using v8::Function;
 using v8::FunctionTemplate;
 using v8::Local;
@@ -21,6 +20,6 @@ Local<Value>            WrapperFromGObject   (GObject *object);
 GObject *               GObjectFromWrapper   (Local<Value> value);
 Local<FunctionTemplate> GetBaseClassTemplate ();
 Local<Value>            GetGObjectProperty   (GObject * gobject, const char *prop_name);
-Local<Boolean>          SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);
+Local<v8::Boolean>          SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);
 
 };
