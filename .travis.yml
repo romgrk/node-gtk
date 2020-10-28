@@ -38,6 +38,9 @@ jobs:
      # Linux
      - os: linux
        dist: bionic
+       env: NODE_VERSION="15" CC="gcc-8" CXX="g++-8"
+     - os: linux
+       dist: bionic
        env: NODE_VERSION="14" CC="gcc-8" CXX="g++-8"
      - os: linux
        dist: bionic
@@ -47,12 +50,12 @@ jobs:
        env: NODE_VERSION="12" CC="gcc-8" CXX="g++-8"
      - os: linux
        dist: bionic
-       env: NODE_VERSION="11" CC="gcc-8" CXX="g++-8"
-     - os: linux
-       dist: bionic
        env: NODE_VERSION="10" CC="gcc-8" CXX="g++-8"
 
      # OS X
+     - os: osx
+       compiler: clang
+       env: NODE_VERSION="15" # node abi 88
      - os: osx
        compiler: clang
        env: NODE_VERSION="14" # node abi 83
@@ -62,9 +65,6 @@ jobs:
      - os: osx
        compiler: clang
        env: NODE_VERSION="12" # node abi 72
-     - os: osx
-       compiler: clang
-       env: NODE_VERSION="11" # node abi 67
      - os: osx
        compiler: clang
        env: NODE_VERSION="10" # node abi 64
