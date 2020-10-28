@@ -14,7 +14,6 @@
 #include "value.h"
 
 using v8::Array;
-using v8::Boolean;
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -618,15 +617,15 @@ Local<Value> GetGObjectProperty(GObject * gobject, const char *prop_name) {
     return ret;
 }
 
-Local<Boolean> SetGObjectProperty(GObject * gobject, const char *prop_name, Local<Value> value) {
+Local<v8::Boolean> SetGObjectProperty(GObject * gobject, const char *prop_name, Local<Value> value) {
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
 
     if (pspec == NULL) {
         Nan::ThrowError("Unexistent property");
-        return Local<Boolean> ();
+        return Local<v8::Boolean> ();
     }
 
-    Local<Boolean> ret;
+    Local<v8::Boolean> ret;
 
     GValue gvalue = G_VALUE_INIT;
     g_value_init(&gvalue, G_PARAM_SPEC_VALUE_TYPE (pspec));

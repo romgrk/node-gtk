@@ -15,7 +15,6 @@
 #include "modules/cairo/cairo.h"
 
 using v8::Array;
-using v8::Boolean;
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -424,7 +423,7 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, bool mustCopy) {
     Local<Function> constructor = MakeBoxedClass (info);
 
     Local<Value> boxed_external = Nan::New<External> (data);
-    Local<Value> must_copy_value = Nan::New<Boolean> (mustCopy);
+    Local<Value> must_copy_value = Nan::New<v8::Boolean> (mustCopy);
     Local<Value> args[] = { boxed_external, must_copy_value };
 
     MaybeLocal<Object> instance = Nan::NewInstance(constructor, 2, args);
