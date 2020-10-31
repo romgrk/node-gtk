@@ -489,6 +489,10 @@ bool FunctionInfo::Init() {
 
     GITypeInfo return_type;
     g_callable_info_load_return_type(info, &return_type);
+    int return_length_i = g_type_info_get_array_length(&return_type);
+
+    if (return_length_i != -1)
+        n_out_args--;
 
     if (!ShouldSkipReturn(info, &return_type))
         n_out_args++;
@@ -558,11 +562,24 @@ Local<Value> FunctionInfo::GetReturnValue (
                             else \
                                 jsReturnValue = (value);
 
+    int return_length_i = g_type_info_get_array_length(return_type);
+
     if (!ShouldSkipReturn(info, return_type)) {
         long length = -1;
-        int length_i = g_type_info_get_array_length(return_type);
-        if (length_i >= 0)
-            length = callable_arg_values[length_i].v_long;
+        int return_length_i = g_type_info_get_array_length(return_type);
+        if (return_length_i >= 0) {
+            GIArgInfo length_info;
+            g_callable_info_load_arg (info, return_length_i, &length_info);
+            GITypeInfo length_type;
+            g_arg_info_load_type (&length_info, &length_type);
+
+            length =
+                GIArgumentToLength(
+                    &length_type,
+                    &callable_arg_values[return_length_i],
+                    IsDirectionOut(call_parameters[return_length_i].direction));
+        }
+
         // When a method returns the instance itself, skip the conversion and just return the
         // existent wrapper
         bool isReturningSelf = is_method && PointerFromWrapper(self) == return_value->v_pointer;
@@ -570,6 +587,9 @@ Local<Value> FunctionInfo::GetReturnValue (
     }
 
     for (int i = 0; i < n_callable_args; i++) {
+        if (return_length_i == i)
+            continue;
+
         GIArgInfo  arg_info = {};
         GITypeInfo arg_type;
         GIArgument arg_value = callable_arg_values[i];
@@ -587,12 +607,15 @@ Local<Value> FunctionInfo::GetReturnValue (
                 int length_i = g_type_info_get_array_length(&arg_type);
                 GIArgInfo length_arg;
                 g_callable_info_load_arg (info, length_i, &length_arg);
+                GITypeInfo length_type;
+                g_arg_info_load_type (&length_arg, &length_type);
                 GIDirection length_direction = g_arg_info_get_direction(&length_arg);
 
-                if (IsDirectionOut(length_direction))
-                    param.length = *(long*)callable_arg_values[length_i].v_pointer;
-                else
-                    param.length = callable_arg_values[length_i].v_long;
+                param.length =
+                    GIArgumentToLength(
+                        &length_type,
+                        &callable_arg_values[length_i],
+                        IsDirectionOut(length_direction));
 
                 Local<Value> result = ArrayToV8(&arg_type, *(void**)arg_value.v_pointer, param.length);
 
