@@ -9,7 +9,7 @@ const GLib = gi.require('GLib')
 const { describe, it, expect } = require('./__common__.js')
 
 gi.startLoop()
-// Gtk.init()
+Gtk.init()
 
 describe('function out parameters', () => {
   it('works with simple types', () => {
@@ -25,17 +25,13 @@ describe('function out parameters', () => {
   }) 
 
   it('works with string types', () => {
-
     const data = 'aGVsbG8='
-    // XXX: This one is failing
-    console.log('before')
-    const newData = GLib.base64Decode(data, data.length)
-    console.log('after')
-    console.log(newData)
-    // console.log([newData, length])
-    const decodedText = newData.map(c => String.fromCharCode(c)).join('')
-    console.log([decodedText])
-    // expect(result, 'hello')
+    const result = GLib.base64Decode(data, data.length)
+    console.log(result)
+    const decodedText = result.map(c => String.fromCharCode(c)).join('')
+    console.log(decodedText)
+    expect(result, [ 104, 101, 108, 108, 111 ])
+    expect(decodedText, 'hello')
   })
 
   // see ./conversion__array for array tests
