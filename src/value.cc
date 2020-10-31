@@ -312,6 +312,46 @@ out:
     return array;
 }
 
+long GIArgumentToLength(GITypeInfo *type_info, GIArgument *arg, bool is_pointer) {
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    switch (type_tag) {
+    case GI_TYPE_TAG_INT8:
+        return is_pointer ? *(gint8*)arg->v_pointer : arg->v_int8;
+    case GI_TYPE_TAG_UINT8:
+        return is_pointer ? *(guint8*)arg->v_pointer : arg->v_uint8;
+    case GI_TYPE_TAG_INT16:
+        return is_pointer ? *(gint16*)arg->v_pointer : arg->v_int16;
+    case GI_TYPE_TAG_UINT16:
+        return is_pointer ? *(guint16*)arg->v_pointer : arg->v_uint16;
+    case GI_TYPE_TAG_INT32:
+        return is_pointer ? *(gint*)arg->v_pointer : arg->v_int;
+    case GI_TYPE_TAG_UNICHAR:
+    case GI_TYPE_TAG_UINT32:
+        return is_pointer ? *(guint*)arg->v_pointer : arg->v_uint;
+    case GI_TYPE_TAG_INT64:
+        return is_pointer ? *(guint64*)arg->v_pointer : arg->v_uint64;
+    case GI_TYPE_TAG_UINT64:
+        return is_pointer ? *(guint64*)arg->v_pointer : arg->v_uint64;
+
+    case GI_TYPE_TAG_VOID:
+    case GI_TYPE_TAG_BOOLEAN:
+    case GI_TYPE_TAG_FLOAT:
+    case GI_TYPE_TAG_DOUBLE:
+    case GI_TYPE_TAG_GTYPE:
+    case GI_TYPE_TAG_FILENAME:
+    case GI_TYPE_TAG_UTF8:
+    case GI_TYPE_TAG_INTERFACE:
+    case GI_TYPE_TAG_ARRAY:
+    case GI_TYPE_TAG_GLIST:
+    case GI_TYPE_TAG_GSLIST:
+    case GI_TYPE_TAG_GHASH:
+    case GI_TYPE_TAG_ERROR:
+    default:
+        ERROR("Cannot convert tag %s to length", g_type_tag_to_string(type_tag));
+    }
+}
+
 
 GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
     GArray* g_array = NULL;
