@@ -566,7 +566,7 @@ Local<Value> FunctionInfo::GetReturnValue (
 
     if (!ShouldSkipReturn(info, return_type)) {
         long length = -1;
-        int return_length_i = g_type_info_get_array_length(return_type);
+
         if (return_length_i >= 0) {
             GIArgInfo length_info;
             g_callable_info_load_arg (info, return_length_i, &length_info);
