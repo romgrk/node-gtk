@@ -119,9 +119,9 @@ NAN_METHOD(Bootstrap) {
 
 NAN_METHOD(GetConstantValue) {
     GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::PointerFromWrapper (info[0]);
-    GITypeInfo *type = g_constant_info_get_type(gi_info);
+    GITypeInfo *type_info = g_constant_info_get_type(gi_info);
 
-    if (type == NULL) {
+    if (type_info == NULL) {
         info.GetReturnValue().SetNull();
         return;
     }
@@ -136,11 +136,18 @@ NAN_METHOD(GetConstantValue) {
                 size);
     }
     else {
-        info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg, size));
+        /* The `length` argument here only applies to arrays. We use it to
+         * trick GIArgumentToV8 to think that any array converted here has
+         * a length of zero. This is required because some vala-generated
+         * introspected libraries produce Array constants, which isn't
+         * expected/allowed in GIR. This was observed for
+         * Granite.Application.options. */
+        auto length = 0;
+        info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type_info, &gi_arg, length));
     }
 
     g_constant_info_free_value(gi_info, &gi_arg);
-    g_base_info_unref(type);
+    g_base_info_unref(type_info);
 }
 
 NAN_METHOD(MakeFunction) {
