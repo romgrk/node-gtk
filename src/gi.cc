@@ -119,7 +119,7 @@ NAN_METHOD(Bootstrap) {
 
 NAN_METHOD(GetConstantValue) {
     GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::PointerFromWrapper (info[0]);
-    GITypeInfo *type = g_constant_info_get_type ((GIConstantInfo *) gi_info);
+    GITypeInfo *type = g_constant_info_get_type(gi_info);
 
     if (type == NULL) {
         info.GetReturnValue().SetNull();
@@ -127,16 +127,17 @@ NAN_METHOD(GetConstantValue) {
     }
 
     GIArgument gi_arg;
-    gint size = g_constant_info_get_value((GIConstantInfo *) gi_info, &gi_arg);
+    gint size = g_constant_info_get_value(gi_info, &gi_arg);
 
-    // Catches an invalid case for Granite.options
-    if (size != 0)
-        info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg));
-    else
+    if (size < 0) {
         WARN("Couldn't load %s.%s: invalid constant size: %i",
                 g_base_info_get_namespace (gi_info),
                 g_base_info_get_name (gi_info),
                 size);
+    }
+    else {
+        info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg, size));
+    }
 
     g_constant_info_free_value(gi_info, &gi_arg);
     g_base_info_unref(type);
