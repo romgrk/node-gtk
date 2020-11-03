@@ -247,22 +247,24 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
         return array;
 
     auto array_type = g_type_info_get_array_type (type_info);
-    auto* elem_type_info = g_type_info_get_param_type (type_info, 0);
-    auto  element_size = GetTypeSize (elem_type_info);
-    auto isZeroTerminated = g_type_info_is_zero_terminated (type_info);
+    auto item_type_info = g_type_info_get_param_type (type_info, 0);
+    auto item_size = GetTypeSize (item_type_info);
+    // auto item_transfer = transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer;
 
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-                if (isZeroTerminated) {
-                    length = g_strv_length ((gchar **)data);
-                }
-                else if (length == -1) {
-                    length = g_type_info_get_array_fixed_size (type_info);
-                    if (G_UNLIKELY (length == -1)) {
-                        g_critical ("Unable to determine array length for %p", data);
-                        length = 0;
-                        break;
+                if (length == -1) {
+                    if (g_type_info_is_zero_terminated (type_info)) {
+                        length = g_strv_length ((gchar **)data);
+                    }
+                    else {
+                        length = g_type_info_get_array_fixed_size (type_info);
+                        if (G_UNLIKELY (length == -1)) {
+                            g_critical ("Unable to determine array length for %p", data);
+                            length = 0;
+                            break;
+                        }
                     }
                 }
                 g_assert (length >= 0);
@@ -274,7 +276,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
                 GArray *g_array = (GArray*) data;
                 data   = g_array->data;
                 length = g_array->len;
-                element_size = g_array_get_element_size (g_array);
+                item_size = g_array_get_element_size (g_array);
                 break;
             }
         case GI_ARRAY_TYPE_PTR_ARRAY:
@@ -282,7 +284,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
                 GPtrArray *ptr_array = (GPtrArray*) data;
                 data   = ptr_array->pdata;
                 length = ptr_array->len;
-                element_size = sizeof(gpointer);
+                item_size = sizeof(gpointer);
                 break;
             }
         default:
@@ -301,14 +303,14 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
     GIArgument value;
 
     for (int i = 0; i < length; i++) {
-        void** pointer = (void**)((ulong)data + i * element_size);
-        memcpy(&value, pointer, element_size);
-        Nan::Set(array, i, GIArgumentToV8(elem_type_info, &value));
+        void** pointer = (void**)((ulong)data + i * item_size);
+        memcpy(&value, pointer, item_size);
+        Nan::Set(array, i, GIArgumentToV8(item_type_info, &value));
     }
 
 
 out:
-    g_base_info_unref(elem_type_info);
+    g_base_info_unref(item_type_info);
     return array;
 }
 

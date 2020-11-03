@@ -119,27 +119,44 @@ NAN_METHOD(Bootstrap) {
 
 NAN_METHOD(GetConstantValue) {
     GIBaseInfo *gi_info = (GIBaseInfo *) GNodeJS::PointerFromWrapper (info[0]);
-    GITypeInfo *type = g_constant_info_get_type ((GIConstantInfo *) gi_info);
+    GITypeInfo *type_info = g_constant_info_get_type(gi_info);
 
-    if (type == NULL) {
+    if (type_info == NULL) {
         info.GetReturnValue().SetNull();
         return;
     }
 
     GIArgument gi_arg;
-    gint size = g_constant_info_get_value((GIConstantInfo *) gi_info, &gi_arg);
+    gint size = g_constant_info_get_value(gi_info, &gi_arg);
+    GITypeTag type_tag = g_type_info_get_tag(type_info);
 
-    // Catches an invalid case for Granite.options
-    if (size != 0)
-        info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type, &gi_arg));
-    else
+    if (size == 0 && type_tag == GI_TYPE_TAG_INTERFACE) {
+        /* This is for HarfBuzz.LANGUAGE_INVALID, which is a macro defined
+         * as `#define HB_LANGUAGE_INVALID ((hb_language_t) 0)`. A struct
+         * with 0 size is invalid and letting it pass triggers a V8 abort
+         * when we try to attach through SetAlignedPointerInInternalField. */
+        info.GetReturnValue().SetNull();
+    }
+    else if (size < 0) {
         WARN("Couldn't load %s.%s: invalid constant size: %i",
                 g_base_info_get_namespace (gi_info),
                 g_base_info_get_name (gi_info),
                 size);
+    }
+    else {
+        /* The `length` argument here only applies to arrays. We use it to
+         * trick GIArgumentToV8 to think that any array converted here has
+         * a length of zero. This is required because some vala-generated
+         * introspected libraries produce Array constants, which isn't
+         * expected/allowed in GIR. This was observed for
+         * Granite.Application.options. */
+        auto length = 0;
+        info.GetReturnValue().Set(
+            GNodeJS::GIArgumentToV8 (type_info, &gi_arg, length));
+    }
 
     g_constant_info_free_value(gi_info, &gi_arg);
-    g_base_info_unref(type);
+    g_base_info_unref(type_info);
 }
 
 NAN_METHOD(MakeFunction) {
