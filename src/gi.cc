@@ -128,8 +128,16 @@ NAN_METHOD(GetConstantValue) {
 
     GIArgument gi_arg;
     gint size = g_constant_info_get_value(gi_info, &gi_arg);
+    GITypeTag type_tag = g_type_info_get_tag(type_info);
 
-    if (size < 0) {
+    if (size == 0 && type_tag == GI_TYPE_TAG_INTERFACE) {
+        /* This is for HarfBuzz.LANGUAGE_INVALID, which is a macro defined
+         * as `#define HB_LANGUAGE_INVALID ((hb_language_t) 0)`. A struct
+         * with 0 size is invalid and letting it pass triggers a V8 abort
+         * when we try to attach through SetAlignedPointerInInternalField. */
+        info.GetReturnValue().SetNull();
+    }
+    else if (size < 0) {
         WARN("Couldn't load %s.%s: invalid constant size: %i",
                 g_base_info_get_namespace (gi_info),
                 g_base_info_get_name (gi_info),
@@ -143,7 +151,8 @@ NAN_METHOD(GetConstantValue) {
          * expected/allowed in GIR. This was observed for
          * Granite.Application.options. */
         auto length = 0;
-        info.GetReturnValue().Set(GNodeJS::GIArgumentToV8 (type_info, &gi_arg, length));
+        info.GetReturnValue().Set(
+            GNodeJS::GIArgumentToV8 (type_info, &gi_arg, length));
     }
 
     g_constant_info_free_value(gi_info, &gi_arg);
