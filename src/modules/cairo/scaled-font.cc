@@ -207,28 +207,29 @@ NAN_METHOD(ScaledFont::textExtents) {
   info.GetReturnValue().Set(returnValue);
 }
 
+/* HAND-MODIFIED: glyphExtents(glyphs) */
 NAN_METHOD(ScaledFont::glyphExtents) {
   auto self = info.This();
   auto scaled_font = Nan::ObjectWrap::Unwrap<ScaledFont>(self)->_data;
 
   // in-arguments
-  auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[0].As<Object>())->_data;
-  auto num_glyphs = Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+  auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[0].As<Object>());
 
   // out-arguments
   auto extents = Nan::NewInstance(
-            Nan::New<Function>(TextExtents::constructor),
-            0,
-            NULL).ToLocalChecked();
+          Nan::New<Function>(TextExtents::constructor),
+          0,
+          NULL).ToLocalChecked();
 
   // function call
-  cairo_scaled_font_glyph_extents (scaled_font, glyphs, num_glyphs, Nan::ObjectWrap::Unwrap<TextExtents>(extents)->_data);
+  cairo_scaled_font_glyph_extents (scaled_font, glyphs->_data, glyphs->_length, Nan::ObjectWrap::Unwrap<TextExtents>(extents)->_data);
 
   // return
   Local<Value> returnValue = extents;
   info.GetReturnValue().Set(returnValue);
 }
 
+/* HAND-MODIFIED: textToGlyphs(x, y, utf8, getClusters: boolean) */
 NAN_METHOD(ScaledFont::textToGlyphs) {
   auto self = info.This();
   auto scaled_font = Nan::ObjectWrap::Unwrap<ScaledFont>(self)->_data;
@@ -237,31 +238,43 @@ NAN_METHOD(ScaledFont::textToGlyphs) {
   auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
   auto y = Nan::To<double>(info[1].As<Number>()).ToChecked();
   auto utf8__value = info[2].As<String>(); auto utf8 = *Nan::Utf8String(utf8__value);
-  auto utf8_len = Nan::To<int64_t>(info[3].As<Number>()).ToChecked();
+  auto utf8_len = info[2].As<String>()->Length();
+  auto get_clusters = info.Length() == 4 ? Nan::To<bool>(info[3].As<v8::Boolean>()).ToChecked() : false;
 
   // out-arguments
-  auto glyphs = Nan::NewInstance(
-            Nan::New<Function>(Glyph::constructor),
-            0,
-            NULL).ToLocalChecked();
+  cairo_glyph_t *glyphs = NULL;
   int num_glyphs = 0;
-  auto clusters = Nan::NewInstance(
-            Nan::New<Function>(TextCluster::constructor),
-            0,
-            NULL).ToLocalChecked();
+  cairo_text_cluster_t *clusters = NULL;
   int num_clusters = 0;
-  cairo_text_cluster_flags_t *cluster_flags = NULL;
+  cairo_text_cluster_flags_t cluster_flags = (cairo_text_cluster_flags_t) 0;
 
   // function call
-  cairo_status_t result = cairo_scaled_font_text_to_glyphs (scaled_font, x, y, utf8, utf8_len, Nan::ObjectWrap::Unwrap<Glyph>(glyphs)->_data, &num_glyphs, Nan::ObjectWrap::Unwrap<TextCluster>(clusters)->_data, &num_clusters, &cluster_flags);
+  cairo_status_t result = cairo_scaled_font_text_to_glyphs (scaled_font,
+      x,
+      y,
+      utf8,
+      utf8_len,
+      &glyphs,
+      &num_glyphs,
+      get_clusters ? &clusters : NULL,
+      get_clusters ? &num_clusters : NULL,
+      get_clusters ? &cluster_flags : NULL);
 
   // return
-  Local<Object> returnValue = Nan::New<Object> ();
-  Nan::Set (returnValue, UTF8 ("glyphs"), Nan::New (glyphs));
-  Nan::Set (returnValue, UTF8 ("num_glyphs"), Nan::New (num_glyphs));
-  Nan::Set (returnValue, UTF8 ("clusters"), Nan::New (clusters));
-  Nan::Set (returnValue, UTF8 ("num_clusters"), Nan::New (num_clusters));
-  Nan::Set (returnValue, UTF8 ("cluster_flags"), Nan::New (cluster_flags));
+  Local<Array> returnValue = Nan::New<Array> (get_clusters ? 2 : 1);
+  Local<Value> glyphsArgs[] = { Nan::New<External> (glyphs), Nan::New<Number> (num_glyphs) };
+  auto glyphsObject = Nan::NewInstance(
+      Nan::New<Function>(Glyph::constructor), 2, glyphsArgs).ToLocalChecked();
+  Nan::Set (returnValue, 0, glyphsObject);
+  if (get_clusters) {
+    Local<Value> clustersArgs[] = {
+          Nan::New<External> (clusters),
+          Nan::New<Number> (num_clusters),
+          Nan::New<Number> ((int64_t) cluster_flags) };
+    auto clustersObject = Nan::NewInstance(
+        Nan::New<Function>(TextCluster::constructor), 3, clustersArgs).ToLocalChecked();
+    Nan::Set (returnValue, 1, clustersObject);
+  }
   info.GetReturnValue().Set(returnValue);
 }
 
