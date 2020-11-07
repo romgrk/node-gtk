@@ -77,13 +77,13 @@ static GSource *loop_source_new (uv_loop_t *loop) {
 
     source->loop = loop;
 
-#ifdef OS_UNIX
+#if OS_UNIX
     g_source_add_unix_fd (&source->source,
                           uv_backend_fd (loop),
                           (GIOCondition) (G_IO_IN | G_IO_OUT | G_IO_ERR));
 #endif
 
-#ifdef OS_WINDOWS
+#if OS_WINDOWS
     // HANDLE iocp = loop->iocp;
 
     // XXX: index 0 is clearly wrong
