@@ -305,7 +305,7 @@ NAN_METHOD(FontOptions::setVariations) {
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(self)->_data;
 
   // in-arguments
-  auto variations = *Nan::Utf8String (info[0].As<String>());
+  auto variations__value = info[0].As<String>(); auto variations = *Nan::Utf8String(variations__value);
 
   // function call
   cairo_font_options_set_variations (options, variations);
