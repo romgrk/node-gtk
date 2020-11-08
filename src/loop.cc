@@ -3,7 +3,7 @@
 #include <nan.h>
 #include <v8.h>
 
-#ifdef OS_WINDOWS
+#if OS_WINDOWS
 #include <IoAPI.h>
 #include <WinBase.h>
 #endif
