@@ -424,7 +424,7 @@ NAN_METHOD(FontFace::getReferenceCount) {
 
 NAN_METHOD(FontFace::create) {
   // in-arguments
-  auto family__value = info[0].As<String>(); auto family = *Nan::Utf8String(family__value);
+  Nan::Utf8String family__value(info[0].As<String>()); auto family = *family__value;
   auto slant = (cairo_font_slant_t) Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
   auto weight = (cairo_font_weight_t) Nan::To<int64_t>(info[2].As<Number>()).ToChecked();
 

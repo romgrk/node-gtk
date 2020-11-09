@@ -191,7 +191,7 @@ NAN_METHOD(ScaledFont::textExtents) {
   auto scaled_font = Nan::ObjectWrap::Unwrap<ScaledFont>(self)->_data;
 
   // in-arguments
-  auto utf8__value = info[0].As<String>(); auto utf8 = *Nan::Utf8String(utf8__value);
+  Nan::Utf8String utf8__value(info[0].As<String>()); auto utf8 = *utf8__value;
 
   // out-arguments
   auto extents = Nan::NewInstance(
@@ -237,7 +237,7 @@ NAN_METHOD(ScaledFont::textToGlyphs) {
   // in-arguments
   auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
   auto y = Nan::To<double>(info[1].As<Number>()).ToChecked();
-  auto utf8__value = info[2].As<String>(); auto utf8 = *Nan::Utf8String(utf8__value);
+  Nan::Utf8String utf8__value(info[2].As<String>()); auto utf8 = *utf8__value;
   auto utf8_len = info[2].As<String>()->Length();
   auto get_clusters = info.Length() == 4 ? Nan::To<bool>(info[3].As<v8::Boolean>()).ToChecked() : false;
 

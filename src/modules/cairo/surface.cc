@@ -342,7 +342,7 @@ NAN_METHOD(Surface::writeToPng) {
   auto surface = Nan::ObjectWrap::Unwrap<Surface>(self)->_data;
 
   // in-arguments
-  auto filename__value = info[0].As<String>(); auto filename = *Nan::Utf8String(filename__value);
+  Nan::Utf8String filename__value(info[0].As<String>()); auto filename = *filename__value;
 
   // function call
   cairo_status_t result = cairo_surface_write_to_png (surface, filename);
@@ -591,7 +591,7 @@ NAN_METHOD(Surface::supportsMimeType) {
   auto surface = Nan::ObjectWrap::Unwrap<Surface>(self)->_data;
 
   // in-arguments
-  auto mime_type__value = info[0].As<String>(); auto mime_type = *Nan::Utf8String(mime_type__value);
+  Nan::Utf8String mime_type__value(info[0].As<String>()); auto mime_type = *mime_type__value;
 
   // function call
   cairo_bool_t result = cairo_surface_supports_mime_type (surface, mime_type);
@@ -630,7 +630,7 @@ NAN_METHOD(Surface::unmapImage) {
 }
 NAN_METHOD(ImageSurface::createFromPng) {
   // in-arguments
-  auto filename__value = info[0].As<String>(); auto filename = *Nan::Utf8String(filename__value);
+  Nan::Utf8String filename__value(info[0].As<String>()); auto filename = *filename__value;
 
   // function call
   cairo_surface_t * result = cairo_image_surface_create_from_png (filename);
