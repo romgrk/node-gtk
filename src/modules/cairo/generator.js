@@ -415,7 +415,7 @@ function getInArgumentSource(p, n) {
     return `auto ${p.name} = Nan::To<int64_t>(info[${n}].As<Number>()).ToChecked();`
 
   if (typeName === 'const char *')
-    return `auto ${p.name} = *Nan::Utf8String (info[${n}].As<String>());`
+    return `Nan::Utf8String ${p.name}__value(info[${n}].As<String>()); auto ${p.name} = *${p.name}__value;`
 
   if (baseName in ENUM_TYPE)
     return `auto ${p.name} = (${typeName}) Nan::To<${ENUM_TYPE[typeName]}>(info[${n}].As<Number>()).ToChecked();`
