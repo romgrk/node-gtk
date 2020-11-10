@@ -67,6 +67,9 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
             if (signal_query.signal_id) {
                 mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
             }
+            if (g_arg_info_get_direction(&arg_info) == GI_DIRECTION_OUT) {
+                mustCopy = false;
+            }
 
             js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, mustCopy);
         }
