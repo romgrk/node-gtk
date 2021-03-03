@@ -14,8 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: export COMMIT_MESSAGE=$(git show -s --format=%B $TRAVIS_COMMIT | tr -d '\n')
-
       # Install dependencies
       - if: matrix.os == 'ubuntu-18.04'
         run: ./scripts/github-actions/install-deps-ubuntu.sh
@@ -23,10 +21,11 @@ jobs:
         run: ./scripts/github-actions/install-deps-macos.sh
 
       # Install Nodejs version
-      - run: nvm install ${{ matrix.node }} && nvm use ${{ matrix.node }} && node --version
+      - run: nvm install ${{ matrix.node }}
         shell: bash -l {0}
-      - run: ./scripts/build.sh
+
+      # Run the main script
+      - run: nvm use ${{ matrix.node }} && ./scripts/build.sh
         shell: bash -l {0}
-      # - uses: romgrk/publish-to-github@master
-        # env:
-          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}

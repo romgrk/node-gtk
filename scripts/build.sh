@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-
-source ~/.nvm/nvm.sh
+set -eu
+set -o pipefail
 
 node --version
-
-set -e -u
 
 PUBLISH_BINARIES=false;
 REPUBLISH_BINARIES=false;
