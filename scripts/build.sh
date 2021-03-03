@@ -2,6 +2,8 @@
 
 source ~/.nvm/nvm.sh
 
+node --version
+
 set -e -u
 
 PUBLISH_BINARIES=false;
