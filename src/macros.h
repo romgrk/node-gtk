@@ -1,7 +1,7 @@
 
 #pragma once
 
-#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__linux__) || defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 #define OS_UNIX    1
 #define OS_WINDOWS 0
 #elif defined(_WIN32) || defined(WIN32)
