@@ -2,10 +2,6 @@
 set -euf
 set -o pipefail
 
-source ~/.nvm/nvm.sh
-
-nvm install $NODE_VERSION
-
 if [[ $(uname -s) == 'Darwin' ]]; then
     brew install \
         gtk+3 \
