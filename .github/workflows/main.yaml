@@ -2,7 +2,7 @@ name: main
 on: [push]
 jobs:
   build:
-    name: ${{ matrix.os }}-${{ matrix.arch }}
+    name: ${{ matrix.os }} - nodejs ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -21,7 +21,10 @@ jobs:
         run: ./scripts/github-actions/install-deps-macos.sh
 
       # Install Nodejs version
+      - run: printenv | sort
+        shell: bash -l {0}
       - run: nvm install ${{ matrix.node }}
+        shell: bash -l {0}
       - run: nvm use ${{ matrix.node }}
       - run: node --version
       - run: npm --version
