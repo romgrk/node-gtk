@@ -1390,9 +1390,9 @@ bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
         return false;
 
     Local<Object> object = TO_OBJECT (value);
-    GType object_type = (GType) TO_LONG (Nan::Get(object, UTF8("__gtype__")).ToLocalChecked());
+    GType object_type = GET_OBJECT_GTYPE (object);
 
-    if (object_type == NOT_A_GTYPE || object_type == G_TYPE_NONE) {
+    if (object_type == NOT_A_GTYPE || object_type == G_TYPE_NONE || object_type == 0) {
         /*
          * Happens for objects that aren't GObjects but that are still
          * used by introspectable libs. (e.g. CairoContext objects)
@@ -1401,6 +1401,8 @@ bool ValueIsInstanceOfGType(Local<Value> value, GType g_type) {
          * This case is also hit for boxeds that aren't registered but
          * can be used as registered boxeds. For example, GdkEventKey isn't
          * registered but can be used as a GdkEvent.
+         * Related:
+         *  - https://github.com/romgrk/node-gtk/issues/251
          */
         return object->InternalFieldCount() > 0;
     }
