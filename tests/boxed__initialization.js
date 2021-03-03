@@ -24,10 +24,10 @@ describe('Boxed initialization', () => {
   })
 
   /*
-   * FIXME: For some reason, Pango.AttrSize doesn't work in travis :/
+   * FIXME: For some reason, Pango.AttrSize doesn't work in Github Actions :/
    *        This should be revisited in 3-6 months.
    */
-  if (process.env.TRAVIS === 'true') {
+  if (process.env.CI === 'true') {
     skip()
   }
 
