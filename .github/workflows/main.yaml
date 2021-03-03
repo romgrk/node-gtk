@@ -38,6 +38,6 @@ jobs:
       - run: npm install --build-from-source
 
       # Run the CI script (tests & publishing)
-      - run: ./scripts/ci.sh
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+      # - run: ./scripts/ci.sh
+      #   env:
+      #     COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
