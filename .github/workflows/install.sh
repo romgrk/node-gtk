@@ -2,6 +2,10 @@
 set -euf
 set -o pipefail
 
+# IMPORTANT:
+# If you change the dependencies, you must
+# also increase the package cache key in main.yaml
+
 if [[ $(uname -s) == 'Darwin' ]]; then
     brew install \
         gtk+3 \
