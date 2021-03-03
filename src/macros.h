@@ -8,7 +8,7 @@
 #define OS_UNIX    0
 #define OS_WINDOWS 1
 #else
-#error Couldn't recognize OS
+#error "Could not recognize OS"
 #endif
 
 #define FILE_NAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
