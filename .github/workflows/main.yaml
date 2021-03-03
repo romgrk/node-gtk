@@ -26,7 +26,7 @@ jobs:
       - run: node --version
       - run: npm --version
 
-      - run: export COMMIT_MESSAGE=${{ github.event.head_commit.message.replace(/\n/g, '') }}
+      - run: export COMMIT_MESSAGE=$(git show -s --format=%B $TRAVIS_COMMIT | tr -d '\n')
 
       - run: ./scripts/build.sh
       # - uses: romgrk/publish-to-github@master
