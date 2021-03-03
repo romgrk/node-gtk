@@ -49,11 +49,9 @@ function npm_test() {
 
 # test installing from source
 if [[ $PUBLISH_BINARIES == false ]] && [[ $REPUBLISH_BINARIES == false ]]; then
-    npm install --build-from-source
     npm_test
 else
     echo "### Building binaries for publishing ###"
-    npm install --build-from-source
     npm_test
     publish
 fi

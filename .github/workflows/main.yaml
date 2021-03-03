@@ -34,7 +34,10 @@ jobs:
           exclude: '/boot /data /dev /mnt /proc /run /sys'
 
 
-      # Run the main script
-      - run: ./scripts/build.sh
+      # Install & Build
+      - run: npm install --build-from-source
+
+      # Run the CI script (tests & publishing)
+      - run: ./scripts/ci.sh
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
