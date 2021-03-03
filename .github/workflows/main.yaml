@@ -22,7 +22,6 @@ jobs:
           key: ${{ runner.os }}-packages-key-1.0
       # Install & cache packages
       - uses: airvzxf/cache-anything-new-action@v1.0.1
-        shell: bash -l {0}
         env:
             NODE_VERSION: ${{ matrix.node }}
         with:
