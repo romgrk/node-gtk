@@ -1,14 +1,14 @@
 
 #pragma once
 
-#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+#if defined(__linux__) || defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 #define OS_UNIX    1
 #define OS_WINDOWS 0
 #elif defined(_WIN32) || defined(WIN32)
 #define OS_UNIX    0
 #define OS_WINDOWS 1
 #else
-#error Couldn't recognize OS
+#error "Could not recognize OS"
 #endif
 
 #define FILE_NAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)

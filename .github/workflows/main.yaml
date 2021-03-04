@@ -1,0 +1,49 @@
+name: main
+on: [push]
+jobs:
+  build:
+    name: ${{ matrix.os }} - nodejs ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-18.04
+          - macos-latest
+        node:
+          - 15
+          - 14
+          - 12
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+
+      # FIXME: cache disabled becasue not working for now
+      # Setup cache
+      # - uses: actions/cache@v2
+      #   id: node-gtk-cache
+      #   with:
+      #     path: ${{ runner.temp }}/packages-cache
+      #     key: ${{ runner.os }}-node-${{ matrix.node }}-cache-key-1.0
+
+      # Install & cache packages
+      # - uses: airvzxf/cache-anything-new-action@v1.0.1
+      #   with:
+      #     script: 'install.sh'
+      #     is_cached: ${{ steps.cache-id.outputs.cache-hit }}
+      #     cache: ${{ runner.temp }}/packages-cache
+      #     snapshot: '/'
+      #     exclude: '/boot /data /dev /mnt /proc /run /sys'
+
+      # Install & cache packages
+      - run: .github/workflows/install.sh
+
+
+      # Install & Build
+      - run: npm install --build-from-source
+
+      # Run the CI script (tests & publishing)
+      - run: ./scripts/ci.sh
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
