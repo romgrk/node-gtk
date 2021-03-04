@@ -229,11 +229,6 @@ out:
     return signalInfo;
 }
 
-static bool HasReturnValue(GICallableInfo *signalInfo, GITypeInfo *returnInfo) {
-    auto tag = g_type_info_get_tag(returnInfo);
-    return !g_callable_info_skip_return(signalInfo) && tag != GI_TYPE_TAG_VOID;
-}
-
 NAN_METHOD(SignalConnect) {
     bool after = false;
 
@@ -424,6 +419,7 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
         Nan::SetPrototypeMethod(tpl, "emit", SignalEmit);
         Nan::SetPrototypeMethod(tpl, "toString", GObjectToString);
         baseTemplate.Reset(tpl);
+        LOG("Created GObject base template");
     }
 
     // get FunctionTemplate from persistent object
@@ -497,6 +493,7 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External>((void *) gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    LOG("Created template %s", class_name);
 
     GType parent_type = g_type_parent(gtype);
     if (parent_type == G_TYPE_INVALID) {
@@ -528,6 +525,7 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     if (data) {
         auto *persistent = (Persistent<FunctionTemplate> *) data;
         auto tpl = New<FunctionTemplate> (*persistent);
+        LOG("Returning existing function %s", g_type_name(gtype));
         return tpl;
     }
 
@@ -535,6 +533,7 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     if (maybeTpl.IsEmpty())
         return MaybeLocal<FunctionTemplate> ();
 
+    LOG("Creating function %s", g_type_name(gtype));
     auto tpl = maybeTpl.ToLocalChecked();
     auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
 
