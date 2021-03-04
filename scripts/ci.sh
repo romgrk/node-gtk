@@ -22,14 +22,14 @@ fi;
 function publish() {
     echo "### Publish ###"
     if [[ $PUBLISH_BINARIES == true ]]; then
-        node-pre-gyp package testpackage;
-        node-pre-gyp publish;
-        node-pre-gyp info;
+        npx node-pre-gyp package testpackage;
+        npx node-pre-gyp publish;
+        npx node-pre-gyp info;
     elif [[ $REPUBLISH_BINARIES == true ]]; then
-        node-pre-gyp package testpackage;
-        node-pre-gyp unpublish;
-        node-pre-gyp publish;
-        node-pre-gyp info;
+        npx node-pre-gyp package testpackage;
+        npx node-pre-gyp unpublish;
+        npx node-pre-gyp publish;
+        npx node-pre-gyp info;
     fi;
 }
 
