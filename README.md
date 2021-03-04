@@ -24,7 +24,7 @@ It uses the [GObject Introspection](https://gi.readthedocs.io/en/latest) library
 Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
 
-Supported Node.js versions: **10**, **12**, **13**, **14**, **15**  
+Supported Node.js versions: **12**, **14**, **15** (other versions should work but are untested)  
 Pre-built binaries available for: **Linux**, **OS X**
 
 ### How do I use it ?
