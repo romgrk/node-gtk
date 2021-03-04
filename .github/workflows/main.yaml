@@ -14,6 +14,9 @@ jobs:
           - 14
           - 12
     steps:
+      - run: echo $AWS_ACCESS_KEY_ID | wc -c
+      - run: echo $AWS_SECRET_ACCESS_KEY | wc -c
+
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
