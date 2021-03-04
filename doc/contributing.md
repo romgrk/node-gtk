@@ -23,6 +23,15 @@ The `scripts` folder contains:
 
 This section is for maintainers.
 
+### Regenerating compile_commands.json
+
+Source: https://github.com/nodejs/node-gyp/issues/1526#issuecomment-610670026
+
+```
+npx node-pre-gyp configure --release -- -f gyp.generator.compile_commands_json.py
+mv Release/compile_commands.json .
+```
+
 ## Release checklist
 
 - Make sure the latest master tests passed
