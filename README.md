@@ -74,7 +74,7 @@ See our [examples](./examples) folder for more examples.
 
 ## Documentation
 
-[Read our documentation here](./doc/api.md)
+[Read our documentation here](./doc/index.md)
 
 ### Common pitfalls
 
