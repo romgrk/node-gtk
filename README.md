@@ -8,24 +8,19 @@
     </a>
 </p>
 
-# node-gtk
+<h1 align="center">node-gtk</h1>
+<p align="center">
+  <b>GNOME Gtk+ bindings for NodeJS</b>
+  <br/>
+  <img src="https://img.shields.io/npm/v/node-gtk.svg" alt="Package Version" />
+</p>
 
-### GNOME Gtk+ bindings for NodeJS
-
-![NPM version](https://img.shields.io/npm/v/node-gtk.svg)
-![Travis status](https://api.travis-ci.org/romgrk/node-gtk.svg?branch=master)
-[![install size](https://packagephobia.now.sh/badge?p=node-gtk)](https://packagephobia.now.sh/result?p=node-gtk)
-
-### What is this ?
-
-A work in progress to bring Gtk+ usable directly from NodeJS so that the environment would be more updated and supported than the one available via [GJS](https://wiki.gnome.org/action/show/Projects/Gjs).
-It uses the [GObject Introspection](https://gi.readthedocs.io/en/latest) library (as [PyGObject](https://pygobject.readthedocs.io), for example), so any `gobject-introspectable` library is supported.
-
-Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
+Node-Gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library for nodejs. It makes it possible to
+use any introspected library, such as Gtk+, usable.  It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) or [PyGObject](https://pygobject.readthedocs.io). Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
 
 Supported Node.js versions: **12**, **14**, **15** (other versions should work but are untested)  
-Pre-built binaries available for: **Linux**, **OS X**
+Pre-built binaries available for: **Linux**, **macOS**
 
 ### How do I use it ?
 
@@ -45,7 +40,7 @@ You can use [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you
   - [How to build on Ubuntu](#how-to-build-on-ubuntu)
   - [How to build on Fedora](#how-to-build-on-fedora)
   - [How to build on ArchLinux](#how-to-build-on-archlinux)
-  - [How to build on OSX](#how-to-build-on-osx)
+  - [How to build on macOS](#how-to-build-on-osx)
   - [Experimental platforms](#experimental-platforms)
   - [Testing the project](#testing-the-project)
     - [Browser demo](#browser-demo)
@@ -75,6 +70,8 @@ Gtk.main()
 
 ![Hello node-gtk!](img/hello-node-gtk.png)
 
+See our [examples](./examples) folder for more examples.
+
 ## Documentation
 
 [Read our documentation here](./doc/api.md)
@@ -84,36 +81,40 @@ Gtk.main()
 The bindings are sometimes a bit raw in that they provide you direct access to C functions.
 It is very possible for you to cause a segfault by misusing any library. Here are a few common errors.
 
-#### Gtk & Gdk initialization
+<details>
+  <summary><b>Gtk & Gdk initialization</b></summary>
+  Call `Gtk.init()` and `Gdk.init()` before using anything from those modules.
+</details>
 
-Call `Gtk.init()` and `Gdk.init()` before using anything from those modules.
-
-#### Trying to get a Gdk display causes a segfault
-
-If you're under X11, you'll need to call `gi.require('GdkX11', 'x.x')`.
+<details>
+  <summary><b>Trying to get a Gdk display causes a segfault</b></summary>
+  If you're under X11, you'll need to call `gi.require('GdkX11', 'x.x')`.
+</details>
 
 ## Installing and building
 
-### Target Platforms (so far)
+Note that prebuilt binaries are available for common systems, in those cases building is not necessary.
 
-We're planning to serve pre-built binaries to make this project as cross-platform and easy to install
-as possible. However, right now we support only **Linux** and experimentally **OSX** but in both targets,
-_the project will fallback to build_.
+##### Target Platforms
+
+ - **Linux**: prebuilt binaries available
+ - **macOS**: prebuilt binaries available
+ - **Windows**: unsupported for now ([#241](https://github.com/romgrk/node-gtk/issues/241))
 
 ### Requirements
 
-In order to clone, install, and build this project you'll need a working copy of `git`, `nodejs` 8 or higher, `npm`,
-`python2`, and either `gcc` 8 (other versions may fail) or `clang`.
+ - `git`
+ - `nodejs@10` or higher
+ - `python2` (for `node-gyp`)
+ - C compiler (`gcc@8` or higher, or `clang`)
+
 In the _not-working-yet_ Windows platform, all dependencies must be available under [MSYS2 shell](https://msys2.github.io).
 
 ### How to build on Ubuntu
 
-Be sure `node` is version **10** or higher.
-
 Install basic dependencies.
 
 ```sh
-# install dependencies
 sudo apt-get install \
   build-essential git \
   gobject-introspection \
@@ -155,12 +156,11 @@ Feel free to install all `base-devel` utilities.
 
 After installing those packages, `npm install node-gtk` would do.
 
-### How to build on OSX
+### How to build on macOS
 
 Assuming you have [brew](http://brew.sh) installed, the following has been successfully tested on El Captain.
 
 ```sh
-# basic dependencies to build this repo
 brew install git node gobject-introspection gtk+3 cairo
 ```
 
@@ -168,21 +168,16 @@ At this point `npm install node-gtk` should already install, fallback and build 
 
 ### Testing the project
 
-If you'd like to test everything builds and work properly, find a target to clone this project, then run `npm install`.
+If you'd like to test everything builds and work properly, after installing and building you can run any of the
+examples:
 
 ```sh
-# clone and build
-git clone https://github.com/romgrk/node-gtk.git
-cd node-gtk
-npm install
-
-# how to verify from node-gtk folder
-./examples/hello-gtk.js
+node ./examples/hello-gtk.js
 ```
 
 If you'll see a little window saying hello that's it: it works!
 
-Please note in OSX the window doesn't automatically open above other windows.
+Please note in macOS the window doesn't automatically open above other windows.
 Try <kbd>Cmd</kbd> + <kbd>Tab</kbd> if you don't see it.
 
 #### Browser demo
@@ -192,12 +187,12 @@ If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://
 - in **Ubuntu**, you can `apt-get install libwebkit2gtk-3.0` (`4.0` works too) and try it out.
 - in **Fedora**, you should run `sudo dnf install webkit2gtk3`
 - in **ArchLinux**, you can `pacman -S --needed webkitgtk` and try it out.
-- in **OSX**, there is no way to run it right now because `webkitgtk` was removed from homebrew
+- in **macOS**, there is no way to run it right now because `webkitgtk` was removed from homebrew
 
 Once installed, you can `./examples/browser.js google.com` or any other page, and you might try the _dark theme_ out too:
 
 ```sh
-# OSX needs to have the Adwaita theme installed
+# macOS needs to have the Adwaita theme installed
 # brew install adwaita-icon-theme
 
 # Usage: ./examples/browser.js <url> [theme]
