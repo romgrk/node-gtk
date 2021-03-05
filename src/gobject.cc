@@ -34,8 +34,8 @@ static Nan::Persistent<FunctionTemplate> baseTemplate;
 
 
 static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data);
-
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
+static MaybeLocal<Function>         GetClass(GType gtype);
 
 
 static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
@@ -183,10 +183,15 @@ static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GType> &info) {
     GType* gtypePtr = info.GetParameter();
     GType gtype = *gtypePtr;
 
-    auto *persistent = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::template_quark());
-    delete persistent;
+    auto persistentTpl = (Persistent<FunctionTemplate> *)
+        g_type_get_qdata (gtype, GNodeJS::template_quark());
+    auto persistentFn  = (Persistent<Function> *)
+        g_type_get_qdata (gtype, GNodeJS::function_quark());
+    delete persistentTpl;
+    delete persistentFn;
 
     g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
+    g_type_set_qdata (gtype, GNodeJS::function_quark(), NULL);
     g_free(gtypePtr);
 }
 
@@ -419,7 +424,6 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
         Nan::SetPrototypeMethod(tpl, "emit", SignalEmit);
         Nan::SetPrototypeMethod(tpl, "toString", GObjectToString);
         baseTemplate.Reset(tpl);
-        LOG("Created GObject base template");
     }
 
     // get FunctionTemplate from persistent object
@@ -493,7 +497,6 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External>((void *) gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    LOG("Created template %s", class_name);
 
     GType parent_type = g_type_parent(gtype);
     if (parent_type == G_TYPE_INVALID) {
@@ -525,7 +528,6 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     if (data) {
         auto *persistent = (Persistent<FunctionTemplate> *) data;
         auto tpl = New<FunctionTemplate> (*persistent);
-        LOG("Returning existing function %s", g_type_name(gtype));
         return tpl;
     }
 
@@ -533,16 +535,49 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     if (maybeTpl.IsEmpty())
         return MaybeLocal<FunctionTemplate> ();
 
-    LOG("Creating function %s", g_type_name(gtype));
     auto tpl = maybeTpl.ToLocalChecked();
-    auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
+    auto fn = Nan::GetFunction (tpl).ToLocalChecked();
+    auto persistentTpl = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
+    auto persistentFn  = new Persistent<Function>(Isolate::GetCurrent(), fn);
 
     GType *gtypePtr = g_new(GType, 1);
-    persistent->SetWeak(gtypePtr, GObjectClassDestroyed,
-                        WeakCallbackType::kParameter);
-    g_type_set_qdata(gtype, GNodeJS::template_quark(), persistent);
+    persistentTpl->SetWeak(
+        gtypePtr, GObjectClassDestroyed, WeakCallbackType::kParameter);
+
+    g_type_set_qdata(gtype, GNodeJS::template_quark(), persistentTpl);
+    g_type_set_qdata(gtype, GNodeJS::function_quark(), persistentFn);
+
     return MaybeLocal<FunctionTemplate> (tpl);
 }
+
+static MaybeLocal<Function> GetClass(GType gtype) {
+    void *data = g_type_get_qdata (gtype, GNodeJS::function_quark());
+
+    if (data) {
+        auto persistent = (Persistent<Function> *) data;
+        auto fn = New<Function> (*persistent);
+        return MaybeLocal<Function> (fn);
+    }
+
+    /* GetClassTemplate() will initalize function_quark */
+    auto maybeTpl = GetClassTemplate(gtype);
+    if (maybeTpl.IsEmpty()) {
+        ERROR("Failed initialization of function %s", g_type_name(gtype));
+        return MaybeLocal<Function> ();
+    }
+
+    data = g_type_get_qdata (gtype, GNodeJS::function_quark());
+
+    if (data) {
+        auto persistent = (Persistent<Function> *) data;
+        auto fn = New<Function> (*persistent);
+        return MaybeLocal<Function> (fn);
+    }
+
+    ERROR("Could not retrieve function %s", g_type_name(gtype));
+    return MaybeLocal<Function> ();
+}
+
 
 MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
@@ -553,11 +588,7 @@ MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
         return MaybeLocal<Function>();
     }
 
-    auto tpl = GetClassTemplate(gtype);
-    if (tpl.IsEmpty())
-        return MaybeLocal<Function> ();
-
-    return MaybeLocal<Function> (Nan::GetFunction (tpl.ToLocalChecked()));
+    return GetClass(gtype);
 }
 
 Local<Value> WrapperFromGObject(GObject *gobject) {
@@ -571,20 +602,19 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
         auto *persistent = (Persistent<Object> *) data;
         auto obj = New<Object> (*persistent);
         return obj;
-
-    } else {
-        GType gtype = G_OBJECT_TYPE(gobject);
-        auto maybeTpl = GetClassTemplate(gtype);
-        if (maybeTpl.IsEmpty())
-            return Nan::Null();
-        auto tpl = maybeTpl.ToLocalChecked();
-        Local<Function> constructor = Nan::GetFunction (tpl).ToLocalChecked();
-        Local<Value> gobject_external = New<External> (gobject);
-        Local<Value> args[] = { gobject_external };
-        Local<Object> obj = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
-
-        return obj;
     }
+
+    GType gtype = G_OBJECT_TYPE(gobject);
+    auto maybeFn = GetClass(gtype);
+    if (maybeFn.IsEmpty())
+        return Nan::Null();
+
+    Local<Function> constructor = maybeFn.ToLocalChecked();
+    Local<Value> gobject_external = New<External> (gobject);
+    Local<Value> args[] = { gobject_external };
+    Local<Object> obj = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+
+    return obj;
 }
 
 GObject * GObjectFromWrapper(Local<Value> value) {
