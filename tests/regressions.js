@@ -9,12 +9,29 @@ const Gst = gi.require('Gst', '1.0')
 const Gtk = gi.require('Gtk', '3.0');
 const soup = gi.require('Soup', '2.4')
 const Cairo = gi.require('cairo', '1.0')
-const { describe } = require('./__common__.js')
+const { describe, expect } = require('./__common__.js')
 
 Gst.init()
 Gtk.init()
 gi.startLoop()
 
+
+/*
+ * GtkWindow doesnt use the same constructor as Gtk.Window
+ * https://github.com/romgrk/node-gtk/issues/259
+ */
+describe('GObject identity', () => {
+  const ui = `
+    <?xml version="1.0" encoding="UTF-8"?>
+    <interface>
+      <requires lib="gtk+" version="3.20"/>
+      <object class="GtkWindow" id="mainWindow"></object>
+    </interface>
+  `
+  const builder = Gtk.Builder.newFromString(ui, ui.length)
+  const window = builder.getObject('mainWindow')
+  expect(window.constructor, Gtk.Window)
+})
 
 /*
  * Window method "inputShapeCombineRegion" dont accept Cairo argument:
