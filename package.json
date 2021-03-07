@@ -35,7 +35,7 @@
     "@mapbox/node-pre-gyp": "^1.0.0",
     "lodash.camelcase": "4.3.0",
     "lodash.isequal": "4.5.0",
-    "nan": "2.14.0",
+    "nan": "2.14.2",
     "node-gyp": "^7.1.2",
     "remove-trailing-spaces": "^1.0.7",
     "unindent": "^2.0.0"
@@ -46,8 +46,8 @@
     "chalk": "^2.4.2",
     "deasync": "^0.1.19",
     "mocha": "^7.1.0",
-    "node-pre-gyp-github": "^1.4.3",
-    "nid-parser": "0.0.5"
+    "nid-parser": "0.0.5",
+    "node-pre-gyp-github": "^1.4.3"
   },
   "files": [
     "/lib",
