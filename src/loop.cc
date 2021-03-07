@@ -87,22 +87,23 @@ static void CallNextTickCallback() {
         auto global = Nan::GetCurrentContext()->Global();
         auto processObject = Nan::To<Object> (Nan::Get(global, UTF8("process")).ToLocalChecked());
 
-        if (processObject.IsEmpty()) {
+        if (processObject.IsEmpty())
             return;
-        }
 
         Local<Object> processObjectChecked = processObject.ToLocalChecked();
         Local<Value> tickCallbackValue = Nan::Get(processObjectChecked, UTF8("_tickCallback")).ToLocalChecked();
-        if (!tickCallbackValue->IsFunction()) {
+        if (!tickCallbackValue->IsFunction())
             return;
-        }
 
         process.Reset(processObjectChecked);
         tickCallback.Reset(TO_OBJECT (tickCallbackValue));
     }
 
     if (!tickCallback.IsEmpty()) {
-        Nan::CallAsFunction(Nan::New<Object> (tickCallback), Nan::New<Object> (process), 0, nullptr);
+        Nan::CallAsFunction(
+            Nan::New<Object> (tickCallback),
+            Nan::New<Object> (process),
+            0, nullptr);
     }
 }
 
