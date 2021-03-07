@@ -21,6 +21,10 @@ const expectedEvents = [
   'clicked:promise-settimeout',
   'clicked:promise-resolved',
 ]
+const addEvent = e => {
+  console.log(e)
+  events.push(e)
+}
 
 
 const loop = GLib.MainLoop.new(null, false)
@@ -34,7 +38,7 @@ let actionButton
 let resolve
 const action = new Promise(r => { resolve = r })
 action.then(() => {
-  events.push('promise:start-before')
+  addEvent('promise:start-before')
 })
 
 setTimeout(() => {
@@ -79,13 +83,13 @@ function onActivate() {
 
   actionButton = builder.getObject('actionButton')
   actionButton.on('clicked', () => {
-    events.push('clicked')
+    addEvent('clicked')
 
     // this runs, and promise is resolved
     let action = new Promise(resolve => {
       setTimeout(
         () => {
-          events.push('clicked:promise-settimeout')
+          addEvent('clicked:promise-settimeout')
           resolve()
         },
         100
@@ -93,11 +97,11 @@ function onActivate() {
     })
 
     setTimeout(() => {
-      events.push('clicked:settimeout')
+      addEvent('clicked:settimeout')
     }, 50)
 
     action.then(() => {
-      events.push('clicked:promise-resolved')
+      addEvent('clicked:promise-resolved')
       window.close()
     })
   })
@@ -111,7 +115,7 @@ function onActivate() {
 }
 
 function onRealize() {
-  events.push('realize')
+  addEvent('realize')
   actionButton.emit('clicked')
 }
 
