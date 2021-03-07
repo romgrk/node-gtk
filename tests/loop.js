@@ -14,6 +14,8 @@ Gtk.init([])
 
 const events = []
 const expectedEvents = [
+  'run',
+  'activate',
   'realize',
   'clicked',
   'promise:start-before',
@@ -46,6 +48,8 @@ setTimeout(() => {
   assert(false, 'Timeout should not be reached')
 }, 2000).unref()
 
+addEvent('run')
+
 const status = app.run([])
 
 console.log('Finished with status:', status)
@@ -56,6 +60,8 @@ assert(
 )
 
 function onActivate() {
+  addEvent('activate')
+
   window = new Gtk.ApplicationWindow(app)
   window.setTitle('Window')
   window.setDefaultSize(200, 200)
