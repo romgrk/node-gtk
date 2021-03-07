@@ -52,8 +52,23 @@ static gboolean loop_source_prepare (GSource *base, int *timeout) {
 
 static gboolean loop_source_dispatch (GSource *base, GSourceFunc callback, gpointer user_data) {
     struct uv_loop_source *source = (struct uv_loop_source *) base;
+
+    // Get current env.
+    Isolate* isolate = Isolate::GetCurrent();
+    Local<Context> context = isolate->GetCurrentContext();
+    HandleScope handle_scope(isolate);
+
+    // Enter node context while dealing with uv events.
+    v8::Context::Scope context_scope(context);
+
+    // Perform microtask checkpoint after running JavaScript.
+    MicrotasksScope micro_scope(isolate, MicrotasksScope::kRunMicrotasks);
+
+    // Deal with uv events.
     uv_run (source->loop, UV_RUN_NOWAIT);
+
     CallMicrotaskHandlers ();
+
     return G_SOURCE_CONTINUE;
 }
 
@@ -115,6 +130,12 @@ void CallMicrotaskHandlers () {
 void StartLoop() {
     GSource *source = loop_source_new (uv_default_loop ());
     g_source_attach (source, NULL);
+
+    auto isolate = v8::Isolate::GetCurrent();
+    isolate->SetMicrotasksPolicy(v8::MicrotasksPolicy::kAuto);
+
+    // Ensure pending microtasks are run
+    CallMicrotaskHandlers();
 }
 
 Local<Array> GetLoopStack() {
