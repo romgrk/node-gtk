@@ -7,8 +7,10 @@
 
 const gi = require('..')
 const GLib = gi.require('GLib', '2.0')
-const Gtk = gi.require('Gtk', '4.0')
+const Gtk = gi.require('Gtk', '3.0')
 const { expect, assert } = require('./__common__')
+
+Gtk.init([])
 
 const events = []
 const expectedEvents = [
@@ -53,7 +55,7 @@ function onActivate() {
   window = new Gtk.ApplicationWindow(app)
   window.setTitle('Window')
   window.setDefaultSize(200, 200)
-  window.on('close-request', onQuit)
+  window.on('delete-event', onQuit)
   window.on('realize', onRealize)
 
   const ui = `
@@ -100,7 +102,7 @@ function onActivate() {
     })
   })
 
-  window.setChild(root)
+  window.add(root)
   window.present()
 
   resolve()
