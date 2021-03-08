@@ -32,6 +32,17 @@ static gboolean loop_source_prepare (GSource *base, int *timeout) {
     struct uv_loop_source *source = (struct uv_loop_source *) base;
     uv_update_time (source->loop);
 
+    /* FIXME: This flushes pending microtasks, which are otherwise
+     * not run. Placing this in loop_source_dispatch() did not fix
+     * the issue, thus placing it here. This might have unintended
+     * consequences on behavior or performance, and should be revi-
+     * sited eventually.
+     *
+     * - https://github.com/romgrk/node-gtk/issues/121
+     * - https://github.com/nodejs/nan/issues/541
+     */
+    CallMicrotaskHandlers ();
+
     bool loop_alive = uv_loop_alive (source->loop);
 
     /* If the loop is dead, we can simply sleep forever until a GTK+ source
@@ -52,8 +63,21 @@ static gboolean loop_source_prepare (GSource *base, int *timeout) {
 
 static gboolean loop_source_dispatch (GSource *base, GSourceFunc callback, gpointer user_data) {
     struct uv_loop_source *source = (struct uv_loop_source *) base;
+
+    // Get current env.
+    Isolate* isolate = Isolate::GetCurrent();
+    Local<Context> context = isolate->GetCurrentContext();
+    HandleScope handle_scope(isolate);
+
+    // Enter node context while dealing with uv events.
+    v8::Context::Scope context_scope(context);
+
+    // Perform microtask checkpoint after running JavaScript.
+    MicrotasksScope micro_scope(isolate, MicrotasksScope::kRunMicrotasks);
+
+    // Deal with uv events.
     uv_run (source->loop, UV_RUN_NOWAIT);
-    CallMicrotaskHandlers ();
+
     return G_SOURCE_CONTINUE;
 }
 
@@ -115,6 +139,12 @@ void CallMicrotaskHandlers () {
 void StartLoop() {
     GSource *source = loop_source_new (uv_default_loop ());
     g_source_attach (source, NULL);
+
+    auto isolate = v8::Isolate::GetCurrent();
+    isolate->SetMicrotasksPolicy(v8::MicrotasksPolicy::kAuto);
+
+    // Ensure pending microtasks are run
+    CallMicrotaskHandlers();
 }
 
 Local<Array> GetLoopStack() {
