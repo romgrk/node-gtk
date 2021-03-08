@@ -68,6 +68,7 @@ function onActivate() {
 
 function onQuit() {
   loop.quit()
+  app.quit()
   return false
 }
 
