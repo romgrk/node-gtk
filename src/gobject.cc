@@ -419,6 +419,7 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
         isBaseClassCreated = true;
 
         Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>();
+        tpl->SetClassName (UTF8("BaseClass"));
         Nan::SetPrototypeMethod(tpl, "connect", SignalConnect);
         Nan::SetPrototypeMethod(tpl, "disconnect", SignalDisconnect);
         Nan::SetPrototypeMethod(tpl, "emit", SignalEmit);
