@@ -21,10 +21,11 @@ using GNodeJS::BaseInfo;
 
 namespace GNodeJS {
 
-    G_DEFINE_QUARK(gnode_js_object,      object);
-    G_DEFINE_QUARK(gnode_js_template,    template);
-    G_DEFINE_QUARK(gnode_js_constructor, constructor);
-    G_DEFINE_QUARK(gnode_js_function,    function);
+    G_DEFINE_QUARK(gnode_js_object,       object);
+    G_DEFINE_QUARK(gnode_js_template,     template);
+    G_DEFINE_QUARK(gnode_js_constructor,  constructor);
+    G_DEFINE_QUARK(gnode_js_function,     function);
+    G_DEFINE_QUARK(gnode_js_dynamic_type, dynamic_type);
 
     Nan::Persistent<Object> moduleCache(Nan::New<Object>());
 
@@ -326,11 +327,17 @@ NAN_METHOD(GetModuleCache) {
     info.GetReturnValue().Set(Nan::New<Object>(GNodeJS::moduleCache));
 }
 
+NAN_METHOD(RegisterClass) {
+    GNodeJS::ObjectClass::RegisterClass(info);
+}
+
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     GNodeJS::AsyncCallEnvironment::Initialize();
 
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetModuleCache);
+    NAN_EXPORT(exports, GetBaseClass);
+    NAN_EXPORT(exports, GetTypeSize);
     NAN_EXPORT(exports, GetConstantValue);
     NAN_EXPORT(exports, MakeBoxedClass);
     NAN_EXPORT(exports, MakeObjectClass);
@@ -341,9 +348,8 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, ObjectPropertyGetter);
     NAN_EXPORT(exports, ObjectPropertySetter);
     NAN_EXPORT(exports, StartLoop);
-    NAN_EXPORT(exports, GetBaseClass);
-    NAN_EXPORT(exports, GetTypeSize);
     NAN_EXPORT(exports, GetLoopStack);
+    NAN_EXPORT(exports, RegisterClass);
 
     Nan::Set(exports, UTF8("System"), GNodeJS::System::GetModule());
     Nan::Set(exports, UTF8("Cairo"),  GNodeJS::Cairo::GetModule());

@@ -36,6 +36,7 @@ GQuark object_quark (void);
 GQuark template_quark (void);
 GQuark constructor_quark (void);
 GQuark function_quark (void);
+GQuark dynamic_type_quark (void);
 
 
 /*
