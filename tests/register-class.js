@@ -5,7 +5,8 @@
 const { describe, it, mustThrow, expect } = require('./__common__')
 
 const gi = require('..')
-const Gtk = gi.require('Gtk', '4.0')
+const Gtk = gi.require('Gtk', '3.0')
+// const Gtk = gi.require('Gtk', '4.0') // FIXME: CI doesn't have gtk4
 
 
 describe('registerClass', () => {
