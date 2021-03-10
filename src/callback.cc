@@ -26,11 +26,11 @@ static unsigned int callbackLevel = 0;
 static GSList* notifiedCallbacks = NULL;
 
 
-Callback::Callback(Local<Function> fn, GICallableInfo* callback_info, GIArgInfo* arg_info) {
+Callback::Callback(Local<Function> fn, GICallableInfo* callback_info, GIScopeType scope_type_) {
     persistent.Reset(fn);
     info = g_base_info_ref (callback_info);
     closure = g_callable_info_prepare_closure(info, &cif, Callback::Call, this);
-    scope_type = g_arg_info_get_scope (arg_info);
+    scope_type = scope_type_;
 }
 
 Callback::~Callback() {

@@ -21,7 +21,7 @@ struct Callback {
     GIScopeType scope_type;
     Parameter* call_parameters;
 
-    Callback(Local<Function> function, GICallableInfo* info, GIArgInfo* arg_info);
+    Callback(Local<Function> fn, GICallableInfo* callback_info, GIScopeType scope_type_);
     ~Callback();
 
     static void DestroyNotify (void* user_data);

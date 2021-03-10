@@ -211,7 +211,8 @@ Local<Value> FunctionCall (
                 callback = nullptr;
             } else {
                 GICallableInfo *callback_info = g_type_info_get_interface (&type_info);
-                callback = new Callback(info[in_arg].As<Function>(), callback_info, &arg_info);
+                GIScopeType scope_type = g_arg_info_get_scope(&arg_info);
+                callback = new Callback(info[in_arg].As<Function>(), callback_info, scope_type);
                 closure = callback->closure;
                 g_base_info_unref (callback_info);
             }
