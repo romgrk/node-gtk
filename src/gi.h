@@ -47,26 +47,61 @@ class BaseInfo {
 public:
     GIBaseInfo * _info;
 
+    BaseInfo () : _info(nullptr) { };
+
     BaseInfo (GIBaseInfo *info) : _info(info) { };
+
     BaseInfo (Local<Value> value) {
         Local<Object> object = value.As<Object>();
         _info = g_base_info_ref(
-                (GIBaseInfo *) GNodeJS::PointerFromWrapper(object));
-    };
-    ~BaseInfo () {
-        g_base_info_unref(_info);
+            (GIBaseInfo *) GNodeJS::PointerFromWrapper(object));
     };
 
-    inline GIBaseInfo * operator* () {
+    ~BaseInfo () {
+        this->clear();
+    };
+
+    inline GIBaseInfo& operator= (GIBaseInfo *info) {
+        this->clear();
+        _info = info;
+    }
+
+    inline GIBaseInfo* operator* () {
         return _info;
     }
 
-    inline GIBaseInfo * info() {
+    inline GIBaseInfo** operator& () {
+        return &_info;
+    }
+
+    inline GIBaseInfo* info() {
         return _info;
+    }
+
+    inline GIBaseInfo* ref() {
+        return g_base_info_ref(_info);
+    }
+
+    inline void clear() {
+        if (_info) {
+            g_base_info_unref(_info);
+            _info = nullptr;
+        }
+    }
+
+    inline GIBaseInfo* release() {
+        GIBaseInfo *info = _info;
+        g_base_info_unref(_info);
+        _info = nullptr;
+        return info;
     }
 
     inline GIInfoType type() {
         return g_base_info_get_type(_info);
+    }
+
+    inline bool is(GIInfoType infoType) {
+        return this->type() == infoType;
     }
 
     inline GITypeTag tag() {
