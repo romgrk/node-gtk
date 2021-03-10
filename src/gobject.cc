@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "boxed.h"
+#include "callback.h"
 #include "closure.h"
 #include "debug.h"
 #include "error.h"
@@ -689,7 +690,8 @@ static GObject* ClassConstructor(
         ->constructor(type, n_construct_properties, construct_properties);
 }
 
-// static void ClassSetProperty(GObject* object, unsigned id, const GValue* value, GParamSpec* pspec) {}
+static void ClassSetProperty(GObject* object, unsigned id, const GValue* value, GParamSpec* pspec) {}
+static void ClassGetProperty(GObject* object, unsigned id, GValue* value, GParamSpec* pspec) {}
 
 static void ClassInit(void* klass_pointer, void* data) {
     GObjectClass* klass = G_OBJECT_CLASS(klass_pointer);
@@ -728,6 +730,66 @@ static void TypeQuerySafe(GType type, GTypeQuery* query) {
     g_type_query(type, query);
 }
 
+static bool FindVFuncInfo(GType implementor_gtype,
+                            GIBaseInfo* info, const char* name,
+                            void** vtable,
+                            GIFieldInfo** fieldInfoOut) {
+    int i, length;
+    bool result = false;
+
+    *vtable = NULL;
+    *fieldInfoOut = NULL;
+
+    auto ancestorInfo = BaseInfo(g_base_info_get_container(info));
+    auto ancestorGType = g_registered_type_info_get_g_type(*ancestorInfo);
+    LOG("%s.%s %lu", ancestorInfo.ns(), ancestorInfo.name(), ancestorGType);
+
+    auto implementor_class = (GTypeInstance*) g_type_class_ref(implementor_gtype);
+    BaseInfo structInfo;
+
+    if (ancestorInfo.is(GI_INFO_TYPE_INTERFACE)) {
+        auto implementor_iface_class =
+            (GTypeInstance*) g_type_interface_peek(implementor_class,
+                                                        ancestorGType);
+        if (implementor_iface_class == NULL) {
+            Nan::ThrowError("Couldn't find GType of implementor of interface.");
+            result = false;
+            goto out;
+        }
+
+        *vtable = implementor_iface_class;
+        structInfo = g_interface_info_get_iface_struct(*ancestorInfo);
+    } else {
+        *vtable = implementor_class;
+        structInfo = g_object_info_get_class_struct(*ancestorInfo);
+    }
+
+    length = g_struct_info_get_n_fields(*structInfo);
+    for (i = 0; i < length; i++) {
+        BaseInfo fieldInfo = g_struct_info_get_field(*structInfo, i);
+        if (strcmp(fieldInfo.name(), name) != 0)
+            continue;
+
+        BaseInfo typeInfo = g_field_info_get_type(*fieldInfo);
+        if (typeInfo.tag() != GI_TYPE_TAG_INTERFACE) {
+            /* We have a field with the same name, but it's not a callback.
+             * There's no hope of being another field with a correct name,
+             * so just abort early. */
+            result = true;
+            goto out;
+        } else {
+            *fieldInfoOut = fieldInfo.ref();
+            result = true;
+            goto out;
+        }
+    }
+
+out:
+    g_type_class_unref(implementor_class);
+    return result;
+}
+
+
 NAN_METHOD(RegisterClass) {
     auto jsKlassName  = Nan::To<String>(info[0]).ToLocalChecked();
     auto jsKlass      = info[1].As<Object>();
@@ -755,7 +817,41 @@ NAN_METHOD(RegisterClass) {
 
     g_type_set_qdata(instanceType, GNodeJS::dynamic_type_quark(), GINT_TO_POINTER(1));
 
-    info.GetReturnValue().Set(Nan::New<Number>(instanceType));
+    RETURN(v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), instanceType));
+}
+
+NAN_METHOD(RegisterVFunc) {
+    auto jsVFuncInfo  = info[0].As<Object>();
+    auto jsKlassGType = info[1].As<Number>();
+    auto jsName       = info[2].As<String>();
+    auto jsFunction   = info[3].As<Function>();
+
+    Nan::Utf8String utf8Name(jsName);
+
+    GType klassGType = Nan::To<uint32_t>(jsKlassGType).ToChecked();
+
+    BaseInfo vfuncInfo(jsVFuncInfo);
+
+    void *implementor_vtable;
+    BaseInfo fieldInfo;
+    if (!FindVFuncInfo(klassGType, *vfuncInfo, *utf8Name,
+            &implementor_vtable, &fieldInfo))
+        return;
+
+    if (!*fieldInfo)
+        return;
+
+    auto offset = g_field_info_get_offset(*fieldInfo);
+    auto functionPtr = G_STRUCT_MEMBER_P(implementor_vtable, offset);
+
+    // XXX: this is not right at all
+    // auto callback = new Callback(jsFunction, *vfuncInfo, GI_SCOPE_TYPE_NOTIFIED);
+    // g_closure_add_invalidate_notifier(
+    //     callback->closure, callback, Callback::DestroyNotify);
+    // *reinterpret_cast<ffi_closure**>(functionPtr) = callback->closure;
+
+    RETURN(true);
+    return;
 }
 
 };

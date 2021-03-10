@@ -25,6 +25,7 @@ Local<v8::Boolean>      SetGObjectProperty   (GObject * gobject, const char *pro
 namespace ObjectClass {
 
 NAN_METHOD(RegisterClass);
+NAN_METHOD(RegisterVFunc);
 
 };
 
