@@ -9,6 +9,7 @@
 
 #include "param_spec.h"
 #include "macros.h"
+#include "util.h"
 
 using v8::Function;
 using v8::FunctionTemplate;
@@ -52,10 +53,8 @@ Local<Value> ParamSpec::FromGParamSpec(GParamSpec *param_spec, bool makeCopy) {
     paramSpec->data = makeCopy ? g_param_spec_ref(param_spec) : param_spec;
 
     Local<Object> instance = Nan::NewInstance(ParamSpec::GetConstructor()).ToLocalChecked();
-    Nan::DefineOwnProperty(instance,
-            Nan::New("__gtype__").ToLocalChecked(),
-            Nan::New<Number> (G_PARAM_SPEC_TYPE (param_spec)),
-            (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum));
+    GType gtype = G_PARAM_SPEC_TYPE (param_spec);
+    SET_OBJECT_GTYPE(instance, gtype);
     paramSpec->Wrap(instance);
     return instance;
 }

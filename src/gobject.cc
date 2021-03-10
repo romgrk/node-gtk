@@ -491,7 +491,8 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External>((void *) gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    Nan::SetPrototypeTemplate(tpl, "__gtype__", Nan::New<Number>(gtype));
+    Nan::SetPrototypeTemplate(
+        tpl, "__gtype__", v8::BigInt::NewFromUnsigned(v8::Isolate::GetCurrent(), gtype));
 
     GType parent_type = g_type_parent(gtype);
     if (parent_type == G_TYPE_INVALID) {
