@@ -3,12 +3,12 @@
 Node-Gtk is essentially a *thin* layer over native libraries. As such, understanding how to use the different gobject-introspected libraries depends on understanding first how the library itself works, second on how to call the library with node-gtk. This documentation covers the node-gtk part, and aims at giving you the information you need to be able to easily translate any C code into nodejs code. Refer to the library's documentation to understand how to use it.
 
 #### Table of contents
-  1. [Loading a library](#1.-loading-a-library)
-  2. [Data types](#2.-data-types)
-  3. [Structs & Unions](#3.-structs-&-unions)
-  4. [GObjects](#4.-gobjects)
-  5. [Naming conventions](#5.-naming-conventions)
-  6. [Function calls](#6.function-calls)
+  1. [Loading a library](#1-loading-a-library)
+  2. [Data types](#2-data-types)
+  3. [Structs & Unions](#3-structs-&-unions)
+  4. [GObjects](#4-gobjects)
+  5. [Naming conventions](#5-naming-conventions)
+  6. [Function calls](#6-function-calls)
 
 ## 1. Loading a library
 
