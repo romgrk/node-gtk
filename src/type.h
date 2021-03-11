@@ -24,6 +24,7 @@ GITypeTag GetStorageType (GITypeInfo *type_info);
 namespace Type {
 
 bool      IsPrimitive (GITypeInfo *type_info);
+bool      IsVoid (GITypeInfo *type_info);
 
 }
 

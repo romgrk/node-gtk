@@ -26,7 +26,7 @@ struct Callback {
 
     static void DestroyNotify (void* user_data);
     static void AsyncFree ();
-    static void Execute (void *result, GIArgument **args, Callback *callback);
+    static void Execute (GIArgument *result, GIArgument **args, Callback *callback);
     static void Call (ffi_cif *cif, void *result, void **args, gpointer user_data);
 };
 

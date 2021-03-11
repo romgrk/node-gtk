@@ -165,8 +165,7 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
         return GErrorToV8(type_info, (GError *)arg->v_pointer);
 
     default:
-        g_critical("Tag: %s", g_type_tag_to_string(type_tag));
-        g_assert_not_reached ();
+        ERROR("Unhandled tag type: %s", g_type_tag_to_string(type_tag));
     }
 }
 
@@ -792,6 +791,100 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
     default:
         g_assert_not_reached ();
+    }
+
+    return true;
+}
+
+bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null) {
+    /*
+     * This function is really meant for non-primitive types such as ints, etc.
+     * Boxeds & GObjects don't need this because we just avoid copying them
+     * when they appear as out-argument, which means that JS code is directly
+     * modifying the correct structure. In the case of primitive types, JS
+     * cannot do `*myArgument = 42`, this is where this comes into play.
+     *
+     * I think arrays, lists, etc., would not work currently but I haven't seen them
+     * used as out argument so we'll skip the implementation for now, until there is
+     * a bug report.
+     */
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    if (value->IsUndefined () || value->IsNull ()) {
+        arg->v_pointer = NULL;
+
+        if (!may_be_null && type_tag != GI_TYPE_TAG_VOID) {
+            Nan::ThrowTypeError("Cannot convert null/undefined value");
+            return false;
+        }
+
+        return true;
+    }
+
+    switch (type_tag) {
+    case GI_TYPE_TAG_BOOLEAN:
+        *(gboolean*)arg->v_pointer = Nan::To<bool> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_INT8:
+        *(gint8*)arg->v_pointer = Nan::To<int32_t> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_INT16:
+        *(gint16*)arg->v_pointer = Nan::To<int32_t> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_INT32:
+        *(gint*)arg->v_pointer = Nan::To<int32_t> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_INT64:
+        *(gint64*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_UINT8:
+        *(guint8*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_UINT16:
+        *(guint16*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_UINT32:
+        *(guint*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_UINT64:
+        *(guint64*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_FLOAT:
+        *(gfloat*)arg->v_pointer = Nan::To<double> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_DOUBLE:
+        *(gdouble*)arg->v_pointer = Nan::To<double> (value).ToChecked();
+        break;
+    case GI_TYPE_TAG_GTYPE:
+        if (value->IsBigInt())
+            *(gulong*)arg->v_pointer = value.As<v8::BigInt>()->Uint64Value();
+        else
+            *(gulong*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+        break;
+
+    case GI_TYPE_TAG_UTF8:
+        {
+            Nan::Utf8String utf8Value(value);
+            arg->v_pointer = g_strdup(*utf8Value);
+        }
+        break;
+
+    case GI_TYPE_TAG_FILENAME:
+        {
+            Nan::Utf8String utf8Value(value);
+            arg->v_pointer = g_filename_from_utf8 (*utf8Value, -1, NULL, NULL, NULL);
+        }
+        break;
+
+    case GI_TYPE_TAG_ARRAY:
+    case GI_TYPE_TAG_INTERFACE:
+    case GI_TYPE_TAG_GLIST:
+    case GI_TYPE_TAG_GSLIST:
+    case GI_TYPE_TAG_GHASH:
+    case GI_TYPE_TAG_ERROR:
+    case GI_TYPE_TAG_UNICHAR:
+    default:
+        ERROR("Cannot convert non-primitive type");
     }
 
     return true;

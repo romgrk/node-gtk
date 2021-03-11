@@ -21,6 +21,7 @@ long         GIArgumentToLength(GITypeInfo *type_info, GIArgument *arg, bool is_
 
 bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value);
 bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value, bool may_be_null);
+bool         V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null);
 void         FreeGIArgument (GITypeInfo *type_info, GIArgument *argument, GITransfer transfer = GI_TRANSFER_EVERYTHING, GIDirection direction = GI_DIRECTION_OUT);
 void         FreeGIArgumentArray (GITypeInfo *type_info, GIArgument *arg, GITransfer transfer = GI_TRANSFER_EVERYTHING, GIDirection direction = GI_DIRECTION_OUT, long length = -1);
 bool         CanConvertV8ToGIArgument (GITypeInfo *type_info, Local<Value> value, bool may_be_null);

@@ -270,6 +270,40 @@ GITypeTag GetStorageType (GITypeInfo *type_info) {
 
 namespace Type {
 
+bool IsVoid (GITypeInfo *type_info) {
+    GITypeTag tag = g_type_info_get_tag (type_info);
+
+    switch (tag) {
+    case GI_TYPE_TAG_VOID:
+        return true;
+
+    case GI_TYPE_TAG_BOOLEAN:
+    case GI_TYPE_TAG_INT8:
+    case GI_TYPE_TAG_UINT8:
+    case GI_TYPE_TAG_INT16:
+    case GI_TYPE_TAG_UINT16:
+    case GI_TYPE_TAG_INT32:
+    case GI_TYPE_TAG_UINT32:
+    case GI_TYPE_TAG_INT64:
+    case GI_TYPE_TAG_UINT64:
+    case GI_TYPE_TAG_FLOAT:
+    case GI_TYPE_TAG_DOUBLE:
+    case GI_TYPE_TAG_GTYPE:
+    case GI_TYPE_TAG_UNICHAR:
+    case GI_TYPE_TAG_INTERFACE:
+    case GI_TYPE_TAG_ARRAY:
+    case GI_TYPE_TAG_UTF8:
+    case GI_TYPE_TAG_FILENAME:
+    case GI_TYPE_TAG_GLIST:
+    case GI_TYPE_TAG_GSLIST:
+    case GI_TYPE_TAG_GHASH:
+    case GI_TYPE_TAG_ERROR:
+        return false;
+    }
+
+    ERROR("Unhandled tag type: %s", g_type_tag_to_string(tag));
+}
+
 bool IsPrimitive (GITypeInfo *type_info) {
     GITypeTag tag = g_type_info_get_tag (type_info);
 
