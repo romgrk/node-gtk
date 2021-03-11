@@ -36,6 +36,7 @@ GQuark object_quark (void);
 GQuark template_quark (void);
 GQuark constructor_quark (void);
 GQuark function_quark (void);
+GQuark vfuncs_quark (void);
 GQuark dynamic_type_quark (void);
 
 
@@ -94,6 +95,10 @@ public:
         g_base_info_unref(_info);
         _info = nullptr;
         return info;
+    }
+
+    inline bool isEmpty() {
+        return _info == nullptr;
     }
 
     inline GIInfoType type() {

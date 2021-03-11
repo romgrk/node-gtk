@@ -15,6 +15,7 @@
 #include "value.h"
 
 using v8::Array;
+using v8::BigInt;
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -28,6 +29,8 @@ using Nan::Persistent;
 using Nan::FunctionCallbackInfo;
 using Nan::WeakCallbackType;
 
+#define OFFSET_NOT_FOUND 0xffff
+
 namespace GNodeJS {
 
 // Our base template for all GObjects
@@ -37,6 +40,8 @@ static Nan::Persistent<FunctionTemplate> baseTemplate;
 static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data);
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
 static MaybeLocal<Function>         GetClass(GType gtype);
+static void StoreVFunc(GType gtype, Callback *callback);
+static void DestroyVFuncs(GType gtype);
 
 
 static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
@@ -175,6 +180,8 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
     GType* gtypePtr = info.GetParameter();
     GType gtype = *gtypePtr;
 
+    DestroyVFuncs(gtype);
+
     auto persistentTpl = (Persistent<FunctionTemplate> *)
         g_type_get_qdata (gtype, GNodeJS::template_quark());
     auto persistentFn  = (Persistent<Function> *)
@@ -284,6 +291,23 @@ out:
     return signalInfo;
 }
 
+static void StoreVFunc(GType gtype, Callback *callback) {
+    auto vfuncList = (GSList*) g_type_get_qdata(gtype, GNodeJS::vfuncs_quark());
+    vfuncList = g_slist_prepend(vfuncList, (gpointer) callback);
+    g_type_set_qdata(gtype, GNodeJS::vfuncs_quark(), vfuncList);
+}
+
+static void DestroyVFuncs(GType gtype) {
+    /* Destroy vfunc list, if any */
+    GSList *list = (GSList *) g_type_get_qdata (gtype, GNodeJS::vfuncs_quark());
+    GSList *item = list;
+    while ((item = g_slist_next (item)) != NULL) {
+        auto callback = (Callback *) item->data;
+        delete callback;
+    }
+    g_slist_free (list);
+    g_type_set_qdata (gtype, GNodeJS::vfuncs_quark(), NULL);
+}
 
 NAN_METHOD(SignalConnect) {
     bool after = false;
@@ -725,7 +749,7 @@ constexpr GTypeInfo gobject_class_info = {
 };
 
 static void TypeQuerySafe(GType type, GTypeQuery* query) {
-    while (g_type_get_qdata(type, dynamic_type_quark()))
+    while (g_type_get_qdata(type, GNodeJS::dynamic_type_quark()))
         type = g_type_parent(type);
     g_type_query(type, query);
 }
@@ -822,13 +846,13 @@ NAN_METHOD(RegisterClass) {
 
 NAN_METHOD(RegisterVFunc) {
     auto jsVFuncInfo  = info[0].As<Object>();
-    auto jsKlassGType = info[1].As<Number>();
+    auto jsKlassGType = info[1].As<BigInt>();
     auto jsName       = info[2].As<String>();
     auto jsFunction   = info[3].As<Function>();
 
     Nan::Utf8String utf8Name(jsName);
 
-    GType klassGType = Nan::To<uint32_t>(jsKlassGType).ToChecked();
+    GType klassGType = jsKlassGType->Uint64Value();
 
     BaseInfo vfuncInfo(jsVFuncInfo);
 
@@ -838,17 +862,21 @@ NAN_METHOD(RegisterVFunc) {
             &implementor_vtable, &fieldInfo))
         return;
 
-    if (!*fieldInfo)
+    if (fieldInfo.isEmpty())
         return;
 
     auto offset = g_field_info_get_offset(*fieldInfo);
-    auto functionPtr = G_STRUCT_MEMBER_P(implementor_vtable, offset);
 
-    // XXX: this is not right at all
-    // auto callback = new Callback(jsFunction, *vfuncInfo, GI_SCOPE_TYPE_NOTIFIED);
-    // g_closure_add_invalidate_notifier(
-    //     callback->closure, callback, Callback::DestroyNotify);
-    // *reinterpret_cast<ffi_closure**>(functionPtr) = callback->closure;
+    /* Abort if vfunc offset not found */
+    if (offset == OFFSET_NOT_FOUND)
+        ERROR("Virtual function offset not found (%s.%s)",
+                g_type_name(klassGType), vfuncInfo.name());
+
+    auto functionPtr = G_STRUCT_MEMBER_P(implementor_vtable, offset);
+    auto callback = new Callback(jsFunction, *vfuncInfo, GI_SCOPE_TYPE_NOTIFIED);
+    StoreVFunc(klassGType, callback);
+
+    *reinterpret_cast<ffi_closure**>(functionPtr) = callback->closure;
 
     RETURN(true);
     return;

@@ -25,7 +25,9 @@ namespace GNodeJS {
     G_DEFINE_QUARK(gnode_js_template,     template);
     G_DEFINE_QUARK(gnode_js_constructor,  constructor);
     G_DEFINE_QUARK(gnode_js_function,     function);
+    G_DEFINE_QUARK(gnode_js_vfuncs,       vfuncs);
     G_DEFINE_QUARK(gnode_js_dynamic_type, dynamic_type);
+
 
     Nan::Persistent<Object> moduleCache(Nan::New<Object>());
 

@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "error.h"
 #include "loop.h"
+#include "macros.h"
 #include "type.h"
 #include "value.h"
 
@@ -76,6 +77,10 @@ void Callback::Execute (void *result, GIArgument **gi_args, Callback *callback) 
     Local<Context> context = Context::New(isolate);
     Context::Scope context_scope(context);
 
+    bool isVFunc = g_base_info_get_type(callback->info) == GI_INFO_TYPE_VFUNC;
+
+    /* Skip the object instance in first place */
+    int args_offset = isVFunc ? 1 : 0;
     int n_native_args = g_callable_info_get_n_args(callback->info);
 
     #ifndef __linux__
@@ -90,7 +95,7 @@ void Callback::Execute (void *result, GIArgument **gi_args, Callback *callback) 
         g_callable_info_load_arg (callback->info, i, &arg_info);
         g_arg_info_load_type (&arg_info, &arg_type);
 
-        js_args[i] = GIArgumentToV8 (&arg_type, gi_args[i]);
+        js_args[i] = GIArgumentToV8 (&arg_type, gi_args[i + args_offset]);
     }
 
     Local<Function> function = Nan::New<Function>(callback->persistent);
@@ -105,6 +110,8 @@ void Callback::Execute (void *result, GIArgument **gi_args, Callback *callback) 
     if (!return_value.IsEmpty()) {
         GITypeInfo type_info;
         g_callable_info_load_return_type (callback->info, &type_info);
+
+        // TODO: handle OUT arguments
 
         bool didConvert = V8ToGIArgument (
                 &type_info,
