@@ -702,8 +702,6 @@ static GObject* ClassConstructor(
     GType type, unsigned n_construct_properties,
     GObjectConstructParam* construct_properties) {
 
-    LOG("gtype = %lu, n_props = %u", type, n_construct_properties);
-
     /* FIXME: handle case where object is not constructed from
      * JS (eg Gtk.Builder) */
 
@@ -770,7 +768,6 @@ static bool FindVFuncInfo(GType implementor_gtype,
 
     auto ancestorInfo = BaseInfo(g_base_info_get_container(info));
     auto ancestorGType = g_registered_type_info_get_g_type(*ancestorInfo);
-    LOG("%s.%s %lu", ancestorInfo.ns(), ancestorInfo.name(), ancestorGType);
 
     auto implementor_class = (GTypeInstance*) g_type_class_ref(implementor_gtype);
     BaseInfo structInfo;
