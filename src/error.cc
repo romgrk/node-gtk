@@ -2,19 +2,21 @@
 
 #include "type.h"
 
-using v8::Array;
-using v8::External;
-using v8::Function;
-using v8::FunctionTemplate;
-using v8::Isolate;
 using v8::Local;
-using v8::Persistent;
-using v8::String;
 using v8::Value;
 
 namespace GNodeJS {
 
 namespace Throw {
+
+void Error(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    char* message = g_strdup_vprintf(format, args);
+    va_end(args);
+    Nan::ThrowError(message);
+    g_free(message);
+}
 
 void GError(const char* domain, GError* error) {
     char* message = g_strdup_printf("%s: %s", domain, error->message);
