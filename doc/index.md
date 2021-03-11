@@ -8,6 +8,7 @@ Node-Gtk is essentially a *thin* layer over native libraries. As such, understan
   3. [Structs & Unions](#3.-structs-&-unions)
   4. [GObjects](#4.-gobjects)
   5. [Naming conventions](#5.-naming-conventions)
+  6. [Function calls](#6.function-calls)
 
 ## 1. Loading a library
 
@@ -226,3 +227,41 @@ Here is a recap of the naming conventions.
    Example:  
    `gtkEntry.on('key-press-event', (ev) => { ... })`
 
+## 6. Function calls
+
+Translation function calls from and to native languages comes with a few gotchas,
+given that some concepts are not available in javascript, such as pointers.
+
+#### Out-arguments
+
+Out arguments are arguments that are used to return a value from a function by
+passing a pointer to a pointer. When JS code is calling into C code, node-gtk
+provides them automatically and you don't need to worry about them. If there is
+more than one return value from the C function, such as the return value plus one
+out-argument, or no return value plus two out-arguments, then node-gtk will wrap
+all the return values in an array, starting with the real return value.
+
+In the case of C code calling into JS code, such as with the [`GtkWidget.measure`](https://developer.gnome.org/gtk4/stable/GtkWidget.html#gtk-widget-measure)
+virtual function, the JS code must return the out-arguments as return values, plus
+the real return value in the first position of the array if there is one.
+
+```c
+void
+gtk_widget_measure (GtkWidget *widget,
+                    GtkOrientation orientation,
+                    int for_size,
+                    int *minimum,
+                    int *natural,
+                    int *minimum_baseline,
+                    int *natural_baseline);
+```
+
+```javascript
+class NewWidget extends Gtk.Widget {
+  measure(orientation, forSize, ...args) {
+    // all out-argument values in `args` have been replace with `null`
+    // ...calculate dimensions...
+    return [min, nat, minBaseline, natBaseline]
+  }
+}
+```
