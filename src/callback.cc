@@ -180,10 +180,6 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
                 g_callable_info_load_arg (callback->info, i, &arg_info);
                 g_arg_info_load_type (&arg_info, &arg_type);
 
-                LOG("argument %s : pointer %i",
-                    g_base_info_get_name(&arg_info),
-                    g_type_info_is_pointer(&arg_type));
-
                 success = V8ToOutGIArgument(
                         &arg_type,
                         args[i + args_offset],

@@ -149,9 +149,13 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
     }
 
     /* User code calling `new Gtk.Widget({ ... })` */
-    // gtype = (GType) External::Cast(*info.Data())->Value();
+
+    // FIXME: getting the gtype from the External is faster but doesn't
+    // work for dynamically-registered types. Check if we can find something
+    // better.
+    //gtype = (GType) External::Cast(*info.Data())->Value();
     gtype = GET_OBJECT_GTYPE (Nan::To<Object>(self->GetPrototype()).ToLocalChecked());
-    LOG("name = %s", g_type_name(gtype));
+
     gobject = CreateGObjectFromObject (gtype, info[0]);
 
     if (gobject == NULL) {
