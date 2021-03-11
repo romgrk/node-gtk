@@ -5,9 +5,6 @@
 #include "util.h"
 #include "debug.h"
 
-using v8::FunctionTemplate;
-using v8::Persistent;
-
 namespace GNodeJS {
 
 char *GetInfoName (GIBaseInfo* info) {
@@ -217,52 +214,42 @@ gsize GetComplexTypeSize (GIBaseInfo *info) {
     }
 }
 
-gsize GetTypeTagSize (GITypeTag type_tag) {
-    switch (type_tag) {
-        case GI_TYPE_TAG_BOOLEAN:
-            return sizeof (gboolean);
-            break;
-        case GI_TYPE_TAG_INT8:
-        case GI_TYPE_TAG_UINT8:
-            return sizeof (gint8);
-            break;
-        case GI_TYPE_TAG_INT16:
-        case GI_TYPE_TAG_UINT16:
-            return sizeof (gint16);
-            break;
-        case GI_TYPE_TAG_INT32:
-        case GI_TYPE_TAG_UINT32:
-            return sizeof (gint32);
-            break;
-        case GI_TYPE_TAG_INT64:
-        case GI_TYPE_TAG_UINT64:
-            return sizeof (gint64);
-            break;
-        case GI_TYPE_TAG_FLOAT:
-            return sizeof (gfloat);
-            break;
-        case GI_TYPE_TAG_DOUBLE:
-            return sizeof (gdouble);
-            break;
-        case GI_TYPE_TAG_GTYPE:
-            return sizeof (GType);
-            break;
-        case GI_TYPE_TAG_UNICHAR:
-            return sizeof (gunichar);
-            break;
-        case GI_TYPE_TAG_VOID:
-        case GI_TYPE_TAG_UTF8:
-        case GI_TYPE_TAG_FILENAME:
-        case GI_TYPE_TAG_ARRAY:
-        case GI_TYPE_TAG_INTERFACE:
-        case GI_TYPE_TAG_GLIST:
-        case GI_TYPE_TAG_GSLIST:
-        case GI_TYPE_TAG_GHASH:
-        case GI_TYPE_TAG_ERROR:
-            g_assert_not_reached ();
+gsize GetTypeTagSize (GITypeTag tag) {
+    switch (tag) {
+    case GI_TYPE_TAG_BOOLEAN:
+        return sizeof (gboolean);
+    case GI_TYPE_TAG_INT8:
+    case GI_TYPE_TAG_UINT8:
+        return sizeof (gint8);
+    case GI_TYPE_TAG_INT16:
+    case GI_TYPE_TAG_UINT16:
+        return sizeof (gint16);
+    case GI_TYPE_TAG_INT32:
+    case GI_TYPE_TAG_UINT32:
+        return sizeof (gint32);
+    case GI_TYPE_TAG_INT64:
+    case GI_TYPE_TAG_UINT64:
+        return sizeof (gint64);
+    case GI_TYPE_TAG_FLOAT:
+        return sizeof (gfloat);
+    case GI_TYPE_TAG_DOUBLE:
+        return sizeof (gdouble);
+    case GI_TYPE_TAG_GTYPE:
+        return sizeof (GType);
+    case GI_TYPE_TAG_UNICHAR:
+        return sizeof (gunichar);
+    case GI_TYPE_TAG_VOID:
+    case GI_TYPE_TAG_UTF8:
+    case GI_TYPE_TAG_FILENAME:
+    case GI_TYPE_TAG_ARRAY:
+    case GI_TYPE_TAG_INTERFACE:
+    case GI_TYPE_TAG_GLIST:
+    case GI_TYPE_TAG_GSLIST:
+    case GI_TYPE_TAG_GHASH:
+    case GI_TYPE_TAG_ERROR:
+    default:
+        ERROR("Unhandled tag type: %s", g_type_tag_to_string(tag));
     }
-
-    return 0;
 }
 
 GITypeTag GetStorageType (GITypeInfo *type_info) {
@@ -279,6 +266,44 @@ GITypeTag GetStorageType (GITypeInfo *type_info) {
     }
 
     return type_tag;
+}
+
+namespace Type {
+
+bool IsPrimitive (GITypeInfo *type_info) {
+    GITypeTag tag = g_type_info_get_tag (type_info);
+
+    switch (tag) {
+    case GI_TYPE_TAG_BOOLEAN:
+    case GI_TYPE_TAG_INT8:
+    case GI_TYPE_TAG_UINT8:
+    case GI_TYPE_TAG_INT16:
+    case GI_TYPE_TAG_UINT16:
+    case GI_TYPE_TAG_INT32:
+    case GI_TYPE_TAG_UINT32:
+    case GI_TYPE_TAG_INT64:
+    case GI_TYPE_TAG_UINT64:
+    case GI_TYPE_TAG_FLOAT:
+    case GI_TYPE_TAG_DOUBLE:
+    case GI_TYPE_TAG_GTYPE:
+    case GI_TYPE_TAG_UNICHAR:
+        return true;
+
+    case GI_TYPE_TAG_INTERFACE:
+    case GI_TYPE_TAG_ARRAY:
+    case GI_TYPE_TAG_VOID:
+    case GI_TYPE_TAG_UTF8:
+    case GI_TYPE_TAG_FILENAME:
+    case GI_TYPE_TAG_GLIST:
+    case GI_TYPE_TAG_GSLIST:
+    case GI_TYPE_TAG_GHASH:
+    case GI_TYPE_TAG_ERROR:
+        return false;
+    }
+
+    ERROR("Unhandled tag type: %s", g_type_tag_to_string(tag));
+}
+
 }
 
 };
