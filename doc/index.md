@@ -229,7 +229,7 @@ Here is a recap of the naming conventions.
 
 ## 6. Function calls
 
-Translation function calls from and to native languages comes with a few gotchas,
+Translating function calls from and to native languages comes with a few gotchas,
 given that some concepts are not available in javascript, such as pointers.
 
 #### Out-arguments
