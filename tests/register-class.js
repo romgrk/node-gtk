@@ -5,8 +5,8 @@
 const { describe, it, mustThrow, expect } = require('./__common__')
 
 const gi = require('..')
+const GObject = gi.require('GObject')
 const Gtk = gi.require('Gtk', '3.0'); Gtk.init([])
-// const Gtk = gi.require('Gtk', '4.0') // FIXME: CI doesn't have gtk4
 
 
 describe('registerClass', () => {
@@ -15,21 +15,23 @@ describe('registerClass', () => {
 
     class CustomWidget extends Gtk.Widget {
       static GTypeName = 'NodeGTKCustomWidget'
-      static signals = {} // TBD
-      static properties = {} // TBD
-      measure() {}
-      snapshot() {
-        console.log('snapshot')
-      }
+      focus() {}
+    }
+    class DerivedWidget extends CustomWidget {
+      focus() {}
     }
 
     gi.registerClass(CustomWidget)
+    gi.registerClass(DerivedWidget)
 
-    // XXX: this segfaults
-    const button = new Gtk.Button()
     const custom = new CustomWidget()
-    console.log(button)
+    const derived = new DerivedWidget()
     console.log(custom)
+    console.log(derived)
+    expect(custom instanceof Gtk.Widget, true)
+    expect(derived instanceof Gtk.Widget, true)
+    expect(GObject.typeName(custom.__gtype__), CustomWidget.GTypeName)
+    expect(GObject.typeName(derived.__gtype__), DerivedWidget.name)
   })
 
   it('fails with invalid GTypeName',

@@ -842,6 +842,8 @@ NAN_METHOD(RegisterClass) {
 
     g_type_set_qdata(instanceType, GNodeJS::dynamic_type_quark(), GINT_TO_POINTER(1));
 
+    // FIXME: need to link klass destruction to GObjectClassDestroyed
+
     RETURN(v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), instanceType));
 }
 

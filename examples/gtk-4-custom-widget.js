@@ -29,8 +29,9 @@ class CustomWidget extends Gtk.Widget {
   }
 
   snapshot(snapshot) {
+    const width = this.getAllocatedWidth()
     const color = Gdk.RGBA.create('red')
-    const rect = Graphene.Rect.create(10, 10, 70, 10)
+    const rect = Graphene.Rect.create(10, 10, width / 2, 10)
     snapshot.appendColor(color, rect)
   }
 }
