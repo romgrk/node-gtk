@@ -62,9 +62,10 @@ public:
         this->clear();
     };
 
-    inline GIBaseInfo& operator= (GIBaseInfo *info) {
+    inline BaseInfo& operator= (GIBaseInfo *info) {
         this->clear();
         _info = info;
+        return *this;
     }
 
     inline GIBaseInfo* operator* () {
