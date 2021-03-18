@@ -21,10 +21,13 @@ using GNodeJS::BaseInfo;
 
 namespace GNodeJS {
 
-    G_DEFINE_QUARK(gnode_js_object,      object);
-    G_DEFINE_QUARK(gnode_js_template,    template);
-    G_DEFINE_QUARK(gnode_js_constructor, constructor);
-    G_DEFINE_QUARK(gnode_js_function,    function);
+    G_DEFINE_QUARK(gnode_js_object,       object);
+    G_DEFINE_QUARK(gnode_js_template,     template);
+    G_DEFINE_QUARK(gnode_js_constructor,  constructor);
+    G_DEFINE_QUARK(gnode_js_function,     function);
+    G_DEFINE_QUARK(gnode_js_vfuncs,       vfuncs);
+    G_DEFINE_QUARK(gnode_js_dynamic_type, dynamic_type);
+
 
     Nan::Persistent<Object> moduleCache(Nan::New<Object>());
 
@@ -264,41 +267,59 @@ NAN_METHOD(StructFieldSetter) {
 }
 
 NAN_METHOD(StructFieldGetter) {
-    Local<Object> boxedWrapper = info[0].As<Object>();
-    Local<Object> fieldInfo    = info[1].As<Object>();
+    Local<Object> jsBoxed     = info[0].As<Object>();
+    Local<Object> jsFieldInfo = info[1].As<Object>();
 
-    if (boxedWrapper->InternalFieldCount() == 0) {
+    if (jsBoxed->InternalFieldCount() == 0) {
         Nan::ThrowError("StructFieldGetter: instance is not a boxed");
         return;
     }
 
-    if (fieldInfo->InternalFieldCount() == 0) {
+    if (jsFieldInfo->InternalFieldCount() == 0) {
         Nan::ThrowError("StructFieldGetter: field info is invalid");
         return;
     }
 
-    void        *boxed = GNodeJS::PointerFromWrapper(boxedWrapper);
-    GIFieldInfo *field = (GIFieldInfo *) GNodeJS::PointerFromWrapper(fieldInfo);
+    auto boxed = GNodeJS::PointerFromWrapper(jsBoxed);
+    // ref it because the unwrapped ref belongs to the JS wrapper
+    BaseInfo fieldInfo =
+        g_base_info_ref((GIFieldInfo *) GNodeJS::PointerFromWrapper(jsFieldInfo));
 
     if (boxed == NULL) {
         Nan::ThrowError("StructFieldGetter: instance is NULL");
         return;
     }
 
-    if (field == NULL) {
+    if (fieldInfo.isEmpty()) {
         Nan::ThrowError("StructFieldGetter: field info is NULL");
         return;
     }
 
     GIArgument value;
-    if (!g_field_info_get_field(field, boxed, &value)) {
-        Nan::ThrowError("Unable to get field (complex types not allowed)");
+    bool mustCopy = true;
+    BaseInfo typeInfo = g_field_info_get_type(*fieldInfo);
+
+    if (!g_field_info_get_field(*fieldInfo, boxed, &value)) {
+        /* If g_field_info_get_field() failed, this is a non-primitive type */
+
+        // NOTE: The following lines do work if uncommented, however
+        // allowing the user to access substructures is unwise because the
+        // intermediary objects don't own their memory and would need to be
+        // tracked to ensure their lifetime is linked to the object
+        // owning the memory. We will avoid doing that unless required, but
+        // ideally libraries should expose accessor methods for introspected
+        // languages.
+
+        // auto offset = g_field_info_get_offset(*fieldInfo);
+        // auto fieldPtr = G_STRUCT_MEMBER_P(boxed, offset);
+        // value.v_pointer = fieldPtr;
+        // mustCopy = false;
+
+        Nan::ThrowError("Converting non-primitive fields is not allowed");
         return;
     }
 
-    GITypeInfo  *field_type = g_field_info_get_type(field);
-    RETURN(GNodeJS::GIArgumentToV8(field_type, &value));
-    g_base_info_unref (field_type);
+    RETURN(GNodeJS::GIArgumentToV8(*typeInfo, &value, -1, mustCopy));
 }
 
 NAN_METHOD(StartLoop) {
@@ -326,11 +347,21 @@ NAN_METHOD(GetModuleCache) {
     info.GetReturnValue().Set(Nan::New<Object>(GNodeJS::moduleCache));
 }
 
+NAN_METHOD(RegisterClass) {
+    GNodeJS::ObjectClass::RegisterClass(info);
+}
+
+NAN_METHOD(RegisterVFunc) {
+    GNodeJS::ObjectClass::RegisterVFunc(info);
+}
+
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     GNodeJS::AsyncCallEnvironment::Initialize();
 
     NAN_EXPORT(exports, Bootstrap);
     NAN_EXPORT(exports, GetModuleCache);
+    NAN_EXPORT(exports, GetBaseClass);
+    NAN_EXPORT(exports, GetTypeSize);
     NAN_EXPORT(exports, GetConstantValue);
     NAN_EXPORT(exports, MakeBoxedClass);
     NAN_EXPORT(exports, MakeObjectClass);
@@ -341,9 +372,9 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     NAN_EXPORT(exports, ObjectPropertyGetter);
     NAN_EXPORT(exports, ObjectPropertySetter);
     NAN_EXPORT(exports, StartLoop);
-    NAN_EXPORT(exports, GetBaseClass);
-    NAN_EXPORT(exports, GetTypeSize);
     NAN_EXPORT(exports, GetLoopStack);
+    NAN_EXPORT(exports, RegisterClass);
+    NAN_EXPORT(exports, RegisterVFunc);
 
     Nan::Set(exports, UTF8("System"), GNodeJS::System::GetModule());
     Nan::Set(exports, UTF8("Cairo"),  GNodeJS::Cairo::GetModule());

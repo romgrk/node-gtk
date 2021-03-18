@@ -21,12 +21,12 @@ struct Callback {
     GIScopeType scope_type;
     Parameter* call_parameters;
 
-    Callback(Local<Function> function, GICallableInfo* info, GIArgInfo* arg_info);
+    Callback(Local<Function> fn, GICallableInfo* callback_info, GIScopeType scope_type_);
     ~Callback();
 
     static void DestroyNotify (void* user_data);
     static void AsyncFree ();
-    static void Execute (void *result, GIArgument **args, Callback *callback);
+    static void Execute (GIArgument *result, GIArgument **args, Callback *callback);
     static void Call (ffi_cif *cif, void *result, void **args, gpointer user_data);
 };
 

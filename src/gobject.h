@@ -20,6 +20,13 @@ Local<Value>            WrapperFromGObject   (GObject *object);
 GObject *               GObjectFromWrapper   (Local<Value> value);
 Local<FunctionTemplate> GetBaseClassTemplate ();
 Local<Value>            GetGObjectProperty   (GObject * gobject, const char *prop_name);
-Local<v8::Boolean>          SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);
+Local<v8::Boolean>      SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);
+
+namespace ObjectClass {
+
+NAN_METHOD(RegisterClass);
+NAN_METHOD(RegisterVFunc);
+
+};
 
 };

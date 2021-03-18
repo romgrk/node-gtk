@@ -3,11 +3,13 @@
 Node-Gtk is essentially a *thin* layer over native libraries. As such, understanding how to use the different gobject-introspected libraries depends on understanding first how the library itself works, second on how to call the library with node-gtk. This documentation covers the node-gtk part, and aims at giving you the information you need to be able to easily translate any C code into nodejs code. Refer to the library's documentation to understand how to use it.
 
 #### Table of contents
-  1. [Loading a library](#1.-loading-a-library)
-  2. [Data types](#2.-data-types)
-  3. [Structs & Unions](#3.-structs-&-unions)
-  4. [GObjects](#4.-gobjects)
-  5. [Naming conventions](#5.-naming-conventions)
+  1. [Loading a library](#1-loading-a-library)
+  2. [Data types](#2-data-types)
+  3. [Structs & Unions](#3-structs-&-unions)
+  4. [GObjects](#4-gobjects)
+  5. [Naming conventions](#5-naming-conventions)
+  6. [Function calls](#6-function-calls)
+  7. [Common pitfalls](#7-common-pitfalls)
 
 ## 1. Loading a library
 
@@ -186,6 +188,21 @@ Low-level methods `.connect(name: string, callback: Fn): number` and
 `.disconnect(name: string, handleID: number): void` are also available but not
 recommended.
 
+#### Inheritance
+
+It is possible to extend existing GObjects by inheriting from them. You also need to
+register them with the type system for fuller integration and to enable virtual
+functions.
+
+```javascript
+class CustomWidget extends Gtk.Widget {
+  static GTypeName = 'NodeGTKCustomWidget'
+  focus() {} /* This is a virtual function */
+}
+gi.registerClass(CustomWidget)
+```
+
+
 ## 5. Naming conventions
 
 Here is a recap of the naming conventions.
@@ -225,4 +242,59 @@ Here is a recap of the naming conventions.
    Events triggered by GObjects.  
    Example:  
    `gtkEntry.on('key-press-event', (ev) => { ... })`
+
+## 6. Function calls
+
+Translating function calls from and to native languages comes with a few gotchas,
+given that some concepts are not available in javascript, such as pointers.
+
+#### Out-arguments
+
+Out arguments are arguments that are used to return a value from a function by
+passing a pointer to a pointer. When JS code is calling into C code, node-gtk
+provides them automatically and you don't need to worry about them. If there is
+more than one return value from the C function, such as the return value plus one
+out-argument, or no return value plus two out-arguments, then node-gtk will wrap
+all the return values in an array, starting with the real return value.
+
+In the case of C code calling into JS code, such as with the [`GtkWidget.measure`](https://developer.gnome.org/gtk4/stable/GtkWidget.html#gtk-widget-measure)
+virtual function, the JS code must return the out-arguments as return values, plus
+the real return value in the first position of the array if there is one.
+
+```c
+void
+gtk_widget_measure (GtkWidget *widget,
+                    GtkOrientation orientation,
+                    int for_size,
+                    int *minimum,
+                    int *natural,
+                    int *minimum_baseline,
+                    int *natural_baseline);
+```
+
+```javascript
+class NewWidget extends Gtk.Widget {
+  measure(orientation, forSize, ...args) {
+    // all out-argument values in `args` have been replace with `null`
+    // ...calculate dimensions...
+    return [min, nat, minBaseline, natBaseline]
+  }
+}
+```
+
+
+## 7. Common pitfalls
+
+The bindings are sometimes a bit raw in that they provide you direct access to C functions.
+It is very possible for you to cause a segfault by misusing any library. Here are a few common errors.
+
+<details>
+  <summary><b>Gtk & Gdk initialization</b></summary>
+  Call `Gtk.init()` and `Gdk.init()` before using anything from those modules.
+</details>
+
+<details>
+  <summary><b>Trying to get a Gdk display causes a segfault</b></summary>
+  If you're under X11, you'll need to call `gi.require('GdkX11', 'x.x')`.
+</details>
 

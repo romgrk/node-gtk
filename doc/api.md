@@ -8,6 +8,7 @@ This is the documentation for the API of node-gtk itself. For documentation on t
 - **[prependSearchPath(path)](#prepend-search-path)**
 - **[prependLibraryPath(path)](#prepend-library-path)**
 - **[listAvailableModules()](#list-available-modules)**
+- **[registerClass(klass)](#register-class-klass)**
 
 <a id="require" />
 
@@ -49,3 +50,14 @@ Prepends a path to GObject-Introspection library path (for shared libraries)
 Returns a list of available modules
 
 **Returns**: `Promise<ModuleDescription[]>`
+
+<a id="register-class-klass" />
+
+#### registerClass(klass)
+
+Prepends a path to GObject-Introspection library path (for shared libraries)
+
+| Param | Type     |
+| ----- | -------- |
+| klass  | `object` |
+

@@ -20,11 +20,13 @@
 
 #define NOT_A_GTYPE ((GType) -1)
 
-#define GET_OBJECT_GTYPE(target) (GType) Nan::To<int64_t>(Nan::Get(target, UTF8("__gtype__")).ToLocalChecked()).ToChecked()
+#define GET_OBJECT_GTYPE(target) \
+    (GType) Nan::Get(target, UTF8("__gtype__")).ToLocalChecked().As<v8::BigInt>()->Uint64Value()
+
 #define SET_OBJECT_GTYPE(target, value) \
     Nan::DefineOwnProperty(target, \
             UTF8("__gtype__"), \
-            Nan::New<Number>(value), \
+            v8::BigInt::NewFromUnsigned(v8::Isolate::GetCurrent(), (value)), \
             (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum) \
     )
 

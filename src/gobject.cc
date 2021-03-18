@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "boxed.h"
+#include "callback.h"
 #include "closure.h"
 #include "debug.h"
 #include "error.h"
@@ -14,6 +15,7 @@
 #include "value.h"
 
 using v8::Array;
+using v8::BigInt;
 using v8::External;
 using v8::Function;
 using v8::FunctionTemplate;
@@ -22,10 +24,12 @@ using v8::MaybeLocal;
 using v8::Number;
 using v8::Object;
 using v8::String;
-using v8::Persistent;
 using Nan::New;
+using Nan::Persistent;
 using Nan::FunctionCallbackInfo;
 using Nan::WeakCallbackType;
+
+#define OFFSET_NOT_FOUND 0xffff
 
 namespace GNodeJS {
 
@@ -33,9 +37,11 @@ namespace GNodeJS {
 static Nan::Persistent<FunctionTemplate> baseTemplate;
 
 
-static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data);
+static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data);
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
 static MaybeLocal<Function>         GetClass(GType gtype);
+static void StoreVFunc(GType gtype, Callback *callback);
+static void DestroyVFuncs(GType gtype);
 
 
 static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
@@ -105,19 +111,19 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
     }
 }
 
-static void AssociateGObject(Isolate *isolate, Local<Object> object, GObject *gobject) {
+static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype) {
     object->SetAlignedPointerInInternalField (0, gobject);
+
+    SET_OBJECT_GTYPE(object, gtype);
 
     g_object_ref_sink (gobject);
     g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
 
-    Persistent<Object> *persistent = new Persistent<Object>(isolate, object);
+    Persistent<Object> *persistent = new Persistent<Object>(object);
     g_object_set_qdata (gobject, GNodeJS::object_quark(), persistent);
 }
 
 static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
-    Isolate *isolate = info.GetIsolate ();
-
     /* The flow of this function is a bit twisty.
 
      * There's two cases for when this code is called:
@@ -130,42 +136,37 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
         return;
     }
 
+    GObject *gobject;
+    GType gtype;
     Local<Object> self = info.This ();
 
     if (info[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromGObject is called. */
-        void *data = External::Cast (*info[0])->Value ();
-        GObject *gobject = G_OBJECT (data);
-        AssociateGObject (isolate, self, gobject);
-
-        Nan::DefineOwnProperty(self,
-                Nan::New<String>("__gtype__").ToLocalChecked(),
-                Nan::New<Number>(G_OBJECT_TYPE(gobject)),
-                (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
-        );
-    } else {
-        /* User code calling `new Gtk.Widget({ ... })` */
-        GObject *gobject;
-        GType gtype = (GType) External::Cast(*info.Data())->Value();
-
-        gobject = CreateGObjectFromObject (gtype, info[0]);
-
-        if (gobject == NULL) {
-            // Error will already be thrown from CreateGObjectFromObject
-            return;
-        }
-
-        AssociateGObject (isolate, self, gobject);
-
-        Nan::DefineOwnProperty(self,
-                UTF8("__gtype__"),
-                Nan::New<Number>(gtype),
-                (v8::PropertyAttribute)(v8::PropertyAttribute::ReadOnly | v8::PropertyAttribute::DontEnum)
-        );
+        gobject = G_OBJECT (External::Cast (*info[0])->Value ());
+        gtype   = G_OBJECT_TYPE (gobject);
+        AssociateGObject(self, gobject, gtype);
+        return;
     }
+
+    /* User code calling `new Gtk.Widget({ ... })` */
+
+    // FIXME: getting the gtype from the External is faster but doesn't
+    // work for dynamically-registered types. Check if we can find something
+    // better.
+    //gtype = (GType) External::Cast(*info.Data())->Value();
+    gtype = GET_OBJECT_GTYPE (Nan::To<Object>(self->GetPrototype()).ToLocalChecked());
+
+    gobject = CreateGObjectFromObject (gtype, info[0]);
+
+    if (gobject == NULL) {
+        // Error will already be thrown from CreateGObjectFromObject
+        return;
+    }
+
+    AssociateGObject(self, gobject, gtype);
 }
 
-static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
+static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data) {
     GObject *gobject = data.GetParameter ();
 
     void *type_data = g_object_get_qdata (gobject, GNodeJS::object_quark());
@@ -179,9 +180,11 @@ static void GObjectDestroyed(const v8::WeakCallbackInfo<GObject> &data) {
     g_object_unref (gobject);
 }
 
-static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GType> &info) {
+static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
     GType* gtypePtr = info.GetParameter();
     GType gtype = *gtypePtr;
+
+    DestroyVFuncs(gtype);
 
     auto persistentTpl = (Persistent<FunctionTemplate> *)
         g_type_get_qdata (gtype, GNodeJS::template_quark());
@@ -193,6 +196,64 @@ static void GObjectClassDestroyed(const v8::WeakCallbackInfo<GType> &info) {
     g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
     g_type_set_qdata (gtype, GNodeJS::function_quark(), NULL);
     g_free(gtypePtr);
+}
+
+static void GObjectFallbackPropertyGetter(Local<v8::Name> property,
+                                            const v8::PropertyCallbackInfo<Value>& info) {
+    auto self = info.Holder();
+    GObject *gobject = GObjectFromWrapper (self);
+
+    g_assert(gobject != NULL);
+
+    Nan::Utf8String prop_name_v (TO_STRING (property));
+    const char *prop_name_camel = *prop_name_v;
+
+    if (strstr(prop_name_camel, "-")) {
+        // Has dash, not a camel-case property name.
+        RETURN(Nan::Undefined());
+        return;
+    }
+
+    char *prop_name = Util::ToDashed(prop_name_camel);
+
+    RETURN(GetGObjectProperty(gobject, prop_name));
+
+    g_free(prop_name);
+}
+
+static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value> value,
+                                            const v8::PropertyCallbackInfo<Value>& info) {
+    auto self = info.Holder();
+    GObject *gobject = GNodeJS::GObjectFromWrapper (self);
+
+    Nan::Utf8String prop_name_v (TO_STRING (property));
+    const char *prop_name_camel = *prop_name_v;
+
+    if (strstr(prop_name_camel, "-")) {
+        // Has dash, not a camel-case property name.
+        return;
+    }
+
+    char *prop_name = Util::ToDashed(prop_name_camel);
+
+    if (gobject == NULL) {
+        WARN("ObjectPropertySetter: null GObject; cant set %s", prop_name);
+        g_free(prop_name);
+        return;
+    }
+
+    v8::TryCatch trycatch(info.GetIsolate());
+    auto setResult = SetGObjectProperty(gobject, prop_name, value);
+    if (setResult.IsEmpty()) {
+        // Non-existent property. We catch the exception and consider the set
+        // not intercepted by not setting return value;
+    } else {
+        // Property exists. Whether we can convert the value and set the
+        // property or not, consider the set intercepted.
+        RETURN(value);
+    }
+
+    g_free(prop_name);
 }
 
 static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *signal_detail) {
@@ -232,6 +293,24 @@ out:
     g_free(signalName);
 
     return signalInfo;
+}
+
+static void StoreVFunc(GType gtype, Callback *callback) {
+    auto vfuncList = (GSList*) g_type_get_qdata(gtype, GNodeJS::vfuncs_quark());
+    vfuncList = g_slist_prepend(vfuncList, (gpointer) callback);
+    g_type_set_qdata(gtype, GNodeJS::vfuncs_quark(), vfuncList);
+}
+
+static void DestroyVFuncs(GType gtype) {
+    /* Destroy vfunc list, if any */
+    GSList *list = (GSList *) g_type_get_qdata (gtype, GNodeJS::vfuncs_quark());
+    GSList *item = list;
+    while ((item = g_slist_next (item)) != NULL) {
+        auto callback = (Callback *) item->data;
+        delete callback;
+    }
+    g_slist_free (list);
+    g_type_set_qdata (gtype, GNodeJS::vfuncs_quark(), NULL);
 }
 
 NAN_METHOD(SignalConnect) {
@@ -412,6 +491,7 @@ NAN_METHOD(GObjectToString) {
     g_free(str);
 }
 
+
 Local<FunctionTemplate> GetBaseClassTemplate() {
     static bool isBaseClassCreated = false;
 
@@ -419,6 +499,7 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
         isBaseClassCreated = true;
 
         Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>();
+        tpl->SetClassName (UTF8("BaseClass"));
         Nan::SetPrototypeMethod(tpl, "connect", SignalConnect);
         Nan::SetPrototypeMethod(tpl, "disconnect", SignalDisconnect);
         Nan::SetPrototypeMethod(tpl, "emit", SignalEmit);
@@ -431,64 +512,6 @@ Local<FunctionTemplate> GetBaseClassTemplate() {
     return tpl;
 }
 
-static void GObjectFallbackPropertyGetter(Local<v8::Name> property,
-                                            const v8::PropertyCallbackInfo<Value>& info) {
-    auto self = info.Holder();
-    GObject *gobject = GObjectFromWrapper (self);
-
-    g_assert(gobject != NULL);
-
-    Nan::Utf8String prop_name_v (TO_STRING (property));
-    const char *prop_name_camel = *prop_name_v;
-
-    if (strstr(prop_name_camel, "-")) {
-        // Has dash, not a camel-case property name.
-        RETURN(Nan::Undefined());
-        return;
-    }
-
-    char *prop_name = Util::ToDashed(prop_name_camel);
-
-    RETURN(GetGObjectProperty(gobject, prop_name));
-
-    g_free(prop_name);
-}
-
-static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value> value,
-                                            const v8::PropertyCallbackInfo<Value>& info) {
-    auto self = info.Holder();
-    GObject *gobject = GNodeJS::GObjectFromWrapper (self);
-
-    Nan::Utf8String prop_name_v (TO_STRING (property));
-    const char *prop_name_camel = *prop_name_v;
-
-    if (strstr(prop_name_camel, "-")) {
-        // Has dash, not a camel-case property name.
-        return;
-    }
-
-    char *prop_name = Util::ToDashed(prop_name_camel);
-
-    if (gobject == NULL) {
-        WARN("ObjectPropertySetter: null GObject; cant set %s", prop_name);
-        g_free(prop_name);
-        return;
-    }
-
-    v8::TryCatch trycatch(info.GetIsolate());
-    auto setResult = SetGObjectProperty(gobject, prop_name, value);
-    if (setResult.IsEmpty()) {
-        // Non-existent property. We catch the exception and consider the set
-        // not intercepted by not setting return value;
-    } else {
-        // Property exists. Whether we can convert the value and set the
-        // property or not, consider the set intercepted.
-        RETURN(value);
-    }
-
-    g_free(prop_name);
-}
-
 static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     g_assert(gtype != G_TYPE_NONE && gtype != G_TYPE_INVALID);
 
@@ -497,6 +520,8 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External>((void *) gtype));
     tpl->SetClassName (UTF8(class_name));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    Nan::SetPrototypeTemplate(
+        tpl, "__gtype__", v8::BigInt::NewFromUnsigned(v8::Isolate::GetCurrent(), gtype));
 
     GType parent_type = g_type_parent(gtype);
     if (parent_type == G_TYPE_INVALID) {
@@ -537,10 +562,12 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
 
     auto tpl = maybeTpl.ToLocalChecked();
     auto fn = Nan::GetFunction (tpl).ToLocalChecked();
-    auto persistentTpl = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
-    auto persistentFn  = new Persistent<Function>(Isolate::GetCurrent(), fn);
+    auto persistentTpl = new Persistent<FunctionTemplate>(tpl);
+    auto persistentFn  = new Persistent<Function>(fn);
 
     GType *gtypePtr = g_new(GType, 1);
+    *gtypePtr = gtype;
+
     persistentTpl->SetWeak(
         gtypePtr, GObjectClassDestroyed, WeakCallbackType::kParameter);
 
@@ -577,7 +604,6 @@ static MaybeLocal<Function> GetClass(GType gtype) {
     ERROR("Could not retrieve function %s", g_type_name(gtype));
     return MaybeLocal<Function> ();
 }
-
 
 MaybeLocal<Function> MakeClass(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
@@ -669,5 +695,196 @@ Local<v8::Boolean> SetGObjectProperty(GObject * gobject, const char *prop_name, 
     g_value_unset(&gvalue);
     return ret;
 }
+
+namespace ObjectClass {
+
+static GObject* ClassConstructor(
+    GType type, unsigned n_construct_properties,
+    GObjectConstructParam* construct_properties) {
+
+    /* FIXME: handle case where object is not constructed from
+     * JS (eg Gtk.Builder) */
+
+    /* The object is being constructed from JS:
+     * Simply chain up to the first non-gjs constructor */
+    GType parent_type = g_type_parent(type);
+
+    while (G_OBJECT_CLASS(g_type_class_peek(parent_type))->constructor == ClassConstructor)
+        parent_type = g_type_parent(parent_type);
+
+    return G_OBJECT_CLASS(g_type_class_peek(parent_type))
+        ->constructor(type, n_construct_properties, construct_properties);
+}
+
+static void ClassSetProperty(GObject* object, unsigned id, const GValue* value, GParamSpec* pspec) {}
+static void ClassGetProperty(GObject* object, unsigned id, GValue* value, GParamSpec* pspec) {}
+
+static void ClassInit(void* klass_pointer, void* data) {
+    GObjectClass* klass = G_OBJECT_CLASS(klass_pointer);
+    GType gtype = G_OBJECT_CLASS_TYPE(klass);
+
+    klass->constructor = ClassConstructor;
+    // klass->set_property = ClassSetProperty;
+    // klass->get_property = ClassGetProperty;
+}
+
+constexpr GTypeFlags gobject_class_flags = (GTypeFlags)0;
+constexpr GTypeInfo gobject_class_info = {
+    /* interface types, classed types, instantiated types */
+    0, // guint16                class_size;
+
+    nullptr, // GBaseInitFunc          base_init;
+    nullptr, // GBaseFinalizeFunc      base_finalize;
+
+    /* interface types, classed types, instantiated types */
+    ClassInit, // GClassInitFunc         class_init;
+    GClassFinalizeFunc(nullptr), // GClassFinalizeFunc     class_finalize;
+    nullptr,  // gconstpointer          class_data;
+
+    /* instantiated types */
+    0,       // guint16                instance_size;
+    0,       // guint16                n_preallocs;
+    nullptr, // GInstanceInitFunc      instance_init;
+
+    /* value handling */
+    nullptr, // const GTypeValueTable *value_table;
+};
+
+static void TypeQuerySafe(GType type, GTypeQuery* query) {
+    while (g_type_get_qdata(type, GNodeJS::dynamic_type_quark()))
+        type = g_type_parent(type);
+    g_type_query(type, query);
+}
+
+static bool FindVFuncInfo(GType implementor_gtype,
+                            GIBaseInfo* info, const char* name,
+                            void** vtable,
+                            GIFieldInfo** fieldInfoOut) {
+    int i, length;
+    bool result = false;
+
+    *vtable = NULL;
+    *fieldInfoOut = NULL;
+
+    auto ancestorInfo = BaseInfo(g_base_info_get_container(info));
+    auto ancestorGType = g_registered_type_info_get_g_type(*ancestorInfo);
+
+    auto implementor_class = (GTypeInstance*) g_type_class_ref(implementor_gtype);
+    BaseInfo structInfo;
+
+    if (ancestorInfo.is(GI_INFO_TYPE_INTERFACE)) {
+        auto implementor_iface_class =
+            (GTypeInstance*) g_type_interface_peek(implementor_class,
+                                                        ancestorGType);
+        if (implementor_iface_class == NULL) {
+            Nan::ThrowError("Couldn't find GType of implementor of interface.");
+            result = false;
+            goto out;
+        }
+
+        *vtable = implementor_iface_class;
+        structInfo = g_interface_info_get_iface_struct(*ancestorInfo);
+    } else {
+        *vtable = implementor_class;
+        structInfo = g_object_info_get_class_struct(*ancestorInfo);
+    }
+
+    length = g_struct_info_get_n_fields(*structInfo);
+    for (i = 0; i < length; i++) {
+        BaseInfo fieldInfo = g_struct_info_get_field(*structInfo, i);
+        if (strcmp(fieldInfo.name(), name) != 0)
+            continue;
+
+        BaseInfo typeInfo = g_field_info_get_type(*fieldInfo);
+        if (typeInfo.tag() != GI_TYPE_TAG_INTERFACE) {
+            /* We have a field with the same name, but it's not a callback.
+             * There's no hope of being another field with a correct name,
+             * so just abort early. */
+            result = true;
+            goto out;
+        } else {
+            *fieldInfoOut = fieldInfo.ref();
+            result = true;
+            goto out;
+        }
+    }
+
+out:
+    g_type_class_unref(implementor_class);
+    return result;
+}
+
+
+NAN_METHOD(RegisterClass) {
+    auto jsKlassName  = Nan::To<String>(info[0]).ToLocalChecked();
+    auto jsKlass      = info[1].As<Object>();
+    auto jsParentName = Nan::To<String>(info[2]).ToLocalChecked();
+    auto jsParent     = info[3].As<Object>();
+
+    Nan::Utf8String utf8KlassName(jsKlassName);
+    Nan::Utf8String utf8ParentName(jsParentName);
+    auto parentType = g_type_from_name(*utf8ParentName);
+
+    GTypeQuery query;
+    TypeQuerySafe(parentType, &query);
+    if (query.type == 0) {
+        Nan::ThrowError("Failed to initialize type query");
+        return;
+    }
+
+    GTypeFlags typeFlags = gobject_class_flags;
+    GTypeInfo typeInfo = gobject_class_info;
+    typeInfo.class_size = query.class_size;
+    typeInfo.instance_size = query.instance_size;
+
+    GType instanceType = g_type_register_static(
+        parentType, *utf8KlassName, &typeInfo, typeFlags);
+
+    g_type_set_qdata(instanceType, GNodeJS::dynamic_type_quark(), GINT_TO_POINTER(1));
+
+    // FIXME: need to link klass destruction to GObjectClassDestroyed
+
+    RETURN(v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), instanceType));
+}
+
+NAN_METHOD(RegisterVFunc) {
+    auto jsVFuncInfo  = info[0].As<Object>();
+    auto jsKlassGType = info[1].As<BigInt>();
+    auto jsName       = info[2].As<String>();
+    auto jsFunction   = info[3].As<Function>();
+
+    Nan::Utf8String utf8Name(jsName);
+
+    GType klassGType = jsKlassGType->Uint64Value();
+
+    BaseInfo vfuncInfo(jsVFuncInfo);
+
+    void *implementor_vtable;
+    BaseInfo fieldInfo;
+    if (!FindVFuncInfo(klassGType, *vfuncInfo, *utf8Name,
+            &implementor_vtable, &fieldInfo))
+        return;
+
+    if (fieldInfo.isEmpty())
+        return;
+
+    auto offset = g_field_info_get_offset(*fieldInfo);
+
+    /* Abort if vfunc offset not found */
+    if (offset == OFFSET_NOT_FOUND)
+        ERROR("Virtual function offset not found (%s.%s)",
+                g_type_name(klassGType), vfuncInfo.name());
+
+    auto functionPtr = G_STRUCT_MEMBER_P(implementor_vtable, offset);
+    auto callback = new Callback(jsFunction, *vfuncInfo, GI_SCOPE_TYPE_NOTIFIED);
+    StoreVFunc(klassGType, callback);
+
+    *reinterpret_cast<ffi_closure**>(functionPtr) = callback->closure;
+
+    RETURN(true);
+    return;
+}
+
+};
 
 };
