@@ -22,20 +22,12 @@ will be welcomed.
 Supported Node.js versions: **12**, **14**, **15** (other versions should work but are untested)  
 Pre-built binaries available for: **Linux**, **macOS**
 
-### How do I use it ?
-
-You can use [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you can use [react-gtk](https://github.com/codejamninja/react-gtk) to develop a `node-gtk` application using React.
-
-![Browser demo](img/browser.png)
-[Browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js)
-
 ### Table of contents
 
-- [Example](#example)
+- [Usage](#usage)
 - [Documentation](#documentation)
-  - [Common pitfalls](#common-pitfalls)
 - [Installing and building](#installing-and-building)
-  - [Target Platforms (so far)](#target-platforms-so-far)
+  - [Target Platforms](#target-platforms)
   - [Requirements](#requirements)
   - [How to build on Ubuntu](#how-to-build-on-ubuntu)
   - [How to build on Fedora](#how-to-build-on-fedora)
@@ -45,10 +37,11 @@ You can use [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you
   - [Testing the project](#testing-the-project)
     - [Browser demo](#browser-demo)
 - [Contributing](#contributing)
-- [Features that supported](#features-that-are-supported)
-- [Support](#support)
 
-## Example
+## Usage
+
+You can use the [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you can
+use [react-gtk](https://github.com/codejamninja/react-gtk) if your prefer to use React.
 
 ```javascript
 const gi = require('node-gtk')
@@ -68,28 +61,22 @@ win.showAll()
 Gtk.main()
 ```
 
-![Hello node-gtk!](img/hello-node-gtk.png)
+<p align="center">
+  <img src="./img/hello-node-gtk.png" alt="Hello Gtk" style="width: 220px; height: auto;"/>
+</p>
 
-See our [examples](./examples) folder for more examples.
+See our [examples](./examples) folder for more examples, and in particular the
+[browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js) for
+a more complex application.
+
+<p align="center">
+  <img src="./img/browser.png" alt="Hello Gtk" style="max-width: 500px; height: auto;"/>
+</p>
+
 
 ## Documentation
 
 [Read our documentation here](./doc/index.md)
-
-### Common pitfalls
-
-The bindings are sometimes a bit raw in that they provide you direct access to C functions.
-It is very possible for you to cause a segfault by misusing any library. Here are a few common errors.
-
-<details>
-  <summary><b>Gtk & Gdk initialization</b></summary>
-  Call `Gtk.init()` and `Gdk.init()` before using anything from those modules.
-</details>
-
-<details>
-  <summary><b>Trying to get a Gdk display causes a segfault</b></summary>
-  If you're under X11, you'll need to call `gi.require('GdkX11', 'x.x')`.
-</details>
 
 ## Installing and building
 
@@ -270,7 +257,7 @@ run `npm run configure`. You can then build the project with `npm run build`.
 
 Don't hesitate to join our [Discord channel](https://discord.gg/r2VqPUV).
 
-## Contributors
+### Contributors
 
  - [magcius](https://github.com/magcius)
  - [WebReflection](https://github.com/WebReflection)

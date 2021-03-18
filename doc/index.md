@@ -9,6 +9,7 @@ Node-Gtk is essentially a *thin* layer over native libraries. As such, understan
   4. [GObjects](#4-gobjects)
   5. [Naming conventions](#5-naming-conventions)
   6. [Function calls](#6-function-calls)
+  7. [Common pitfalls](#7-common-pitfalls)
 
 ## 1. Loading a library
 
@@ -187,6 +188,21 @@ Low-level methods `.connect(name: string, callback: Fn): number` and
 `.disconnect(name: string, handleID: number): void` are also available but not
 recommended.
 
+#### Inheritance
+
+It is possible to extend existing GObjects by inheriting from them. You also need to
+register them with the type system for fuller integration and to enable virtual
+functions.
+
+```javascript
+class CustomWidget extends Gtk.Widget {
+  static GTypeName = 'NodeGTKCustomWidget'
+  focus() {} /* This is a virtual function */
+}
+gi.registerClass(CustomWidget)
+```
+
+
 ## 5. Naming conventions
 
 Here is a recap of the naming conventions.
@@ -265,3 +281,20 @@ class NewWidget extends Gtk.Widget {
   }
 }
 ```
+
+
+## 7. Common pitfalls
+
+The bindings are sometimes a bit raw in that they provide you direct access to C functions.
+It is very possible for you to cause a segfault by misusing any library. Here are a few common errors.
+
+<details>
+  <summary><b>Gtk & Gdk initialization</b></summary>
+  Call `Gtk.init()` and `Gdk.init()` before using anything from those modules.
+</details>
+
+<details>
+  <summary><b>Trying to get a Gdk display causes a segfault</b></summary>
+  If you're under X11, you'll need to call `gi.require('GdkX11', 'x.x')`.
+</details>
+
