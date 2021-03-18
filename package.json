@@ -1,6 +1,6 @@
 {
   "name": "node-gtk",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "GNOME Gtk+ bindings for NodeJS",
   "main": "lib/index.js",
   "scripts": {
