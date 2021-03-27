@@ -19,8 +19,8 @@ MaybeLocal<Function>    MakeClass            (GIBaseInfo *info);
 Local<Value>            WrapperFromGObject   (GObject *object);
 GObject *               GObjectFromWrapper   (Local<Value> value);
 Local<FunctionTemplate> GetBaseClassTemplate ();
-Local<Value>            GetGObjectProperty   (GObject * gobject, const char *prop_name);
-Local<v8::Boolean>      SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);
+MaybeLocal<Value>       GetGObjectProperty   (GObject * gobject, const char *prop_name);
+MaybeLocal<v8::Boolean> SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);
 
 namespace ObjectClass {
 

@@ -205,7 +205,9 @@ NAN_METHOD(ObjectPropertyGetter) {
     Nan::Utf8String prop_name_v (TO_STRING (info[1]));
     const char *prop_name = *prop_name_v;
 
-    RETURN(GNodeJS::GetGObjectProperty(gobject, prop_name));
+    auto value = GNodeJS::GetGObjectProperty(gobject, prop_name);
+    if (!value.IsEmpty())
+        RETURN(value.ToLocalChecked());
 }
 
 NAN_METHOD(ObjectPropertySetter) {
@@ -218,7 +220,9 @@ NAN_METHOD(ObjectPropertySetter) {
         RETURN(Nan::False());
     }
 
-    RETURN(GNodeJS::SetGObjectProperty(gobject, prop_name, info[2]));
+    auto success = GNodeJS::SetGObjectProperty(gobject, prop_name, info[2]);
+    if (!success.IsEmpty())
+        RETURN(success.ToLocalChecked());
 }
 
 NAN_METHOD(StructFieldSetter) {

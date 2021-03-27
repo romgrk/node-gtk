@@ -216,7 +216,9 @@ static void GObjectFallbackPropertyGetter(Local<v8::Name> property,
 
     char *prop_name = Util::ToDashed(prop_name_camel);
 
-    RETURN(GetGObjectProperty(gobject, prop_name));
+    auto value = GetGObjectProperty(gobject, prop_name);
+    if (!value.IsEmpty())
+        RETURN(value.ToLocalChecked());
 
     g_free(prop_name);
 }
@@ -228,21 +230,14 @@ static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value
 
     Nan::Utf8String prop_name_v (TO_STRING (property));
     const char *prop_name_camel = *prop_name_v;
-
-    if (strstr(prop_name_camel, "-")) {
-        // Has dash, not a camel-case property name.
-        return;
-    }
-
     char *prop_name = Util::ToDashed(prop_name_camel);
 
     if (gobject == NULL) {
-        WARN("ObjectPropertySetter: null GObject; cant set %s", prop_name);
+        WARN("Can't set \"%s\" on null GObject", prop_name);
         g_free(prop_name);
         return;
     }
 
-    v8::TryCatch trycatch(info.GetIsolate());
     auto setResult = SetGObjectProperty(gobject, prop_name, value);
     if (setResult.IsEmpty()) {
         // Non-existent property. We catch the exception and consider the set
@@ -654,11 +649,11 @@ GObject * GObjectFromWrapper(Local<Value> value) {
     return gobject;
 }
 
-Local<Value> GetGObjectProperty(GObject * gobject, const char *prop_name) {
+MaybeLocal<Value> GetGObjectProperty(GObject * gobject, const char *prop_name) {
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
 
     if (pspec == NULL) {
-        return Nan::Undefined();
+        return MaybeLocal<Value>();
     }
 
     GValue value = G_VALUE_INIT;
@@ -669,15 +664,14 @@ Local<Value> GetGObjectProperty(GObject * gobject, const char *prop_name) {
 
     g_value_unset(&value);
 
-    return ret;
+    return MaybeLocal<Value>(ret);
 }
 
-Local<v8::Boolean> SetGObjectProperty(GObject * gobject, const char *prop_name, Local<Value> value) {
+MaybeLocal<v8::Boolean> SetGObjectProperty(GObject * gobject, const char *prop_name, Local<Value> value) {
     GParamSpec *pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (gobject), prop_name);
 
     if (pspec == NULL) {
-        Nan::ThrowError("Unexistent property");
-        return Local<v8::Boolean> ();
+        return MaybeLocal<v8::Boolean>();
     }
 
     Local<v8::Boolean> ret;
@@ -693,7 +687,8 @@ Local<v8::Boolean> SetGObjectProperty(GObject * gobject, const char *prop_name, 
     }
 
     g_value_unset(&gvalue);
-    return ret;
+
+    return MaybeLocal<v8::Boolean>(ret);
 }
 
 namespace ObjectClass {
