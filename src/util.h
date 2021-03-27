@@ -20,8 +20,15 @@
 
 #define NOT_A_GTYPE ((GType) -1)
 
-#define GET_OBJECT_GTYPE(target) \
-    (GType) Nan::Get(target, UTF8("__gtype__")).ToLocalChecked().As<v8::BigInt>()->Uint64Value()
+inline GType GET_OBJECT_GTYPE(v8::Local<v8::Object> target) {
+    auto maybeProperty = Nan::Get(target, UTF8("__gtype__"));
+    if (maybeProperty.IsEmpty())
+        return NOT_A_GTYPE;
+    auto property = maybeProperty.ToLocalChecked();
+    if (!property->IsBigInt())
+        return NOT_A_GTYPE;
+    return (GType) property.As<v8::BigInt>()->Uint64Value();
+}
 
 #define SET_OBJECT_GTYPE(target, value) \
     Nan::DefineOwnProperty(target, \
