@@ -12,7 +12,7 @@
 <p align="center">
   <b>GNOME Gtk+ bindings for NodeJS</b>
   <br/>
-  <img src="https://img.shields.io/npm/v/node-gtk.svg" alt="Package Version" />
+  <img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
 </p>
 
 Node-Gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library for nodejs. It makes it possible to
