@@ -230,6 +230,12 @@ static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value
 
     Nan::Utf8String prop_name_v (TO_STRING (property));
     const char *prop_name_camel = *prop_name_v;
+
+    if (strstr(prop_name_camel, "-")) {
+        // Has dash, not a camel-case property name.
+        return;
+    }
+
     char *prop_name = Util::ToDashed(prop_name_camel);
 
     if (gobject == NULL) {

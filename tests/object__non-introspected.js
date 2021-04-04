@@ -46,6 +46,12 @@ describe('create non-introspected objected', () => {
     expect(src['is-live'], undefined);
   })
 
+  it('does not set gobject properties from dashed property names', () => {
+    expect(src.isLive, false)
+    src['is-live'] = true
+    expect(src.isLive, false)
+  })
+
   it('correctly pass-through non-gobject propertties', () => {
     expect(src.notAVideoTestSrcProperty, undefined)
     src.notAVideoTestSrcProperty = '42';
