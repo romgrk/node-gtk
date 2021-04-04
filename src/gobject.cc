@@ -246,8 +246,8 @@ static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value
 
     auto setResult = SetGObjectProperty(gobject, prop_name, value);
     if (setResult.IsEmpty()) {
-        // Non-existent property. We catch the exception and consider the set
-        // not intercepted by not setting return value;
+        // Non-existent property. Let node consider the set not intercepted
+        // by not setting return value;
     } else {
         // Property exists. Whether we can convert the value and set the
         // property or not, consider the set intercepted.
