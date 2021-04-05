@@ -230,6 +230,12 @@ static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value
 
     Nan::Utf8String prop_name_v (TO_STRING (property));
     const char *prop_name_camel = *prop_name_v;
+
+    if (strstr(prop_name_camel, "-")) {
+        // Has dash, not a camel-case property name.
+        return;
+    }
+
     char *prop_name = Util::ToDashed(prop_name_camel);
 
     if (gobject == NULL) {
@@ -240,8 +246,8 @@ static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value
 
     auto setResult = SetGObjectProperty(gobject, prop_name, value);
     if (setResult.IsEmpty()) {
-        // Non-existent property. We catch the exception and consider the set
-        // not intercepted by not setting return value;
+        // Non-existent property. Let node consider the set not intercepted
+        // by not setting return value;
     } else {
         // Property exists. Whether we can convert the value and set the
         // property or not, consider the set intercepted.
