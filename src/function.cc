@@ -337,7 +337,7 @@ Local<Value> FunctionCall (
 
             g_assert(direction == GI_DIRECTION_IN);
 
-            if (callback->scope_type == GI_SCOPE_TYPE_CALL) {
+            if (callback && callback->scope_type == GI_SCOPE_TYPE_CALL) {
                 delete callback;
             }
         }
