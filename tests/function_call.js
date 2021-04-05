@@ -5,7 +5,6 @@
 const gi = require('../lib/')
 const GLib = gi.require('GLib')
 const Gtk = gi.require('Gtk', '3.0')
-const Vte = gi.require('Vte', '2.91');
 const { describe, it, mustThrow, expect } = require('./__common__.js')
 
 Gtk.init()
@@ -16,18 +15,7 @@ describe('function arguments', () => {
   })
 
   it('works with null values', () => {
-    let childSetup = null
-
-    const terminal = new Vte.Terminal();
-    terminal.spawnSync(
-      Vte.PtyFlags.DEFAULT,
-      GLib.getHomeDir(),
-      ['bash'],
-      null,
-      GLib.SpawnFlags.SEARCH_PATH,
-      childSetup,
-      null
-    )
+    // FIXME: find a test case for this with gimarshallingtest
   })
 })
 
