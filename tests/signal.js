@@ -52,6 +52,11 @@ window.on('show', () => {
     expect(count, 2)
   })
 
+  describe('fails with invalid signal name',
+    mustThrow(/Signal name is invalid/, () => {
+      button.on('INVALID_SIGNAL_NAME', onClick)
+    }))
+
   describe('.emit()', () => {
     it('works', () => {
       const [success, signalId] = GObject.signalParseName('clicked', button.__gtype__, false)
@@ -75,7 +80,7 @@ window.on('show', () => {
     }))
 
     it('fails with incorrect argument types',
-      mustThrow(/Couldn't convert value to "GdkEvent"/, () => {
+      mustThrow(/Cannot convert value.*to type GdkEvent/, () => {
         button.emit('key-press-event', 42)
       })
     )
@@ -93,6 +98,7 @@ window.on('show', () => {
 
     button.on('button-press-event', (event) => {
       expect(event.button, 3)
+      return Gtk.EVENT_CONTINUE
     })
 
     const result = button.emit('button-press-event', event)

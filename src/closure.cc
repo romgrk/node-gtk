@@ -2,6 +2,7 @@
 #include <nan.h>
 
 #include "closure.h"
+#include "error.h"
 #include "macros.h"
 #include "loop.h"
 #include "type.h"
@@ -89,24 +90,31 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
     Local<Value> return_value;
 
     Nan::TryCatch try_catch;
+    // FIXME: Would be nice to avoid the string allocation if not needed but this is
+    // too useful for the moment to not do it.
+    if (info)
+        Throw::SetContext(" in signal \"%s\"", g_base_info_get_name(info));
 
     auto result = Nan::Call(func, self, n_js_args, js_args);
 
     if (!try_catch.HasCaught()
             && result.ToLocal(&return_value)) {
+
         if (g_return_value) {
-            if (G_VALUE_TYPE(g_return_value) == G_TYPE_INVALID)
-                WARN ("Marshal: return value has invalid g_type");
-            else if (!V8ToGValue (g_return_value, return_value, true))
-                WARN ("Marshal: could not convert return value");
+            if (!V8ToGValue (g_return_value, return_value, true))
+                goto throw_exception;
         }
 
         CallMicrotaskHandlers ();
     }
-    else {
+
+throw_exception:
+    if (try_catch.HasCaught()) {
         GNodeJS::QuitLoopStack();
         Nan::FatalException (try_catch);
     }
+
+    Throw::ClearContext();
 
     #ifndef __linux__
         delete[] js_args;
