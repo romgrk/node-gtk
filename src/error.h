@@ -14,7 +14,10 @@ namespace GNodeJS {
 
   namespace Throw {
 
+    void ClearContext();
+    void SetContext(const char* format, ...);
     void Error(const char* format, ...);
+    void TypeError(const char* format, ...);
     void GError(const char* domain, GError* error);
     void NotEnoughArguments (int expected, int actual);
     void InvalidType (GIArgInfo *info, GITypeInfo *type_info, Local<Value> value);
