@@ -40,8 +40,10 @@ Pre-built binaries available for: **Linux**, **macOS**
 
 ## Usage
 
-You can use the [Gtk+ API](https://developer.gnome.org/gtk3/stable) directly, or you can
-use [react-gtk](https://github.com/codejamninja/react-gtk) if your prefer to use React.
+Below is a minimal example of how to use the code, but take a look at
+our [template](https://github.com/romgrk/node-gtk-template) or at
+[react-gtk](https://github.com/codejamninja/react-gtk) to bootstrap your
+project.
 
 ```javascript
 const gi = require('node-gtk')
