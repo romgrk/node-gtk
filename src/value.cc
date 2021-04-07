@@ -909,7 +909,7 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     case GI_TYPE_TAG_VOID:
         return true;
     case GI_TYPE_TAG_BOOLEAN:
-        return true;
+        return value->IsBoolean () || value->IsNumber ();
     case GI_TYPE_TAG_INT8:
     case GI_TYPE_TAG_INT16:
     case GI_TYPE_TAG_INT32:
@@ -1293,6 +1293,10 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
  */
 
 bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
+    // void/null
+    if (G_VALUE_TYPE(gvalue) == G_TYPE_INVALID)
+        return value->IsNullOrUndefined();
+
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         return value->IsBoolean() || value->IsNumber();
     } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
@@ -1336,6 +1340,22 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
 }
 
 bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
+    if (!CanConvertV8ToGValue(gvalue, value)) {
+        auto maybeDetailString = Nan::ToDetailString(value);
+        Nan::Utf8String utf8String(
+            !maybeDetailString.IsEmpty() ?
+                maybeDetailString.ToLocalChecked() :
+                UTF8("[invalid value]")
+        );
+        Throw::TypeError("Cannot convert value \"%s\" to type %s",
+                *utf8String, G_VALUE_TYPE_NAME (gvalue));
+        return false;
+    }
+
+    // void/null
+    if (G_VALUE_TYPE(gvalue) == G_TYPE_INVALID)
+        return true;
+
     // by-value types
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, Nan::To<bool> (value).ToChecked());

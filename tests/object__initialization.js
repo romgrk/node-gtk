@@ -31,7 +31,7 @@ describe('new GObject({ ... })', () => {
   })
 
   it('fails with wrong property types',
-    mustThrow(`Couldn't convert value to "SoupURI" (category: boxed).`, () => {
+    mustThrow(/Cannot convert value.*to type SoupURI/, () => {
       const message = new Soup.Message({
         uri: 'http://google.com', // invalid type, should be SoupURI
       })

@@ -187,6 +187,9 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
                 memcpy(boxedCopy, boxed, size);
                 boxed = boxedCopy;
             }
+            else {
+                ERROR("Could not copy boxed object.");
+            }
         }
         else {
             owns_memory = false;

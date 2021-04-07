@@ -9,13 +9,53 @@ namespace GNodeJS {
 
 namespace Throw {
 
+static char *context = NULL;
+
+void ClearContext() {
+    if (context) {
+        g_free(context);
+        context = NULL;
+    }
+}
+
+void SetContext(const char* format, ...) {
+    ClearContext();
+    va_list args;
+    va_start(args, format);
+    context = g_strdup_vprintf(format, args);
+    va_end(args);
+}
+
 void Error(const char* format, ...) {
     va_list args;
     va_start(args, format);
     char* message = g_strdup_vprintf(format, args);
     va_end(args);
-    Nan::ThrowError(message);
+    char* message_with_context =
+        context != NULL ?
+            g_strconcat(message, context, nullptr) : message;
+    Nan::ThrowError(message_with_context);
     g_free(message);
+    if (context) {
+        g_free(message_with_context);
+    }
+}
+
+void TypeError(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    char* message = g_strdup_vprintf(format, args);
+    va_end(args);
+    char* message_with_context =
+        context != NULL ?
+            g_strconcat(message, context, nullptr) : message;
+    Nan::ThrowTypeError(message_with_context);
+    g_free(message);
+    if (context) {
+        g_free(message_with_context);
+        g_free(context);
+        context = NULL;
+    }
 }
 
 void GError(const char* domain, GError* error) {
