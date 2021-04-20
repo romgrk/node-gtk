@@ -64,9 +64,9 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     /* For 64-bit integer types, use a float. When JS and V8 adopt
      * bigger sized integer types, start using those instead. */
     case GI_TYPE_TAG_INT64:
-        return New<Number> (arg->v_int64);
+        return New<Number> (arg->v_int64); // FIXME: change
     case GI_TYPE_TAG_UINT64:
-        return New<Number> (arg->v_uint64);
+        return New<Number> (arg->v_uint64); // FIXME: change
 
     case GI_TYPE_TAG_GTYPE: /* c++: gulong */
         return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), arg->v_ulong);
@@ -697,7 +697,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_int = Nan::To<int32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT64:
-        arg->v_int64 = Nan::To<int64_t> (value).ToChecked();
+        arg->v_int64 = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Int64Value();
         break;
     case GI_TYPE_TAG_UINT8:
         arg->v_uint8 = Nan::To<uint32_t> (value).ToChecked();
@@ -709,7 +709,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_uint = Nan::To<uint32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT64:
-        arg->v_uint64 = Nan::To<int64_t> (value).ToChecked();
+        arg->v_uint64 = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value();
         break;
     case GI_TYPE_TAG_FLOAT:
         arg->v_float = Nan::To<double> (value).ToChecked();
@@ -718,10 +718,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_double = Nan::To<double> (value).ToChecked();
         break;
     case GI_TYPE_TAG_GTYPE:
-        if (value->IsBigInt())
-            arg->v_ulong = value.As<v8::BigInt>()->Uint64Value();
-        else
-            arg->v_ulong = Nan::To<int64_t> (value).ToChecked();
+        arg->v_ulong = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value();
         break;
 
     case GI_TYPE_TAG_UTF8:
@@ -835,7 +832,7 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         *(gint*)arg->v_pointer = Nan::To<int32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT64:
-        *(gint64*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+        *(gint64*)arg->v_pointer = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Int64Value();
         break;
     case GI_TYPE_TAG_UINT8:
         *(guint8*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
@@ -847,7 +844,7 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         *(guint*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT64:
-        *(guint64*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+        *(guint64*)arg->v_pointer = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value();
         break;
     case GI_TYPE_TAG_FLOAT:
         *(gfloat*)arg->v_pointer = Nan::To<double> (value).ToChecked();
@@ -856,10 +853,7 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         *(gdouble*)arg->v_pointer = Nan::To<double> (value).ToChecked();
         break;
     case GI_TYPE_TAG_GTYPE:
-        if (value->IsBigInt())
-            *(gulong*)arg->v_pointer = value.As<v8::BigInt>()->Uint64Value();
-        else
-            *(gulong*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+        *(gulong*)arg->v_pointer = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value();
         break;
 
     case GI_TYPE_TAG_UTF8:
@@ -918,12 +912,14 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     case GI_TYPE_TAG_UINT16:
     case GI_TYPE_TAG_UINT32:
     case GI_TYPE_TAG_UINT64:
+        return value->IsNumber () || value->IsBigInt ();
+
     case GI_TYPE_TAG_FLOAT:
     case GI_TYPE_TAG_DOUBLE:
         return value->IsNumber ();
 
     case GI_TYPE_TAG_GTYPE:
-        return value->IsNumber () || value->IsBigInt ();
+        return value->IsBigInt ();
 
     case GI_TYPE_TAG_UTF8:
         return true;
@@ -1300,27 +1296,27 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         return value->IsBoolean() || value->IsNumber();
     } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_UCHAR (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
-        return value->IsNumber();
-    } else if (G_VALUE_HOLDS_LONG (gvalue)) {
-        return value->IsNumber();
-    } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
+    } else if (G_VALUE_HOLDS_LONG (gvalue)) {
+        return value->IsNumber() || value->IsBigInt();
+    } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        return value->IsNumber();
+        return value->IsBigInt();
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
@@ -1372,19 +1368,19 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         g_value_set_uint (gvalue, Nan::To<uint32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_LONG (gvalue)) {
-        g_value_set_long (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_long (gvalue, value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Int64Value());
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
-        g_value_set_ulong (gvalue, Nan::To<uint32_t> (value).ToChecked());
+        g_value_set_ulong (gvalue, value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value());
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
-        g_value_set_int64 (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_int64 (gvalue, value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Int64Value());
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        g_value_set_uint64 (gvalue, Nan::To<uint32_t> (value).ToChecked());
+        g_value_set_uint64 (gvalue, value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value());
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         g_value_set_float (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         g_value_set_double (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        g_value_set_gtype (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_gtype (gvalue, (GType) value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value());
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
@@ -1444,15 +1440,15 @@ Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
         return New<Number>(g_value_get_ulong (gvalue));
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
-        return New<Number>(g_value_get_int64 (gvalue));
+        return New<Number>(g_value_get_int64 (gvalue)); // FIXME: change
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        return New<Number>(g_value_get_uint64 (gvalue));
+        return New<Number>(g_value_get_uint64 (gvalue)); // FIXME: change
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         return New<Number>(g_value_get_float (gvalue));
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         return New<Number>(g_value_get_double (gvalue));
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        return New<Number>(g_value_get_gtype (gvalue));
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), g_value_get_gtype(gvalue));
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return New<Integer>(g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
