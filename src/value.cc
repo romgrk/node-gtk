@@ -64,9 +64,9 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     /* For 64-bit integer types, use a float. When JS and V8 adopt
      * bigger sized integer types, start using those instead. */
     case GI_TYPE_TAG_INT64:
-        return New<Number> (arg->v_int64); // FIXME: change
+        return v8::BigInt::New(Isolate::GetCurrent(), arg->v_int64);
     case GI_TYPE_TAG_UINT64:
-        return New<Number> (arg->v_uint64); // FIXME: change
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), arg->v_uint64);
 
     case GI_TYPE_TAG_GTYPE: /* c++: gulong */
         return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), arg->v_ulong);
@@ -1436,13 +1436,13 @@ Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         return New<v8::Uint32>(g_value_get_uint (gvalue));
     } else if (G_VALUE_HOLDS_LONG (gvalue)) {
-        return New<Number>(g_value_get_long (gvalue));
+        return v8::BigInt::New(Isolate::GetCurrent(), g_value_get_long (gvalue));
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
-        return New<Number>(g_value_get_ulong (gvalue));
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), g_value_get_ulong (gvalue));
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
-        return New<Number>(g_value_get_int64 (gvalue)); // FIXME: change
+        return v8::BigInt::New(Isolate::GetCurrent(), g_value_get_int64 (gvalue));
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        return New<Number>(g_value_get_uint64 (gvalue)); // FIXME: change
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), g_value_get_uint64 (gvalue));
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         return New<Number>(g_value_get_float (gvalue));
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
