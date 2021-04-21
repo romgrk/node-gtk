@@ -20,6 +20,7 @@
 using v8::Array;
 using v8::TypedArray;
 using v8::Integer;
+using v8::BigInt;
 using v8::Local;
 using v8::Number;
 using v8::Object;
@@ -34,6 +35,22 @@ static gpointer GIArgumentToHashPointer (const GIArgument *arg, GITypeInfo *type
 static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info);
 
 static bool IsUint8Array (GITypeInfo *type_info);
+
+static int64_t V8ToInt64 (Local<Value> value) {
+    if (value->IsBigInt())
+        return value.As<v8::BigInt>()->Int64Value();
+    return Nan::To<int64_t>(value).ToChecked();
+}
+
+static int64_t V8ToUint64Strict (Local<Value> value) {
+    return Local<BigInt>::Cast(value)->Uint64Value();
+}
+
+static int64_t V8ToInt32 (Local<Value> value) {
+    if (value->IsBigInt())
+        return value.As<v8::BigInt>()->Int64Value();
+    return Nan::To<int32_t>(value).ToChecked();
+}
 
 
 Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length, bool mustCopy) {
@@ -688,28 +705,28 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_boolean = Nan::To<bool> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT8:
-        arg->v_int8 = Nan::To<int32_t> (value).ToChecked();
+        arg->v_int8 = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_INT16:
-        arg->v_int16 = Nan::To<int32_t> (value).ToChecked();
+        arg->v_int16 = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_INT32:
-        arg->v_int = Nan::To<int32_t> (value).ToChecked();
+        arg->v_int = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_INT64:
-        arg->v_int64 = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Int64Value();
+        arg->v_int64 = V8ToInt64(value);
         break;
     case GI_TYPE_TAG_UINT8:
-        arg->v_uint8 = Nan::To<uint32_t> (value).ToChecked();
+        arg->v_uint8 = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_UINT16:
-        arg->v_uint16 = Nan::To<uint32_t> (value).ToChecked();
+        arg->v_uint16 = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_UINT32:
-        arg->v_uint = Nan::To<uint32_t> (value).ToChecked();
+        arg->v_uint = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_UINT64:
-        arg->v_uint64 = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value();
+        arg->v_uint64 = V8ToInt64(value);
         break;
     case GI_TYPE_TAG_FLOAT:
         arg->v_float = Nan::To<double> (value).ToChecked();
@@ -718,7 +735,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_double = Nan::To<double> (value).ToChecked();
         break;
     case GI_TYPE_TAG_GTYPE:
-        arg->v_ulong = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value();
+        arg->v_ulong = V8ToUint64Strict(value);
         break;
 
     case GI_TYPE_TAG_UTF8:
@@ -823,28 +840,28 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         *(gboolean*)arg->v_pointer = Nan::To<bool> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT8:
-        *(gint8*)arg->v_pointer = Nan::To<int32_t> (value).ToChecked();
+        *(gint8*)arg->v_pointer = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_INT16:
-        *(gint16*)arg->v_pointer = Nan::To<int32_t> (value).ToChecked();
+        *(gint16*)arg->v_pointer = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_INT32:
-        *(gint*)arg->v_pointer = Nan::To<int32_t> (value).ToChecked();
+        *(gint*)arg->v_pointer = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_INT64:
-        *(gint64*)arg->v_pointer = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Int64Value();
+        *(gint64*)arg->v_pointer = V8ToInt64(value);
         break;
     case GI_TYPE_TAG_UINT8:
-        *(guint8*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
+        *(guint8*)arg->v_pointer = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_UINT16:
-        *(guint16*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
+        *(guint16*)arg->v_pointer = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_UINT32:
-        *(guint*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
+        *(guint*)arg->v_pointer = V8ToInt32(value);
         break;
     case GI_TYPE_TAG_UINT64:
-        *(guint64*)arg->v_pointer = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value();
+        *(guint64*)arg->v_pointer = V8ToInt64(value);
         break;
     case GI_TYPE_TAG_FLOAT:
         *(gfloat*)arg->v_pointer = Nan::To<double> (value).ToChecked();
@@ -853,7 +870,7 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         *(gdouble*)arg->v_pointer = Nan::To<double> (value).ToChecked();
         break;
     case GI_TYPE_TAG_GTYPE:
-        *(gulong*)arg->v_pointer = value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value();
+        *(gulong*)arg->v_pointer = V8ToUint64Strict(value);
         break;
 
     case GI_TYPE_TAG_UTF8:
@@ -1360,27 +1377,27 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         g_value_set_boolean (gvalue, Nan::To<bool> (value).ToChecked());
     } else if (G_VALUE_HOLDS_CHAR (gvalue)) {
-        g_value_set_schar (gvalue, Nan::To<int32_t> (value).ToChecked());
+        g_value_set_schar (gvalue, V8ToInt32(value));
     } else if (G_VALUE_HOLDS_UCHAR (gvalue)) {
-        g_value_set_uchar (gvalue, Nan::To<uint32_t> (value).ToChecked());
+        g_value_set_uchar (gvalue, V8ToInt32(value));
     } else if (G_VALUE_HOLDS_INT (gvalue)) {
-        g_value_set_int (gvalue, Nan::To<int32_t> (value).ToChecked());
+        g_value_set_int (gvalue, V8ToInt32(value));
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
-        g_value_set_uint (gvalue, Nan::To<uint32_t> (value).ToChecked());
+        g_value_set_uint (gvalue, V8ToInt32(value));
     } else if (G_VALUE_HOLDS_LONG (gvalue)) {
-        g_value_set_long (gvalue, value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Int64Value());
+        g_value_set_long (gvalue, V8ToInt64(value));
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
-        g_value_set_ulong (gvalue, value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value());
+        g_value_set_ulong (gvalue, V8ToInt64(value));
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
-        g_value_set_int64 (gvalue, value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Int64Value());
+        g_value_set_int64 (gvalue, V8ToInt64(value));
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        g_value_set_uint64 (gvalue, value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value());
+        g_value_set_uint64 (gvalue, V8ToInt64(value));
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         g_value_set_float (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         g_value_set_double (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        g_value_set_gtype (gvalue, (GType) value->ToBigInt(Nan::GetCurrentContext()).ToLocalChecked()->Uint64Value());
+        g_value_set_gtype (gvalue, (GType) V8ToUint64Strict(value));
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
