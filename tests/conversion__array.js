@@ -17,6 +17,20 @@ describe('IN-array', () => {
   assert(result === Buffer.from('hello').toString('base64'))
 })
 
+describe('IN-array (Uint8Array)', () => {
+  const data = Uint8Array.from([ 104, 101, 108, 108, 111 ]) // hello
+  const result = glib.base64Encode(data, data.length)
+  console.log('Result:', result)
+  assert(result === Buffer.from('hello').toString('base64'))
+})
+
+describe('IN-array (Int8Array)', () => {
+  const data = Int8Array.from([ 104, 101, 108, 108, 111 ]) // hello
+  const result = glib.base64Encode(data, data.length)
+  console.log('Result:', result)
+  assert(result === Buffer.from('hello').toString('base64'))
+})
+
 describe('OUT-array (array-length after)', () => {
   const data = [ 104, 101, 108, 108, 111 ] // hello
   const result = glib.computeChecksumForData(glib.ChecksumType.MD5, data)
