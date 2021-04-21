@@ -38,7 +38,7 @@ describe('create non-introspected objected', () => {
 
   it('has non-introspected properties', () => {
     expect(src.pattern, 0)
-    expect(src.timestampOffset, 0)
+    expect(src.timestampOffset, BigInt(0))
     expect(src.isLive, false)
   })
 
