@@ -6,7 +6,7 @@
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
 const GLib = gi.require('GLib')
-const { describe, it, expect } = require('./__common__.js')
+const { describe, it, expect, assert } = require('./__common__.js')
 
 gi.startLoop()
 Gtk.init()
@@ -28,9 +28,10 @@ describe('function out parameters', () => {
     const data = 'aGVsbG8='
     const result = GLib.base64Decode(data, data.length)
     console.log(result)
-    const decodedText = result.map(c => String.fromCharCode(c)).join('')
+    assert(result instanceof Uint8Array, 'result was not Uint8Array')
+    const decodedText = Buffer.from(result).toString()
     console.log(decodedText)
-    expect(result, [ 104, 101, 108, 108, 111 ])
+    assert(Buffer.from([ 104, 101, 108, 108, 111 ]).equals(result))
     expect(decodedText, 'hello')
   })
 

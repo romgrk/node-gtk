@@ -238,19 +238,15 @@ Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err) {
     return obj;
 }
 
-Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
+// Resolve an array of a given type, into its data and element length
+// May also validate item_size for some types of array
+static void ArrayGetDataAndLength (GITypeInfo *type_info, void*& data, long& length, long& item_size) {
+    if (data == nullptr) {
+        length = 0;
+        return;
+    }
 
-    auto array = New<Array>();
-
-    if (data == nullptr || length == 0)
-        return array;
-
-    auto array_type = g_type_info_get_array_type (type_info);
-    auto item_type_info = g_type_info_get_param_type (type_info, 0);
-    auto item_size = GetTypeSize (item_type_info);
-    // auto item_transfer = transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer;
-
-    switch (array_type) {
+    switch (g_type_info_get_array_type (type_info)) {
         case GI_ARRAY_TYPE_C:
             {
                 if (length == -1) {
@@ -293,15 +289,53 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
             g_assert_not_reached();
             break;
     }
+}
 
-    if (data == nullptr || length == 0)
-        goto out;
+// FIXME: we could even avoid the memcpy for transfer=none and/or transfer=full
+inline Local<v8::ArrayBuffer> ArrayToBackingStore (void* data, long byte_length) {
+    auto buf = v8::ArrayBuffer::New(Isolate::GetCurrent(), byte_length);
+    memcpy(buf->GetBackingStore()->Data(), data, byte_length);
+    return buf;
+}
 
+Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
+    auto item_type_info = g_type_info_get_param_type (type_info, 0);
+    long item_size = GetTypeSize (item_type_info);
+    // auto item_transfer = transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer;
+
+    ArrayGetDataAndLength(type_info, data, length, item_size);
+
+    // First try to convert into TypedArray
+
+    auto type_tag = g_type_info_get_tag (item_type_info);
+    auto byte_length = length * item_size;
+    Local<Value> typedarray =
+        // (type_tag == GI_TYPE_TAG_BOOLEAN)  ? v8::Uint8Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT8)     ? v8::Int8Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT8)    ? v8::Uint8Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT16)    ? v8::Int16Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT16)   ? v8::Uint16Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT32)    ? v8::Int32Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT32)   ? v8::Uint32Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT64)    ? v8::BigInt64Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT64)   ? v8::BigUint64Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_FLOAT)    ? v8::Float32Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_DOUBLE)   ? v8::Float64Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        // special types:
+        (type_tag == GI_TYPE_TAG_GTYPE)    ? v8::BigUint64Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UNICHAR)  ? v8::Uint32Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        Local<Value>(); // empty handle
+
+    if (!typedarray.IsEmpty()) {
+        g_base_info_unref(item_type_info);
+        return typedarray;
+    }
 
     /*
      * Fill array elements
      */
 
+    auto array = New<Array>();
     GIArgument value;
 
     for (int i = 0; i < length; i++) {
@@ -310,8 +344,6 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
         Nan::Set(array, i, GIArgumentToV8(item_type_info, &value));
     }
 
-
-out:
     g_base_info_unref(item_type_info);
     return array;
 }
