@@ -312,7 +312,7 @@ NAN_METHOD(StructFieldGetter) {
         }
         BaseInfo lengthFieldInfo =
             g_base_info_ref((GIFieldInfo *) GNodeJS::PointerFromWrapper(jsLengthFieldInfo));
-        if (jsLengthFieldInfo.IsEmpty()) {
+        if (lengthFieldInfo.isEmpty()) {
             Nan::ThrowError("StructFieldGetter: length field info is NULL");
             return;
         }
