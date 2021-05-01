@@ -1412,6 +1412,8 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
+        if (G_VALUE_TYPE (gvalue) == G_TYPE_BYTE_ARRAY)
+            return value->IsUint8Array();
         return ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         return value->IsObject();
@@ -1484,6 +1486,19 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
         }
         g_value_set_object (gvalue, GObjectFromWrapper (value));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
+        if (G_VALUE_TYPE (gvalue) == G_TYPE_BYTE_ARRAY) {
+            if (!value->IsUint8Array()) {
+                Throw::CannotConvertGType("GByteArray", G_VALUE_TYPE (gvalue));
+                return false;
+            }
+            auto array = value.As<v8::Uint8Array>();
+            auto garray = g_byte_array_sized_new(array->ByteLength());
+            g_byte_array_set_size(garray, array->ByteLength());
+            array->CopyContents(garray->data, garray->len);
+            g_value_take_boxed(gvalue, garray);
+            return true;
+        }
+
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Throw::CannotConvertGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
@@ -1551,6 +1566,11 @@ Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
         return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         GType gtype = G_VALUE_TYPE (gvalue);
+        if (gtype == G_TYPE_BYTE_ARRAY) {
+            auto garray = (GByteArray*) g_value_get_boxed(gvalue);
+            return Nan::CopyBuffer((char*)garray->data, garray->len).ToLocalChecked();
+        }
+
         GIBaseInfo *info = g_irepository_find_by_gtype(NULL, gtype);
         if (info == NULL) {
             Throw::InvalidGType(gtype);
