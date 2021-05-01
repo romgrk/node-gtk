@@ -292,9 +292,9 @@ static void ArrayGetDataAndLength (GITypeInfo *type_info, void*& data, long& len
 }
 
 // FIXME: we could even avoid the memcpy for transfer=none and/or transfer=full
-inline Local<v8::ArrayBuffer> ArrayToBackingStore (void* data, long byte_length) {
+inline Local<v8::ArrayBuffer> MakeArrayBuffer (void* data, long byte_length) {
     auto buf = v8::ArrayBuffer::New(Isolate::GetCurrent(), byte_length);
-    memcpy(buf->GetBackingStore()->Data(), data, byte_length);
+    memcpy(buf->GetContents().Data(), data, byte_length);
     return buf;
 }
 
@@ -310,20 +310,20 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
     auto type_tag = g_type_info_get_tag (item_type_info);
     auto byte_length = length * item_size;
     Local<Value> typedarray =
-        // (type_tag == GI_TYPE_TAG_BOOLEAN)  ? v8::Uint8Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_INT8)     ? v8::Int8Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_UINT8)    ? v8::Uint8Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_INT16)    ? v8::Int16Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_UINT16)   ? v8::Uint16Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_INT32)    ? v8::Int32Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_UINT32)   ? v8::Uint32Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_INT64)    ? v8::BigInt64Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_UINT64)   ? v8::BigUint64Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_FLOAT)    ? v8::Float32Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_DOUBLE)   ? v8::Float64Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        // (type_tag == GI_TYPE_TAG_BOOLEAN)  ? v8::Uint8Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT8)     ? v8::Int8Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT8)    ? Nan::CopyBuffer((char*)data, byte_length).ToLocalChecked().As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT16)    ? v8::Int16Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT16)   ? v8::Uint16Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT32)    ? v8::Int32Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT32)   ? v8::Uint32Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT64)    ? v8::BigInt64Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT64)   ? v8::BigUint64Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_FLOAT)    ? v8::Float32Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_DOUBLE)   ? v8::Float64Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
         // special types:
-        (type_tag == GI_TYPE_TAG_GTYPE)    ? v8::BigUint64Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
-        (type_tag == GI_TYPE_TAG_UNICHAR)  ? v8::Uint32Array::New(ArrayToBackingStore(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_GTYPE)    ? v8::BigUint64Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UNICHAR)  ? v8::Uint32Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
         Local<Value>(); // empty handle
 
     if (!typedarray.IsEmpty()) {
