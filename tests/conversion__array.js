@@ -17,6 +17,20 @@ describe('IN-array', () => {
   assert(result === Buffer.from('hello').toString('base64'))
 })
 
+describe('IN-array (Uint8Array)', () => {
+  const data = Uint8Array.from([ 104, 101, 108, 108, 111 ]) // hello
+  const result = glib.base64Encode(data, data.length)
+  console.log('Result:', result)
+  assert(result === Buffer.from('hello').toString('base64'))
+})
+
+describe('IN-array (Int8Array)', () => {
+  const data = Int8Array.from([ 104, 101, 108, 108, 111 ]) // hello
+  const result = glib.base64Encode(data, data.length)
+  console.log('Result:', result)
+  assert(result === Buffer.from('hello').toString('base64'))
+})
+
 describe('OUT-array (array-length after)', () => {
   const data = [ 104, 101, 108, 108, 111 ] // hello
   const result = glib.computeChecksumForData(glib.ChecksumType.MD5, data)
@@ -29,14 +43,13 @@ describe('OUT-array (array-length after)', () => {
 
 describe('OUT-array (array-length before)', () => {
   const filepath = path.join(__dirname, 'lorem-ipsum.txt')
-  const result = glib.fileGetContents(filepath)
-  console.log('Result:', result)
-  const content = result[1].map(c => String.fromCharCode(c)).join('')
-  const actualContent = fs.readFileSync(filepath).toString()
+  const [ ok, content ] = glib.fileGetContents(filepath)
+  const actualContent = fs.readFileSync(filepath)
 
   console.log([content, actualContent])
-  assert(result[0] === true, 'glib_file_get_contents failed')
-  assert(content === actualContent, 'file content is wrong')
+  assert(ok === true, 'glib_file_get_contents failed')
+  assert(content instanceof Uint8Array, 'did not return Uint8Array')
+  assert(actualContent.equals(content), 'file content is wrong')
 })
 
 describe('OUT-array (zero-terminated)', () => {

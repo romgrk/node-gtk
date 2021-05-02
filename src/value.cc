@@ -238,19 +238,15 @@ Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err) {
     return obj;
 }
 
-Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
+// Resolve an array of a given type, into its data and element length
+// May also validate item_size for some types of array
+static void ArrayGetDataAndLength (GITypeInfo *type_info, void*& data, long& length, long& item_size) {
+    if (data == nullptr) {
+        length = 0;
+        return;
+    }
 
-    auto array = New<Array>();
-
-    if (data == nullptr || length == 0)
-        return array;
-
-    auto array_type = g_type_info_get_array_type (type_info);
-    auto item_type_info = g_type_info_get_param_type (type_info, 0);
-    auto item_size = GetTypeSize (item_type_info);
-    // auto item_transfer = transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer;
-
-    switch (array_type) {
+    switch (g_type_info_get_array_type (type_info)) {
         case GI_ARRAY_TYPE_C:
             {
                 if (length == -1) {
@@ -275,7 +271,9 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
                 GArray *g_array = (GArray*) data;
                 data   = g_array->data;
                 length = g_array->len;
-                item_size = g_array_get_element_size (g_array);
+                auto element_size = g_array_get_element_size (g_array);
+                if (item_size != element_size)
+                    g_critical ("Returned GArray has element-size %lu but element type has size %u", item_size, element_size);
                 break;
             }
         case GI_ARRAY_TYPE_PTR_ARRAY:
@@ -283,22 +281,61 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
                 GPtrArray *ptr_array = (GPtrArray*) data;
                 data   = ptr_array->pdata;
                 length = ptr_array->len;
-                item_size = sizeof(gpointer);
+                if (item_size != sizeof(gpointer))
+                    g_critical ("Returned GPtrArray but element type has size %lu", item_size);
                 break;
             }
         default:
             g_assert_not_reached();
             break;
     }
+}
 
-    if (data == nullptr || length == 0)
-        goto out;
+// FIXME: we could even avoid the memcpy for transfer=none and/or transfer=full
+inline Local<v8::ArrayBuffer> MakeArrayBuffer (void* data, long byte_length) {
+    auto buf = v8::ArrayBuffer::New(Isolate::GetCurrent(), byte_length);
+    memcpy(buf->GetContents().Data(), data, byte_length);
+    return buf;
+}
 
+Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
+    auto item_type_info = g_type_info_get_param_type (type_info, 0);
+    long item_size = GetTypeSize (item_type_info);
+    // auto item_transfer = transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer;
+
+    ArrayGetDataAndLength(type_info, data, length, item_size);
+
+    // First try to convert into TypedArray
+
+    auto type_tag = g_type_info_get_tag (item_type_info);
+    auto byte_length = length * item_size;
+    Local<Value> typedarray =
+        // (type_tag == GI_TYPE_TAG_BOOLEAN)  ? v8::Uint8Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT8)     ? v8::Int8Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT8)    ? Nan::CopyBuffer((char*)data, byte_length).ToLocalChecked().As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT16)    ? v8::Int16Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT16)   ? v8::Uint16Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT32)    ? v8::Int32Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT32)   ? v8::Uint32Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_INT64)    ? v8::BigInt64Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UINT64)   ? v8::BigUint64Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_FLOAT)    ? v8::Float32Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_DOUBLE)   ? v8::Float64Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        // special types:
+        (type_tag == GI_TYPE_TAG_GTYPE)    ? v8::BigUint64Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        (type_tag == GI_TYPE_TAG_UNICHAR)  ? v8::Uint32Array::New(MakeArrayBuffer(data, byte_length), 0, length).As<v8::Value>() :
+        Local<Value>(); // empty handle
+
+    if (!typedarray.IsEmpty()) {
+        g_base_info_unref(item_type_info);
+        return typedarray;
+    }
 
     /*
      * Fill array elements
      */
 
+    auto array = New<Array>();
     GIArgument value;
 
     for (int i = 0; i < length; i++) {
@@ -307,8 +344,6 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
         Nan::Set(array, i, GIArgumentToV8(item_type_info, &value));
     }
 
-
-out:
     g_base_info_unref(item_type_info);
     return array;
 }
@@ -392,16 +427,49 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
         }
 
         g_base_info_unref (element_info);
+
+    } else if (value->IsTypedArray ()) {
+        auto array = Local<TypedArray>::Cast (TO_OBJECT (value));
+        int length = array->Length ();
+
+        GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
+        gsize element_size = GetTypeSize(element_info);
+
+        if (array->ByteLength() != length * element_size) { // FIXME hacky but cheap
+            // FIXME: not currently working, exceptions seem to be disabled.
+            // for now it's better to abort() than to risk a crash from undefined behaviour
+            g_assert_not_reached();
+            //Nan::ThrowTypeError("Typed array must have the same element size");
+        }
+
+        g_array = g_array_sized_new (zero_terminated, FALSE, element_size, length);
+        g_array_set_size(g_array, length);
+        array->CopyContents(g_array->data, length * element_size);
+
+        g_base_info_unref (element_info);
     } else {
-        Nan::ThrowTypeError("Not an array.");
+        // FIXME: not currently working, exceptions seem to be disabled.
+        // for now it's better to abort() than to risk a crash from undefined behaviour
+        g_assert_not_reached();
+        //Nan::ThrowTypeError("Not an array.");
     }
 
     return g_array;
 }
 
+// FIXME: for transfer=none we could simply pass the typedarray's data
+// and avoid even the memcpy, but this would be a breaking change
 static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     auto array = Local<Array>::Cast (TO_OBJECT (value));
     int length = array->Length();
+
+    int fixed_size = g_type_info_get_array_fixed_size(type_info);
+    if (fixed_size != -1 && fixed_size != length) {
+        // FIXME: not currently working, exceptions seem to be disabled.
+        // for now it's better to abort() than to risk a crash from undefined behaviour
+        g_assert_not_reached();
+        //Nan::ThrowRangeError("Array not matching fixed size.");
+    }
 
     bool isZeroTerminated = g_type_info_is_zero_terminated(type_info);
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
@@ -433,15 +501,30 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
 
 static void *V8TypedArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     auto array = Local<TypedArray>::Cast (TO_OBJECT (value));
-    size_t length = array->ByteLength();
+    int length = array->Length();
+
+    int fixed_size = g_type_info_get_array_fixed_size(type_info);
+    if (fixed_size != -1 && fixed_size != length) {
+        // FIXME: not currently working, exceptions seem to be disabled.
+        // for now it's better to abort() than to risk a crash from undefined behaviour
+        g_assert_not_reached();
+        //Nan::ThrowRangeError("Array not matching fixed size.");
+    }
 
     bool isZeroTerminated = g_type_info_is_zero_terminated(type_info);
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
     gsize element_size = GetTypeSize(element_info);
 
+    if (array->ByteLength() != length * element_size) { // FIXME hacky but cheap
+        // FIXME: not currently working, exceptions seem to be disabled.
+        // for now it's better to abort() than to risk a crash from undefined behaviour
+        g_assert_not_reached();
+        //Nan::ThrowTypeError("Typed array must have the same element size");
+    }
+
     void *result = malloc(element_size * (length + (isZeroTerminated ? 1 : 0)));
 
-    array->CopyContents(result, length);
+    array->CopyContents(result, length * element_size);
 
     if (isZeroTerminated) {
         void* pointer = (void*)((ulong)result + length * element_size);
@@ -468,6 +551,9 @@ void *V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
         return V8TypedArrayToCArray(type_info, value);
     }
 
+    // FIXME: not currently working, exceptions seem to be disabled.
+    // for now it's better to abort() than to risk a crash from undefined behaviour
+    g_assert_not_reached();
     Nan::ThrowTypeError("Expected value to be an array");
 
     return NULL;
@@ -1326,6 +1412,8 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
+        if (G_VALUE_TYPE (gvalue) == G_TYPE_BYTE_ARRAY)
+            return value->IsUint8Array();
         return ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         return value->IsObject();
@@ -1398,6 +1486,19 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
         }
         g_value_set_object (gvalue, GObjectFromWrapper (value));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
+        if (G_VALUE_TYPE (gvalue) == G_TYPE_BYTE_ARRAY) {
+            if (!value->IsUint8Array()) {
+                Throw::CannotConvertGType("GByteArray", G_VALUE_TYPE (gvalue));
+                return false;
+            }
+            auto array = value.As<v8::Uint8Array>();
+            auto garray = g_byte_array_sized_new(array->ByteLength());
+            g_byte_array_set_size(garray, array->ByteLength());
+            array->CopyContents(garray->data, garray->len);
+            g_value_take_boxed(gvalue, garray);
+            return true;
+        }
+
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Throw::CannotConvertGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
@@ -1465,6 +1566,11 @@ Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
         return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         GType gtype = G_VALUE_TYPE (gvalue);
+        if (gtype == G_TYPE_BYTE_ARRAY) {
+            auto garray = (GByteArray*) g_value_get_boxed(gvalue);
+            return Nan::CopyBuffer((char*)garray->data, garray->len).ToLocalChecked();
+        }
+
         GIBaseInfo *info = g_irepository_find_by_gtype(NULL, gtype);
         if (info == NULL) {
             Throw::InvalidGType(gtype);

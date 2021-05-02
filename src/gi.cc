@@ -273,6 +273,7 @@ NAN_METHOD(StructFieldSetter) {
 NAN_METHOD(StructFieldGetter) {
     Local<Object> jsBoxed     = info[0].As<Object>();
     Local<Object> jsFieldInfo = info[1].As<Object>();
+    Local<Object> jsLengthFieldInfo = info[2].As<Object>();
 
     if (jsBoxed->InternalFieldCount() == 0) {
         Nan::ThrowError("StructFieldGetter: instance is not a boxed");
@@ -303,6 +304,27 @@ NAN_METHOD(StructFieldGetter) {
     bool mustCopy = true;
     BaseInfo typeInfo = g_field_info_get_type(*fieldInfo);
 
+    long length = -1;
+    if (jsLengthFieldInfo->IsObject()) {
+        if (jsLengthFieldInfo->InternalFieldCount() == 0) {
+            Nan::ThrowError("StructFieldGetter: length field info is invalid");
+            return;
+        }
+        BaseInfo lengthFieldInfo =
+            g_base_info_ref((GIFieldInfo *) GNodeJS::PointerFromWrapper(jsLengthFieldInfo));
+        if (lengthFieldInfo.isEmpty()) {
+            Nan::ThrowError("StructFieldGetter: length field info is NULL");
+            return;
+        }
+        GIArgument lengthValue;
+        BaseInfo lengthTypeInfo = g_field_info_get_type(*lengthFieldInfo);
+        if (!g_field_info_get_field(*lengthFieldInfo, boxed, &lengthValue)) {
+            Nan::ThrowError("Length is not a primitive field");
+            return;
+        }
+        length = GNodeJS::GIArgumentToLength(*lengthTypeInfo, &lengthValue, false);
+    }
+
     if (!g_field_info_get_field(*fieldInfo, boxed, &value)) {
         /* If g_field_info_get_field() failed, this is a non-primitive type */
 
@@ -323,7 +345,7 @@ NAN_METHOD(StructFieldGetter) {
         return;
     }
 
-    RETURN(GNodeJS::GIArgumentToV8(*typeInfo, &value, -1, mustCopy));
+    RETURN(GNodeJS::GIArgumentToV8(*typeInfo, &value, length, mustCopy));
 }
 
 NAN_METHOD(StartLoop) {
