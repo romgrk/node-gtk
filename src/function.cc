@@ -770,38 +770,4 @@ bool PrepareVFuncInvoker (GIFunctionInfo *info, GIFunctionInvoker *invoker, GTyp
     return success;
 }
 
-MaybeLocal<Function> MakeVirtualFunction(GIBaseInfo *info, GType implementor) {
-    GError* error = NULL;
-
-    FunctionInfo *func = g_new0 (FunctionInfo, 1);
-    func->info = g_base_info_ref (info);
-    PrepareVFuncInvoker(info, &func->invoker, implementor, &error);
-
-    if (error != NULL) {
-        char* message = g_strdup_printf("Couldn't create virtual function '%s': %s",
-                g_base_info_get_name(info), error->message);
-        Nan::ThrowError(message);
-        g_free (message);
-        g_base_info_unref (func->info);
-        g_function_invoker_destroy (&func->invoker);
-        g_free (func);
-        g_error_free (error);
-        return MaybeLocal<Function>();
-    }
-
-    auto external = New<External>(func);
-    auto name = UTF8(g_base_info_get_name (info));
-
-    auto tpl = New<FunctionTemplate>(FunctionInvoker, external);
-    tpl->SetLength(g_callable_info_get_n_args (info));
-
-    auto fn = Nan::GetFunction (tpl).ToLocalChecked();
-    fn->SetName(name);
-
-    Persistent<FunctionTemplate> persistent(Isolate::GetCurrent(), tpl);
-    persistent.SetWeak(func, FunctionDestroyed, WeakCallbackType::kParameter);
-
-    return MaybeLocal<Function>(fn);
-}
-
 };
