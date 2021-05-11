@@ -44,8 +44,8 @@ static int GetV8ArrayLength (Local<Value> value) {
     else if (value->IsNull() || value->IsUndefined())
         return 0;
 
-    printf("%s\n", *Nan::Utf8String(TO_STRING (value)));
-    g_assert_not_reached();
+    ERROR("Could not determine array length for value %s",
+            *Nan::Utf8String(TO_STRING (value)));
 }
 
 static void* AllocateArgument (GIBaseInfo *arg_info) {
@@ -125,12 +125,6 @@ Local<Value> FunctionCall (
     GIBaseInfo *gi_info = func->info; // do-not-free
     bool use_return_value = return_value != NULL;
     bool use_error = error != NULL;
-
-    // bool debug_mode = strcmp(g_base_info_get_name(gi_info), "parse") == 0;
-    bool debug_mode = false;
-
-    if (debug_mode)
-        print_callable_info(gi_info);
 
     if (!func->Init())
         return jsReturnValue;
@@ -681,93 +675,12 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
         RETURN (jsReturnValue);
     }
 
-    // see src/callback.cc
     Callback::AsyncFree();
 }
 
 void FunctionDestroyed(const v8::WeakCallbackInfo<FunctionInfo> &data) {
     FunctionInfo *func = data.GetParameter ();
     delete func;
-}
-
-
-bool PrepareVFuncInvoker (GIFunctionInfo *info, GIFunctionInvoker *invoker, GType implementor, GError **error) {
-    gpointer address;
-    ffi_type **atypes;
-    GITypeInfo *tinfo;
-    gint n_args, n_invoke_args, in_pos, out_pos;
-    bool success;
-
-    GITypeInfo *rinfo = g_callable_info_get_return_type ((GICallableInfo *)info);
-    ffi_type *rtype = g_type_info_get_ffi_type (rinfo);
-
-    in_pos = 0;
-    out_pos = 0;
-
-    n_args = g_callable_info_get_n_args ((GICallableInfo *)info);
-
-    n_invoke_args = n_args;
-
-    /* is_method */
-    n_invoke_args += 1;
-    in_pos++;
-
-    int n_in_args = 0;
-    int n_out_args = 0;
-
-    for (int i = 0; i < n_args; i++) {
-        GIArgInfo arg_info;
-        g_callable_info_load_arg(info, i, &arg_info);
-        auto direction = g_arg_info_get_direction(&arg_info);
-
-        if (IsDirectionIn(direction))
-            n_in_args++;
-        if (IsDirectionOut(direction))
-            n_out_args++;
-    }
-
-    atypes = (ffi_type**)g_alloca (sizeof (ffi_type*) * n_invoke_args);
-
-    /* is_method */
-    atypes[0] = &ffi_type_pointer;
-
-    for (int i = 0; i < n_args; i++) {
-        int offset = 1;
-        GIArgInfo *ainfo = g_callable_info_get_arg ((GICallableInfo *)info, i);
-
-        switch (g_arg_info_get_direction (ainfo)) {
-            case GI_DIRECTION_IN:
-                tinfo = g_arg_info_get_type (ainfo);
-                atypes[i+offset] = g_type_info_get_ffi_type (tinfo);
-                g_base_info_unref ((GIBaseInfo *)tinfo);
-
-                in_pos++;
-
-                break;
-            case GI_DIRECTION_OUT:
-                atypes[i+offset] = &ffi_type_pointer;
-
-                out_pos++;
-                break;
-            case GI_DIRECTION_INOUT:
-                atypes[i+offset] = &ffi_type_pointer;
-
-                in_pos++;
-                out_pos++;
-                break;
-            default:
-                g_assert_not_reached ();
-        }
-        g_base_info_unref ((GIBaseInfo *)ainfo);
-    }
-
-    success = ffi_prep_cif (&invoker->cif, FFI_DEFAULT_ABI, n_invoke_args, rtype, atypes) == FFI_OK;
-
-    address = g_vfunc_info_get_address (info, implementor, error);
-    invoker->native_address = address;
-
-    g_base_info_unref ((GIBaseInfo *)rinfo);
-    return success;
 }
 
 };
