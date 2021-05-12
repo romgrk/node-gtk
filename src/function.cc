@@ -196,7 +196,6 @@ Local<Value> FunctionCall (
             }
         }
         else if (param.type == ParameterType::CALLBACK) {
-            // GIScopeType scope = g_arg_info_get_scope(&arg_info);
             Callback *callback;
             ffi_closure *closure;
 
