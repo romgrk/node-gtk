@@ -133,7 +133,7 @@ static void CallNextTickCallback() {
 
 void CallMicrotaskHandlers () {
     CallNextTickCallback();
-    Isolate::GetCurrent()->RunMicrotasks();
+    Isolate::GetCurrent()->PerformMicrotaskCheckpoint();
 }
 
 void StartLoop() {
