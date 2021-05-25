@@ -33,10 +33,5 @@ if [[ $(uname -s) == 'Linux' ]]; then
         libsoup2.4 \
         gir1.2-soup-2.4 \
         libcairo2 \
-        libcairo2-dev \
-        libgstreamer1.0-0 \
-        gstreamer1.0-plugins-base \
-        gir1.2-gstreamer-1.0 \
-        gstreamer1.0-plugins-bad \
-        gir1.2-gst-plugins-bad-1.0
+        libcairo2-dev
 fi;
