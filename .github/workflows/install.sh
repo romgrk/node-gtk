@@ -21,7 +21,8 @@ if [[ $(uname -s) == 'Darwin' ]]; then
 fi;
 
 if [[ $(uname -s) == 'Linux' ]]; then
-    sudo apt install \
+    sudo apt update
+    sudo apt install --fix-missing \
         xvfb \
         libgirepository1.0-dev \
         gobject-introspection \
@@ -33,5 +34,10 @@ if [[ $(uname -s) == 'Linux' ]]; then
         libsoup2.4 \
         gir1.2-soup-2.4 \
         libcairo2 \
-        libcairo2-dev
+        libcairo2-dev \
+        libgstreamer1.0-0 \
+        gstreamer1.0-plugins-base \
+        gir1.2-gstreamer-1.0 \
+        gstreamer1.0-plugins-bad \
+        gir1.2-gst-plugins-bad-1.0
 fi;
