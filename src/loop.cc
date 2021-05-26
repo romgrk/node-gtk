@@ -133,7 +133,11 @@ static void CallNextTickCallback() {
 
 void CallMicrotaskHandlers () {
     CallNextTickCallback();
+#if V8_MAJOR_VERSION >= 9
+    Isolate::GetCurrent()->PerformMicrotaskCheckpoint();
+#else
     Isolate::GetCurrent()->RunMicrotasks();
+#endif
 }
 
 void StartLoop() {

@@ -21,7 +21,8 @@ if [[ $(uname -s) == 'Darwin' ]]; then
 fi;
 
 if [[ $(uname -s) == 'Linux' ]]; then
-    sudo apt install \
+    sudo apt update
+    sudo apt install --fix-missing \
         xvfb \
         libgirepository1.0-dev \
         gobject-introspection \
