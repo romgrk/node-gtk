@@ -18,7 +18,7 @@ const tk = new GLib.TokenValue()
   tk.vInt = Number.MAX_SAFE_INTEGER
   const result = tk.vInt
   console.log('Result:', result)
-  common.assert(result === Number.MAX_SAFE_INTEGER)
+  common.assert(result === BigInt(Number.MAX_SAFE_INTEGER))
 }
 
 /*
