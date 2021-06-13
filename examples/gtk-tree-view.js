@@ -11,27 +11,6 @@ gi.startLoop()
 Gtk.init()
 
 
-// Types:     https://github.com/romgrk/node-gtk/blob/master/lib/overrides/GObject.js#L12-L35
-// Functions: https://developer.gnome.org/gobject/stable/gobject-Standard-Parameter-and-Value-Types.html
-const TYPE_FN = {
-  [GObject.TYPE_STRING]: GObject.Value.prototype.setString,
-  [GObject.TYPE_FLOAT]:  GObject.Value.prototype.setFloat,
-}
-
-function appendRow(store, row, types) {
-  const iter = store.append()
-
-  for (let i = 0; i < row.length; i++) {
-    const item = row[i]
-    const type = types[i]
-    const typeFn = TYPE_FN[type]
-    const value = new GObject.Value()
-    value.init(type)
-    typeFn.call(value, item)
-    store.setValue(iter, i, value)
-  }
-}
-
 
 // Model
 
@@ -45,7 +24,7 @@ const books = [
 const store = new Gtk.ListStore()
 store.setColumnTypes(types)
 
-books.forEach(book => appendRow(store, book, types))
+books.forEach(book => store.appendRow(book, types))
 
 
 

@@ -8,66 +8,32 @@ const Gtk = gi.require('Gtk', '3.0')
 const GdkPixbuf = gi.require('GdkPixbuf')
 const GObject = gi.require('GObject')
 
+const TYPE_PIXBUF = GObject.typeFromName('GdkPixbuf')
+const { TYPE_FLOAT, TYPE_STRING, TYPE_INT, TYPE_BOOLEAN } = GObject
+
+const logo = path.join(__dirname, 'logo.png')
+
 gi.startLoop()
 Gtk.init()
 
-
-const TYPE_FLOAT  = GObject.typeFromName('gfloat')
-const TYPE_STRING = GObject.typeFromName('gchararray')
-const TYPE_PIXBUF = GObject.typeFromName('GdkPixbuf') // Gtk.ImageType.PIXBUF
-
+const types = [TYPE_STRING, TYPE_PIXBUF, TYPE_INT, TYPE_BOOLEAN, TYPE_BOOLEAN]
 const store = new Gtk.TreeStore()
-store.setColumnTypes([TYPE_STRING, TYPE_PIXBUF])
+store.setColumnTypes(types)
 
-addRow()
-addRow()
-addRow()
+store.appendRow(['Image 1', GdkPixbuf.Pixbuf.newFromFile(logo), 12, true, true], types)
+store.appendRow(['Image 2', GdkPixbuf.Pixbuf.newFromFile(logo), 0, false, false], types)
+store.appendRow(['Image 3', GdkPixbuf.Pixbuf.newFromFile(logo), 85, true, false], types)
 
-function addRow() {
-  const iter = store.append()
-  {
-    // Add string
-    const value = new GObject.Value()
-    value.init(TYPE_STRING)
-    value.setString('Image:')
-
-    store.setValue(iter, 0, value)
-  }
-  {
-    // Add Pixbuf
-    const pixbuf = GdkPixbuf.Pixbuf.newFromFile(path.join(__dirname, 'logo.png'))
-
-    const value = new GObject.Value()
-    value.init(TYPE_PIXBUF)
-    value.setObject(pixbuf)
-
-    store.setValue(iter, 1, value)
-  }
-}
 
 
 // View
 
 const treeView = new Gtk.TreeView({ model: store })
-
-{
-  const column = new Gtk.TreeViewColumn({ title: 'Caption' })
-  const caption = new Gtk.CellRendererText()
-
-  column.packStart(caption, true)
-  column.addAttribute(caption,  'text', 0)
-
-  treeView.appendColumn(column)
-}
-{
-  const column = new Gtk.TreeViewColumn({ title: 'Image' })
-  const image = new Gtk.CellRendererPixbuf()
-
-  column.packStart(image, true)
-  column.addAttribute(image,  'pixbuf', 1)
-
-  treeView.appendColumn(column)
-}
+treeView.appendColumn({ title: 'Caption', type: 'text' })
+treeView.appendColumn({ title: 'Image', type: 'pixbuf' })
+treeView.appendColumn({ title: 'Progress', type: 'progress' })
+treeView.appendColumn({ title: 'Spinner', type: 'spinner' })
+treeView.appendColumn({ title: 'Toggle', type: 'toggle' })
 
 
 // configure main window
