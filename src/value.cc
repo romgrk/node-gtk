@@ -1311,6 +1311,10 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
         return value->IsNumber();
+    } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
+        return value->IsNumber();
+    } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
+        return value->IsNumber();
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
