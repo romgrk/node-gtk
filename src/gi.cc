@@ -223,7 +223,7 @@ NAN_METHOD(StructFieldSetter) {
 
     GIArgument arg;
 
-    if (!GNodeJS::V8ToGIArgument(field_type, &arg, value, true)) {
+    if (!GNodeJS::V8ToGIArgument(field_type, &arg, value, true, GI_TRANSFER_NOTHING)) {
         char *message = g_strdup_printf("Couldn't convert value for field '%s'",
                 g_base_info_get_name(field));
         Nan::ThrowTypeError (message);

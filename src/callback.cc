@@ -192,11 +192,16 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
             }
         }
 
+        GITypeInfo ret_info;
+        g_callable_info_load_return_type(callback->info, &ret_info);
+        GITransfer transfer = g_arg_info_get_ownership_transfer (&ret_info);
+
         success = V8ToGIArgument(
                 &return_type_info,
                 result,
                 jsRealReturnValue,
-                g_callable_info_may_return_null (callback->info));
+                g_callable_info_may_return_null (callback->info),
+                transfer);
 
         if (!success) {
             Throw::InvalidReturnValue (&return_type_info, jsReturnValue);
