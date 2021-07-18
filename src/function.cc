@@ -31,7 +31,8 @@ static void FillArgument(GIArgInfo *arg_info, GIArgument *argument, Local<Value>
     GITypeInfo type_info;
     bool may_be_null = g_arg_info_may_be_null (arg_info);
     g_arg_info_load_type (arg_info, &type_info);
-    V8ToGIArgument(&type_info, argument, value, may_be_null);
+    GITransfer transfer = g_arg_info_get_ownership_transfer(arg_info);
+    V8ToGIArgument(&type_info, argument, value, may_be_null, transfer);
 }
 
 static int GetV8ArrayLength (Local<Value> value) {
@@ -331,7 +332,7 @@ Local<Value> FunctionCall (
 
     if (func->is_method) {
         GIBaseInfo *container = g_base_info_get_container (gi_info);
-        V8ToGIArgument(container, &total_arg_values[0], info.This());
+        V8ToGIArgument(container, &total_arg_values[0], info.This(), GI_TRANSFER_NOTHING);
         callable_arg_values = &total_arg_values[1];
     } else {
         callable_arg_values = &total_arg_values[0];

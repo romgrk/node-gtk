@@ -19,8 +19,8 @@ Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err);
 Local<Value> GIArgumentToV8 (GITypeInfo *type_info, GIArgument *argument, long length = -1, bool mustCopy = false);
 long         GIArgumentToLength(GITypeInfo *type_info, GIArgument *arg, bool is_pointer);
 
-bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value);
-bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value, bool may_be_null);
+bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value, GITransfer transfer);
+bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<Value> value, bool may_be_null, GITransfer transfer);
 bool         V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null);
 void         FreeGIArgument (GITypeInfo *type_info, GIArgument *argument, GITransfer transfer = GI_TRANSFER_EVERYTHING, GIDirection direction = GI_DIRECTION_OUT);
 void         FreeGIArgumentArray (GITypeInfo *type_info, GIArgument *arg, GITransfer transfer = GI_TRANSFER_EVERYTHING, GIDirection direction = GI_DIRECTION_OUT, long length = -1);
