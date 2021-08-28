@@ -648,20 +648,9 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value, GI
     case GI_INFO_TYPE_UNION:
         arg->v_pointer = PointerFromWrapper(value);
         if (transfer == GI_TRANSFER_EVERYTHING) {
-            GType gtype = g_registered_type_info_get_g_type (gi_info);
-            size_t size;
-
-            if (gtype != G_TYPE_NONE) {
-                arg->v_pointer = g_boxed_copy (gtype, arg->v_pointer);
-            } else if ((size = Boxed::GetSize(gi_info)) != 0) {
-                void *boxedCopy = malloc(size);
-                memcpy(boxedCopy, arg->v_pointer, size);
-                arg->v_pointer = boxedCopy;
-            } else {
-                // XXX what else can we do? Should we just abort?
-                WARN("Cannot copy a boxed object of type '%s'; memory corruption might occur.",
-                        g_base_info_get_name(gi_info));
-            }
+            arg->v_pointer = CopyBoxed(gi_info, arg->v_pointer);
+            if (!arg->v_pointer)
+                return false;
         }
         break;
 
