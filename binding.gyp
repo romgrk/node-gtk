@@ -40,7 +40,9 @@
                 "<!(node -e \"require('nan')\")"
             ],
             "cflags": [
-                "<!@(pkg-config --cflags gobject-introspection-1.0 cairo) -Wall -g",
+                "<!@(pkg-config --cflags gobject-introspection-1.0 cairo)",
+                "-Wall",
+                "-g",
             ],
             "ldflags": [
                 "-Wl,-no-as-needed",
