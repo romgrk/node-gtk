@@ -39,7 +39,7 @@ describe('OUT-array (array-length before)', () => {
   assert(content === actualContent, 'file content is wrong')
 })
 
-describe('OUT-array (zero-terminated)', () => {
+describe('OUT-array (zero-terminated, of strings)', () => {
   const string = 'string with spéciäl characters'
   const locale = 'fr_CA'
 
@@ -50,6 +50,19 @@ describe('OUT-array (zero-terminated)', () => {
   expect(tokens, [ 'string', 'with', 'spéciäl', 'characters' ])
   expect(alternates, [ 'special' ])
 })
+
+describe('OUT-array (zero-terminated, of guint8)', () => {
+  const cmd = 'echo foo'
+  const result = glib.spawnCommandLineSync(cmd)
+
+  // @standard_output: (out) (array zero-terminated=1) (element-type guint8) (optional): return location for child output
+  // Because (element-type guint8), the result becomes array of numbers, not string.
+  const [success, standardOutput] = result
+  const expectedStdout = Array.from('foo\n').map(c => c.codePointAt(0))
+
+  expect(success, true)
+  expect(standardOutput, expectedStdout)
+});
 
 // TODO: disabled due to possible issue with gtk_init. No viable candidates
 //       at this moment, this needs to be re-activated when one is found
