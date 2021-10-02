@@ -87,7 +87,11 @@ static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
 
 out:
     g_strfreev ((gchar**) names);
+
+    for (int i = 0; i < n_properties; i++)
+        g_value_unset(&values[i]);
     g_free (values);
+
     g_type_class_unref (klass);
 
     return gobject;
