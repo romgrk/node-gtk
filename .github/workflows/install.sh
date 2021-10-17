@@ -7,6 +7,7 @@ set -o pipefail
 # also increase the package cache key in main.yaml
 
 if [[ $(uname -s) == 'Darwin' ]]; then
+    brew update
     brew install \
         gtk+3 \
         gobject-introspection \
