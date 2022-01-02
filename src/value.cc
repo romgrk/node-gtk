@@ -697,7 +697,10 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_int = Nan::To<int32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT64:
-        arg->v_int64 = Nan::To<int64_t> (value).ToChecked();
+        if (value->IsBigInt())
+            arg->v_int64 = value.As<v8::BigInt>()->Int64Value();
+        else
+            arg->v_int64 = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT8:
         arg->v_uint8 = Nan::To<uint32_t> (value).ToChecked();
@@ -709,7 +712,10 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         arg->v_uint = Nan::To<uint32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT64:
-        arg->v_uint64 = Nan::To<int64_t> (value).ToChecked();
+        if (value->IsBigInt())
+            arg->v_uint64 = value.As<v8::BigInt>()->Uint64Value();
+        else
+            arg->v_uint64 = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_FLOAT:
         arg->v_float = Nan::To<double> (value).ToChecked();
@@ -835,7 +841,10 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         *(gint*)arg->v_pointer = Nan::To<int32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_INT64:
-        *(gint64*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+        if (value->IsBigInt())
+            *(gint64*)arg->v_pointer = value.As<v8::BigInt>()->Int64Value();
+        else
+            *(gint64*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT8:
         *(guint8*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
@@ -847,7 +856,10 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         *(guint*)arg->v_pointer = Nan::To<uint32_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_UINT64:
-        *(guint64*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+        if (value->IsBigInt())
+            *(guint64*)arg->v_pointer = value.As<v8::BigInt>()->Uint64Value();
+        else
+            *(guint64*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
         break;
     case GI_TYPE_TAG_FLOAT:
         *(gfloat*)arg->v_pointer = Nan::To<double> (value).ToChecked();
@@ -913,15 +925,15 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
     case GI_TYPE_TAG_INT8:
     case GI_TYPE_TAG_INT16:
     case GI_TYPE_TAG_INT32:
-    case GI_TYPE_TAG_INT64:
     case GI_TYPE_TAG_UINT8:
     case GI_TYPE_TAG_UINT16:
     case GI_TYPE_TAG_UINT32:
-    case GI_TYPE_TAG_UINT64:
     case GI_TYPE_TAG_FLOAT:
     case GI_TYPE_TAG_DOUBLE:
         return value->IsNumber ();
 
+    case GI_TYPE_TAG_INT64:
+    case GI_TYPE_TAG_UINT64:
     case GI_TYPE_TAG_GTYPE:
         return value->IsNumber () || value->IsBigInt ();
 
