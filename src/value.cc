@@ -238,6 +238,55 @@ Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err) {
     return obj;
 }
 
+template<typename T>
+static bool isZero(void* value) {
+    return *(reinterpret_cast<T*>(value)) == 0;
+}
+
+static bool isZero(GIArgument &value, GITypeInfo *type_info) {
+    GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    switch (type_tag) {
+        case GI_TYPE_TAG_BOOLEAN:
+            ERROR("Boolean zero-terminated array not supported");
+            return false;
+        case GI_TYPE_TAG_INT8:
+            return isZero<gint8>(&value);
+        case GI_TYPE_TAG_UINT8:
+            return isZero<guint8>(&value);
+        case GI_TYPE_TAG_INT16:
+            return isZero<gint16>(&value);
+        case GI_TYPE_TAG_UINT16:
+            return isZero<guint16>(&value);
+        case GI_TYPE_TAG_INT32:
+            return isZero<gint32>(&value);
+        case GI_TYPE_TAG_UINT32:
+            return isZero<guint32>(&value);
+        case GI_TYPE_TAG_INT64:
+            return isZero<gint64>(&value);
+        case GI_TYPE_TAG_UINT64:
+            return isZero<guint64>(&value);
+        case GI_TYPE_TAG_FLOAT:
+            return isZero<float>(&value);
+        case GI_TYPE_TAG_DOUBLE:
+            return isZero<double>(&value);
+        case GI_TYPE_TAG_UNICHAR:
+            return isZero<gunichar>(&value);
+
+        case GI_TYPE_TAG_GTYPE:
+        case GI_TYPE_TAG_INTERFACE:
+        case GI_TYPE_TAG_ARRAY:
+        case GI_TYPE_TAG_VOID:
+        case GI_TYPE_TAG_UTF8:
+        case GI_TYPE_TAG_FILENAME:
+        case GI_TYPE_TAG_GLIST:
+        case GI_TYPE_TAG_GSLIST:
+        case GI_TYPE_TAG_GHASH:
+        case GI_TYPE_TAG_ERROR:
+            return isZero<gpointer>(&value);
+    }
+}
+
 Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
 
     auto array = New<Array>();
@@ -253,20 +302,15 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-                if (length == -1) {
-                    if (g_type_info_is_zero_terminated (type_info)) {
-                        length = g_strv_length ((gchar **)data);
-                    }
-                    else {
-                        length = g_type_info_get_array_fixed_size (type_info);
-                        if (G_UNLIKELY (length == -1)) {
-                            g_critical ("Unable to determine array length for %p", data);
-                            length = 0;
-                            break;
-                        }
+                if (length == -1 && !g_type_info_is_zero_terminated (type_info)) {
+                    length = g_type_info_get_array_fixed_size (type_info);
+                    if (G_UNLIKELY (length == -1)) {
+                        g_critical ("Unable to determine array length for %p", data);
+                        length = 0;
+                        break;
                     }
                 }
-                g_assert (length >= 0);
+                // length remains -1 for zero-terminated array.
                 break;
             }
         case GI_ARRAY_TYPE_ARRAY:
@@ -301,9 +345,16 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
 
     GIArgument value;
 
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; ; i++) {
+        if (length != -1 && i >= length)
+            break;
+
         void** pointer = (void**)((ulong)data + i * item_size);
         memcpy(&value, pointer, item_size);
+
+        if (length == -1 && isZero(value, item_type_info))
+            break;
+
         Nan::Set(array, i, GIArgumentToV8(item_type_info, &value));
     }
 
