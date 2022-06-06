@@ -16,7 +16,7 @@ using v8::String;
 namespace GNodeJS {
 
 enum ParameterType {
-    NORMAL, ARRAY, SKIP, CALLBACK
+    kNORMAL, kARRAY, kSKIP, kCALLBACK
 };
 
 struct Parameter {
