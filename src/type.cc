@@ -256,13 +256,13 @@ GITypeTag GetStorageType (GITypeInfo *type_info) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     if (type_tag == GI_TYPE_TAG_INTERFACE) {
-        GIBaseInfo *interface = g_type_info_get_interface (type_info);
-        GIInfoType interface_type = g_base_info_get_type (interface);
+        GIBaseInfo *iface = g_type_info_get_interface (type_info);
+        GIInfoType iface_type = g_base_info_get_type (iface);
 
-        if (interface_type == GI_INFO_TYPE_ENUM || interface_type == GI_INFO_TYPE_FLAGS)
-            type_tag = g_enum_info_get_storage_type ((GIEnumInfo *)interface);
+        if (iface_type == GI_INFO_TYPE_ENUM || iface_type == GI_INFO_TYPE_FLAGS)
+            type_tag = g_enum_info_get_storage_type ((GIEnumInfo *)iface);
 
-        g_base_info_unref (interface);
+        g_base_info_unref (iface);
     }
 
     return type_tag;
