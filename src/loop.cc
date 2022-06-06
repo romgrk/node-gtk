@@ -92,9 +92,14 @@ static GSourceFuncs uv_loop_source_funcs = {
 static GSource *loop_source_new (uv_loop_t *loop) {
     struct uv_loop_source *source = (struct uv_loop_source *) g_source_new (&uv_loop_source_funcs, sizeof (*source));
     source->loop = loop;
+#if OS_WINDOWS
+    // FIXME
+    // https://github.com/nodejs/node/issues/36015
+#else
     g_source_add_unix_fd (&source->source,
                           uv_backend_fd (loop),
                           (GIOCondition) (G_IO_IN | G_IO_OUT | G_IO_ERR));
+#endif
     return &source->source;
 }
 
