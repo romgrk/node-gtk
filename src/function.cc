@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <girffi.h>
 
@@ -325,7 +324,7 @@ Local<Value> FunctionCall (
      * and for error, if it can throw
      */
 
-    GIArgument total_arg_values[func->n_total_args];
+    GIArgument *total_arg_values = new GIArgument[func->n_total_args];
     GIArgument *callable_arg_values;
     GError *error_stack = nullptr;
 
@@ -339,7 +338,6 @@ Local<Value> FunctionCall (
 
     if (func->can_throw)
         callable_arg_values[func->n_callable_args].v_pointer = error != NULL ? error : &error_stack;
-
 
     /*
      * Second, allocate OUT-arguments and fill IN-arguments
@@ -448,15 +446,16 @@ Local<Value> FunctionCall (
      * Third, make the actual ffi_call
      */
 
-    void *ffi_args[func->n_total_args];
+    void **ffi_args = new void*[func->n_total_args];
     for (int i = 0; i < func->n_total_args; i++)
-        ffi_args[i] = &total_arg_values[i];
-
+        ffi_args[i] = (void *)&total_arg_values[i];
 
     GIArgument return_value_stack;
 
     ffi_call (&func->invoker.cif, FFI_FN (func->invoker.native_address),
               use_return_value ? return_value : &return_value_stack, ffi_args);
+
+    delete[] ffi_args;
 
 
     /*
@@ -529,6 +528,8 @@ Local<Value> FunctionCall (
                 FreeGIArgument (&arg_type, &arg_value, transfer, direction);
         }
     }
+
+    delete[] total_arg_values;
 
     return jsReturnValue;
 }
