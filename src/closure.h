@@ -35,7 +35,7 @@ struct Closure {
 
     static void Marshal(GClosure *closure,
                         GValue   *g_return_value,
-                        uint argc, const GValue *g_argv,
+                        guint argc, const GValue *g_argv,
                         gpointer  invocation_hint,
                         gpointer  marshal_data);
 

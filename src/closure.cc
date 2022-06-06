@@ -123,7 +123,7 @@ throw_exception:
 
 void Closure::Marshal(GClosure     *base,
                       GValue       *g_return_value,
-                      uint          n_param_values,
+                      guint         n_param_values,
                       const GValue *param_values,
                       gpointer      invocation_hint,
                       gpointer      marshal_data) {
