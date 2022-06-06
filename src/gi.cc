@@ -345,22 +345,22 @@ NAN_METHOD(RegisterVFunc) {
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     GNodeJS::AsyncCallEnvironment::Initialize();
 
-    NAN_EXPORT(exports, Bootstrap);
-    NAN_EXPORT(exports, GetModuleCache);
-    NAN_EXPORT(exports, GetBaseClass);
-    NAN_EXPORT(exports, GetTypeSize);
-    NAN_EXPORT(exports, GetConstantValue);
-    NAN_EXPORT(exports, MakeBoxedClass);
-    NAN_EXPORT(exports, MakeObjectClass);
-    NAN_EXPORT(exports, MakeFunction);
-    NAN_EXPORT(exports, StructFieldGetter);
-    NAN_EXPORT(exports, StructFieldSetter);
-    NAN_EXPORT(exports, ObjectPropertyGetter);
-    NAN_EXPORT(exports, ObjectPropertySetter);
-    NAN_EXPORT(exports, StartLoop);
-    NAN_EXPORT(exports, GetLoopStack);
-    NAN_EXPORT(exports, RegisterClass);
-    NAN_EXPORT(exports, RegisterVFunc);
+    Nan::Export(exports, "Bootstrap",            Bootstrap);
+    Nan::Export(exports, "GetModuleCache",       GetModuleCache);
+    Nan::Export(exports, "GetBaseClass",         GetBaseClass);
+    Nan::Export(exports, "GetTypeSize",          GetTypeSize);
+    Nan::Export(exports, "GetConstantValue",     GetConstantValue);
+    Nan::Export(exports, "MakeBoxedClass",       MakeBoxedClass);
+    Nan::Export(exports, "MakeObjectClass",      MakeObjectClass);
+    Nan::Export(exports, "MakeFunction",         MakeFunction);
+    Nan::Export(exports, "StructFieldGetter",    StructFieldGetter);
+    Nan::Export(exports, "StructFieldSetter",    StructFieldSetter);
+    Nan::Export(exports, "ObjectPropertyGetter", ObjectPropertyGetter);
+    Nan::Export(exports, "ObjectPropertySetter", ObjectPropertySetter);
+    Nan::Export(exports, "StartLoop",            StartLoop);
+    Nan::Export(exports, "GetLoopStack",         GetLoopStack);
+    Nan::Export(exports, "RegisterClass",        RegisterClass);
+    Nan::Export(exports, "RegisterVFunc",        RegisterVFunc);
 
     Nan::Set(exports, UTF8("System"), GNodeJS::System::GetModule());
     Nan::Set(exports, UTF8("Cairo"),  GNodeJS::Cairo::GetModule());
