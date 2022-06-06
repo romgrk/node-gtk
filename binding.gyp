@@ -39,21 +39,20 @@
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"
             ],
-            "cflags": [
-                "<!@(pkg-config --cflags gobject-introspection-1.0 cairo)",
-                "-Wall",
-                "-g",
-            ],
-            "ldflags": [
-                "-Wl,-no-as-needed",
-                "<!@(pkg-config --libs gobject-introspection-1.0 cairo)",
-            ],
             "conditions": [
-                ['OS != "linux"', {
+                ['OS == "linux"', {
                     "defines": [
-                        "ulong=unsigned long",
                         "PLATFORM_LINUX=1",
-                    ]
+                    ],
+                    "cflags": [
+                        "<!@(pkg-config --cflags gobject-introspection-1.0 cairo)",
+                        "-Wall",
+                        "-g",
+                    ],
+                    "ldflags": [
+                        "-Wl,-no-as-needed",
+                        "<!@(pkg-config --libs gobject-introspection-1.0 cairo)",
+                    ],
                 }],
                 ['OS == "mac"', {
                     "defines": [
