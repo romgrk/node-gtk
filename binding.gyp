@@ -70,16 +70,29 @@
                 }],
                 ['OS == "win"', {
                     "defines": [
-                        "uint=unsigned int",
+                        "uint=uint32_t",
+                        "ulong=uint64_t",
                         "PLATFORM_WIN=1",
                     ],
                     "include_dirs": [
-                        "include",
+                        # We don't want to include /msys64/mingw64/include directly
+                        "<!(bash windows/make_include_extra.sh)",
+                        #"<!(%COMSPEC% /c windows\\make_include_extra.cmd | tr '\\' '/')",
+                        #"/msys64/mingw64/include/__extra__",
+
                         "/msys64/mingw64/include/gobject-introspection-1.0",
-                        "/msys64/mingw64/lib/libffi-3.2.1/include",
                         "/msys64/mingw64/include/glib-2.0",
                         "/msys64/mingw64/lib/glib-2.0/include",
-                        "/msys64/mingw64/include/cairo"
+                        "/msys64/mingw64/include/cairo",
+                        "/msys64/mingw64/include/freetype2",
+                    ],
+                    "libraries": [
+                        "/msys64/mingw64/lib/libglib-2.0.dll.a",
+                        "/msys64/mingw64/lib/libgmodule-2.0.dll.a",
+                        "/msys64/mingw64/lib/libgobject-2.0.dll.a",
+                        "/msys64/mingw64/lib/libffi.dll.a",
+                        "/msys64/mingw64/lib/libgirepository-1.0.dll.a",
+                        "/msys64/mingw64/lib/libcairo.dll.a",
                     ]
                 }]
             ]
