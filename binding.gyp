@@ -76,9 +76,8 @@
                     ],
                     "include_dirs": [
                         # We don't want to include /msys64/mingw64/include directly
-                        "<!(bash windows/make_include_extra.sh)",
-                        #"<!(%COMSPEC% /c windows\\make_include_extra.cmd | tr '\\' '/')",
-                        #"/msys64/mingw64/include/__extra__",
+                        # Run windows/make_include_extra.sh" before compiling
+                        "/msys64/mingw64/include/__extra__",
 
                         "/msys64/mingw64/include/gobject-introspection-1.0",
                         "/msys64/mingw64/include/glib-2.0",
