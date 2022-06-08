@@ -648,14 +648,14 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
         if (!V8ToGIArgument(key_type_info, &key_arg, key, false)) {
             char* message = g_strdup_printf("Couldn't convert key '%s'", *Nan::Utf8String(key));
             Nan::ThrowError(message);
-            free(message);
+            g_free(message);
             goto item_error;
         }
 
         if (!V8ToGIArgument(value_type_info, &value_arg, value, false)) {
             char* message = g_strdup_printf("Couldn't convert value for key '%s'", *Nan::Utf8String(key));
             Nan::ThrowError(message);
-            free(message);
+            g_free(message);
             goto item_error;
         }
 
@@ -1333,7 +1333,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-                free(data);
+                g_free(data);
                 break;
             }
         case GI_ARRAY_TYPE_ARRAY:

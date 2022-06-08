@@ -158,7 +158,7 @@ void print_callable_info (GICallableInfo *info) {
     g_callable_info_load_return_type(info, &return_info);
     auto typeName = GetTypeName(&return_info);
     printf("%s %s (", typeName, g_base_info_get_name(info));
-    free(typeName);
+    g_free(typeName);
 
     int n_args = g_callable_info_get_n_args(info);
     for (int i = 0; i < n_args; i++) {
@@ -168,7 +168,7 @@ void print_callable_info (GICallableInfo *info) {
         g_arg_info_load_type(&arg_info, &type_info);
         auto typeName = GetTypeName(&type_info);
         printf("%s %s", typeName, g_base_info_get_name(&arg_info));
-        free(typeName);
+        g_free(typeName);
         if (i < n_args - 1)
             printf(", ");
     }
