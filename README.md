@@ -19,7 +19,7 @@ Node-Gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) libra
 use any introspected library, such as Gtk+, usable.  It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) or [PyGObject](https://pygobject.readthedocs.io). Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
 
-Supported Node.js versions: **12**, **14**, **15**, **16** (other versions should work but are untested)  
+Supported Node.js versions: **12**, **14**, **15**, **16** (other versions should work but are untested)
 Pre-built binaries available for: **Linux**, **macOS**
 
 ### Table of contents
@@ -217,6 +217,13 @@ cd ~/oss
 # clone node-gtk there
 git clone https://github.com/romgrk/node-gtk
 cd node-gtk
+
+# don't include /mingw64/include directly since it conflicts with
+# Windows SDK headers. we copy needed headers to __extra__ directory:
+./windows/mingw_include_extra.sh
+
+# if MSYS2 is NOT installed in C:/msys64 run:
+export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
 
 # first run might take a while
 GYP_MSVS_VERSION=2015 npm install

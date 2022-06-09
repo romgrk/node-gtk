@@ -1,6 +1,44 @@
 name: main
 on: [push, pull_request]
 jobs:
+  build-windows:
+    name: windows - nodejs ${{ matrix.node }}
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        node:
+          - 12
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 12
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-gtk3 mingw-w64-x86_64-gobject-introspection mingw-w64-x86_64-cairo
+
+      - name: Install VS 2017
+        shell: cmd
+        run: choco upgrade -y visualstudio2017-workload-vctools
+
+      - name: Install & Build
+        run: |
+          ./windows/mingw_include_extra.sh
+          export PATH="$PATH:/c/hostedtoolcache/windows/node/12.22.12/x64"
+          export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
+          npm config set msvs_version 2017
+          npm install --build-from-source
+
+      - name: Run initial test
+        run: |
+          export PATH="$PATH:/c/hostedtoolcache/windows/node/12.22.12/x64"
+          node tests/api.js
+
   build:
     name: ${{ matrix.os }} - nodejs ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
