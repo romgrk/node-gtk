@@ -679,6 +679,8 @@ item_error:
 bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
     GIInfoType type = g_base_info_get_type (gi_info);
 
+    memset(arg, 0, sizeof(GIArgument));
+
     switch (type) {
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
@@ -715,6 +717,8 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
 
 bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    memset(arg, 0, sizeof(GIArgument));
 
     if (value->IsUndefined () || value->IsNull ()) {
         arg->v_pointer = NULL;
@@ -866,6 +870,8 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
      * a bug report.
      */
     GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    memset(arg, 0, sizeof(GIArgument));
 
     if (value->IsUndefined () || value->IsNull ()) {
         arg->v_pointer = NULL;
