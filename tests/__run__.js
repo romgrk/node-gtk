@@ -21,13 +21,15 @@ const watchdog = setTimeout(() => {
 }, 10 * 60 * 1000)
 watchdog.unref()
 
-const skipPattern = process.argv
+// usage: npx mocha [--skip=pat1[,pat2...]] [--skip=...] tests/__run__.js
+const skipPatterns = process.argv
   .filter(a => a.startsWith('--skip='))
-  .map(a => new RegExp(a.replace('--skip=', '')))[0]
+  .flatMap(a => a.replace('--skip=', '').split(','))
+  .map(a => new RegExp(a))
 
 files.forEach(file => {
 
-  if (skipPattern && skipPattern.test(file))
+  if (skipPatterns.reduce((acc, pat) => acc || pat.test(file), false))
     return
 
   it(file, function(done) {
