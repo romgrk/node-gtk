@@ -46,7 +46,6 @@ jobs:
                     --skip=gvalue                   \
                     --skip=loop                     \
                     --skip=register-class           \
-                    --skip=require                  \
                     --skip=signal.js                \
                     --skip=signal__non-introspected \
                     --skip=object__non-introspected \

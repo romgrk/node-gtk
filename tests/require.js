@@ -59,7 +59,7 @@ describe('gi.require() works for all modules', async () => {
 
 function testRequire(module, i, modules) {
   return new Promise((resolve, reject) => {
-    const modulePath = path.join(__dirname, '..')
+    const modulePath = path.posix.join(__dirname, '..')
     const cmd = `node -e "const gi = require('${modulePath}'); gi.require('${module.name}', '${module.version}')"`
     const options = {
       maxBuffer: 10 * 1024 * 1024,
