@@ -102,7 +102,7 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
         Local<Value> js_args[n_native_args];
     #endif
 
-    for (auto i = 0; i < n_native_args; i++) {
+    for (guint i = 0; i < n_native_args; i++) {
         GIArgInfo arg_info;
         GITypeInfo arg_type;
         g_callable_info_load_arg (callback->info, i, &arg_info);
@@ -171,7 +171,7 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
             else
                 jsRealReturnValue = Nan::Get(jsReturnArray, returnIndex++).ToLocalChecked();
 
-            for (auto i = 0; i < n_native_args; i++) {
+            for (guint i = 0; i < n_native_args; i++) {
                 isOutPrimitive = (primitive_out_arguments_mask & (1 << i)) != 0;
                 if (!isOutPrimitive)
                     continue;

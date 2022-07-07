@@ -58,7 +58,7 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
         GIArgument argument;
         GIArgInfo arg_info;
         GITypeInfo type_info;
-        for (auto i = 1; i < n_param_values; i++) {
+        for (guint i = 1; i < n_param_values; i++) {
             memcpy(&argument, &param_values[i].data[0], sizeof(GIArgument));
             g_callable_info_load_arg(info, i - 1, &arg_info);
             g_arg_info_load_type(&arg_info, &type_info);
@@ -76,7 +76,7 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
         }
     } else {
         /* CallableInfo is not available: use GValueToV8 */
-        for (auto i = 1; i < n_param_values; i++) {
+        for (guint i = 1; i < n_param_values; i++) {
             bool mustCopy = true;
 
             if (signal_query.signal_id) {

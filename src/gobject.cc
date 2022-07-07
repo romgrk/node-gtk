@@ -447,7 +447,7 @@ NAN_METHOD(SignalEmit) {
     g_value_set_object(&args[0], gobject);
 
     failed = false;
-    for (auto i = 0; i < signal_query.n_params; i++) {
+    for (guint i = 0; i < signal_query.n_params; i++) {
         GValue *gvalue = &args[i + 1];
 
         g_value_init(gvalue, signal_query.param_types[i] & ~G_SIGNAL_TYPE_STATIC_SCOPE);
@@ -470,7 +470,7 @@ NAN_METHOD(SignalEmit) {
         }
     }
 
-    for (auto i = 0; i < argc; i++) {
+    for (guint i = 0; i < argc; i++) {
         g_value_unset(&args[i]);
     }
 }
