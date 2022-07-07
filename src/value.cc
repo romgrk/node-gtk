@@ -1339,7 +1339,18 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-                g_free(data);
+#if OS_WINDOWS
+                bool isZeroTerminated = g_type_info_is_zero_terminated (type_info);
+                if (isZeroTerminated) {
+                    g_free (data);
+                } else {
+                    // Freeing something that is non-zero terminated
+                    // crashes on Windows.
+                    // TODO: Investigate what it is
+                }
+#else
+                g_free (data);
+#endif
                 break;
             }
         case GI_ARRAY_TYPE_ARRAY:
