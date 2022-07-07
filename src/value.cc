@@ -68,8 +68,8 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     case GI_TYPE_TAG_UINT64:
         return New<Number> (arg->v_uint64);
 
-    case GI_TYPE_TAG_GTYPE: /* c++: gulong */
-        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), arg->v_ulong);
+    case GI_TYPE_TAG_GTYPE: /* c++: gsize */
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), arg->v_size);
 
     case GI_TYPE_TAG_UNICHAR:
         {
@@ -780,9 +780,9 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         break;
     case GI_TYPE_TAG_GTYPE:
         if (value->IsBigInt())
-            arg->v_ulong = value.As<v8::BigInt>()->Uint64Value();
+            arg->v_size = value.As<v8::BigInt>()->Uint64Value();
         else
-            arg->v_ulong = Nan::To<int64_t> (value).ToChecked();
+            arg->v_size = Nan::To<int64_t> (value).ToChecked();
         break;
 
     case GI_TYPE_TAG_UTF8:
@@ -926,9 +926,9 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         break;
     case GI_TYPE_TAG_GTYPE:
         if (value->IsBigInt())
-            *(gulong*)arg->v_pointer = value.As<v8::BigInt>()->Uint64Value();
+            *(gsize*)arg->v_pointer = value.As<v8::BigInt>()->Uint64Value();
         else
-            *(gulong*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+            *(gsize*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
         break;
 
     case GI_TYPE_TAG_UTF8:

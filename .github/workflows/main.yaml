@@ -39,10 +39,7 @@ jobs:
         run: |
           npx mocha --skip=callback                 \
                     --skip=conversion__array        \
-                    --skip=gvalue                   \
                     --skip=object__non-introspected \
-                    --skip=register-class           \
-                    --skip=signal.js                \
                     --skip=signal__non-introspected \
                     --skip=union__fields            \
                     tests/__run__.js
