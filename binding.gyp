@@ -70,8 +70,6 @@
                 }],
                 ['OS == "win"', {
                     "defines": [
-                        "uint=uint32_t",
-                        "ulong=uint64_t",
                         "PLATFORM_WIN=1",
                     ],
                     "variables": {

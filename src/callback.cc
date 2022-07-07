@@ -22,7 +22,7 @@ using Nan::TryCatch;
 
 namespace GNodeJS {
 
-static uint callbackLevel = 0;
+static guint callbackLevel = 0;
 static GSList* notifiedCallbacks = NULL;
 
 static Local<Object> GetSelfInstance(GIArgument **args) {
@@ -91,10 +91,10 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
 
     /* Skip the object instance in first place */
     int args_offset = isVFunc ? 1 : 0;
-    uint n_native_args = (uint) g_callable_info_get_n_args(callback->info);
-    uint n_return_values = 1;
+    guint n_native_args = (guint) g_callable_info_get_n_args(callback->info);
+    guint n_return_values = 1;
 
-    uint primitive_out_arguments_mask = 0;
+    guint primitive_out_arguments_mask = 0;
 
     #ifndef __linux__
         Local<Value>* js_args = new Local<Value>[n_native_args];
@@ -102,7 +102,7 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
         Local<Value> js_args[n_native_args];
     #endif
 
-    for (uint i = 0; i < n_native_args; i++) {
+    for (auto i = 0; i < n_native_args; i++) {
         GIArgInfo arg_info;
         GITypeInfo arg_type;
         g_callable_info_load_arg (callback->info, i, &arg_info);
@@ -144,12 +144,11 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
         auto jsReturnValue = maybeReturnValue.ToLocalChecked();
         auto jsRealReturnValue = jsReturnValue;
         Local<Array> jsReturnArray;
-        uint returnIndex = 0;
+        guint returnIndex = 0;
         bool success;
         bool isOutPrimitive;
-        uint n_js_return_values = n_return_values - (hasVoidReturn ? 1 : 0);
+        guint n_js_return_values = n_return_values - (hasVoidReturn ? 1 : 0);
 
-        uint i;
         GIArgInfo arg_info;
         GITypeInfo arg_type;
 
@@ -172,7 +171,7 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
             else
                 jsRealReturnValue = Nan::Get(jsReturnArray, returnIndex++).ToLocalChecked();
 
-            for (i = 0; i < n_native_args; i++) {
+            for (auto i = 0; i < n_native_args; i++) {
                 isOutPrimitive = (primitive_out_arguments_mask & (1 << i)) != 0;
                 if (!isOutPrimitive)
                     continue;

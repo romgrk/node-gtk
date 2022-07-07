@@ -349,7 +349,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
         if (length != -1 && i >= length)
             break;
 
-        void** pointer = (void**)((ulong)data + i * item_size);
+        void** pointer = (void**)((size_t)data + i * item_size);
         memcpy(&value, pointer, item_size);
 
         if (length == -1 && isZero(value, item_type_info))
@@ -466,7 +466,7 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
         GIArgument arg;
 
         if (V8ToGIArgument(element_info, &arg, value, true)) {
-            void* pointer = (void*)((ulong)result + i * element_size);
+            void* pointer = (void*)((size_t)result + i * element_size);
             memcpy(pointer, &arg, element_size);
         } else {
             WARN("couldnt convert value: %s", *Nan::Utf8String(TO_STRING (value)));
@@ -474,7 +474,7 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     }
 
     if (isZeroTerminated) {
-        void* pointer = (void*)((ulong)result + length * element_size);
+        void* pointer = (void*)((size_t)result + length * element_size);
         memset(pointer, 0, element_size);
     }
 
@@ -495,7 +495,7 @@ static void *V8TypedArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     array->CopyContents(result, length);
 
     if (isZeroTerminated) {
-        void* pointer = (void*)((ulong)result + length * element_size);
+        void* pointer = (void*)((size_t)result + length * element_size);
         memset(pointer, 0, element_size);
     }
 
@@ -1320,7 +1320,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
 
         for (int i = 0; i < length; i++) {
             GIArgument item;
-            memcpy (&item, (void*)((ulong)data + element_size * i), sizeof (GIArgument));
+            memcpy (&item, (void*)((size_t)data + element_size * i), sizeof (GIArgument));
             FreeGIArgument (element_info, &item, item_transfer, direction);
         }
 

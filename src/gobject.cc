@@ -350,7 +350,7 @@ NAN_METHOD(SignalConnect) {
     guint signalId;
     GQuark detail;
     GClosure *gclosure;
-    ulong handler_id;
+    gulong handler_id;
 
     const char *signalName = *Nan::Utf8String (TO_STRING (info[0]));
     if (!g_signal_parse_name(signalName, gtype, &signalId, &detail, FALSE)) {
@@ -390,7 +390,7 @@ NAN_METHOD(SignalDisconnect) {
     }
 
     gpointer instance = static_cast<gpointer>(gobject);
-    ulong handler_id = TO_LONG (info[0]);
+    gulong handler_id = TO_LONG (info[0]);
     g_signal_handler_disconnect (instance, handler_id);
 
     info.GetReturnValue().Set((double)handler_id);
@@ -447,7 +447,7 @@ NAN_METHOD(SignalEmit) {
     g_value_set_object(&args[0], gobject);
 
     failed = false;
-    for (uint i = 0; i < signal_query.n_params; i++) {
+    for (auto i = 0; i < signal_query.n_params; i++) {
         GValue *gvalue = &args[i + 1];
 
         g_value_init(gvalue, signal_query.param_types[i] & ~G_SIGNAL_TYPE_STATIC_SCOPE);
@@ -470,7 +470,7 @@ NAN_METHOD(SignalEmit) {
         }
     }
 
-    for (uint i = 0; i < argc; i++) {
+    for (auto i = 0; i < argc; i++) {
         g_value_unset(&args[i]);
     }
 }
@@ -490,7 +490,7 @@ NAN_METHOD(GObjectToString) {
     char *className = *Nan::Utf8String(self->GetConstructorName());
     void *address = self->GetAlignedPointerFromInternalField(0);
 
-    char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (unsigned long)address);
+    char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (size_t)address);
 
     info.GetReturnValue().Set(UTF8(str));
     g_free(str);
