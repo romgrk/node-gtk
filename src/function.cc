@@ -324,7 +324,7 @@ Local<Value> FunctionCall (
      * and for error, if it can throw
      */
 
-    GIArgument *total_arg_values = new GIArgument[func->n_total_args];
+    GIArgument *total_arg_values = new GIArgument[func->n_total_args]();
     GIArgument *callable_arg_values;
     GError *error_stack = nullptr;
 
@@ -446,11 +446,11 @@ Local<Value> FunctionCall (
      * Third, make the actual ffi_call
      */
 
-    void **ffi_args = new void*[func->n_total_args];
+    void **ffi_args = new void*[func->n_total_args]();
     for (int i = 0; i < func->n_total_args; i++)
         ffi_args[i] = (void *)&total_arg_values[i];
 
-    GIArgument return_value_stack;
+    GIArgument return_value_stack = {0};
 
     ffi_call (&func->invoker.cif, FFI_FN (func->invoker.native_address),
               use_return_value ? return_value : &return_value_stack, ffi_args);

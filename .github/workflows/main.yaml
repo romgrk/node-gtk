@@ -39,7 +39,6 @@ jobs:
         run: |
           npx mocha --skip=callback                 \
                     --skip=conversion__array        \
-                    --skip=conversion__char         \
                     --skip=gvalue                   \
                     --skip=object__non-introspected \
                     --skip=register-class           \
