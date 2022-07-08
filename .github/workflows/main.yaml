@@ -23,11 +23,11 @@ jobs:
           path-type: inherit
           update: true
           install: |
-            git                                    \
-            mingw-w64-x86_64-gobject-introspection \
-            mingw-w64-x86_64-gtk3                  \
-            mingw-w64-x86_64-cairo                 \
-            mingw-w64-x86_64-gstreamer             \
+            git
+            mingw-w64-x86_64-gobject-introspection
+            mingw-w64-x86_64-gtk3
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-gstreamer
             mingw-w64-x86_64-libsoup
 
       - name: Install VS 2017
