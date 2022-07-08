@@ -47,7 +47,6 @@ jobs:
         run: |
           npx mocha                                 \
                     --skip=callback                 \
-                    --skip=conversion__array        \
                     --skip=signal__non-introspected \
                     tests/__run__.js
 
