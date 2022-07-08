@@ -41,7 +41,6 @@ jobs:
                     --skip=conversion__array        \
                     --skip=object__non-introspected \
                     --skip=signal__non-introspected \
-                    --skip=union__fields            \
                     tests/__run__.js
 
   build:
