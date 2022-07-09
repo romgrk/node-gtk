@@ -32,5 +32,6 @@ Local<Function>         MakeBoxedClass   (GIBaseInfo *info);
 Local<FunctionTemplate> GetBoxedTemplate (GIBaseInfo *info, GType gtype);
 Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data, bool mustCopy = false);
 void *                  PointerFromWrapper (Local<Value>);
+void *                  CopyBoxed (GIBaseInfo *gi_info, void *boxed, size_t *size_out = nullptr);
 
 };

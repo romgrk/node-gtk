@@ -405,7 +405,7 @@ long GIArgumentToLength(GITypeInfo *type_info, GIArgument *arg, bool is_pointer)
 }
 
 
-GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
+GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value, GITransfer transfer) {
     GArray* g_array = NULL;
     bool zero_terminated = g_type_info_is_zero_terminated(type_info);
 
@@ -433,8 +433,10 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
         for (int i = 0; i < length; i++) {
             auto value = Nan::Get(array, i).ToLocalChecked();
             GIArgument arg;
+            GITransfer inner_transfer =
+                (transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer);
 
-            if (V8ToGIArgument(element_info, &arg, value, true)) {
+            if (V8ToGIArgument(element_info, &arg, value, true, inner_transfer)) {
                 g_array_append_val (g_array, arg);
             } else {
                 g_warning("V8ToGArray: couldnt convert value: %s",
@@ -450,7 +452,7 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
     return g_array;
 }
 
-static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
+static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value, GITransfer transfer) {
     auto array = Local<Array>::Cast (TO_OBJECT (value));
     int length = array->Length();
 
@@ -464,8 +466,10 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
         auto value = Nan::Get(array, i).ToLocalChecked();
 
         GIArgument arg;
+        GITransfer inner_transfer =
+            (transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer);
 
-        if (V8ToGIArgument(element_info, &arg, value, true)) {
+        if (V8ToGIArgument(element_info, &arg, value, true, inner_transfer)) {
             void* pointer = (void*)((ulong)result + i * element_size);
             memcpy(pointer, &arg, element_size);
         } else {
@@ -504,7 +508,7 @@ static void *V8TypedArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     return result;
 }
 
-void *V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
+void *V8ToCArray(GITypeInfo *type_info, Local<Value> value, GITransfer transfer) {
     if (value->IsString()) {
         Local<String> string = TO_STRING (value);
         const char *utf8_data = *Nan::Utf8String(string);
@@ -512,7 +516,7 @@ void *V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
     }
 
     if (value->IsArray()) {
-        return V8ArrayToCArray(type_info, value);
+        return V8ArrayToCArray(type_info, value, transfer);
     }
 
     if (value->IsTypedArray()) {
@@ -524,7 +528,7 @@ void *V8ToCArray(GITypeInfo *type_info, Local<Value> value) {
     return NULL;
 }
 
-gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value) {
+gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value, GITransfer transfer) {
 
     // FIXME can @value be null?
     if (!value->IsArray()) {
@@ -555,7 +559,10 @@ gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value) {
         GIArgument arg;
         Local<Value> value = Nan::Get(array, i).ToLocalChecked();
 
-        if (!V8ToGIArgument(element_info, &arg, value, false)) {
+        GITransfer inner_transfer =
+            (transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer);
+
+        if (!V8ToGIArgument(element_info, &arg, value, false, inner_transfer)) {
             g_warning("V8ToGList: couldnt convert value #%i to GIArgument", i);
             continue;
         }
@@ -577,7 +584,7 @@ gpointer V8ToGList (GITypeInfo *type_info, Local<Value> value) {
     return list;
 }
 
-gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
+gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value, GITransfer transfer) {
 
     if (!value->IsObject()) {
         Nan::ThrowTypeError("Expected object");
@@ -638,6 +645,9 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
     auto object = TO_OBJECT (value);
     auto keys = Nan::GetOwnPropertyNames(object).ToLocalChecked();
 
+    GITransfer inner_transfer =
+            (transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer);
+
     for (uint32_t i = 0; i < keys->Length(); i++) {
         auto key   = Nan::Get(keys, i).ToLocalChecked();
         auto value = Nan::Get(object, key).ToLocalChecked();
@@ -645,14 +655,14 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
         GIArgument key_arg;
         GIArgument value_arg;
 
-        if (!V8ToGIArgument(key_type_info, &key_arg, key, false)) {
+        if (!V8ToGIArgument(key_type_info, &key_arg, key, false, inner_transfer)) {
             char* message = g_strdup_printf("Couldn't convert key '%s'", *Nan::Utf8String(key));
             Nan::ThrowError(message);
             free(message);
             goto item_error;
         }
 
-        if (!V8ToGIArgument(value_type_info, &value_arg, value, false)) {
+        if (!V8ToGIArgument(value_type_info, &value_arg, value, false, inner_transfer)) {
             char* message = g_strdup_printf("Couldn't convert value for key '%s'", *Nan::Utf8String(key));
             Nan::ThrowError(message);
             free(message);
@@ -664,7 +674,11 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
         continue;
 
 item_error:
-        /* Free everything we have converted so far. */
+        /*
+         * Free everything we have converted so far.
+         * Uses TRANSFER_NOTHING, DIRECTION_IN, as if the function doesn't take
+         * ownership, instead of passed in `transfer`.
+         */
         FreeGIArgument(type_info, (GIArgument *) &hash_table, GI_TRANSFER_NOTHING, GI_DIRECTION_IN);
         hash_table = NULL;
         break;
@@ -676,7 +690,7 @@ item_error:
     return hash_table;
 }
 
-bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
+bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value, GITransfer transfer) {
     GIInfoType type = g_base_info_get_type (gi_info);
 
     switch (type) {
@@ -684,6 +698,11 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
     case GI_INFO_TYPE_STRUCT:
     case GI_INFO_TYPE_UNION:
         arg->v_pointer = PointerFromWrapper(value);
+        if (transfer == GI_TRANSFER_EVERYTHING) {
+            arg->v_pointer = CopyBoxed(gi_info, arg->v_pointer);
+            if (!arg->v_pointer)
+                return false;
+        }
         break;
 
     case GI_INFO_TYPE_FLAGS:
@@ -703,6 +722,8 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
     }
     case GI_INFO_TYPE_INTERFACE:
         arg->v_pointer = GObjectFromWrapper(value);
+        if (transfer == GI_TRANSFER_EVERYTHING)
+            g_object_ref(arg->v_pointer);
         break;
 
     case GI_INFO_TYPE_CALLBACK:
@@ -713,7 +734,7 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
     return true;
 }
 
-bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null) {
+bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null, GITransfer transfer) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     if (value->IsUndefined () || value->IsNull ()) {
@@ -731,6 +752,10 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     case GI_TYPE_TAG_VOID:
         if (g_type_info_is_pointer(type_info)) {
             arg->v_pointer = PointerFromWrapper(value);
+            if (transfer == GI_TRANSFER_EVERYTHING) {
+                ERROR("Case should not be reached. Please report this to "
+                      "https://github.com/romgrk/node-gtk/issues");
+            }
             break;
         }
         arg->v_pointer = NULL;
@@ -801,11 +826,11 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
             switch (array_type) {
             case GI_ARRAY_TYPE_C:
-                arg->v_pointer = V8ToCArray(type_info, value);
+                arg->v_pointer = V8ToCArray(type_info, value, transfer);
                 break;
             case GI_ARRAY_TYPE_ARRAY:
             case GI_ARRAY_TYPE_BYTE_ARRAY:
-                arg->v_pointer = V8ToGArray(type_info, value);
+                arg->v_pointer = V8ToGArray(type_info, value, transfer);
                 break;
             case GI_ARRAY_TYPE_PTR_ARRAY:
             default:
@@ -818,7 +843,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     case GI_TYPE_TAG_INTERFACE:
         {
             GIBaseInfo *interface_info = g_type_info_get_interface (type_info);
-            V8ToGIArgument (interface_info, arg, value);
+            V8ToGIArgument (interface_info, arg, value, transfer);
             g_base_info_unref(interface_info);
         }
         break;
@@ -826,13 +851,13 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     case GI_TYPE_TAG_GLIST:
     case GI_TYPE_TAG_GSLIST:
         {
-            arg->v_pointer = V8ToGList(type_info, value);
+            arg->v_pointer = V8ToGList(type_info, value, transfer);
         }
         break;
 
     case GI_TYPE_TAG_GHASH:
         {
-            arg->v_pointer = V8ToGHash(type_info, value);
+            arg->v_pointer = V8ToGHash(type_info, value, transfer);
         }
         break;
 

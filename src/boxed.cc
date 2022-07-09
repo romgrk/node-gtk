@@ -179,17 +179,9 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         boxed = External::Cast(*info[0])->Value();
 
         if (mustCopy) {
-            if (gtype != G_TYPE_NONE) {
-                boxed = g_boxed_copy (gtype, boxed);
-            }
-            else if ((size = Boxed::GetSize(gi_info)) != 0) {
-                void *boxedCopy = malloc(size);
-                memcpy(boxedCopy, boxed, size);
-                boxed = boxedCopy;
-            }
-            else {
+            boxed = CopyBoxed(gi_info, boxed, &size);
+            if (!boxed)
                 ERROR("Could not copy boxed object.");
-            }
         }
         else {
             owns_memory = false;
@@ -443,6 +435,26 @@ void* PointerFromWrapper(Local<Value> value) {
     g_assert(object->InternalFieldCount() > 0);
     void *boxed = object->GetAlignedPointerFromInternalField(0);
     return boxed;
+}
+
+void* CopyBoxed(GIBaseInfo *gi_info, void *boxed, size_t *size_out)
+{
+    GType gtype = g_registered_type_info_get_g_type (gi_info);
+    size_t size;
+
+    if (gtype != G_TYPE_NONE) {
+        return g_boxed_copy (gtype, boxed);
+    } else if ((size = Boxed::GetSize(gi_info)) != 0) {
+        void *boxedCopy = malloc(size);
+        memcpy(boxedCopy, boxed, size);
+        if (size_out)
+            *size_out = size;
+        return boxedCopy;
+    } else {
+        WARN("Cannot copy a boxed object of type '%s'.",
+                g_base_info_get_name(gi_info));
+        return NULL;
+    }
 }
 
 };
