@@ -183,7 +183,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
                 boxed = g_boxed_copy (gtype, boxed);
             }
             else if ((size = Boxed::GetSize(gi_info)) != 0) {
-                void *boxedCopy = malloc(size);
+                void *boxedCopy = g_malloc(size);
                 memcpy(boxedCopy, boxed, size);
                 boxed = boxedCopy;
             }
@@ -223,7 +223,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             boxed = return_value.v_pointer;
 
         } else if ((size = Boxed::GetSize(gi_info)) != 0) {
-            boxed = calloc(1, size);
+            boxed = g_malloc0(size);
 
         } else {
             Nan::ThrowError("Boxed allocation failed: no constructor found");
@@ -267,7 +267,7 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
         }
         else if (box->size != 0) {
             // Allocated in ./function.cc @ AllocateArgument
-            free(box->data);
+            g_free(box->data);
         }
         else if (box->data != NULL) {
             /*

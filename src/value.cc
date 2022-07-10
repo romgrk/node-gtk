@@ -458,7 +458,7 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
     gsize element_size = GetTypeSize(element_info);
 
-    void *result = malloc(element_size * (length + (isZeroTerminated ? 1 : 0)));
+    void *result = g_malloc0(element_size * (length + (isZeroTerminated ? 1 : 0)));
 
     for (int i = 0; i < length; i++) {
         auto value = Nan::Get(array, i).ToLocalChecked();
@@ -474,6 +474,9 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     }
 
     if (isZeroTerminated) {
+        // TODO:
+        // Since g_malloc0 above already zeros the memory
+        // it's better to assert the last element is zero
         void* pointer = (void*)((size_t)result + length * element_size);
         memset(pointer, 0, element_size);
     }
@@ -490,11 +493,14 @@ static void *V8TypedArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
     gsize element_size = GetTypeSize(element_info);
 
-    void *result = malloc(element_size * (length + (isZeroTerminated ? 1 : 0)));
+    void *result = g_malloc0(element_size * (length + (isZeroTerminated ? 1 : 0)));
 
     array->CopyContents(result, length);
 
     if (isZeroTerminated) {
+        // TODO:
+        // Since g_malloc0 above already zeros the memory
+        // it's better to assert the last element is zero
         void* pointer = (void*)((size_t)result + length * element_size);
         memset(pointer, 0, element_size);
     }
@@ -1339,18 +1345,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-#if OS_WINDOWS
-                bool isZeroTerminated = g_type_info_is_zero_terminated (type_info);
-                if (isZeroTerminated) {
-                    g_free (data);
-                } else {
-                    // Freeing something that is non-zero terminated
-                    // crashes on Windows.
-                    // TODO: Investigate what it is
-                }
-#else
                 g_free (data);
-#endif
                 break;
             }
         case GI_ARRAY_TYPE_ARRAY:
