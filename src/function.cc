@@ -324,7 +324,12 @@ Local<Value> FunctionCall (
      * and for error, if it can throw
      */
 
-    GIArgument *total_arg_values = new GIArgument[func->n_total_args]();
+    #ifndef __linux__
+        GIArgument *total_arg_values = new GIArgument[func->n_total_args]();
+    #else
+        GIArgument total_arg_values[func->n_total_args];
+    #endif
+
     GIArgument *callable_arg_values;
     GError *error_stack = nullptr;
 
@@ -446,7 +451,12 @@ Local<Value> FunctionCall (
      * Third, make the actual ffi_call
      */
 
-    void **ffi_args = new void*[func->n_total_args]();
+    #ifndef __linux__
+        void **ffi_args = new void*[func->n_total_args]();
+    #else
+        void *ffi_args[func->n_total_args];
+    #endif
+
     for (int i = 0; i < func->n_total_args; i++)
         ffi_args[i] = (void *)&total_arg_values[i];
 
@@ -455,7 +465,9 @@ Local<Value> FunctionCall (
     ffi_call (&func->invoker.cif, FFI_FN (func->invoker.native_address),
               use_return_value ? return_value : &return_value_stack, ffi_args);
 
-    delete[] ffi_args;
+    #ifndef __linux__
+        delete[] ffi_args;
+    #endif
 
 
     /*
@@ -529,7 +541,9 @@ Local<Value> FunctionCall (
         }
     }
 
-    delete[] total_arg_values;
+    #ifndef __linux__
+        delete[] total_arg_values;
+    #endif
 
     return jsReturnValue;
 }
