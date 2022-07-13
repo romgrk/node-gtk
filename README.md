@@ -218,6 +218,13 @@ cd ~/oss
 git clone https://github.com/romgrk/node-gtk
 cd node-gtk
 
+# don't include /mingw64/include directly since it conflicts with
+# Windows SDK headers. we copy needed headers to __extra__ directory:
+./windows/mingw_include_extra.sh
+
+# if MSYS2 is NOT installed in C:/msys64 run:
+export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
+
 # first run might take a while
 GYP_MSVS_VERSION=2015 npm install
 ```

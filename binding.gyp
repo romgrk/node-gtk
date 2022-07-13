@@ -39,21 +39,20 @@
             "include_dirs" : [
                 "<!(node -e \"require('nan')\")"
             ],
-            "cflags": [
-                "<!@(pkg-config --cflags gobject-introspection-1.0 cairo)",
-                "-Wall",
-                "-g",
-            ],
-            "ldflags": [
-                "-Wl,-no-as-needed",
-                "<!@(pkg-config --libs gobject-introspection-1.0 cairo)",
-            ],
             "conditions": [
-                ['OS != "linux"', {
+                ['OS == "linux"', {
                     "defines": [
-                        "ulong=unsigned long",
                         "PLATFORM_LINUX=1",
-                    ]
+                    ],
+                    "cflags": [
+                        "<!@(pkg-config --cflags gobject-introspection-1.0 cairo)",
+                        "-Wall",
+                        "-g",
+                    ],
+                    "ldflags": [
+                        "-Wl,-no-as-needed",
+                        "<!@(pkg-config --libs gobject-introspection-1.0 cairo)",
+                    ],
                 }],
                 ['OS == "mac"', {
                     "defines": [
@@ -71,16 +70,34 @@
                 }],
                 ['OS == "win"', {
                     "defines": [
-                        "uint=unsigned int",
                         "PLATFORM_WIN=1",
                     ],
+                    "variables": {
+                        # If MSYS2 is NOT installed in C:/msys64 run:
+                        # $ export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
+                        # before compiling
+                        "MINGW_PREFIX": "<!(bash -c 'echo ${MINGW_WINDOWS_PATH:-/msys64}')",
+                    },
                     "include_dirs": [
-                        "include",
-                        "/msys64/mingw64/include/gobject-introspection-1.0",
-                        "/msys64/mingw64/lib/libffi-3.2.1/include",
-                        "/msys64/mingw64/include/glib-2.0",
-                        "/msys64/mingw64/lib/glib-2.0/include",
-                        "/msys64/mingw64/include/cairo"
+                        # Don't include /mingw64/include directly.
+                        # To make extra include dir run:
+                        # $ ./windows/mingw_include_extra.sh
+                        # before compiling
+                        "<(MINGW_PREFIX)/mingw64/include/__extra__",
+
+                        "<(MINGW_PREFIX)/mingw64/include/gobject-introspection-1.0",
+                        "<(MINGW_PREFIX)/mingw64/include/glib-2.0",
+                        "<(MINGW_PREFIX)/mingw64/lib/glib-2.0/include",
+                        "<(MINGW_PREFIX)/mingw64/include/cairo",
+                        "<(MINGW_PREFIX)/mingw64/include/freetype2",
+                    ],
+                    "libraries": [
+                        "<(MINGW_PREFIX)/mingw64/lib/libglib-2.0.dll.a",
+                        "<(MINGW_PREFIX)/mingw64/lib/libgmodule-2.0.dll.a",
+                        "<(MINGW_PREFIX)/mingw64/lib/libgobject-2.0.dll.a",
+                        "<(MINGW_PREFIX)/mingw64/lib/libffi.dll.a",
+                        "<(MINGW_PREFIX)/mingw64/lib/libgirepository-1.0.dll.a",
+                        "<(MINGW_PREFIX)/mingw64/lib/libcairo.dll.a",
                     ]
                 }]
             ]

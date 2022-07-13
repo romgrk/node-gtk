@@ -35,7 +35,7 @@ GClosure *Closure::New (Local<Function> function, GICallableInfo* info, guint si
 
 void Closure::Execute(GICallableInfo *info, guint signal_id,
                       const Nan::Persistent<v8::Function> &persFn,
-                      GValue *g_return_value, uint n_param_values,
+                      GValue *g_return_value, guint n_param_values,
                       const GValue *param_values) {
     Nan::HandleScope scope;
     auto func = Nan::New<Function>(persFn);
@@ -45,7 +45,7 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
     g_signal_query(signal_id, &signal_query);
 
     // We don't pass the implicit instance as first argument
-    uint n_js_args = n_param_values - 1;
+    auto n_js_args = n_param_values - 1;
 
     #ifndef __linux__
         Local<Value>* js_args = new Local<Value>[n_js_args];
@@ -58,7 +58,7 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
         GIArgument argument;
         GIArgInfo arg_info;
         GITypeInfo type_info;
-        for (uint i = 1; i < n_param_values; i++) {
+        for (guint i = 1; i < n_param_values; i++) {
             memcpy(&argument, &param_values[i].data[0], sizeof(GIArgument));
             g_callable_info_load_arg(info, i - 1, &arg_info);
             g_arg_info_load_type(&arg_info, &type_info);
@@ -76,7 +76,7 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
         }
     } else {
         /* CallableInfo is not available: use GValueToV8 */
-        for (uint i = 1; i < n_param_values; i++) {
+        for (guint i = 1; i < n_param_values; i++) {
             bool mustCopy = true;
 
             if (signal_query.signal_id) {
@@ -123,7 +123,7 @@ throw_exception:
 
 void Closure::Marshal(GClosure     *base,
                       GValue       *g_return_value,
-                      uint          n_param_values,
+                      guint         n_param_values,
                       const GValue *param_values,
                       gpointer      invocation_hint,
                       gpointer      marshal_data) {

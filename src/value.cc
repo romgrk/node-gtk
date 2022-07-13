@@ -68,8 +68,8 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     case GI_TYPE_TAG_UINT64:
         return New<Number> (arg->v_uint64);
 
-    case GI_TYPE_TAG_GTYPE: /* c++: gulong */
-        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), arg->v_ulong);
+    case GI_TYPE_TAG_GTYPE: /* c++: gsize */
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), arg->v_size);
 
     case GI_TYPE_TAG_UNICHAR:
         {
@@ -349,7 +349,7 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
         if (length != -1 && i >= length)
             break;
 
-        void** pointer = (void**)((ulong)data + i * item_size);
+        void** pointer = (void**)((size_t)data + i * item_size);
         memcpy(&value, pointer, item_size);
 
         if (length == -1 && isZero(value, item_type_info))
@@ -458,7 +458,7 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
     gsize element_size = GetTypeSize(element_info);
 
-    void *result = malloc(element_size * (length + (isZeroTerminated ? 1 : 0)));
+    void *result = g_malloc0(element_size * (length + (isZeroTerminated ? 1 : 0)));
 
     for (int i = 0; i < length; i++) {
         auto value = Nan::Get(array, i).ToLocalChecked();
@@ -466,7 +466,7 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
         GIArgument arg;
 
         if (V8ToGIArgument(element_info, &arg, value, true)) {
-            void* pointer = (void*)((ulong)result + i * element_size);
+            void* pointer = (void*)((size_t)result + i * element_size);
             memcpy(pointer, &arg, element_size);
         } else {
             WARN("couldnt convert value: %s", *Nan::Utf8String(TO_STRING (value)));
@@ -474,7 +474,10 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     }
 
     if (isZeroTerminated) {
-        void* pointer = (void*)((ulong)result + length * element_size);
+        // TODO:
+        // Since g_malloc0 above already zeros the memory
+        // it's better to assert the last element is zero
+        void* pointer = (void*)((size_t)result + length * element_size);
         memset(pointer, 0, element_size);
     }
 
@@ -490,12 +493,15 @@ static void *V8TypedArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
     gsize element_size = GetTypeSize(element_info);
 
-    void *result = malloc(element_size * (length + (isZeroTerminated ? 1 : 0)));
+    void *result = g_malloc0(element_size * (length + (isZeroTerminated ? 1 : 0)));
 
     array->CopyContents(result, length);
 
     if (isZeroTerminated) {
-        void* pointer = (void*)((ulong)result + length * element_size);
+        // TODO:
+        // Since g_malloc0 above already zeros the memory
+        // it's better to assert the last element is zero
+        void* pointer = (void*)((size_t)result + length * element_size);
         memset(pointer, 0, element_size);
     }
 
@@ -648,14 +654,14 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
         if (!V8ToGIArgument(key_type_info, &key_arg, key, false)) {
             char* message = g_strdup_printf("Couldn't convert key '%s'", *Nan::Utf8String(key));
             Nan::ThrowError(message);
-            free(message);
+            g_free(message);
             goto item_error;
         }
 
         if (!V8ToGIArgument(value_type_info, &value_arg, value, false)) {
             char* message = g_strdup_printf("Couldn't convert value for key '%s'", *Nan::Utf8String(key));
             Nan::ThrowError(message);
-            free(message);
+            g_free(message);
             goto item_error;
         }
 
@@ -678,6 +684,8 @@ item_error:
 
 bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
     GIInfoType type = g_base_info_get_type (gi_info);
+
+    memset(arg, 0, sizeof(GIArgument));
 
     switch (type) {
     case GI_INFO_TYPE_BOXED:
@@ -715,6 +723,8 @@ bool V8ToGIArgument(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
 
 bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
+
+    memset(arg, 0, sizeof(GIArgument));
 
     if (value->IsUndefined () || value->IsNull ()) {
         arg->v_pointer = NULL;
@@ -776,9 +786,9 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
         break;
     case GI_TYPE_TAG_GTYPE:
         if (value->IsBigInt())
-            arg->v_ulong = value.As<v8::BigInt>()->Uint64Value();
+            arg->v_size = value.As<v8::BigInt>()->Uint64Value();
         else
-            arg->v_ulong = Nan::To<int64_t> (value).ToChecked();
+            arg->v_size = Nan::To<int64_t> (value).ToChecked();
         break;
 
     case GI_TYPE_TAG_UTF8:
@@ -867,6 +877,8 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
      */
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
+    memset(arg, 0, sizeof(GIArgument));
+
     if (value->IsUndefined () || value->IsNull ()) {
         arg->v_pointer = NULL;
 
@@ -920,9 +932,9 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
         break;
     case GI_TYPE_TAG_GTYPE:
         if (value->IsBigInt())
-            *(gulong*)arg->v_pointer = value.As<v8::BigInt>()->Uint64Value();
+            *(gsize*)arg->v_pointer = value.As<v8::BigInt>()->Uint64Value();
         else
-            *(gulong*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
+            *(gsize*)arg->v_pointer = Nan::To<int64_t> (value).ToChecked();
         break;
 
     case GI_TYPE_TAG_UTF8:
@@ -1314,7 +1326,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
 
         for (int i = 0; i < length; i++) {
             GIArgument item;
-            memcpy (&item, (void*)((ulong)data + element_size * i), sizeof (GIArgument));
+            memcpy (&item, (void*)((size_t)data + element_size * i), sizeof (GIArgument));
             FreeGIArgument (element_info, &item, item_transfer, direction);
         }
 
@@ -1333,7 +1345,7 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
             {
-                free(data);
+                g_free (data);
                 break;
             }
         case GI_ARRAY_TYPE_ARRAY:

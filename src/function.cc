@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <girffi.h>
 
@@ -56,7 +55,7 @@ static void* AllocateArgument (GIBaseInfo *arg_info) {
 
     GIBaseInfo* base_info = g_type_info_get_interface (&arg_type);
     size_t size = Boxed::GetSize (base_info);
-    void* pointer = calloc(1, size);
+    void* pointer = g_malloc0(size);
 
     g_base_info_unref(base_info);
     return pointer;
@@ -165,14 +164,14 @@ bool FunctionInfo::Init() {
 
         call_parameters[i].direction = direction;
 
-        if (call_parameters[i].type == ParameterType::SKIP)
+        if (call_parameters[i].type == ParameterType::kSKIP)
             continue;
 
         // If there is an array length, this is an array
         int length_i = g_type_info_get_array_length (&type_info);
         if (tag == GI_TYPE_TAG_ARRAY && length_i >= 0) {
-            call_parameters[i].type        = ParameterType::ARRAY;
-            call_parameters[length_i].type = ParameterType::SKIP;
+            call_parameters[i].type        = ParameterType::kARRAY;
+            call_parameters[length_i].type = ParameterType::kSKIP;
 
             // If array length came before, we need to remove it from args count
 
@@ -190,9 +189,9 @@ bool FunctionInfo::Init() {
             if (interface_type == GI_INFO_TYPE_CALLBACK) {
                 if (IsDestroyNotify(interface_info)) {
                     /* Skip GDestroyNotify if they appear before the respective callback */
-                    call_parameters[i].type = ParameterType::SKIP;
+                    call_parameters[i].type = ParameterType::kSKIP;
                 } else {
-                    call_parameters[i].type = ParameterType::CALLBACK;
+                    call_parameters[i].type = ParameterType::kCALLBACK;
 
                     int destroy_i = g_arg_info_get_destroy(&arg_info);
                     int closure_i = g_arg_info_get_closure(&arg_info);
@@ -204,10 +203,10 @@ bool FunctionInfo::Init() {
                     }
 
                     if (destroy_i >= 0 && destroy_i < n_callable_args)
-                        call_parameters[destroy_i].type = ParameterType::SKIP;
+                        call_parameters[destroy_i].type = ParameterType::kSKIP;
 
                     if (closure_i >= 0 && closure_i < n_callable_args)
-                        call_parameters[closure_i].type = ParameterType::SKIP;
+                        call_parameters[closure_i].type = ParameterType::kSKIP;
 
                     if (destroy_i < i) {
                         if (IsDirectionIn(call_parameters[destroy_i].direction))
@@ -271,7 +270,7 @@ bool FunctionInfo::TypeCheck (const Nan::FunctionCallbackInfo<Value> &arguments)
     for (int in_arg = 0, i = 0; i < n_callable_args; i++) {
         Parameter &param = call_parameters[i];
 
-        if (param.type == ParameterType::SKIP)
+        if (param.type == ParameterType::kSKIP)
             continue;
 
         GIArgInfo arg_info;
@@ -325,7 +324,12 @@ Local<Value> FunctionCall (
      * and for error, if it can throw
      */
 
-    GIArgument total_arg_values[func->n_total_args];
+    #ifndef __linux__
+        GIArgument *total_arg_values = new GIArgument[func->n_total_args]();
+    #else
+        GIArgument total_arg_values[func->n_total_args];
+    #endif
+
     GIArgument *callable_arg_values;
     GError *error_stack = nullptr;
 
@@ -340,7 +344,6 @@ Local<Value> FunctionCall (
     if (func->can_throw)
         callable_arg_values[func->n_callable_args].v_pointer = error != NULL ? error : &error_stack;
 
-
     /*
      * Second, allocate OUT-arguments and fill IN-arguments
      */
@@ -348,7 +351,7 @@ Local<Value> FunctionCall (
     for (int in_arg = 0, i = 0; i < func->n_callable_args; i++) {
         Parameter& param = func->call_parameters[i];
 
-        if (param.type == ParameterType::SKIP)
+        if (param.type == ParameterType::kSKIP)
             continue;
 
         GIArgInfo arg_info;
@@ -357,7 +360,7 @@ Local<Value> FunctionCall (
         g_arg_info_load_type (&arg_info, &type_info);
         GIDirection direction = g_arg_info_get_direction (&arg_info);
 
-        if (param.type == ParameterType::ARRAY) {
+        if (param.type == ParameterType::kARRAY) {
             GIArgInfo  array_length_arg;
             GITypeInfo array_length_type;
 
@@ -383,7 +386,7 @@ Local<Value> FunctionCall (
                 callable_arg_values[length_i].v_pointer = &len_param.data;
             }
         }
-        else if (param.type == ParameterType::CALLBACK) {
+        else if (param.type == ParameterType::kCALLBACK) {
             Callback *callback;
             ffi_closure *closure;
 
@@ -402,12 +405,12 @@ Local<Value> FunctionCall (
             int closure_i = g_arg_info_get_closure(&arg_info);
 
             if (destroy_i >= 0) {
-                g_assert (func->call_parameters[destroy_i].type == ParameterType::SKIP);
+                g_assert (func->call_parameters[destroy_i].type == ParameterType::kSKIP);
                 callable_arg_values[destroy_i].v_pointer = callback ? (void*) Callback::DestroyNotify : NULL;
             }
 
             if (closure_i >= 0) {
-                g_assert (func->call_parameters[closure_i].type == ParameterType::SKIP);
+                g_assert (func->call_parameters[closure_i].type == ParameterType::kSKIP);
                 callable_arg_values[closure_i].v_pointer = callback;
             }
 
@@ -426,7 +429,7 @@ Local<Value> FunctionCall (
         else /* (direction == GI_DIRECTION_IN || direction == GI_DIRECTION_INOUT) */ {
 
             // Callback GIArgument is filled above, for the rest...
-            if (param.type != ParameterType::CALLBACK) {
+            if (param.type != ParameterType::kCALLBACK) {
 
                 // FIXME(handle failure here)
                 FillArgument(&arg_info, &callable_arg_values[i], info[in_arg]);
@@ -448,15 +451,23 @@ Local<Value> FunctionCall (
      * Third, make the actual ffi_call
      */
 
-    void *ffi_args[func->n_total_args];
+    #ifndef __linux__
+        void **ffi_args = new void*[func->n_total_args]();
+    #else
+        void *ffi_args[func->n_total_args];
+    #endif
+
     for (int i = 0; i < func->n_total_args; i++)
-        ffi_args[i] = &total_arg_values[i];
+        ffi_args[i] = (void *)&total_arg_values[i];
 
-
-    GIArgument return_value_stack;
+    GIArgument return_value_stack = {0};
 
     ffi_call (&func->invoker.cif, FFI_FN (func->invoker.native_address),
               use_return_value ? return_value : &return_value_stack, ffi_args);
+
+    #ifndef __linux__
+        delete[] ffi_args;
+    #endif
 
 
     /*
@@ -507,13 +518,13 @@ Local<Value> FunctionCall (
         GIDirection direction = g_arg_info_get_direction (&arg_info);
         GITransfer transfer   = g_arg_info_get_ownership_transfer (&arg_info);
 
-        if (param.type == ParameterType::ARRAY) {
+        if (param.type == ParameterType::kARRAY) {
             if (direction == GI_DIRECTION_INOUT || direction == GI_DIRECTION_OUT)
                 FreeGIArgumentArray (&arg_type, (GIArgument*)arg_value.v_pointer, transfer, direction, param.length);
             else
                 FreeGIArgumentArray (&arg_type, &arg_value, transfer, direction, param.length);
         }
-        else if (param.type == ParameterType::CALLBACK) {
+        else if (param.type == ParameterType::kCALLBACK) {
             Callback *callback = static_cast<Callback*>(func->call_parameters[i].data.v_pointer);
 
             g_assert(direction == GI_DIRECTION_IN);
@@ -529,6 +540,10 @@ Local<Value> FunctionCall (
                 FreeGIArgument (&arg_type, &arg_value, transfer, direction);
         }
     }
+
+    #ifndef __linux__
+        delete[] total_arg_values;
+    #endif
 
     return jsReturnValue;
 }
@@ -595,7 +610,7 @@ Local<Value> FunctionInfo::GetReturnValue (
 
         if (direction == GI_DIRECTION_OUT || direction == GI_DIRECTION_INOUT) {
 
-            if (param.type == ParameterType::ARRAY) {
+            if (param.type == ParameterType::kARRAY) {
 
                 int length_i = g_type_info_get_array_length(&arg_type);
                 GIArgInfo length_arg;
@@ -614,7 +629,7 @@ Local<Value> FunctionInfo::GetReturnValue (
 
                 ADD_RETURN (result)
 
-            } else if (param.type == ParameterType::NORMAL) {
+            } else if (param.type == ParameterType::kNORMAL) {
 
                 if (IsPointerType(&arg_type) && g_arg_info_is_caller_allocates(&arg_info)) {
                     void *pointer = &arg_value.v_pointer;

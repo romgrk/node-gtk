@@ -521,8 +521,6 @@ function getReturn(fn, outArguments) {
 
 function getAttachMethods(name, functions) {
   return unindent(`
-    #define SET_METHOD(tpl, name) Nan::SetPrototypeMethod(tpl, #name, name)
-
     static void AttachMethods(Local<FunctionTemplate> tpl) {
         ${functions.map(fn =>
           (fn.attributes.version ? (() => {
@@ -533,12 +531,10 @@ function getAttachMethods(name, functions) {
               (micro ? 'CAIRO_VERSION_MICRO >= ' + micro : undefined),
             ].filter(Boolean).join(' && ') + '\n        '
           })() : '')
-          + `SET_METHOD(tpl, ${getJSName(fn.name)});`
+          + `SET_PROTOTYPE_METHOD(tpl, ${getJSName(fn.name)});`
           + (fn.attributes.version ? '\n        #endif' : '')
         ).join('\n        ')}
     }
-
-    #undef SET_METHOD
   `)
 }
 
