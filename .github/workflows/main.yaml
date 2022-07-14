@@ -56,10 +56,10 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-18.04
+          - ubuntu-20.04
           - macos-latest
         node:
-          # - 18 Fix: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.28' not found (required by node)
+          - 18
           - 17
           - 16
           - 14

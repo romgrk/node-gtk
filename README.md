@@ -20,7 +20,7 @@ use any introspected library, such as Gtk+, usable.  It is similar in essence to
 will be welcomed.
 
 Supported Node.js versions: **14**, **16**, **17**, **18** (other versions should work but are untested)  
-Pre-built binaries available for: **Linux**, **macOS** (all supported versions except 18)
+Pre-built binaries available for: **Linux**, **macOS**
 
 ### Table of contents
 
