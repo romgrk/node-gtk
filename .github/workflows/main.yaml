@@ -59,7 +59,7 @@ jobs:
           - ubuntu-18.04
           - macos-latest
         node:
-          - 18
+          # - 18 Fix: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.28' not found (required by node)
           - 17
           - 16
           - 14
