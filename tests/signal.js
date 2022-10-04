@@ -86,6 +86,19 @@ window.on('show', () => {
     )
   })
 
+  describe('Trigger "on-focus-out-event" should work', async () => new Promise((resolve, reject) => {
+    const searchEntry = new Gtk.SearchEntry();
+    const event = new Gdk.EventFocus()
+    event.type = Gdk.EventType.FOCUS_CHANGE
+    event.window = searchEntry.getWindow()
+    event.sendEvent = 1
+
+    searchEntry.on('focus-out-event', (event) => resolve())
+    searchEntry.emit('focus-out-event', event);
+    // In case resolve is never called, do not block test indefinitely
+    setTimeout(() => reject(), 1000);
+  }));
+
   describe('types are as correct as possible', () => {
     const event = new Gdk.EventButton()
     event.type = Gdk.EventType.BUTTON_PRESS
