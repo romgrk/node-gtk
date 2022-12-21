@@ -31,8 +31,8 @@ if [[ $(uname -s) == 'Linux' ]]; then
         g++ \
         libgtk-3-dev \
         gir1.2-gtk-3.0 \
-        libsoup2.4 \
-        gir1.2-soup-2.4 \
+        libsoup-3.0-0 \
+        gir1.2-soup-3.0 \
         libcairo2 \
         libcairo2-dev \
         libgstreamer1.0-0 \

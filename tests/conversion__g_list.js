@@ -3,7 +3,6 @@
  */
 
 const gi = require('../lib/')
-const Soup = gi.require('Soup')
 const Gtk = gi.require('Gtk', '3.0')
 const Gdk = gi.require('Gdk', '3.0')
 const GdkPixbuf = gi.require('GdkPixbuf')

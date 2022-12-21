@@ -3,13 +3,13 @@
  */
 
 const gi = require('../lib/')
-const soup = gi.require('Soup')
+const Soup = gi.require('Soup', '3.0')
 const common = require('./__common__.js')
 
 const input = 'Content-Type;q=1, Accept;q=0.2, X-Custom;q=0.1, Zero;q=0'
 
 console.log(`Input: "${input}"`)
-const [acceptable, unacceptable] = soup.headerParseQualityList(input)
+const [acceptable, unacceptable] = Soup.headerParseQualityList(input)
 console.log(acceptable, unacceptable)
 
 common.assert(acceptable[0] === 'Content-Type', `acceptable[0] === 'Content-Type'`, acceptable[0])
