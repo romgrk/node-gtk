@@ -7,8 +7,9 @@ jobs:
     strategy:
       matrix:
         node:
+          - 17
           - 16
-          - 12
+          - 14
     defaults:
       run:
         shell: msys2 {0}
