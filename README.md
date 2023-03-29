@@ -32,7 +32,7 @@ Pre-built binaries available for: **Linux**, **macOS** (all supported versions e
   - [How to build on Ubuntu](#how-to-build-on-ubuntu)
   - [How to build on Fedora](#how-to-build-on-fedora)
   - [How to build on ArchLinux](#how-to-build-on-archlinux)
-  - [How to build on macOS](#how-to-build-on-osx)
+  - [How to build on macOS](#how-to-build-on-macos)
   - [Experimental platforms](#experimental-platforms)
   - [Testing the project](#testing-the-project)
     - [Browser demo](#browser-demo)
