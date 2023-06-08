@@ -11,3 +11,4 @@ build/
 node_modules/
 
 lib/binding/*
+compile_commands.json
