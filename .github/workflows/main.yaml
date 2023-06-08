@@ -7,8 +7,8 @@ jobs:
     strategy:
       matrix:
         node:
+          - 18
           - 16
-          - 12
     defaults:
       run:
         shell: msys2 {0}
@@ -59,10 +59,10 @@ jobs:
           - ubuntu-18.04
           - macos-latest
         node:
-          # - 18 Fix: upgrade to ubuntu-20.04 & resolve package issues
+          - 20
+          - 18
           - 17
           - 16
-          - 14
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
