@@ -97,6 +97,7 @@ jobs:
 
       # Install & Build
       - run: npm install --build-from-source
+      - run: cat node_modules/nan/nan.h
 
       # Run the CI script (tests & publishing)
       - run: ./scripts/ci.sh
