@@ -28,7 +28,6 @@ if [[ $(uname -s) == 'Linux' ]]; then
         libgirepository1.0-dev \
         gobject-introspection \
         build-essential \
-        g++- \
         libgtk-3-dev \
         gir1.2-gtk-3.0 \
         libgtk-4-dev \
