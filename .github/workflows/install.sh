@@ -28,12 +28,13 @@ if [[ $(uname -s) == 'Linux' ]]; then
         libgirepository1.0-dev \
         gobject-introspection \
         build-essential \
-        g++-8 \
-        gtk+3.0 \
+        g++- \
         libgtk-3-dev \
         gir1.2-gtk-3.0 \
-        libsoup2.4 \
-        gir1.2-soup-2.4 \
+        libgtk-4-dev \
+        gir1.2-gtk-4.0 \
+        libsoup-3.0-0 \
+        gir1.2-soup-3.0 \
         libcairo2 \
         libcairo2-dev \
         libgstreamer1.0-0 \
