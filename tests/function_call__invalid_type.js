@@ -5,8 +5,8 @@
 
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
-const Soup = gi.require('Soup')
-const glib = gi.require('GLib')
+const Soup = gi.require('Soup', '3.0')
+const GLib = gi.require('GLib', '2.0')
 const common = require('./__common__.js')
 
 test(`Soup.Message#setUri`, () => {
@@ -20,8 +20,8 @@ test(`Gtk.init(45)`, () => {
   Gtk.init(45)
 })
 
-test(`glib.random_int_range(0, 'string')`, () => {
-  glib.randomIntRange(0, 'string')
+test(`GLib.random_int_range(0, 'string')`, () => {
+  GLib.randomIntRange(0, 'string')
 })
 
 

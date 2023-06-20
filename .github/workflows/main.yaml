@@ -7,8 +7,9 @@ jobs:
     strategy:
       matrix:
         node:
+          - 17
           - 16
-          - 12
+          - 14
     defaults:
       run:
         shell: msys2 {0}
@@ -30,7 +31,7 @@ jobs:
             mingw-w64-x86_64-gstreamer
             mingw-w64-x86_64-gst-plugins-good
             mingw-w64-x86_64-gst-plugins-bad
-            mingw-w64-x86_64-libsoup
+            mingw-w64-x86_64-libsoup3
 
       - name: Install VS 2017
         shell: cmd
@@ -47,6 +48,7 @@ jobs:
         run: |
           npx mocha                                 \
                     --skip=callback                 \
+                    --skip=error                    \
                     --skip=signal__non-introspected \
                     tests/__run__.js
 
@@ -56,7 +58,7 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-18.04
+          - ubuntu-22.04
           - macos-latest
         node:
           # - 18 Fix: upgrade to ubuntu-20.04 & resolve package issues

@@ -7,7 +7,7 @@
 const gi = require('../lib/')
 const Gst = gi.require('Gst', '1.0')
 const Gtk = gi.require('Gtk', '3.0');
-const soup = gi.require('Soup', '2.4')
+const Soup = gi.require('Soup', '3.0')
 const Cairo = gi.require('cairo', '1.0')
 const { describe, expect } = require('./__common__.js')
 
@@ -46,9 +46,9 @@ describe('CairoRegion identity', () => {
   win.inputShapeCombineRegion(a)
 })
 
-describe('soup segfault', () => {
+describe('Soup segfault', () => {
   const input = 'Content-Type;q=1, Accept;q=0.2, X-Custom;q=0.1, Zero;q=0'
-  const fn = () => soup.headerParseQualityList(input)
+  const fn = () => Soup.headerParseQualityList(input)
   Array(1000).fill(0).map(fn)
 })
 

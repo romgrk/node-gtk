@@ -56,7 +56,6 @@
                 }],
                 ['OS == "mac"', {
                     "defines": [
-                        "ulong=unsigned long",
                         "PLATFORM_MAC=1",
                     ],
                     "xcode_settings": {

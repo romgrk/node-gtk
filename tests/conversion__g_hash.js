@@ -4,7 +4,7 @@
 
 
 const gi = require('../lib/')
-const soup = gi.require('Soup')
+const Soup = gi.require('Soup', '3.0')
 const common = require('./__common__.js')
 
 /*
@@ -16,7 +16,7 @@ const common = require('./__common__.js')
     age: '33',
   }
 
-  const result = soup.formEncodeHash(formData)
+  const result = Soup.formEncodeHash(formData)
   console.log('Result:', result)
   common.assert(
     result === 'age=33&name=John'
@@ -30,7 +30,7 @@ const common = require('./__common__.js')
 {
   const encodedForm = 'age=33&name=John'
 
-  const result = soup.formDecode(encodedForm)
+  const result = Soup.formDecode(encodedForm)
   console.log('Result:', result)
   common.assert(result.name === 'John')
   common.assert(result.age === '33')
