@@ -19,7 +19,7 @@ Node-Gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) libra
 use any introspected library, such as Gtk+, usable.  It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) or [PyGObject](https://pygobject.readthedocs.io). Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
 
-Supported Node.js versions: **14**, **16**, **17**, **18** (other versions should work but are untested)  
+Supported Node.js versions: **14**, **16**, **18** (other versions should work but are untested)<br>
 Pre-built binaries available for: **Linux**, **macOS** (all supported versions except 18)
 
 ### Table of contents
@@ -33,7 +33,7 @@ Pre-built binaries available for: **Linux**, **macOS** (all supported versions e
   - [How to build on Fedora](#how-to-build-on-fedora)
   - [How to build on ArchLinux](#how-to-build-on-archlinux)
   - [How to build on macOS](#how-to-build-on-macos)
-  - [Experimental platforms](#experimental-platforms)
+  - [How to build on Windows](#how-to-build-on-windows)
   - [Testing the project](#testing-the-project)
     - [Browser demo](#browser-demo)
 - [Contributing](#contributing)
@@ -88,16 +88,14 @@ Note that prebuilt binaries are available for common systems, in those cases bui
 
  - **Linux**: prebuilt binaries available
  - **macOS**: prebuilt binaries available
- - **Windows**: unsupported for now ([#241](https://github.com/romgrk/node-gtk/issues/241))
+ - **Windows**: no prebuilt binaries
 
 ### Requirements
 
  - `git`
  - `nodejs@10` or higher
- - `python2` (for `node-gyp`)
+ - `python3` (for `node-gyp`)
  - C compiler (`gcc@8` or higher, or `clang`)
-
-In the _not-working-yet_ Windows platform, all dependencies must be available under [MSYS2 shell](https://msys2.github.io).
 
 ### How to build on Ubuntu
 
@@ -155,6 +153,69 @@ brew install git node gobject-introspection gtk+3 cairo
 
 At this point `npm install node-gtk` should already install, fallback and build `node-gtk` without problems.
 
+### How to build on Windows
+
+Mandatory dependency is Visual C++ Build Environment: Visual Studio Build Tools (using "Visual C++ build tools" workload) or Visual Studio Community (using the "Desktop development with C++" workload).
+
+The easiest/tested way to build this repository is within a _MinGW shell_ provided by the [MSYS2 installer](https://msys2.github.io/).
+
+Once VS and its C++ compiler is available and MSYS2 installed, launch the MinGW shell.
+
+```sh
+# update the system
+# in case of errors, wait for the update to complete
+# then close and open again MingW shell
+pacman -Syyu --noconfirm
+
+# install git, gtk3 and extra dependencie
+pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config,cairo}
+
+# where to put the repository clone?
+# pick your flder or use ~/oss (Open Source Software)
+mkdir -p ~/oss/
+cd ~/oss
+
+# clone node-gtk there
+git clone https://github.com/romgrk/node-gtk
+cd node-gtk
+
+# don't include /mingw64/include directly since it conflicts with
+# Windows SDK headers. we copy needed headers to __extra__ directory:
+./windows/mingw_include_extra.sh
+
+# if MSYS2 is NOT installed in C:/msys64 run:
+export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
+
+# first run might take a while
+GYP_MSVS_VERSION=2017 npm install
+```
+
+The `GYP_MSVS_VERSION` could be 2017 or above.
+Please verify [which version you should use](https://github.com/nodejs/node-gyp#installation)
+
+The below blog post series will help you get started:
+
+1. [Node.js GTK Hello World on Windows](https://ten0s.github.io/blog/2022/07/22/nodejs-gtk-hello-world-on-windows)
+2. [Find DLLs and Typelibs dependencies for Node.js GTK Application on Windows](https://ten0s.github.io/blog/2022/07/25/find-dlls-and-typelibs-dependencies-for-nodejs-gtk-application-on-windows)
+3. [Package Node.js GTK Application on Windows](https://ten0s.github.io/blog/2022/07/27/package-nodejs-gtk-application-on-windows)
+
+#### Possible issue on MinGW shell
+
+In case you are launching the general executable without knowing the correct platform,
+the binary path might not be available.
+
+In such case `python` won't be available either, and you can check via `which python` command.
+
+If not found, you need to export the platform related binary path:
+
+```sh
+# example for the 32bit version
+export PATH="/mingw32/bin:$PATH"
+npm run install
+```
+
+This should do the trick. You can also check if there is any python at all via `pacman -Qs python`.
+
 ### Testing the project
 
 If you'd like to test everything builds and work properly, after installing and building you can run any of the
@@ -187,73 +248,6 @@ Once installed, you can `./examples/browser.js google.com` or any other page, an
 # Usage: ./examples/browser.js <url> [theme]
 ./examples/browser.js  google.com  dark
 ```
-
-### Experimental platforms
-
-Following how to setup the configuration to at least try building this project.
-
-#### How to build on Windows (experimental)
-
-Mandatory dependency is _[Visual Studio Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)_ or _Express_ with a C++ compiler (open a new C++ project and install it via IDE if necessary).
-
-The easiest/tested way to at least try building this repository is within a _MinGW shell_ provided by the [MSYS2 installer](https://msys2.github.io/).
-
-Once VS and its C++ compiler is available and MSYS2 installed, launch the MinGW shell.
-
-```sh
-# update the system
-# in case of errors, wait for the update to complete
-# then close and open again MingW shell
-pacman -Syyu --noconfirm
-
-# install git, gtk3 and extra dependencie
-pacman -S --needed --noconfirm git mingw-w64-$(uname -m)-{gtk3,gobject-introspection,pkg-config,cairo}
-
-# where to put the repository clone?
-# pick your flder or use ~/oss (Open Source Software)
-mkdir -p ~/oss/
-cd ~/oss
-
-# clone node-gtk there
-git clone https://github.com/romgrk/node-gtk
-cd node-gtk
-
-# don't include /mingw64/include directly since it conflicts with
-# Windows SDK headers. we copy needed headers to __extra__ directory:
-./windows/mingw_include_extra.sh
-
-# if MSYS2 is NOT installed in C:/msys64 run:
-export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
-
-# first run might take a while
-GYP_MSVS_VERSION=2015 npm install
-```
-
-The `GYP_MSVS_VERSION` could be 2010, 2012, 2013 or 2015.
-Please verify [which version you should use](https://github.com/nodejs/node-gyp#installation)
-
-#### Possible issue on MinGW shell
-
-In case you are launching the general executable without knowing the correct platform,
-the binary path might not be available.
-
-In such case `python` won't be available either, and you can check via `which python` command.
-
-If not found, you need to export the platform related binary path:
-
-```sh
-# example for the 32bit version
-export PATH="/mingw32/bin:$PATH"
-npm run install
-```
-
-This should do the trick. You can also check if there is any python at all via `pacman -Qs python`.
-
-Please remember `python2` is the one needed.
-
-#### Known issues building on Windows
-
-Right now there are few gotchas and the build will most likely fail. Please help with a PR if you know how to solve the issue, thank you!
 
 ## Contributing
 

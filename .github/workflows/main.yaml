@@ -7,15 +7,15 @@ jobs:
     strategy:
       matrix:
         node:
-          - 17
+          - 18
           - 16
           - 14
     defaults:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
       - uses: msys2/setup-msys2@v2
@@ -41,7 +41,6 @@ jobs:
         run: |
           ./windows/mingw_include_extra.sh
           export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
-          npm config set msvs_version 2017
           npm install --build-from-source
 
       - name: Run tests
@@ -61,13 +60,12 @@ jobs:
           - ubuntu-22.04
           - macos-latest
         node:
-          # - 18 Fix: upgrade to ubuntu-20.04 & resolve package issues
-          - 17
+          - 18
           - 16
           - 14
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
 
