@@ -877,8 +877,6 @@ bool V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> valu
      */
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
-    memset(arg, 0, sizeof(GIArgument));
-
     if (value->IsUndefined () || value->IsNull ()) {
         arg->v_pointer = NULL;
 

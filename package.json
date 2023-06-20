@@ -32,11 +32,11 @@
   },
   "homepage": "https://github.com/romgrk/node-gtk#readme",
   "dependencies": {
-    "@mapbox/node-pre-gyp": "^1.0.0",
+    "@mapbox/node-pre-gyp": "^1.0.10",
     "lodash.camelcase": "4.3.0",
     "lodash.isequal": "4.5.0",
     "lodash.snakecase": "^4.1.1",
-    "nan": "2.14.2",
+    "nan": "^2.17.0",
     "node-gyp": "^9.3.1",
     "remove-trailing-spaces": "^1.0.7",
     "unindent": "^2.0.0"
