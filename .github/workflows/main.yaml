@@ -9,7 +9,6 @@ jobs:
         node:
           - 18
           - 16
-          - 14
     defaults:
       run:
         shell: msys2 {0}
@@ -62,7 +61,6 @@ jobs:
         node:
           - 18
           - 16
-          - 14
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
