@@ -1169,8 +1169,16 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         GIInfoType  i_type = g_base_info_get_type(i_info);
         switch (i_type) {
             case GI_INFO_TYPE_OBJECT:
-            case GI_INFO_TYPE_INTERFACE: // TODO(validate interface are handled)
-                // handled by gobject.cc/boxed.cc
+            case GI_INFO_TYPE_INTERFACE:
+                if (is_out) {
+                    // WrapperFromGObject() have either created a new wrapper
+                    // taking it's own ref in process, or given an existing
+                    // wrapper with existing ref.
+                    g_object_unref(arg->v_pointer);
+                } else {
+                    // GObjectFromWrapper() haven't given an additional ref.
+                    // Thus, do nothing.
+                }
                 break;
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:

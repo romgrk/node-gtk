@@ -120,11 +120,15 @@ static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype
 
     SET_OBJECT_GTYPE(object, gtype);
 
-    g_object_ref_sink (gobject);
-    g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
-
     Persistent<Object> *persistent = new Persistent<Object>(object);
     g_object_set_qdata (gobject, GNodeJS::object_quark(), persistent);
+
+    // Because we can't sink floating ref and add toggle ref at the same time,
+    // first sink the floating ref, add the toggle ref, and then release the
+    // ref we've just sunken. At the end, we must carry only the toggle ref.
+    g_object_ref_sink (gobject);
+    g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
+    g_object_unref (gobject);
 }
 
 static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
@@ -168,6 +172,12 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
     }
 
     AssociateGObject(self, gobject, gtype);
+    if (G_IS_INITIALLY_UNOWNED(gobject)) {
+        // AssociateGObject() has sunken the floating ref.
+    } else {
+        // AssociateGObject() has added its own ref.
+        g_object_unref(gobject);
+    }
 }
 
 static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data) {
@@ -181,7 +191,7 @@ static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data) {
      * the qdata that points back to us. */
     g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
 
-    g_object_unref (gobject);
+    g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
 }
 
 static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
