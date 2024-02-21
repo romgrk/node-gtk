@@ -74,7 +74,7 @@ win.add(grid);
 
 function loadFile(filename) {
     try {
-        const content = Fs.readFileSync(filename);
+        const content = Fs.readFileSync(filename, 'utf8');
         const lang = langManager.guessLanguage(filename, null)
             || langManager.guessLanguage('file.js', null);
         label.setText(filename);
