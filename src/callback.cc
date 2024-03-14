@@ -32,13 +32,21 @@ static Local<Object> GetSelfInstance(GIArgument **args) {
 Callback::Callback(Local<Function> fn, GICallableInfo* callback_info, GIScopeType scope_type_) {
     persistent.Reset(fn);
     info = g_base_info_ref (callback_info);
+    #ifdef GI_AVAILABLE_IN_1_72
     closure = g_callable_info_create_closure(info, &cif, Callback::Call, this);
+    #else
+    closure = g_callable_info_prepare_closure(info, &cif, Callback::Call, this);
+    #endif
     scope_type = scope_type_;
 }
 
 Callback::~Callback() {
     persistent.Reset();
+    #ifdef GI_AVAILABLE_IN_1_72
     g_callable_info_destroy_closure (this->info, this->closure);
+    #else
+    g_callable_info_free_closure (this->info, this->closure);
+    #endif
     g_base_info_unref (this->info);
 }
 
