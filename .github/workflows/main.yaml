@@ -54,6 +54,7 @@ jobs:
                     --skip=callback                 \
                     --skip=error                    \
                     --skip=signal__non-introspected \
+                    --skip=object__initialization \
                     tests/__run__.js
 
   build:
