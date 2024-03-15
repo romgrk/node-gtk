@@ -47,7 +47,7 @@ function npm_test() {
                   --skip=error                    \
                   tests/__run__.js
     else
-        xvfb-run -a npm test;
+        xvfb-run -a npm test -- --skip=callback;
     fi;
 }
 

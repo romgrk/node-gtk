@@ -47,22 +47,27 @@ common.describe('callback run from another thread spawned from GstPipeline', asy
   return await new Promise((resolve, reject) => {
     const pipeline = new Gst.Pipeline()
     const webrtcbin = Gst.ElementFactory.make('webrtcbin')
-  
+    console.log('created webrtcbin');
+
     if (!pipeline || !webrtcbin) {
       reject('Could not create all elements.')
     }
     pipeline.add(webrtcbin)
-  
+    console.log('added webrtcbin');
+
     pipeline.setState(Gst.State.PLAYING)
-  
+    console.log('set PLAYING');
+
     const timeout = setTimeout(() => {
       reject()
     }, 500)
     const s = Gst.Structure.newEmpty('structure')
     const p = Gst.Promise.newWithChangeFunc(() => {
-      resolve()
       clearTimeout(timeout)
+      resolve()
     })
+    console.log('created structure and callback');
     webrtcbin.emit('create-offer', s, p)
+    console.log('called create-offer');
   })
 })

@@ -5,7 +5,7 @@
 
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
-const Soup = gi.require('Soup', '3.0')
+const Soup = gi.require('Soup')
 const GLib = gi.require('GLib', '2.0')
 const common = require('./__common__.js')
 

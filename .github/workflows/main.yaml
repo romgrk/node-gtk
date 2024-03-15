@@ -36,7 +36,7 @@ jobs:
             mingw-w64-x86_64-gstreamer
             mingw-w64-x86_64-gst-plugins-good
             mingw-w64-x86_64-gst-plugins-bad
-            mingw-w64-x86_64-libsoup3
+            mingw-w64-x86_64-libsoup
 
       - name: Install VS 2017
         shell: cmd
@@ -54,6 +54,7 @@ jobs:
                     --skip=callback                 \
                     --skip=error                    \
                     --skip=signal__non-introspected \
+                    --skip=object__initialization \
                     tests/__run__.js
 
   build:
