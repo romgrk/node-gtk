@@ -40,6 +40,5 @@ if [[ $(uname -s) == 'Linux' ]]; then
         gstreamer1.0-plugins-base \
         gir1.2-gst-plugins-base-1.0 \
         gstreamer1.0-plugins-bad \
-        libgstreamer-plugins-bad1.0-dev \
         gir1.2-gst-plugins-bad-1.0
 fi;
