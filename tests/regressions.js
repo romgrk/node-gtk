@@ -7,7 +7,7 @@
 const gi = require('../lib/')
 const Gst = gi.require('Gst', '1.0')
 const Gtk = gi.require('Gtk', '3.0');
-const Soup = gi.require('Soup', '3.0')
+const Soup = gi.require('Soup')
 const Cairo = gi.require('cairo', '1.0')
 const { describe, expect } = require('./__common__.js')
 
