@@ -60,9 +60,8 @@ common.describe('callback run from another thread spawned from GstPipeline', asy
 
     const timeout = setTimeout(() => {
       reject()
-    }, 5000)
-    // const s = Gst.Structure.newEmpty('structure')
-    const s = Gst.Structure.newIdEmpty(1)
+    }, 500)
+    const s = Gst.Structure.newEmpty('structure')
     const p = Gst.Promise.newWithChangeFunc(() => {
       clearTimeout(timeout)
       resolve()
