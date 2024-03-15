@@ -46,18 +46,17 @@ common.describe('callback run from another thread spawned from GTask', async () 
 common.describe('callback run from another thread spawned from GstPipeline', async () => {
   return await new Promise((resolve, reject) => {
     const pipeline = new Gst.Pipeline()
-    // const webrtcbin = Gst.ElementFactory.make('webrtcbin')
-    const pipelineSegment = Gst.parseBinFromDescription(['webrtcbin name=webrtc'], false)
-    pipelineSegment.setState(Gst.State.PAUSED)
-    const webrtcbin = pipelineSegment.getByName(`webrtc`);
+    const webrtcbin = Gst.ElementFactory.make('webrtcbin')
+    console.log('created webrtcbin');
 
     if (!pipeline || !webrtcbin) {
       reject('Could not create all elements.')
     }
-    // pipeline.add(webrtcbin)
-    pipeline.add(pipelineSegment)
+    pipeline.add(webrtcbin)
+    console.log('added webrtcbin');
 
     pipeline.setState(Gst.State.PLAYING)
+    console.log('set PLAYING');
 
     const timeout = setTimeout(() => {
       reject()
@@ -67,6 +66,8 @@ common.describe('callback run from another thread spawned from GstPipeline', asy
       resolve()
       clearTimeout(timeout)
     })
+    console.log('created structure and callback');
     webrtcbin.emit('create-offer', s, p)
+    console.log('called create-offer');
   })
 })
