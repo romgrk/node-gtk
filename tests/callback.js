@@ -63,8 +63,8 @@ common.describe('callback run from another thread spawned from GstPipeline', asy
     }, 500)
     const s = Gst.Structure.newEmpty('structure')
     const p = Gst.Promise.newWithChangeFunc(() => {
-      resolve()
       clearTimeout(timeout)
+      resolve()
     })
     console.log('created structure and callback');
     webrtcbin.emit('create-offer', s, p)
