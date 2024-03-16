@@ -12,7 +12,7 @@ if [[ $(uname -s) == 'Darwin' ]]; then
         gtk+3 \
         gobject-introspection \
         glib \
-        libsoup \
+        libsoup@2 \
         cairo \
         gstreamer \
         gst-plugins-base \
