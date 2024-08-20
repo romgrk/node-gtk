@@ -120,9 +120,13 @@ Install basic dependencies:
 sudo dnf install \
   @development-tools \
   nodejs \
+  nodejs-devel \
   gobject-introspection \
+  gobject-introspection-devel \
   gtk3 \
-  cairo
+  gtk3-devel \
+  cairo \
+  cairo-devel
 ```
 
 After installing of packages, run `npm install node-gtk`.
