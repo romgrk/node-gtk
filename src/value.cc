@@ -1374,8 +1374,15 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
  */
 
 bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
+    auto maybeDetailString = Nan::ToDetailString(value);
+    Nan::Utf8String utf8String(
+            !maybeDetailString.IsEmpty() ?
+            maybeDetailString.ToLocalChecked() :
+            UTF8("[invalid value]")
+    );
+
     // void/null
-    if (G_VALUE_TYPE(gvalue) == G_TYPE_INVALID)
+    if (G_VALUE_TYPE(gvalue) == G_TYPE_INVALID || strcmp(*utf8String,"undefined") == 0)
         return value->IsNullOrUndefined();
 
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
@@ -1432,8 +1439,7 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
                 maybeDetailString.ToLocalChecked() :
                 UTF8("[invalid value]")
         );
-        Throw::TypeError("Cannot convert value \"%s\" to type %s",
-                *utf8String, G_VALUE_TYPE_NAME (gvalue));
+        Throw::TypeError("Cannot convert value \"%s\" to type %s",*utf8String, G_VALUE_TYPE_NAME (gvalue));
         return false;
     }
 
