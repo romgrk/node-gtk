@@ -185,6 +185,7 @@ static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data) {
 
     void *type_data = g_object_get_qdata (gobject, GNodeJS::object_quark());
     Persistent<Object> *persistent = (Persistent<Object> *) type_data;
+    persistent->Reset();
     delete persistent;
 
     /* We're destroying the wrapper object, so make sure to clear out
@@ -204,6 +205,7 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
         g_type_get_qdata (gtype, GNodeJS::template_quark());
     auto persistentFn  = (Persistent<Function> *)
         g_type_get_qdata (gtype, GNodeJS::function_quark());
+    persistentTpl->Reset();
     delete persistentTpl;
     delete persistentFn;
 
@@ -212,7 +214,7 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
     g_free(gtypePtr);
 }
 
-static void GObjectFallbackPropertyGetter(Local<v8::Name> property,
+static v8::Intercepted GObjectFallbackPropertyGetter(Local<v8::Name> property,
                                             const v8::PropertyCallbackInfo<Value>& info) {
     auto self = info.Holder();
     GObject *gobject = GObjectFromWrapper (self);
@@ -225,20 +227,24 @@ static void GObjectFallbackPropertyGetter(Local<v8::Name> property,
     if (strstr(prop_name_camel, "-")) {
         // Has dash, not a camel-case property name.
         RETURN(Nan::Undefined());
-        return;
+        return v8::Intercepted::kYes;
     }
 
     char *prop_name = Util::ToDashed(prop_name_camel);
 
     auto value = GetGObjectProperty(gobject, prop_name);
-    if (!value.IsEmpty())
+    if (!value.IsEmpty()) {
         RETURN(value.ToLocalChecked());
+        g_free(prop_name);
+        return v8::Intercepted::kYes;
+    }
 
     g_free(prop_name);
+    return v8::Intercepted::kNo;
 }
 
-static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value> value,
-                                            const v8::PropertyCallbackInfo<Value>& info) {
+static v8::Intercepted GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
+                                            const v8::PropertyCallbackInfo<void>& info) {
     auto self = info.Holder();
     GObject *gobject = GNodeJS::GObjectFromWrapper (self);
 
@@ -247,7 +253,7 @@ static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value
 
     if (strstr(prop_name_camel, "-")) {
         // Has dash, not a camel-case property name.
-        return;
+        return v8::Intercepted::kNo;
     }
 
     char *prop_name = Util::ToDashed(prop_name_camel);
@@ -255,20 +261,22 @@ static void GObjectFallbackPropertySetter (Local<v8::Name> property, Local<Value
     if (gobject == NULL) {
         WARN("Can't set \"%s\" on null GObject", prop_name);
         g_free(prop_name);
-        return;
+        return v8::Intercepted::kNo;
     }
 
     auto setResult = SetGObjectProperty(gobject, prop_name, value);
     if (setResult.IsEmpty()) {
         // Non-existent property. Let node consider the set not intercepted
         // by not setting return value;
+        g_free(prop_name);
+        return v8::Intercepted::kNo;
     } else {
         // Property exists. Whether we can convert the value and set the
         // property or not, consider the set intercepted.
         RETURN(value);
+        g_free(prop_name);
+        return v8::Intercepted::kYes;
     }
-
-    g_free(prop_name);
 }
 
 static GISignalInfo* FindSignalInfo(GIObjectInfo *info, const char *signal_detail) {
@@ -551,8 +559,7 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     // Set the fallback accessor to allow non-introspected property.
     // Nan::SetNamedPropertyHandler() does not support flags. Thus, using
     // V8 interface directly.
-    v8::NamedPropertyHandlerConfiguration config;
-    config.getter = GObjectFallbackPropertyGetter;
+    v8::NamedPropertyHandlerConfiguration config(GObjectFallbackPropertyGetter);
     config.setter = GObjectFallbackPropertySetter;
     config.flags = static_cast<v8::PropertyHandlerFlags>(
         static_cast<int>(v8::PropertyHandlerFlags::kNonMasking) |

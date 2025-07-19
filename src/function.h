@@ -40,6 +40,7 @@ struct FunctionInfo {
     int n_in_args;
 
     Parameter* call_parameters;
+    v8::Persistent<FunctionTemplate> *persistent;
 
     FunctionInfo(GIBaseInfo* info);
     ~FunctionInfo();

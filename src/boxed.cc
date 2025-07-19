@@ -292,6 +292,7 @@ static void BoxedClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
 
     auto *persistent_template = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::template_quark());
     auto *persistent_function = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::function_quark());
+    persistent_template->Reset();
     delete persistent_template;
     delete persistent_function;
 
