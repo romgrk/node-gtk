@@ -55,7 +55,7 @@ public:
     BaseInfo (Local<Value> value) {
         Local<Object> object = value.As<Object>();
         _info = g_base_info_ref(
-            (GIBaseInfo *) GNodeJS::PointerFromWrapper(object));
+            (GIBaseInfo *) GNodeJS::BoxedFromWrapper(object));
     };
 
     ~BaseInfo () {

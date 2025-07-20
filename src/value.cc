@@ -691,7 +691,7 @@ bool V8ToGIArgumentInterface(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> 
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
     case GI_INFO_TYPE_UNION:
-        arg->v_pointer = PointerFromWrapper(value);
+        arg->v_pointer = BoxedFromWrapper(value);
         break;
 
     case GI_INFO_TYPE_FLAGS:
@@ -740,7 +740,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
     switch (type_tag) {
     case GI_TYPE_TAG_VOID:
         if (g_type_info_is_pointer(type_info)) {
-            arg->v_pointer = PointerFromWrapper(value);
+            arg->v_pointer = BoxedFromWrapper(value);
             break;
         }
         arg->v_pointer = NULL;
@@ -848,7 +848,7 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
 
     case GI_TYPE_TAG_ERROR:
         {
-            arg->v_pointer = (GError *) PointerFromWrapper(value);
+            arg->v_pointer = (GError *) BoxedFromWrapper(value);
         }
         break;
 
@@ -1488,9 +1488,9 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership)
             return false;
         }
         if (ownership == kCopy)
-            g_value_set_boxed (gvalue, PointerFromWrapper(value));
+            g_value_set_boxed (gvalue, BoxedFromWrapper(value));
         else
-            g_value_set_static_boxed (gvalue, PointerFromWrapper(value));
+            g_value_set_static_boxed (gvalue, BoxedFromWrapper(value));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Throw::CannotConvertGType("GParamSpec", G_VALUE_TYPE (gvalue));
@@ -1581,9 +1581,13 @@ bool ValueHasInternalField(Local<Value> value) {
 
     Local<Object> object = TO_OBJECT (value);
 
+// FIXME: find something that works for v8::Object::Wrap() (short of actually
+// unwrapping it).
+#if !NODE_VERSION_AT_LEAST(23,0,0)
     // Wait, this is not a GObject!
     if (object->InternalFieldCount() == 0)
         return false;
+#endif
 
     return true;
 }

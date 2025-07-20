@@ -438,7 +438,7 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, ResourceOwnership ow
     return instance.ToLocalChecked();
 }
 
-void* PointerFromWrapper(Local<Value> value) {
+void* BoxedFromWrapper(Local<Value> value) {
     Local<Object> object = TO_OBJECT (value);
     g_assert(object->InternalFieldCount() > 0);
     void *boxed = object->GetAlignedPointerFromInternalField(0);

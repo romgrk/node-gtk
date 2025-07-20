@@ -553,6 +553,14 @@ Local<Value> FunctionCall (
     return jsReturnValue;
 }
 
+static void* PointerFromWrapper(Local<Value> value) {
+    /* FIXME: find a better way to do this. */
+    if (ValueIsInstanceOfGType(value, G_TYPE_OBJECT)) {
+        return GObjectFromWrapper(value);
+    } else {
+        return BoxedFromWrapper(value);
+    }
+}
 
 /**
  * Creates the JS return value from the C arguments list
