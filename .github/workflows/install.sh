@@ -18,12 +18,13 @@ if [[ $(uname -s) == 'Darwin' ]]; then
         gst-plugins-base \
         gst-plugins-good \
         gst-plugins-bad \
-        libnice
+        libnice \
+        python-setuptools
 fi;
 
 if [[ $(uname -s) == 'Linux' ]]; then
     sudo apt update
-    sudo apt install --fix-missing \
+    sudo apt install -y --fix-missing \
         xvfb \
         libgirepository1.0-dev \
         gobject-introspection \
