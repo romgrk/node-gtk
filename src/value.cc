@@ -1581,9 +1581,13 @@ bool ValueHasInternalField(Local<Value> value) {
 
     Local<Object> object = TO_OBJECT (value);
 
+// FIXME: find something that works for v8::Object::Wrap() (short of actually
+// unwrapping it).
+#if !NODE_VERSION_AT_LEAST(23,0,0)
     // Wait, this is not a GObject!
     if (object->InternalFieldCount() == 0)
         return false;
+#endif
 
     return true;
 }

@@ -1,6 +1,13 @@
 
 #include <string.h>
 
+#include "cppgc/allocation.h"
+#include "cppgc/garbage-collected.h"
+#include "cppgc/name-provider.h"
+#include "v8-cppgc.h"
+#include "v8-version.h"
+#include "node_version.h"
+
 #include "boxed.h"
 #include "callback.h"
 #include "closure.h"
@@ -31,7 +38,59 @@ using Nan::WeakCallbackType;
 
 #define OFFSET_NOT_FOUND 0xffff
 
+namespace {
+
+#if V8_MAJOR_VERSION >= 14
+using V8Wrappable = v8::Object::Wrappable;
+#else
+class V8Wrappable : public cppgc::GarbageCollected<V8Wrappable>,
+                    public cppgc::NameProvider {
+public:
+    virtual void Trace(cppgc::Visitor* visitor) const = 0;
+};
+#endif
+
+}
+
 namespace GNodeJS {
+
+static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down);
+
+class GObjectWrapper : public V8Wrappable {
+public:
+    GObjectWrapper(GObject * gobject, Local<Object> object) {
+        Persistent<Object> *persistent = new Persistent<Object>(object);
+        g_object_set_qdata (gobject, GNodeJS::object_quark(), persistent);
+
+        // Because we can't sink floating ref and add toggle ref at the same time,
+        // first sink the floating ref, add the toggle ref, and then release the
+        // ref we've just sunken. At the end, we must carry only the toggle ref.
+        g_object_ref_sink (gobject);
+        g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
+        g_object_unref (gobject);
+
+        this->gobject = gobject;
+    }
+
+    ~GObjectWrapper() {
+        g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
+    }
+
+    const char * GetHumanReadableName() const override {
+        return g_type_name_from_instance(
+            reinterpret_cast<GTypeInstance*>(gobject));
+    }
+
+    void Trace(cppgc::Visitor* visitor) const override {
+        // TODO
+    }
+
+    GObject * getGObject() {
+        return gobject;
+    }
+private:
+    GObject * gobject;
+};
 
 // Our base template for all GObjects
 static Nan::Persistent<FunctionTemplate> baseTemplate;
@@ -115,20 +174,19 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
     }
 }
 
-static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype) {
-    object->SetAlignedPointerInInternalField (0, gobject);
+static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype)
+{
+    v8::Isolate *isolate = object->GetIsolate();
+    GObjectWrapper * cppWrapper = cppgc::MakeGarbageCollected<GObjectWrapper>(
+        isolate->GetCppHeap()->GetAllocationHandle(), gobject, object);
+
+#if NODE_VERSION_AT_LEAST(23,0,0)
+    v8::Object::Wrap(isolate, object, cppWrapper);
+#else
+    node::SetCppgcReference(isolate, object, cppWrapper);
+#endif
 
     SET_OBJECT_GTYPE(object, gtype);
-
-    Persistent<Object> *persistent = new Persistent<Object>(object);
-    g_object_set_qdata (gobject, GNodeJS::object_quark(), persistent);
-
-    // Because we can't sink floating ref and add toggle ref at the same time,
-    // first sink the floating ref, add the toggle ref, and then release the
-    // ref we've just sunken. At the end, we must carry only the toggle ref.
-    g_object_ref_sink (gobject);
-    g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
-    g_object_unref (gobject);
 }
 
 static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
@@ -190,8 +248,6 @@ static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data) {
     /* We're destroying the wrapper object, so make sure to clear out
      * the qdata that points back to us. */
     g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
-
-    g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
 }
 
 static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
@@ -498,9 +554,8 @@ NAN_METHOD(GObjectToString) {
 
     const char* typeName = g_type_name(type);
     char *className = *Nan::Utf8String(self->GetConstructorName());
-    void *address = self->GetAlignedPointerFromInternalField(0);
 
-    char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (size_t)address);
+    char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (size_t)g_object);
 
     info.GetReturnValue().Set(UTF8(str));
     g_free(str);
@@ -534,7 +589,17 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
 
     auto tpl = New<FunctionTemplate> (GObjectConstructor, New<External>((void *) gtype));
     tpl->SetClassName (UTF8(class_name));
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+// XXX: do we need to do anything with v8::Object::Wrap() ?
+#if !NODE_VERSION_AT_LEAST(23,0,0)
+    v8::Isolate* isolate = v8::Isolate::GetCurrent();
+    v8::WrapperDescriptor descriptor =
+        isolate->GetCppHeap()->wrapper_descriptor();
+    uint16_t required_size = std::max(descriptor.wrappable_instance_index,
+                                      descriptor.wrappable_type_index);
+    tpl->InstanceTemplate()->SetInternalFieldCount(required_size + 1);
+#endif
+
     Nan::SetPrototypeTemplate(
         tpl, "__gtype__", v8::BigInt::NewFromUnsigned(v8::Isolate::GetCurrent(), gtype));
 
@@ -664,9 +729,17 @@ GObject * GObjectFromWrapper(Local<Value> value) {
 
     Local<Object> object = TO_OBJECT (value);
 
-    void    *ptr     = object->GetAlignedPointerFromInternalField (0);
-    GObject *gobject = G_OBJECT (ptr);
-    return gobject;
+#if NODE_VERSION_AT_LEAST(23,0,0)
+    GObjectWrapper * cppWrapper = v8::Object::Unwrap(object->GetIsolate(), object);
+#else
+    v8::WrapperDescriptor descriptor =
+        object->GetIsolate()->GetCppHeap()->wrapper_descriptor();
+    GObjectWrapper * cppWrapper = static_cast<GObjectWrapper *>(
+        object->GetAlignedPointerFromInternalField(
+            descriptor.wrappable_instance_index));
+#endif
+
+    return cppWrapper->getGObject();
 }
 
 MaybeLocal<Value> GetGObjectProperty(GObject * gobject, const char *prop_name) {
