@@ -673,7 +673,7 @@ Local<Function> MakeFunction(GIBaseInfo *info) {
     auto fn = Nan::GetFunction (tpl).ToLocalChecked();
     fn->SetName(name);
 
-    func->persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
+    func->persistent = new Nan::Persistent<FunctionTemplate>(tpl);
     func->persistent->SetWeak(func, FunctionDestroyed, WeakCallbackType::kParameter);
 
     return fn;
@@ -691,9 +691,8 @@ void FunctionInvoker(const Nan::FunctionCallbackInfo<Value> &info) {
     Callback::AsyncFree();
 }
 
-void FunctionDestroyed(const v8::WeakCallbackInfo<FunctionInfo> &data) {
+void FunctionDestroyed(const Nan::WeakCallbackInfo<FunctionInfo> &data) {
     FunctionInfo *func = data.GetParameter ();
-    func->persistent->Reset();
     delete func->persistent;
     delete func;
 }

@@ -102,7 +102,7 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
 
     g_assert (data != NULL);
 
-    auto *persistent = (Persistent<Object> *) data;
+    auto *persistent = (Nan::Persistent<Object> *) data;
 
     if (toggle_down) {
         /* We're dropping from 2 refs to 1 ref. We are the last holder. Make
@@ -120,7 +120,7 @@ static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype
 
     SET_OBJECT_GTYPE(object, gtype);
 
-    Persistent<Object> *persistent = new Persistent<Object>(object);
+    auto *persistent = new Nan::Persistent<Object>(object);
     g_object_set_qdata (gobject, GNodeJS::object_quark(), persistent);
 
     // Because we can't sink floating ref and add toggle ref at the same time,
@@ -184,8 +184,7 @@ static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data) {
     GObject *gobject = data.GetParameter ();
 
     void *type_data = g_object_get_qdata (gobject, GNodeJS::object_quark());
-    Persistent<Object> *persistent = (Persistent<Object> *) type_data;
-    persistent->Reset();
+    auto *persistent = (Nan::Persistent<Object> *) type_data;
     delete persistent;
 
     /* We're destroying the wrapper object, so make sure to clear out
@@ -201,12 +200,11 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
 
     DestroyVFuncs(gtype);
 
-    auto persistentTpl = (Persistent<FunctionTemplate> *)
+    auto persistentTpl = (Nan::Persistent<FunctionTemplate> *)
         g_type_get_qdata (gtype, GNodeJS::template_quark());
-    auto persistentFn  = (Persistent<Function> *)
+    auto persistentFn  = (Nan::Persistent<Function> *)
         g_type_get_qdata (gtype, GNodeJS::function_quark());
     persistentTpl->Reset();
-    delete persistentTpl;
     delete persistentFn;
 
     g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
@@ -214,8 +212,20 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
     g_free(gtypePtr);
 }
 
-static v8::Intercepted GObjectFallbackPropertyGetter(Local<v8::Name> property,
-                                            const v8::PropertyCallbackInfo<Value>& info) {
+#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 || \
+    (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
+#define PROPERTY_CALLBACK_RETURN_TYPE v8::Intercepted
+#define PROPERTY_CALLBACK_RETURN(intercepted) return v8::Intercepted::intercepted
+#define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<void>
+#else
+#define PROPERTY_CALLBACK_RETURN_TYPE void
+#define PROPERTY_CALLBACK_RETURN(intercepted) return
+#define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<Value>
+#endif
+
+static PROPERTY_CALLBACK_RETURN_TYPE
+GObjectFallbackPropertyGetter(Local<v8::Name> property,
+                              const v8::PropertyCallbackInfo<Value>& info) {
     auto self = info.Holder();
     GObject *gobject = GObjectFromWrapper (self);
 
@@ -227,7 +237,7 @@ static v8::Intercepted GObjectFallbackPropertyGetter(Local<v8::Name> property,
     if (strstr(prop_name_camel, "-")) {
         // Has dash, not a camel-case property name.
         RETURN(Nan::Undefined());
-        return v8::Intercepted::kYes;
+        PROPERTY_CALLBACK_RETURN(kYes);
     }
 
     char *prop_name = Util::ToDashed(prop_name_camel);
@@ -236,15 +246,16 @@ static v8::Intercepted GObjectFallbackPropertyGetter(Local<v8::Name> property,
     if (!value.IsEmpty()) {
         RETURN(value.ToLocalChecked());
         g_free(prop_name);
-        return v8::Intercepted::kYes;
+        PROPERTY_CALLBACK_RETURN(kYes);
     }
 
     g_free(prop_name);
-    return v8::Intercepted::kNo;
+    PROPERTY_CALLBACK_RETURN(kNo);
 }
 
-static v8::Intercepted GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
-                                            const v8::PropertyCallbackInfo<void>& info) {
+static PROPERTY_CALLBACK_RETURN_TYPE
+GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
+                              const PROPERTY_CALLBACK_INFO_TYPE& info) {
     auto self = info.Holder();
     GObject *gobject = GNodeJS::GObjectFromWrapper (self);
 
@@ -253,7 +264,7 @@ static v8::Intercepted GObjectFallbackPropertySetter(Local<v8::Name> property, L
 
     if (strstr(prop_name_camel, "-")) {
         // Has dash, not a camel-case property name.
-        return v8::Intercepted::kNo;
+        PROPERTY_CALLBACK_RETURN(kNo);
     }
 
     char *prop_name = Util::ToDashed(prop_name_camel);
@@ -261,7 +272,7 @@ static v8::Intercepted GObjectFallbackPropertySetter(Local<v8::Name> property, L
     if (gobject == NULL) {
         WARN("Can't set \"%s\" on null GObject", prop_name);
         g_free(prop_name);
-        return v8::Intercepted::kNo;
+        PROPERTY_CALLBACK_RETURN(kNo);
     }
 
     auto setResult = SetGObjectProperty(gobject, prop_name, value);
@@ -269,13 +280,13 @@ static v8::Intercepted GObjectFallbackPropertySetter(Local<v8::Name> property, L
         // Non-existent property. Let node consider the set not intercepted
         // by not setting return value;
         g_free(prop_name);
-        return v8::Intercepted::kNo;
+        PROPERTY_CALLBACK_RETURN(kNo);
     } else {
         // Property exists. Whether we can convert the value and set the
         // property or not, consider the set intercepted.
         RETURN(value);
         g_free(prop_name);
-        return v8::Intercepted::kYes;
+        PROPERTY_CALLBACK_RETURN(kYes);
     }
 }
 
@@ -559,8 +570,8 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     // Set the fallback accessor to allow non-introspected property.
     // Nan::SetNamedPropertyHandler() does not support flags. Thus, using
     // V8 interface directly.
-    v8::NamedPropertyHandlerConfiguration config(GObjectFallbackPropertyGetter);
-    config.setter = GObjectFallbackPropertySetter;
+    v8::NamedPropertyHandlerConfiguration config(GObjectFallbackPropertyGetter,
+        GObjectFallbackPropertySetter);
     config.flags = static_cast<v8::PropertyHandlerFlags>(
         static_cast<int>(v8::PropertyHandlerFlags::kNonMasking) |
         static_cast<int>(v8::PropertyHandlerFlags::kOnlyInterceptStrings));
@@ -573,7 +584,7 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
 
     if (data) {
-        auto *persistent = (Persistent<FunctionTemplate> *) data;
+        auto *persistent = (Nan::Persistent<FunctionTemplate> *) data;
         auto tpl = New<FunctionTemplate> (*persistent);
         return tpl;
     }
@@ -584,8 +595,8 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
 
     auto tpl = maybeTpl.ToLocalChecked();
     auto fn = Nan::GetFunction (tpl).ToLocalChecked();
-    auto persistentTpl = new Persistent<FunctionTemplate>(tpl);
-    auto persistentFn  = new Persistent<Function>(fn);
+    auto persistentTpl = new Nan::Persistent<FunctionTemplate>(tpl);
+    auto persistentFn  = new Nan::Persistent<Function>(fn);
 
     GType *gtypePtr = g_new(GType, 1);
     *gtypePtr = gtype;
@@ -603,7 +614,7 @@ static MaybeLocal<Function> GetClass(GType gtype) {
     void *data = g_type_get_qdata (gtype, GNodeJS::function_quark());
 
     if (data) {
-        auto persistent = (Persistent<Function> *) data;
+        auto persistent = (Nan::Persistent<Function> *) data;
         auto fn = New<Function> (*persistent);
         return MaybeLocal<Function> (fn);
     }
@@ -618,7 +629,7 @@ static MaybeLocal<Function> GetClass(GType gtype) {
     data = g_type_get_qdata (gtype, GNodeJS::function_quark());
 
     if (data) {
-        auto persistent = (Persistent<Function> *) data;
+        auto persistent = (Nan::Persistent<Function> *) data;
         auto fn = New<Function> (*persistent);
         return MaybeLocal<Function> (fn);
     }
@@ -647,7 +658,7 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
 
     if (data) {
         /* Easy case: we already have an object. */
-        auto *persistent = (Persistent<Object> *) data;
+        auto *persistent = (Nan::Persistent<Object> *) data;
         auto obj = New<Object> (*persistent);
         return obj;
     }

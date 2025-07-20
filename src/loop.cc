@@ -73,7 +73,7 @@ static gboolean loop_source_dispatch (GSource *base, GSourceFunc callback, gpoin
     v8::Context::Scope context_scope(context);
 
     // Perform microtask checkpoint after running JavaScript.
-    MicrotasksScope micro_scope(context, MicrotasksScope::kRunMicrotasks);
+    MicrotasksScope micro_scope(isolate, NULL, MicrotasksScope::kRunMicrotasks);
 
     // Deal with uv events.
     uv_run (source->loop, UV_RUN_NOWAIT);
