@@ -16,11 +16,11 @@ namespace GNodeJS {
 
 struct Closure {
     GClosure base;
-    Nan::Persistent<v8::Function> persistent;
+    v8::TracedReference<v8::Function> functionRef;
     GICallableInfo* info;
 
     ~Closure() {
-        persistent.Reset();
+        functionRef.Reset();
         if (info) g_base_info_unref (info);
     }
 
@@ -29,7 +29,7 @@ struct Closure {
                          guint signalId);
 
     static void Execute(GICallableInfo *info, guint signal_id,
-                        const Nan::Persistent<v8::Function> &persFn,
+                        const v8::TracedReference<v8::Function> &persFn,
                         GValue *g_return_value, guint n_param_values,
                         const GValue *param_values);
 

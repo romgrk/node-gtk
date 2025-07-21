@@ -1,5 +1,7 @@
 
 #include <string.h>
+#include <algorithm>
+#include <mutex>
 
 #include "cppgc/allocation.h"
 #include "cppgc/garbage-collected.h"
@@ -73,6 +75,11 @@ public:
     }
 
     ~GObjectWrapper() {
+        for (auto closure : watchedClosures) {
+            g_closure_remove_invalidate_notifier(
+                closure, this, &closureInvalidated);
+        }
+
         g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
     }
 
@@ -82,14 +89,40 @@ public:
     }
 
     void Trace(cppgc::Visitor* visitor) const override {
-        // TODO
+        std::lock_guard l(mutex);
+
+        for (auto closure : watchedClosures) {
+            visitor->Trace(reinterpret_cast<Closure *>(closure)->functionRef);
+        }
     }
 
     GObject * getGObject() {
         return gobject;
     }
+
+    void watchClosure(GClosure * closure) {
+        std::lock_guard l(mutex);
+
+        watchedClosures.push_back(closure);
+        g_closure_add_invalidate_notifier(closure, this, &closureInvalidated);
+    }
+
+    static void closureInvalidated(gpointer data, GClosure * closure) {
+        GObjectWrapper * self = static_cast<GObjectWrapper *>(data);
+        std::lock_guard l(self->mutex);
+
+        // https://stackoverflow.com/a/3385251
+        self->watchedClosures.erase(std::remove(
+            self->watchedClosures.begin(),
+            self->watchedClosures.end(),
+            closure
+        ), self->watchedClosures.end());
+    }
 private:
     GObject * gobject;
+
+    mutable std::mutex mutex;
+    std::vector<GClosure *> watchedClosures;
 };
 
 // Our base template for all GObjects
@@ -384,10 +417,15 @@ static void DestroyVFuncs(GType gtype) {
     g_type_set_qdata (gtype, GNodeJS::vfuncs_quark(), NULL);
 }
 
+// FIXME: reorganize so that we don't have this out-of-place declaration.
+// We probably want to declare GObjectWrapper class in gobject.h now.
+GObjectWrapper * GObjectCppWrapperFromWrapper(Local<Value> value);
+
 NAN_METHOD(SignalConnect) {
     bool after = false;
 
-    GObject *gobject = GObjectFromWrapper (info.This ());
+    GObjectWrapper *cppWrapper = GObjectCppWrapperFromWrapper(info.This ());
+    GObject *gobject = cppWrapper->getGObject();
 
     if (!gobject) {
         Nan::ThrowTypeError("Object is not a GObject");
@@ -433,6 +471,7 @@ NAN_METHOD(SignalConnect) {
     }
 
     gclosure = Closure::New (callback, signal_info, signalId);
+    cppWrapper->watchClosure(gclosure);
     handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
     info.GetReturnValue().Set((double)handler_id);
@@ -723,7 +762,7 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
     return obj;
 }
 
-GObject * GObjectFromWrapper(Local<Value> value) {
+GObjectWrapper * GObjectCppWrapperFromWrapper(Local<Value> value) {
     if (!ValueHasInternalField(value))
         return nullptr;
 
@@ -739,7 +778,11 @@ GObject * GObjectFromWrapper(Local<Value> value) {
             descriptor.wrappable_instance_index));
 #endif
 
-    return cppWrapper->getGObject();
+    return cppWrapper;
+}
+
+GObject * GObjectFromWrapper(Local<Value> value) {
+    return GObjectCppWrapperFromWrapper(value)->getGObject();
 }
 
 MaybeLocal<Value> GetGObjectProperty(GObject * gobject, const char *prop_name) {
