@@ -6,6 +6,7 @@
 const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
 const common = require('./__common__.js')
+const process = require('node:process')
 const system = gi.System
 
 Gtk.init()
@@ -22,9 +23,13 @@ common.describe('system', () => {
   })
 
   common.it('.internalFieldCount()', () => {
+    const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]);
+    const expectedCount = NODE_MAJOR_VERSION < 23 ? 2 : 0;
+  
     const btn = new Gtk.Button()
     const result = system.internalFieldCount(btn)
-    common.assert(result === 1, 'internalFieldCount() result isnt valid: ' + result)
+    common.assert(result === expectedCount,
+      'internalFieldCount() result isnt valid: ' + result)
   })
 
   common.it('.addressOf()', () => {
