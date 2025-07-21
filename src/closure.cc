@@ -15,13 +15,13 @@ using v8::Isolate;
 using v8::Local;
 using v8::Object;
 using v8::Value;
-using Nan::Persistent;
 
 namespace GNodeJS {
 
 GClosure *Closure::New (Local<Function> function, GICallableInfo* info, guint signalId) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), GUINT_TO_POINTER(signalId));
-    closure->persistent.Reset(function);
+    closure->isolate = function->GetIsolate();
+    closure->functionRef.Reset(closure->isolate, function);
     if (info) {
         closure->info = g_base_info_ref(info);
     } else {
@@ -34,11 +34,12 @@ GClosure *Closure::New (Local<Function> function, GICallableInfo* info, guint si
 }
 
 void Closure::Execute(GICallableInfo *info, guint signal_id,
-                      const Nan::Persistent<v8::Function> &persFn,
+                      v8::Isolate *isolate,
+                      const v8::TracedReference<v8::Function> &fnRef,
                       GValue *g_return_value, guint n_param_values,
                       const GValue *param_values) {
     Nan::HandleScope scope;
-    auto func = Nan::New<Function>(persFn);
+    auto func = fnRef.Get(isolate);
 
     GSignalQuery signal_query = { 0, };
 
@@ -139,11 +140,25 @@ void Closure::Marshal(GClosure     *base,
 
     if (env->IsSameThread()) {
         /* Case 1: same thread */
-        Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
+        Closure::Execute(
+            closure->info,
+            signal_id,
+            closure->isolate,
+            closure->functionRef,
+            g_return_value,
+            n_param_values,
+            param_values);
     } else {
         /* Case 2: different thread */
         env->Call([&]() {
-            Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
+            Closure::Execute(
+                closure->info,
+                signal_id,
+                closure->isolate,
+                closure->functionRef,
+                g_return_value,
+                n_param_values,
+                param_values);
         });
     }
 }
