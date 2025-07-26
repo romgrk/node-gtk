@@ -19,8 +19,8 @@ Node-Gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) libra
 use any introspected library, such as Gtk+, usable.  It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) or [PyGObject](https://pygobject.readthedocs.io). Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
 
-Supported Node.js versions: **16**, **18** (other versions should work but are untested)<br>
-Pre-built binaries available for: **Linux**, **macOS** (all supported versions except 18)
+Supported Node.js versions: **20**, **22**, **24** (other versions may work but are untested)<br>
+Pre-built binaries available for: **Linux**, **macOS**
 
 ### Table of contents
 
