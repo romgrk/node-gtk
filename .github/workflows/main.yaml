@@ -2,10 +2,10 @@ name: main
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 jobs:
   build-windows:
     name: windows - nodejs ${{ matrix.node }}
@@ -14,8 +14,8 @@ jobs:
       matrix:
         node:
           - 24
-          - 18
-          - 16
+          - 22
+          - 20
     defaults:
       run:
         shell: msys2 {0}
@@ -68,8 +68,8 @@ jobs:
           - macos-latest
         node:
           - 24
-          - 18
-          - 16
+          - 22
+          - 20
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -95,7 +95,6 @@ jobs:
 
       # Install & cache packages
       - run: .github/workflows/install.sh
-
 
       # Install & Build
       - run: npm install --build-from-source
