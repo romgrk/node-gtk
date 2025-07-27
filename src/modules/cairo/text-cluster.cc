@@ -110,10 +110,7 @@ NAN_INDEX_GETTER(TextCluster::IndexGetter) {
   Nan::Set (returnValue, UTF8("num_bytes"),  Nan::New<Number> (text_cluster->num_bytes));
   Nan::Set (returnValue, UTF8("num_glyphs"), Nan::New<Number> (text_cluster->num_glyphs));
   RETURN(returnValue);
-#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 ||                     \
-  (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
-  return v8::Intercepted::kYes;
-#endif
+  return Nan::Intercepted::Yes();
 }
 
 

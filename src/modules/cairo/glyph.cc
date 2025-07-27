@@ -103,10 +103,7 @@ NAN_INDEX_GETTER(Glyph::IndexGetter) {
   Nan::Set (returnValue, UTF8("x"),     Nan::New<Number> (glyph->x));
   Nan::Set (returnValue, UTF8("y"),     Nan::New<Number> (glyph->y));
   RETURN(returnValue);
-#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 ||                     \
-  (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
-  return v8::Intercepted::kYes;
-#endif
+  return Nan::Intercepted::Yes();
 }
 
 
