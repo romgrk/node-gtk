@@ -41,7 +41,7 @@ function npm_test() {
     echo "### Running tests ###";
 
     if [[ $(uname -s) == 'Darwin' ]]; then
-        export GST_PLUGIN_SYSTEM_PATH=/usr/local/lib/gstreamer-1.0;
+        export GST_PLUGIN_SYSTEM_PATH=$(brew --prefix gstreamer)/lib/gstreamer-1.0;
         npx mocha                                 \
                   --skip=callback                 \
                   --skip=error                    \
