@@ -201,7 +201,7 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
         g_type_get_qdata (gtype, GNodeJS::template_quark());
     auto persistentFn  = (Nan::Persistent<Function> *)
         g_type_get_qdata (gtype, GNodeJS::function_quark());
-    persistentTpl->Reset();
+    delete persistentTpl;
     delete persistentFn;
 
     g_type_set_qdata (gtype, GNodeJS::template_quark(), NULL);
