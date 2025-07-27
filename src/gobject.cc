@@ -4,13 +4,11 @@
 #include "boxed.h"
 #include "callback.h"
 #include "closure.h"
-#include "debug.h"
 #include "error.h"
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
 #include "macros.h"
-#include "type.h"
 #include "util.h"
 #include "value.h"
 
@@ -21,7 +19,6 @@ using v8::Function;
 using v8::FunctionTemplate;
 using v8::Local;
 using v8::MaybeLocal;
-using v8::Number;
 using v8::Object;
 using v8::String;
 using Nan::New;
@@ -215,11 +212,9 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
 #if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 || \
     (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
 #define PROPERTY_CALLBACK_RETURN_TYPE v8::Intercepted
-#define PROPERTY_CALLBACK_RETURN(intercepted) return v8::Intercepted::intercepted
 #define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<void>
 #else
 #define PROPERTY_CALLBACK_RETURN_TYPE void
-#define PROPERTY_CALLBACK_RETURN(intercepted) return
 #define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<Value>
 #endif
 
@@ -237,7 +232,7 @@ GObjectFallbackPropertyGetter(Local<v8::Name> property,
     if (strstr(prop_name_camel, "-")) {
         // Has dash, not a camel-case property name.
         RETURN(Nan::Undefined());
-        PROPERTY_CALLBACK_RETURN(kYes);
+        return Nan::Intercepted::Yes();
     }
 
     char *prop_name = Util::ToDashed(prop_name_camel);
@@ -246,11 +241,11 @@ GObjectFallbackPropertyGetter(Local<v8::Name> property,
     if (!value.IsEmpty()) {
         RETURN(value.ToLocalChecked());
         g_free(prop_name);
-        PROPERTY_CALLBACK_RETURN(kYes);
+        return Nan::Intercepted::Yes();
     }
 
     g_free(prop_name);
-    PROPERTY_CALLBACK_RETURN(kNo);
+    return Nan::Intercepted::No();
 }
 
 static PROPERTY_CALLBACK_RETURN_TYPE
@@ -264,7 +259,7 @@ GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
 
     if (strstr(prop_name_camel, "-")) {
         // Has dash, not a camel-case property name.
-        PROPERTY_CALLBACK_RETURN(kNo);
+        return Nan::Intercepted::No();
     }
 
     char *prop_name = Util::ToDashed(prop_name_camel);
@@ -272,7 +267,7 @@ GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
     if (gobject == NULL) {
         WARN("Can't set \"%s\" on null GObject", prop_name);
         g_free(prop_name);
-        PROPERTY_CALLBACK_RETURN(kNo);
+        return Nan::Intercepted::No();
     }
 
     auto setResult = SetGObjectProperty(gobject, prop_name, value);
@@ -280,13 +275,13 @@ GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
         // Non-existent property. Let node consider the set not intercepted
         // by not setting return value;
         g_free(prop_name);
-        PROPERTY_CALLBACK_RETURN(kNo);
+        return Nan::Intercepted::No();
     } else {
         // Property exists. Whether we can convert the value and set the
         // property or not, consider the set intercepted.
         RETURN(value);
         g_free(prop_name);
-        PROPERTY_CALLBACK_RETURN(kYes);
+        return Nan::Intercepted::Yes();
     }
 }
 
