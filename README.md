@@ -256,17 +256,12 @@ Once installed, you can `./examples/browser.js google.com` or any other page, an
 ## Contributing
 
 If you'd like to help, we'd be more than happy to have support. To setup your development environment, you can
-run `npm run configure`. You can then build the project with `npm run build`.
+run `npm run configure`. You can then build the project with `npm run build`. To generate the `compile_commands.json`
+for LSP to work nicely, you can use [bear](https://github.com/rizsotto/Bear) as `bear -- npm run build`.
 
  - https://developer.gnome.org/gi/stable/index.html
  - https://v8docs.nodesource.com/
  - https://github.com/nodejs/nan#api
 
-Don't hesitate to join our [Discord channel](https://discord.gg/r2VqPUV).
-
-### Contributors
-
- - [magcius](https://github.com/magcius)
- - [WebReflection](https://github.com/WebReflection)
- - [romgrk](https://github.com/romgrk)
- - [wotzlaff](https://github.com/wotzlaff)
+There is a [Discord channel](https://discord.gg/r2VqPUV) but it receives little monitoring, use github issues or
+discussions preferably.
