@@ -1,14 +1,13 @@
 .DS_Store
+.idea
 *~
-.buildconfig
-.ycm_extra_conf.*
+node_modules/
 */.tags
 \#*\#
+.buildconfig
 
 npm-debug.log
+compile_commands.json
 
 build/
-node_modules/
-
 lib/binding/*
-.idea

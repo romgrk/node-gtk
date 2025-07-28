@@ -10,6 +10,7 @@
 #include "type.h"
 
 #include <cstdio>
+#include <cinttypes>
 
 namespace GNodeJS {
 
@@ -245,16 +246,16 @@ void print_gtype (GType type) {
 void print_type (GType type) {
     GType t = type;
     while(!G_TYPE_IS_FUNDAMENTAL(type) && t != 0) {
-        printf("\t\x1b[92m -> %s \t (%lu)\x1b[0m\n", g_type_name(t), t);
+        printf("\t\x1b[92m -> %s \t (%" PRIuPTR ")\x1b[0m\n", g_type_name(t), (uintptr_t)t);
         t = g_type_parent(t);
     }
 }
 
 void print_klass (void * klass) {
     printf("\x1b[38;5;202m");
-    printf("klass: %s  (type: %lu )",
+    printf("klass: %s  (type: %" PRIuPTR " )",
             G_OBJECT_CLASS_NAME (klass),
-            G_OBJECT_CLASS_TYPE (klass) );
+            (uintptr_t)G_OBJECT_CLASS_TYPE (klass) );
     printf("\x1b[0m\n");
 }
 

@@ -18,12 +18,13 @@ if [[ $(uname -s) == 'Darwin' ]]; then
         gst-plugins-base \
         gst-plugins-good \
         gst-plugins-bad \
-        libnice
+        libnice \
+        python-setuptools
 fi;
 
 if [[ $(uname -s) == 'Linux' ]]; then
     sudo apt update
-    sudo apt install --fix-missing \
+    sudo apt install -y --fix-missing \
         xvfb \
         libgirepository1.0-dev \
         gobject-introspection \
@@ -32,7 +33,7 @@ if [[ $(uname -s) == 'Linux' ]]; then
         libgtk-3-dev \
         gir1.2-gtk-3.0 \
         libsoup2.4-1 \
-        gir1.2-soup-2.4 \
+        gir1.2-soup-3.0 \
         libcairo2 \
         libcairo2-dev \
         libgstreamer1.0-0 \

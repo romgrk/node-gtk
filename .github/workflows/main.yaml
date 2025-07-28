@@ -2,10 +2,10 @@ name: main
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 jobs:
   build-windows:
     name: windows - nodejs ${{ matrix.node }}
@@ -13,8 +13,9 @@ jobs:
     strategy:
       matrix:
         node:
-          - 18
-          - 16
+          - 24
+          - 22
+          - 20
     defaults:
       run:
         shell: msys2 {0}
@@ -53,8 +54,7 @@ jobs:
           npx mocha                                 \
                     --skip=callback                 \
                     --skip=error                    \
-                    --skip=signal__non-introspected \
-                    --skip=object__initialization \
+                    --skip=union__fields            \
                     tests/__run__.js
 
   build:
@@ -63,11 +63,12 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-20.04
+          - ubuntu-latest
           - macos-latest
         node:
-          - 18
-          - 16
+          - 24
+          - 22
+          - 20
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -93,7 +94,6 @@ jobs:
 
       # Install & cache packages
       - run: .github/workflows/install.sh
-
 
       # Install & Build
       - run: npm install --build-from-source

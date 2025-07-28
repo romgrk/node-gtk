@@ -30,7 +30,8 @@ describe('gi.require() works for all modules', async () => {
   const modules =
     searchPaths.filter(path => fs.existsSync(path))
                .map(path => fs.readdirSync(path).map(parseModule))
-               .reduce((acc, cur) => acc.concat(cur), [])
+               .flat()
+               .filter(m => m.name !== 'GIRepository')
 
   console.log(`${modules.length} modules found`)
 

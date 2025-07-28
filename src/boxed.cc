@@ -286,12 +286,12 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
     delete box;
 }
 
-static void BoxedClassDestroyed(const v8::WeakCallbackInfo<GIBaseInfo> &info) {
+static void BoxedClassDestroyed(const Nan::WeakCallbackInfo<GIBaseInfo> &info) {
     GIBaseInfo *gi_info = info.GetParameter ();
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) gi_info);
 
-    auto *persistent_template = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::template_quark());
-    auto *persistent_function = (Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::function_quark());
+    auto *persistent_template = (Nan::Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::template_quark());
+    auto *persistent_function = (Nan::Persistent<FunctionTemplate> *) g_type_get_qdata (gtype, GNodeJS::function_quark());
     delete persistent_template;
     delete persistent_function;
 
@@ -324,7 +324,7 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
      */
 
     if (data) {
-        auto *persistent = (Persistent<FunctionTemplate> *) data;
+        auto *persistent = (Nan::Persistent<FunctionTemplate> *) data;
         auto tpl = Nan::New<FunctionTemplate> (*persistent);
         return tpl;
     }
@@ -353,7 +353,7 @@ Local<FunctionTemplate> GetBoxedTemplate(GIBaseInfo *info, GType gtype) {
     if (gtype == G_TYPE_NONE)
         return tpl;
 
-    auto *persistent = new Persistent<FunctionTemplate>(Isolate::GetCurrent(), tpl);
+    auto *persistent = new Nan::Persistent<FunctionTemplate>(tpl);
     persistent->SetWeak(
             g_base_info_ref(info),
             BoxedClassDestroyed,
@@ -380,7 +380,7 @@ Local<Function> GetBoxedFunction(GIBaseInfo *info, GType gtype) {
     }
 
     if (data) {
-        auto *persistent = (Persistent<Function> *) data;
+        auto *persistent = (Nan::Persistent<Function> *) data;
         auto fn = Nan::New<Function> (*persistent);
         return fn;
     }
@@ -391,7 +391,7 @@ Local<Function> GetBoxedFunction(GIBaseInfo *info, GType gtype) {
     if (gtype == G_TYPE_NONE)
         return fn;
 
-    auto *persistent = new Persistent<Function>(Isolate::GetCurrent(), fn);
+    auto *persistent = new Nan::Persistent<Function>(fn);
 
     g_type_set_qdata(gtype, GNodeJS::function_quark(), persistent);
 

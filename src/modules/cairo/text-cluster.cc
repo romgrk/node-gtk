@@ -110,6 +110,7 @@ NAN_INDEX_GETTER(TextCluster::IndexGetter) {
   Nan::Set (returnValue, UTF8("num_bytes"),  Nan::New<Number> (text_cluster->num_bytes));
   Nan::Set (returnValue, UTF8("num_glyphs"), Nan::New<Number> (text_cluster->num_glyphs));
   RETURN(returnValue);
+  return Nan::Intercepted::Yes();
 }
 
 

@@ -40,6 +40,7 @@ struct FunctionInfo {
     int n_in_args;
 
     Parameter* call_parameters;
+    Nan::Persistent<FunctionTemplate> *persistent;
 
     FunctionInfo(GIBaseInfo* info);
     ~FunctionInfo();
@@ -55,7 +56,7 @@ bool IsDestroyNotify (GIBaseInfo *info);
 Local<Value> FunctionCall (FunctionInfo *func, const Nan::FunctionCallbackInfo<Value> &info, GIArgument *return_value = NULL, GError **error = NULL);
 
 void FunctionInvoker (const Nan::FunctionCallbackInfo<Value> &info);
-void FunctionDestroyed (const v8::WeakCallbackInfo<FunctionInfo> &data);
+void FunctionDestroyed (const Nan::WeakCallbackInfo<FunctionInfo> &data);
 
 Local<Function>      MakeFunction (GIBaseInfo *base_info);
 

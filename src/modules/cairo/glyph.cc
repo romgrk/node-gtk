@@ -103,6 +103,7 @@ NAN_INDEX_GETTER(Glyph::IndexGetter) {
   Nan::Set (returnValue, UTF8("x"),     Nan::New<Number> (glyph->x));
   Nan::Set (returnValue, UTF8("y"),     Nan::New<Number> (glyph->y));
   RETURN(returnValue);
+  return Nan::Intercepted::Yes();
 }
 
 

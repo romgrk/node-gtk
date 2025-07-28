@@ -14,9 +14,18 @@ const common = require('./__common__.js')
  */
 {
   const color = new Gdk.Color()
+  {
+    /*
+     * structs are zero initialized
+     */
+    const result = color.blue
+    console.log('Result:', result)
+    common.assert(result === 0, "struct not zero initialized")
+  }
   color.blue = 100
-
-  const result = color.blue
-  console.log('Result:', result)
-  common.assert(result === 100)
+  {
+    const result = color.blue
+    console.log('Result:', result)
+    common.assert(result === 100)
+  }
 }
