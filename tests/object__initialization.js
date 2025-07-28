@@ -28,7 +28,7 @@ describe('new GObject({ ... })', () => {
     })
 
     expect(message.method, 'GET')
-    assert(message.uri instanceof GLib.Uri, 'message.uri not instanceof Soup.Uri')
+    assert(message.uri instanceof GLib.Uri, 'message.uri not instanceof GLib.Uri')
   })
 
   it('fails with wrong property types',
