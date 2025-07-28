@@ -12,6 +12,15 @@ const common = require('./__common__.js')
 const tk = new GLib.TokenValue()
 
 /*
+ * unions are zero initialized
+ */
+{
+  const result = tk.vInt64
+  console.log('Result:', result)
+  common.assert(result === 0, "union not zero initialized")
+}
+
+/*
  * get/set works
  */
 {
