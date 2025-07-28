@@ -54,8 +54,7 @@ jobs:
           npx mocha                                 \
                     --skip=callback                 \
                     --skip=error                    \
-                    --skip=signal__non-introspected \
-                    --skip=object__initialization \
+                    --skip=union__fields            \
                     tests/__run__.js
 
   build:
