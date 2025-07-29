@@ -425,9 +425,9 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, ResourceOwnership ow
 
     Local<Function> constructor = MakeBoxedClass (info);
 
-    Local<Value> boxed_external = Nan::New<External> (data);
-    Local<Value> must_copy_value = Nan::New<v8::Int32> ((int32_t) ownership);
-    Local<Value> args[] = { boxed_external, must_copy_value };
+    Local<Value> jsBoxed = Nan::New<External> (data);
+    Local<Value> jsOwnership = Nan::New<v8::Int32> ((int32_t) ownership);
+    Local<Value> args[] = { jsBoxed, jsOwnership };
 
     MaybeLocal<Object> instance = Nan::NewInstance(constructor, 2, args);
 
