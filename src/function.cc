@@ -335,7 +335,7 @@ Local<Value> FunctionCall (
 
     if (func->is_method) {
         GIBaseInfo *container = g_base_info_get_container (gi_info);
-        V8ToGIArgument(container, &total_arg_values[0], info.This());
+        V8ToGIArgumentInterface(container, &total_arg_values[0], info.This());
         callable_arg_values = &total_arg_values[1];
     } else {
         callable_arg_values = &total_arg_values[0];
@@ -488,23 +488,28 @@ Local<Value> FunctionCall (
             Nan::ThrowError(error_stack->message);
             g_error_free(error_stack);
         }
+
+        /*
+        * Fifth, free the return value and arguments
+        */
+
+        if (!use_return_value)
+            FreeGIArgument(&return_type, &return_value_stack, return_transfer);
+
     } else if (!use_return_value) {
-        jsReturnValue = func->GetReturnValue (
+
+        // Value transferred to jsReturnValue
+        jsReturnValue = func->JsReturnValue (
                 info.This(),
                 &return_type,
-                use_return_value ? return_value : &return_value_stack,
-                callable_arg_values);
+                &return_value_stack,
+                callable_arg_values,
+                return_transfer);
     } else {
+
+        // Value returned in return_value
         jsReturnValue = Nan::Undefined();
     }
-
-
-    /*
-     * Fifth, free the return value and arguments
-     */
-
-    if (!use_return_value)
-        FreeGIArgument(&return_type, &return_value_stack, return_transfer);
 
     for (int i = 0; i < func->n_callable_args; i++) {
         GIArgInfo  arg_info = {};
@@ -553,11 +558,12 @@ Local<Value> FunctionCall (
  * Creates the JS return value from the C arguments list
  * @returns the JS return value
  */
-Local<Value> FunctionInfo::GetReturnValue (
+Local<Value> FunctionInfo::JsReturnValue (
         Local<Value> self,
         GITypeInfo* return_type,
         GIArgument* return_value,
-        GIArgument* callable_arg_values) {
+        GIArgument* callable_arg_values,
+        GITransfer return_transfer) {
 
     Local<Value> jsReturnValue;
     int jsReturnIndex = 0;
@@ -569,6 +575,8 @@ Local<Value> FunctionInfo::GetReturnValue (
                                 Nan::Set(TO_OBJECT (jsReturnValue), jsReturnIndex++, (value)); \
                             else \
                                 jsReturnValue = (value);
+
+#define RESOURCE_OWNERSHIP_FROM_TRANSFER(transfer)  (transfer == GI_TRANSFER_EVERYTHING ? kTransfer : kNone)
 
     int return_length_i = g_type_info_get_array_length(return_type);
 
@@ -591,7 +599,10 @@ Local<Value> FunctionInfo::GetReturnValue (
         // When a method returns the instance itself, skip the conversion and just return the
         // existent wrapper
         bool isReturningSelf = is_method && PointerFromWrapper(self) == return_value->v_pointer;
-        ADD_RETURN (isReturningSelf ? self : GIArgumentToV8 (return_type, return_value, length))
+        ADD_RETURN (isReturningSelf ? self :
+            GIArgumentToV8 (
+                return_type, return_value, length,
+                RESOURCE_OWNERSHIP_FROM_TRANSFER(return_transfer)))
     }
 
     for (int i = 0; i < n_callable_args; i++) {
@@ -630,35 +641,26 @@ Local<Value> FunctionInfo::GetReturnValue (
                 ADD_RETURN (result)
 
             } else if (param.type == ParameterType::kNORMAL) {
+                GITransfer transfer = g_arg_info_get_ownership_transfer(&arg_info);
+                ResourceOwnership ownership = RESOURCE_OWNERSHIP_FROM_TRANSFER(transfer);
 
                 if (IsPointerType(&arg_type) && g_arg_info_is_caller_allocates(&arg_info)) {
                     void *pointer = &arg_value.v_pointer;
-                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) pointer))
+                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) pointer, -1, ownership))
                 }
                 else {
-                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer))
+                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer, -1, ownership))
                 }
             }
         }
     }
 
+#undef RESOURCE_OWNERSHIP_FROM_TRANSFER
+
 #undef ADD_RETURN
 
     return jsReturnValue;
 }
-
-/**
- * Frees the C return value
- * @param return_value the return value pointer
- */
-void FunctionInfo::FreeReturnValue (GIArgument *return_value) {
-    GITypeInfo return_type;
-    g_callable_info_load_return_type(info, &return_type);
-    GITransfer return_transfer = g_callable_info_get_caller_owns(info);
-
-    FreeGIArgument(&return_type, return_value, return_transfer);
-}
-
 
 
 Local<Function> MakeFunction(GIBaseInfo *info) {

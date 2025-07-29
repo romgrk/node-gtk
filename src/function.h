@@ -47,8 +47,7 @@ struct FunctionInfo {
 
     bool Init();
     bool TypeCheck (const Nan::FunctionCallbackInfo<Value> &info);
-    Local<Value> GetReturnValue (Local<Value> self, GITypeInfo* return_type, GIArgument* return_value, GIArgument* callable_arg_values);
-    void FreeReturnValue (GIArgument *return_value);
+    Local<Value> JsReturnValue (Local<Value> self, GITypeInfo* return_type, GIArgument* return_value, GIArgument* callable_arg_values, GITransfer return_transfer);
 };
 
 bool IsDestroyNotify (GIBaseInfo *info);
