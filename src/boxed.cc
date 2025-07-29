@@ -174,7 +174,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     if (info[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
-        ResourceOwnership ownership = (ResourceOwnership) Nan::To<int32_t> (info[1]).ToChecked();
+        auto ownership = (ResourceOwnership) Nan::To<int32_t> (info[1]).ToChecked();
 
         boxed = External::Cast(*info[0])->Value();
 
