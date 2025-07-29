@@ -72,7 +72,7 @@ static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
 
         g_value_init(&values[index], value_spec->value_type);
 
-        if (!V8ToGValue(&values[index], value, true)) {
+        if (!V8ToGValue(&values[index], value, kCopy)) {
             // V8ToGValue throws the error
             goto out;
         }
@@ -477,9 +477,9 @@ NAN_METHOD(SignalEmit) {
         g_value_init(gvalue, signal_query.param_types[i] & ~G_SIGNAL_TYPE_STATIC_SCOPE);
 
         if ((signal_query.param_types[i] & G_SIGNAL_TYPE_STATIC_SCOPE) != 0)
-            failed = !V8ToGValue(gvalue, info[i + 1], false); // no-copy
+            failed = !V8ToGValue(gvalue, info[i + 1], kNone); // no-copy
         else
-            failed = !V8ToGValue(gvalue, info[i + 1], true); // copy
+            failed = !V8ToGValue(gvalue, info[i + 1], kCopy); // copy
 
         if (failed)
             break;
@@ -693,7 +693,7 @@ MaybeLocal<Value> GetGObjectProperty(GObject * gobject, const char *prop_name) {
     g_value_init (&value, G_PARAM_SPEC_VALUE_TYPE (pspec));
     g_object_get_property (gobject, prop_name, &value);
 
-    auto ret = GNodeJS::GValueToV8(&value, true);
+    auto ret = GNodeJS::GValueToV8(&value, kCopy);
 
     g_value_unset(&value);
 
@@ -712,7 +712,7 @@ MaybeLocal<v8::Boolean> SetGObjectProperty(GObject * gobject, const char *prop_n
     GValue gvalue = G_VALUE_INIT;
     g_value_init(&gvalue, G_PARAM_SPEC_VALUE_TYPE (pspec));
 
-    if (GNodeJS::V8ToGValue (&gvalue, value, true)) {
+    if (GNodeJS::V8ToGValue (&gvalue, value, kCopy)) {
         g_object_set_property (gobject, prop_name, &gvalue);
         ret = Nan::True();
     } else {

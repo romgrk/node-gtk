@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "value.h"
 #include <nan.h>
 #include <node.h>
 #include <girepository.h>
@@ -30,7 +31,7 @@ public:
 
 Local<Function>         MakeBoxedClass   (GIBaseInfo *info);
 Local<FunctionTemplate> GetBoxedTemplate (GIBaseInfo *info, GType gtype);
-Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data, bool mustCopy = false);
+Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data, ResourceOwnership ownership = kNone);
 void *                  PointerFromWrapper (Local<Value>);
 
 };

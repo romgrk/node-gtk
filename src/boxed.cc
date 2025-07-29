@@ -174,11 +174,11 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     if (info[0]->IsExternal ()) {
         /* The External case. This is how WrapperFromBoxed is called. */
-        bool mustCopy = Nan::To<bool> (info[1]).ToChecked();
+        ResourceOwnership ownership = (ResourceOwnership) Nan::To<int32_t> (info[1]).ToChecked();
 
         boxed = External::Cast(*info[0])->Value();
 
-        if (mustCopy) {
+        if (ownership == kCopy) {
             if (gtype != G_TYPE_NONE) {
                 boxed = g_boxed_copy (gtype, boxed);
             }
@@ -192,7 +192,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             }
         }
         else {
-            owns_memory = false;
+            owns_memory = ownership == kTransfer;
         }
     } else {
         /* User code calling `new Pango.AttrList()` */
@@ -419,14 +419,14 @@ Local<Function> MakeBoxedClass(GIBaseInfo *info) {
     return GetBoxedFunction (info, gtype);
 }
 
-Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, bool mustCopy) {
+Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, ResourceOwnership ownership) {
     if (data == NULL)
         return Nan::Null();
 
     Local<Function> constructor = MakeBoxedClass (info);
 
     Local<Value> boxed_external = Nan::New<External> (data);
-    Local<Value> must_copy_value = Nan::New<v8::Boolean> (mustCopy);
+    Local<Value> must_copy_value = Nan::New<v8::Int32> ((int32_t) ownership);
     Local<Value> args[] = { boxed_external, must_copy_value };
 
     MaybeLocal<Object> instance = Nan::NewInstance(constructor, 2, args);

@@ -36,7 +36,7 @@ static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info);
 static bool IsUint8Array (GITypeInfo *type_info);
 
 
-Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length, bool mustCopy) {
+Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length, ResourceOwnership ownership) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
@@ -128,7 +128,7 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
-                value = WrapperFromBoxed (interface_info, arg->v_pointer, mustCopy);
+                value = WrapperFromBoxed (interface_info, arg->v_pointer, ownership);
                 break;
             case GI_INFO_TYPE_ENUM:
                 value = New<Number>(arg->v_int);
@@ -233,8 +233,8 @@ Local<Value> GHashToV8 (GITypeInfo *type_info, GHashTable *hash_table) {
 }
 
 Local<Value> GErrorToV8 (GITypeInfo *type_info, GError *err) {
-    auto err_info = g_irepository_find_by_name(NULL, "GLib", "Error");
-    auto obj = WrapperFromBoxed (err_info, err, true);
+    auto err_info = g_irepository_find_by_gtype(NULL, g_error_get_type());
+    auto obj = WrapperFromBoxed (err_info, err);
     return obj;
 }
 
@@ -1185,6 +1185,9 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
             case GI_INFO_TYPE_UNION:
             {
                 // handled by gobject.cc/boxed.cc
+
+                // no free since we took the ptr directly from box
+                // see V8ToGIArgument
                 break;
             }
             case GI_INFO_TYPE_ENUM:
@@ -1241,7 +1244,8 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
 
     case GI_TYPE_TAG_ERROR:
     {
-        g_error_free((GError *)arg->v_pointer);
+        // no g_error_free since we took the ptr directly from box
+        // see V8ToGIArgument and GErrorToV8
         break;
     }
 
@@ -1424,7 +1428,7 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
             G_VALUE_TYPE_NAME (gvalue));
 }
 
-bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
+bool V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership) {
     if (!CanConvertV8ToGValue(gvalue, value)) {
         auto maybeDetailString = Nan::ToDetailString(value);
         Nan::Utf8String utf8String(
@@ -1487,7 +1491,7 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
             Throw::CannotConvertGType("boxed", G_VALUE_TYPE (gvalue));
             return false;
         }
-        if (mustCopy)
+        if (ownership == kCopy)
             g_value_set_boxed (gvalue, PointerFromWrapper(value));
         else
             g_value_set_static_boxed (gvalue, PointerFromWrapper(value));
@@ -1508,7 +1512,7 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, bool mustCopy) {
     return true;
 }
 
-Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
+Local<Value> GValueToV8(const GValue *gvalue, ResourceOwnership ownership) {
     // by-value types
     if (G_VALUE_HOLDS_BOOLEAN (gvalue)) {
         return New<v8::Boolean>(g_value_get_boolean (gvalue));
@@ -1555,7 +1559,7 @@ Local<Value> GValueToV8(const GValue *gvalue, bool mustCopy) {
             Throw::InvalidGType(gtype);
             return Nan::Null(); // FIXME(return a MaybeLocal instead?)
         }
-        Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue), mustCopy);
+        Local<Value> obj = WrapperFromBoxed(info, g_value_get_boxed(gvalue), ownership);
         g_base_info_unref(info);
         return obj;
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
