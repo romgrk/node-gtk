@@ -44,13 +44,11 @@ function npm_test() {
         export GST_PLUGIN_SYSTEM_PATH=$(brew --prefix gstreamer)/lib/gstreamer-1.0;
         npx mocha                                 \
                   --skip=callback                 \
-                  --skip=error                    \
                   --skip=union__fields            \
                   tests/__run__.js
     else
         xvfb-run -a npm test --                   \
                   --skip=callback                 \
-                  --skip=error                    \
                   --skip=union__fields;
     fi;
 }
