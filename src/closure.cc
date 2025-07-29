@@ -63,26 +63,30 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
             g_callable_info_load_arg(info, i - 1, &arg_info);
             g_arg_info_load_type(&arg_info, &type_info);
 
-            bool mustCopy = true;
+            ResourceOwnership ownership = kCopy;
 
             if (signal_query.signal_id) {
-                mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+                if ((signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) != 0) {
+                    ownership = kNone;
+                }
             }
             if (g_arg_info_get_direction(&arg_info) == GI_DIRECTION_OUT) {
-                mustCopy = false;
+                ownership = kNone;
             }
 
-            js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, mustCopy);
+            js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, ownership);
         }
     } else {
         /* CallableInfo is not available: use GValueToV8 */
         for (guint i = 1; i < n_param_values; i++) {
-            bool mustCopy = true;
+            ResourceOwnership ownership = kCopy;
 
             if (signal_query.signal_id) {
-                mustCopy = (signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) == 0;
+                if ((signal_query.param_types[i - 1] & G_SIGNAL_TYPE_STATIC_SCOPE) != 0) {
+                    ownership = kNone;
+                }
             }
-            js_args[i - 1] = GValueToV8(&param_values[i], mustCopy);
+            js_args[i - 1] = GValueToV8(&param_values[i], ownership);
         }
     }
 
@@ -101,7 +105,7 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
             && result.ToLocal(&return_value)) {
 
         if (g_return_value) {
-            if (!V8ToGValue (g_return_value, return_value, true))
+            if (!V8ToGValue (g_return_value, return_value, kCopy))
                 goto throw_exception;
         }
 

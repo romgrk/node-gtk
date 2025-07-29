@@ -65,8 +65,8 @@ NAN_METHOD(ConvertGValue) {
         return;
     }
     void *ptr = obj->GetAlignedPointerFromInternalField (0);
-    bool mustCopy = true;
-    RETURN(GValueToV8(reinterpret_cast<GValue *>(ptr), mustCopy));
+    ResourceOwnership ownership = kCopy;
+    RETURN(GValueToV8(reinterpret_cast<GValue *>(ptr), ownership));
 }
 
 NAN_METHOD(GetMemoryContent) {

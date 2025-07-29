@@ -117,14 +117,14 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
 
         bool isOutArgument = g_arg_info_get_direction(&arg_info) == GI_DIRECTION_OUT;
         bool isPrimitive = Type::IsPrimitive(&arg_type);
-        bool mustCopy = isOutArgument ? false : true;
+        ResourceOwnership ownership = isOutArgument ? kNone : kCopy;
 
         if (isPrimitive && isOutArgument) {
             n_return_values += 1;
             primitive_out_arguments_mask |= 1 << i;
             js_args[i] = Nan::Null();
         } else {
-            js_args[i] = GIArgumentToV8 (&arg_type, args[i + args_offset], -1, mustCopy);
+            js_args[i] = GIArgumentToV8 (&arg_type, args[i + args_offset], -1, ownership);
         }
     }
 

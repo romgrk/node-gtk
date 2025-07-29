@@ -283,7 +283,7 @@ NAN_METHOD(StructFieldGetter) {
     }
 
     GIArgument value;
-    bool mustCopy = true;
+    GNodeJS::ResourceOwnership ownership = GNodeJS::kCopy;
     BaseInfo typeInfo = g_field_info_get_type(*fieldInfo);
 
     if (!g_field_info_get_field(*fieldInfo, boxed, &value)) {
@@ -300,13 +300,13 @@ NAN_METHOD(StructFieldGetter) {
         // auto offset = g_field_info_get_offset(*fieldInfo);
         // auto fieldPtr = G_STRUCT_MEMBER_P(boxed, offset);
         // value.v_pointer = fieldPtr;
-        // mustCopy = false;
+        // ownership = kNone;
 
         Nan::ThrowError("Converting non-primitive fields is not allowed");
         return;
     }
 
-    RETURN(GNodeJS::GIArgumentToV8(*typeInfo, &value, -1, mustCopy));
+    RETURN(GNodeJS::GIArgumentToV8(*typeInfo, &value, -1, ownership));
 }
 
 NAN_METHOD(StartLoop) {
