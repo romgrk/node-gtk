@@ -576,8 +576,6 @@ Local<Value> FunctionInfo::JsReturnValue (
                             else \
                                 jsReturnValue = (value);
 
-#define RESOURCE_OWNERSHIP_FROM_TRANSFER(transfer)  (transfer == GI_TRANSFER_EVERYTHING ? kTransfer : kNone)
-
     int return_length_i = g_type_info_get_array_length(return_type);
 
     if (!ShouldSkipReturn(info, return_type)) {
@@ -602,7 +600,7 @@ Local<Value> FunctionInfo::JsReturnValue (
         ADD_RETURN (isReturningSelf ? self :
             GIArgumentToV8 (
                 return_type, return_value, length,
-                RESOURCE_OWNERSHIP_FROM_TRANSFER(return_transfer)))
+                return_transfer == GI_TRANSFER_EVERYTHING ? kTransfer : kNone))
     }
 
     for (int i = 0; i < n_callable_args; i++) {
@@ -642,7 +640,7 @@ Local<Value> FunctionInfo::JsReturnValue (
 
             } else if (param.type == ParameterType::kNORMAL) {
                 GITransfer transfer = g_arg_info_get_ownership_transfer(&arg_info);
-                ResourceOwnership ownership = RESOURCE_OWNERSHIP_FROM_TRANSFER(transfer);
+                ResourceOwnership ownership = transfer == GI_TRANSFER_EVERYTHING ? kTransfer : kNone;
 
                 if (IsPointerType(&arg_type) && g_arg_info_is_caller_allocates(&arg_info)) {
                     void *pointer = &arg_value.v_pointer;
@@ -654,8 +652,6 @@ Local<Value> FunctionInfo::JsReturnValue (
             }
         }
     }
-
-#undef RESOURCE_OWNERSHIP_FROM_TRANSFER
 
 #undef ADD_RETURN
 
