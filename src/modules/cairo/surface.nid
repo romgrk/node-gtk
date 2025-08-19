@@ -60,7 +60,7 @@ namespace ImageSurface {
 
 [[constructor]] cairo_surface_t * cairo_image_surface_create (cairo_format_t format, int width, int height);
 [[static]] cairo_surface_t * cairo_image_surface_create_from_png (const char *filename);
-/* cairo_surface_t * cairo_image_surface_create_for_data (unsigned char *data, cairo_format_t format, int width, int height, int stride); */
+[[static]] cairo_surface_t * cairo_image_surface_create_for_data (unsigned char *data, cairo_format_t format, int width, int height, int stride);
 [[returns(uint8_t *)]] unsigned char * cairo_image_surface_get_data (cairo_surface_t *surface);
 cairo_format_t cairo_image_surface_get_format (cairo_surface_t *surface);
 int cairo_image_surface_get_width (cairo_surface_t *surface);

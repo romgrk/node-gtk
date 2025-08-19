@@ -416,6 +416,9 @@ function getInArgumentSource(p, n) {
 
   if (typeName === 'const char *')
     return `Nan::Utf8String ${p.name}__value(info[${n}].As<String>()); auto ${p.name} = *${p.name}__value;`
+  
+  if (typeName === 'unsigned char *' || typeName === 'const unsigned char *')
+    return (`if (!node::Buffer::HasInstance(info[${n}])) return Nan::ThrowTypeError("buffer expected"); auto ${p.name} = (unsigned char *) node::Buffer::Data(info[${n}]);`)
 
   if (baseName in ENUM_TYPE)
     return `auto ${p.name} = (${typeName}) Nan::To<${ENUM_TYPE[typeName]}>(info[${n}].As<Number>()).ToChecked();`
