@@ -12,7 +12,7 @@ const Gst = gi.require('Gst')
 const common = require('./__common__.js')
 
 Gtk.init()
-Gst.init()
+Gst.init([])
 
 common.describe('enum', () => {
   common.it('are defined', () => {

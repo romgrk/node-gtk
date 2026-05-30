@@ -8,7 +8,7 @@ const GLib = gi.require('GLib', '2.0')
 const Gst = gi.require('Gst', '1.0')
 const { describe, it, assert, expect } = require('./__common__.js')
 
-Gst.init()
+Gst.init([])
 
 const QUARK_STRING = 'example'
 const CUSTOM_QUARK = GLib.quarkFromString(QUARK_STRING)

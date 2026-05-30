@@ -4,7 +4,7 @@ const GObject = gi.require('GObject', '2.0')
 const { assert, describe, expect, it } = require('./__common__.js')
 
 gi.startLoop()
-Gst.init()
+Gst.init([])
 
 describe('create introspected objected', () => {
   const bin = new Gst.Bin('name')

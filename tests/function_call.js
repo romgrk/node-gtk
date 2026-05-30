@@ -9,7 +9,7 @@ const Gst = gi.require('Gst', '1.0')
 const { describe, it, mustThrow, expect } = require('./__common__.js')
 
 Gtk.init()
-Gst.init();
+Gst.init([]);
 
 describe('function arguments', () => {
   it('works', () => {
