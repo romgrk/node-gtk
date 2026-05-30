@@ -4,7 +4,7 @@
 
 
 const gi = require('../lib/')
-const Soup = gi.require('Soup')
+const Soup = gi.require('Soup', '3.0')
 const common = require('./__common__.js')
 
 /*
