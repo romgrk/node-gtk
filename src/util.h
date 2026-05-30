@@ -54,7 +54,7 @@ inline void SetProtoAccessor(
             getter,
             setter,
             v8::Local<v8::Value>(),
-            v8::DEFAULT,
+            Nan::DEFAULT,
             v8::None);
 }
 

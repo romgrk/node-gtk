@@ -113,7 +113,7 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
 }
 
 static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype) {
-    object->SetAlignedPointerInInternalField (0, gobject);
+    Nan::SetInternalFieldPointer(object, 0, gobject);
 
     SET_OBJECT_GTYPE(object, gtype);
 
@@ -159,7 +159,13 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
     // work for dynamically-registered types. Check if we can find something
     // better.
     //gtype = (GType) External::Cast(*info.Data())->Value();
+    // Nan provides Nan::SetPrototype but no GetPrototype wrapper, so guard on V8 version.
+#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 || \
+    (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION >= 4))
+    gtype = GET_OBJECT_GTYPE (Nan::To<Object>(self->GetPrototypeV2()).ToLocalChecked());
+#else
     gtype = GET_OBJECT_GTYPE (Nan::To<Object>(self->GetPrototype()).ToLocalChecked());
+#endif
 
     gobject = CreateGObjectFromObject (gtype, info[0]);
 
@@ -213,15 +219,18 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
     (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
 #define PROPERTY_CALLBACK_RETURN_TYPE v8::Intercepted
 #define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<void>
+#define PROPERTY_CALLBACK_RETURN_VALUE_T void
 #else
 #define PROPERTY_CALLBACK_RETURN_TYPE void
 #define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<Value>
+#define PROPERTY_CALLBACK_RETURN_VALUE_T Value
 #endif
 
 static PROPERTY_CALLBACK_RETURN_TYPE
 GObjectFallbackPropertyGetter(Local<v8::Name> property,
                               const v8::PropertyCallbackInfo<Value>& info) {
-    auto self = info.Holder();
+    Nan::PropertyCallbackInfo<Value> nanInfo(info, info.Data());
+    auto self = nanInfo.Holder();
     GObject *gobject = GObjectFromWrapper (self);
 
     g_assert(gobject != NULL);
@@ -251,7 +260,8 @@ GObjectFallbackPropertyGetter(Local<v8::Name> property,
 static PROPERTY_CALLBACK_RETURN_TYPE
 GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
                               const PROPERTY_CALLBACK_INFO_TYPE& info) {
-    auto self = info.Holder();
+    Nan::PropertyCallbackInfo<PROPERTY_CALLBACK_RETURN_VALUE_T> nanInfo(info, info.Data());
+    auto self = nanInfo.Holder();
     GObject *gobject = GNodeJS::GObjectFromWrapper (self);
 
     Nan::Utf8String prop_name_v (TO_STRING (property));
@@ -279,7 +289,7 @@ GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
     } else {
         // Property exists. Whether we can convert the value and set the
         // property or not, consider the set intercepted.
-        RETURN(value);
+        nanInfo.GetReturnValue().Set(value);
         g_free(prop_name);
         return Nan::Intercepted::Yes();
     }
@@ -512,7 +522,7 @@ NAN_METHOD(GObjectToString) {
 
     const char* typeName = g_type_name(type);
     char *className = *Nan::Utf8String(self->GetConstructorName());
-    void *address = self->GetAlignedPointerFromInternalField(0);
+    void *address = Nan::GetInternalFieldPointer(self, 0);
 
     char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (size_t)address);
 
@@ -677,7 +687,7 @@ GObject * GObjectFromWrapper(Local<Value> value) {
 
     Local<Object> object = TO_OBJECT (value);
 
-    void    *ptr     = object->GetAlignedPointerFromInternalField (0);
+    void    *ptr     = Nan::GetInternalFieldPointer(object, 0);
     GObject *gobject = G_OBJECT (ptr);
     return gobject;
 }

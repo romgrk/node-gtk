@@ -24,7 +24,7 @@ namespace System {
 static gsize GetObjectSize (Local<Object> object) {
     // Boxed
     if (object->InternalFieldCount() == 2) {
-        auto box = static_cast<Boxed*>(object->GetAlignedPointerFromInternalField(1));
+        auto box = static_cast<Boxed*>(Nan::GetInternalFieldPointer(object, 1));
         return GetComplexTypeSize(box->info);
     }
     // GObject
@@ -38,7 +38,7 @@ static gsize GetObjectSize (Local<Object> object) {
 
 NAN_METHOD(AddressOf) {
     Local<Object> object = info[0].As<Object>();
-    void *pointer = object->GetAlignedPointerFromInternalField (0);
+    void *pointer = Nan::GetInternalFieldPointer(object, 0);
     RETURN(Nan::New<Number>((uint64_t)pointer));
 }
 
@@ -64,7 +64,7 @@ NAN_METHOD(ConvertGValue) {
         RETURN(Nan::Undefined());
         return;
     }
-    void *ptr = obj->GetAlignedPointerFromInternalField (0);
+    void *ptr = Nan::GetInternalFieldPointer(obj, 0);
     ResourceOwnership ownership = kCopy;
     RETURN(GValueToV8(reinterpret_cast<GValue *>(ptr), ownership));
 }
@@ -79,7 +79,7 @@ NAN_METHOD(GetMemoryContent) {
     }
     else {
         auto object = info[0].As<Object>();
-        address = (uint8_t *) object->GetAlignedPointerFromInternalField (0);
+        address = (uint8_t *) Nan::GetInternalFieldPointer(object, 0);
         size    = GetObjectSize(object);
     }
 
