@@ -34,8 +34,10 @@ Callback::Callback(Local<Function> fn, GICallableInfo* callback_info, GIScopeTyp
     info = g_base_info_ref (callback_info);
     #ifdef GI_AVAILABLE_IN_1_72
     closure = g_callable_info_create_closure(info, &cif, Callback::Call, this);
+    native_address = g_callable_info_get_closure_native_address(info, closure);
     #else
     closure = g_callable_info_prepare_closure(info, &cif, Callback::Call, this);
+    native_address = (gpointer) closure;
     #endif
     scope_type = scope_type_;
 }

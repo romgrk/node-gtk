@@ -388,16 +388,16 @@ Local<Value> FunctionCall (
         }
         else if (param.type == ParameterType::kCALLBACK) {
             Callback *callback;
-            ffi_closure *closure;
+            gpointer callable; /* executable trampoline address */
 
             if (info[in_arg]->IsNullOrUndefined()) {
-                closure  = nullptr;
+                callable  = nullptr;
                 callback = nullptr;
             } else {
                 GICallableInfo *callback_info = g_type_info_get_interface (&type_info);
                 GIScopeType scope_type = g_arg_info_get_scope(&arg_info);
                 callback = new Callback(info[in_arg].As<Function>(), callback_info, scope_type);
-                closure = callback->closure;
+                callable = callback->native_address;
                 g_base_info_unref (callback_info);
             }
 
@@ -414,7 +414,7 @@ Local<Value> FunctionCall (
                 callable_arg_values[closure_i].v_pointer = callback;
             }
 
-            callable_arg_values[i].v_pointer = closure;
+            callable_arg_values[i].v_pointer = callable;
             func->call_parameters[i].data.v_pointer = callback;
         }
 
