@@ -4,6 +4,10 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v1.0.1
+
+- Fix segfault with callbacks (@chfritz)
+
 ## v0.5.0
 
 - Added support for GError
