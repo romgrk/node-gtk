@@ -11,7 +11,7 @@ const Soup = gi.require('Soup')
 const Cairo = gi.require('cairo', '1.0')
 const { describe, expect } = require('./__common__.js')
 
-Gst.init()
+Gst.init([])
 Gtk.init()
 gi.startLoop()
 

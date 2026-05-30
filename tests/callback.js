@@ -4,7 +4,7 @@ const Gio = gi.require('Gio', '2.0')
 const Gst = gi.require('Gst', '1.0')
 const common = require('./__common__.js')
 
-Gst.init()
+Gst.init([])
 gi.startLoop()
 
 common.describe('callback value is set', () => {
