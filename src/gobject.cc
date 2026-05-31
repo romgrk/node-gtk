@@ -160,8 +160,8 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
     // better.
     //gtype = (GType) External::Cast(*info.Data())->Value();
     // Nan provides Nan::SetPrototype but no GetPrototype wrapper, so guard on V8 version.
-#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 || \
-    (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION >= 4))
+    // Mirror Nan's own SetPrototype guard (V8_MAJOR_VERSION >= 14).
+#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION >= 14)
     gtype = GET_OBJECT_GTYPE (Nan::To<Object>(self->GetPrototypeV2()).ToLocalChecked());
 #else
     gtype = GET_OBJECT_GTYPE (Nan::To<Object>(self->GetPrototype()).ToLocalChecked());
