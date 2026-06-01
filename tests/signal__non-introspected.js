@@ -8,7 +8,7 @@ const Gst = gi.require('Gst', '1.0')
 const { describe, it, mustThrow, assert, expect } = require('./__common__.js')
 
 gi.startLoop()
-Gst.init()
+Gst.init([])
 
 describe('signal handlers are available for non-introspected objects', async () => {
   return new Promise((resolve, reject) => {
