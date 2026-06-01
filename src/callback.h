@@ -16,7 +16,6 @@ namespace GNodeJS {
 struct Callback {
     ffi_cif cif;
     ffi_closure *closure;
-    gpointer native_address; /* callable trampoline; may differ from closure on libffi 3.4+ */
     Nan::Persistent<Function> persistent;
     GICallableInfo *info;
     GIScopeType scope_type;
