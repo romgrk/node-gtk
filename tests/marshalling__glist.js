@@ -5,12 +5,11 @@
  * modes (none/full/container) using the gobject-introspection GIMarshallingTests
  * library. Both list types marshal to/from plain JS arrays.
  *
- * KNOWN ISSUES (skip()'d below, kept for when they're fixed):
+ * KNOWN ISSUE (skip()'d below, kept for when it's fixed):
  *   - transfer-container IN corrupts the heap (#399)
- *   - *OutUninitialized out-params segfault (#400)
  */
 
-const { describe, expect, skip } = require('./__common__.js')
+const { describe, expect, assert, skip } = require('./__common__.js')
 const { requireGIMarshallingTests } = require('./__gi-fixtures__.js')
 
 const m = requireGIMarshallingTests()
@@ -69,6 +68,17 @@ describe('gslist utf8 inout (none/full/container -> [-2,-1,0,1])', () => {
   expect(m.gslistUtf8ContainerInout(STRS), INOUT_RESULT)
 })
 
+// These return FALSE and leave the (out) list pointer untouched (NULL); the
+// binding must not dereference it, and marshals it to an empty array.
+describe('glist/gslist utf8 none out uninitialized (returns [false, []])', () => {
+  const [glistOk, glistVal] = m.glistUtf8NoneOutUninitialized()
+  assert(glistOk === false, `glistUtf8NoneOutUninitialized return should be false, got ${glistOk}`)
+  expect(glistVal, [])
+  const [gslistOk, gslistVal] = m.gslistUtf8NoneOutUninitialized()
+  assert(gslistOk === false, `gslistUtf8NoneOutUninitialized return should be false, got ${gslistOk}`)
+  expect(gslistVal, [])
+})
+
 // Everything below crashes — see the file header.
 skip()
 
@@ -76,10 +86,4 @@ skip()
 describe('glist/gslist utf8 container in (#399)', () => {
   m.glistUtf8ContainerIn(STRS)
   m.gslistUtf8ContainerIn(STRS)
-})
-
-// #400 — uninitialized pointer out-param is marshalled anyway, segfault.
-describe('glist/gslist utf8 none out uninitialized (#400)', () => {
-  m.glistUtf8NoneOutUninitialized()
-  m.gslistUtf8NoneOutUninitialized()
 })

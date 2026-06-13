@@ -212,6 +212,18 @@ Local<Value> GHashToV8 (GITypeInfo *type_info, GHashTable *hash_table) {
 
     Local<Object> object = New<Object>();
 
+    // A NULL table marshals to an empty object. This notably happens for
+    // *_out_uninitialized functions, which return FALSE and leave their (out)
+    // pointer untouched (i.e. NULL, as the slot is zero-initialized). The
+    // GList/GSList/C-array converters already tolerate NULL; without this
+    // guard g_hash_table_iter_init asserts and the iterator is left
+    // uninitialized (#400).
+    if (hash_table == NULL) {
+        g_base_info_unref(key_info);
+        g_base_info_unref(value_info);
+        return object;
+    }
+
     GHashTableIter iter;
     GIArgument key_arg;
     GIArgument value_arg;
