@@ -2,9 +2,9 @@
  * conversion__gvalue_uint64.js
  *
  * Regression test: assigning a 64-bit value to a GObject property whose
- * type is guint64 (or gulong on LP64) must not truncate it to 32 bits.
- * This exercises V8ToGValue, which used Nan::To<uint32_t> for the
- * UINT64/ULONG branches.
+ * type is guint64 (or gulong on LP64) must not truncate it. 64-bit values are
+ * read back as BigInt (#323, #149), so they keep full precision past
+ * Number.MAX_SAFE_INTEGER. This exercises V8ToGValue / GValueToV8.
  */
 
 const gi = require('../lib/')
@@ -22,11 +22,14 @@ try {
 describe('GValue 64-bit property assignment', () => {
   const queue = Gst.ElementFactory.make('queue', 'queue0')
 
-  // max-size-time is a writable guint64 property (nanoseconds).
-  // Use a value above 2^32 but still an exact JS integer (< 2^53).
-  const value = 5000000000 // 2^32 == 4294967296
+  // max-size-time is a writable guint64 property (nanoseconds). A Number above
+  // 2^32 is accepted on the way in and read back as a BigInt.
+  queue.maxSizeTime = 5000000000 // 2^32 == 4294967296
+  expect(queue.maxSizeTime, 5000000000n)
 
-  queue.maxSizeTime = value
-
-  expect(queue.maxSizeTime, value)
+  // A value above Number.MAX_SAFE_INTEGER round-trips exactly via BigInt;
+  // this would have lost precision when marshalled through a Number.
+  const huge = 9007199254740993n // 2^53 + 1
+  queue.maxSizeTime = huge
+  expect(queue.maxSizeTime, huge)
 })

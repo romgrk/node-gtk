@@ -35,6 +35,21 @@ static void HashPointerToGIArgument (GIArgument *arg, GITypeInfo *type_info);
 
 static bool IsUint8Array (GITypeInfo *type_info);
 
+/* Accept both Number and BigInt for 64-bit / platform-dependent integer
+ * holders. Reading those types yields a BigInt (#323, #149), so a value
+ * round-tripped through JS arrives back here as a BigInt. */
+static gint64 V8ToInt64 (Local<Value> value) {
+    if (value->IsBigInt())
+        return value.As<v8::BigInt>()->Int64Value();
+    return Nan::To<int64_t> (value).ToChecked();
+}
+
+static guint64 V8ToUint64 (Local<Value> value) {
+    if (value->IsBigInt())
+        return value.As<v8::BigInt>()->Uint64Value();
+    return (guint64) Nan::To<int64_t> (value).ToChecked();
+}
+
 
 Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length, ResourceOwnership ownership) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
@@ -61,12 +76,13 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     case GI_TYPE_TAG_DOUBLE:
         return New<Number> (arg->v_double);
 
-    /* For 64-bit integer types, use a float. When JS and V8 adopt
-     * bigger sized integer types, start using those instead. */
+    /* 64-bit integers are returned as BigInt so values above
+     * Number.MAX_SAFE_INTEGER keep full precision (#323, #149). The IN side
+     * accepts both Number and BigInt. */
     case GI_TYPE_TAG_INT64:
-        return New<Number> (arg->v_int64);
+        return v8::BigInt::New (Isolate::GetCurrent(), arg->v_int64);
     case GI_TYPE_TAG_UINT64:
-        return New<Number> (arg->v_uint64);
+        return v8::BigInt::NewFromUnsigned (Isolate::GetCurrent(), arg->v_uint64);
 
     case GI_TYPE_TAG_GTYPE: /* c++: gsize */
         return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), arg->v_size);
@@ -1655,19 +1671,19 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_LONG (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        return value->IsNumber();
+        return value->IsNumber() || value->IsBigInt();
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return value->IsNumber();
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
@@ -1722,19 +1738,19 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership)
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         g_value_set_uint (gvalue, Nan::To<uint32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_LONG (gvalue)) {
-        g_value_set_long (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_long (gvalue, V8ToInt64 (value));
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
-        g_value_set_ulong (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_ulong (gvalue, V8ToUint64 (value));
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
-        g_value_set_int64 (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_int64 (gvalue, V8ToInt64 (value));
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        g_value_set_uint64 (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_uint64 (gvalue, V8ToUint64 (value));
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         g_value_set_float (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         g_value_set_double (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        g_value_set_gtype (gvalue, Nan::To<int64_t> (value).ToChecked());
+        g_value_set_gtype (gvalue, V8ToUint64 (value));
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         g_value_set_enum (gvalue, Nan::To<int32_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {
@@ -1800,19 +1816,23 @@ Local<Value> GValueToV8(const GValue *gvalue, ResourceOwnership ownership) {
     } else if (G_VALUE_HOLDS_UINT (gvalue)) {
         return New<v8::Uint32>(g_value_get_uint (gvalue));
     } else if (G_VALUE_HOLDS_LONG (gvalue)) {
-        return New<Number>(g_value_get_long (gvalue));
+        /* glong/gulong are platform-dependent (64-bit on LP64), so marshal as
+         * BigInt for full precision and consistent behavior (#323, #149). */
+        return v8::BigInt::New(Isolate::GetCurrent(), g_value_get_long (gvalue));
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
-        return New<Number>(g_value_get_ulong (gvalue));
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), g_value_get_ulong (gvalue));
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
-        return New<Number>(g_value_get_int64 (gvalue));
+        return v8::BigInt::New(Isolate::GetCurrent(), g_value_get_int64 (gvalue));
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        return New<Number>(g_value_get_uint64 (gvalue));
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), g_value_get_uint64 (gvalue));
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         return New<Number>(g_value_get_float (gvalue));
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
         return New<Number>(g_value_get_double (gvalue));
     } else if (G_VALUE_HOLDS_GTYPE (gvalue)) {
-        return New<Number>(g_value_get_gtype (gvalue));
+        // A GType is a gsize; marshal as BigInt to match the GIArgument path
+        // and gi.getGType() (#323, #149).
+        return v8::BigInt::NewFromUnsigned(Isolate::GetCurrent(), g_value_get_gtype (gvalue));
     } else if (G_VALUE_HOLDS_ENUM (gvalue)) {
         return New<Integer>(g_value_get_enum (gvalue));
     } else if (G_VALUE_HOLDS_FLAGS (gvalue)) {

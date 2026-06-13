@@ -8,11 +8,9 @@
  * value, so we feed them the library's own `*ReturnMax`/`*ReturnMin` values:
  * this keeps the test self-consistent and avoids hardcoding bound literals.
  *
- * 64-bit widths (long, int64, ssize, ...) round-trip through a JS double and
- * lose precision past Number.MAX_SAFE_INTEGER, so their `in`/`inout` variants
- * are skipped here (feeding back a lossy value would abort the process). Their
- * `return`/`out` values are still checked, including the documented precision
- * limitation.
+ * 64-bit widths (long, int64, ssize, ...) are marshalled as BigInt (#323), so
+ * they keep full precision and round-trip exactly in every direction. Narrower
+ * widths are plain Numbers.
  */
 
 const { describe, it, expect, assert } = require('./__common__.js')
@@ -33,7 +31,8 @@ WIDTHS.forEach(w => {
 
   describe(`${w} return/out`, () => {
     const max = returnMax()
-    assert(typeof max === 'number', `${w}ReturnMax should be a number`)
+    assert(typeof max === 'number' || typeof max === 'bigint',
+      `${w}ReturnMax should be a number or bigint`)
 
     if (m[w + 'OutMax'])
       expect(m[w + 'OutMax'](), max)
@@ -42,11 +41,13 @@ WIDTHS.forEach(w => {
   })
 
   const max = returnMax()
-  const safe = Number.isSafeInteger(max)
+  // 64-bit widths come back as BigInt and round-trip exactly; narrower widths
+  // are Numbers within the safe-integer range.
+  const exact = typeof max === 'bigint' || Number.isSafeInteger(max)
 
-  it(`${w} in/inout (safe-integer only)`, () => {
-    if (!safe)
-      return // 64-bit: JS double can't represent the bound exactly
+  it(`${w} in/inout`, () => {
+    if (!exact)
+      return
 
     if (m[w + 'InMax']) m[w + 'InMax'](max)
     if (typeof returnMin === 'function' && m[w + 'InMin']) m[w + 'InMin'](returnMin())
@@ -63,4 +64,19 @@ describe('gint return/out/inout (explicit bounds)', () => {
   expect(m.intReturnMin(), -2147483648)
   expect(m.intOutMax(), 2147483647)
   expect(m.intInoutMaxMin(2147483647), -2147483648)
+})
+
+describe('platform-dependent widths are BigInt with full precision', () => {
+  // glong/gsize/gssize are 64-bit on LP64 platforms; gobject-introspection
+  // resolves them to a fixed-width tag at scan time, so on a 64-bit build they
+  // arrive as BigInt and represent G_MAXINT64 exactly (#323, #149). On a 32-bit
+  // build they would be plain Numbers, so only assert when a BigInt comes back.
+  for (const w of ['long', 'ssize']) {
+    const returnMax = m[w + 'ReturnMax']
+    if (typeof returnMax !== 'function')
+      continue
+    const max = returnMax()
+    if (typeof max === 'bigint')
+      expect(max, 2n ** 63n - 1n)
+  }
 })
