@@ -5,12 +5,11 @@
  * modes using the gobject-introspection GIMarshallingTests library. A
  * GHashTable marshals to/from a plain JS object (keys are stringified).
  *
- * KNOWN ISSUES (skip()'d below, kept for when they're fixed):
+ * KNOWN ISSUE (skip()'d below, kept for when it's fixed):
  *   - transfer-container IN corrupts the heap (#399)
- *   - *OutUninitialized out-params segfault (#400)
  */
 
-const { describe, expect, skip } = require('./__common__.js')
+const { describe, expect, assert, skip } = require('./__common__.js')
 const { requireGIMarshallingTests } = require('./__gi-fixtures__.js')
 
 const m = requireGIMarshallingTests()
@@ -42,15 +41,18 @@ describe('ghashtable int none in', () => {
   m.ghashtableIntNoneIn(INT_HASH)
 })
 
+// Returns FALSE and leaves the (out) table pointer untouched (NULL); the
+// binding must not dereference it, and marshals it to an empty object.
+describe('ghashtable utf8 container out uninitialized (returns [false, {}])', () => {
+  const [ok, value] = m.ghashtableUtf8ContainerOutUninitialized()
+  assert(ok === false, `ghashtableUtf8ContainerOutUninitialized return should be false, got ${ok}`)
+  expect(value, {})
+})
+
 // Everything below crashes — see the file header.
 skip()
 
 // #399 — transfer-container IN corrupts the heap.
 describe('ghashtable utf8 container in (#399)', () => {
   m.ghashtableUtf8ContainerIn(UTF8_HASH)
-})
-
-// #400 — uninitialized pointer out-param is marshalled anyway, segfault.
-describe('ghashtable utf8 container out uninitialized (#400)', () => {
-  m.ghashtableUtf8ContainerOutUninitialized()
 })
