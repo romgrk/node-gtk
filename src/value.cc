@@ -607,10 +607,15 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
         case GI_TYPE_TAG_UINT16:
         case GI_TYPE_TAG_INT32:
         case GI_TYPE_TAG_UINT32:
-            hash_func  = g_int_hash;
-            equal_func = g_int_equal;
-            break;
         case GI_TYPE_TAG_GTYPE:
+            // The key is stored directly in the pointer via
+            // GINT_TO_POINTER/GSIZE_TO_POINTER (see GIArgumentToHashPointer),
+            // matching the GObject-introspection convention. g_int_hash and
+            // g_int64_hash dereference their argument as a pointer-to-integer,
+            // so they crash on these packed values — use g_direct_* instead.
+            hash_func  = g_direct_hash;
+            equal_func = g_direct_equal;
+            break;
         case GI_TYPE_TAG_INT64:
         case GI_TYPE_TAG_UINT64:
             hash_func  = g_int64_hash;
@@ -665,7 +670,9 @@ gpointer V8ToGHash (GITypeInfo *type_info, Local<Value> value) {
             goto item_error;
         }
 
-        g_hash_table_insert (hash_table, key_arg.v_pointer, GIArgumentToHashPointer (&value_arg, value_type_info));
+        g_hash_table_insert (hash_table,
+                GIArgumentToHashPointer (&key_arg, key_type_info),
+                GIArgumentToHashPointer (&value_arg, value_type_info));
 
         continue;
 

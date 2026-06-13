@@ -6,7 +6,6 @@
  * GHashTable marshals to/from a plain JS object (keys are stringified).
  *
  * KNOWN ISSUES (skip()'d below, kept for when they're fixed):
- *   - integer-keyed/valued GHashTable IN segfaults (#402)
  *   - transfer-container IN corrupts the heap (#399)
  *   - *OutUninitialized out-params segfault (#400)
  */
@@ -38,13 +37,13 @@ describe('ghashtable utf8 inout (none)', () => {
   expect(m.ghashtableUtf8NoneInout(UTF8_HASH), UTF8_INOUT_RESULT)
 })
 
-// Everything below crashes — see the file header.
-skip()
-
-// #402 — integer GHashTable IN segfaults (value-vs-pointer packing).
-describe('ghashtable int none in (#402)', () => {
+// Integer-keyed/valued GHashTable IN — keys/values packed via GINT_TO_POINTER.
+describe('ghashtable int none in', () => {
   m.ghashtableIntNoneIn(INT_HASH)
 })
+
+// Everything below crashes — see the file header.
+skip()
 
 // #399 — transfer-container IN corrupts the heap.
 describe('ghashtable utf8 container in (#399)', () => {
