@@ -1854,7 +1854,13 @@ Local<Value> GValueToV8(const GValue *gvalue, ResourceOwnership ownership) {
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
         ERROR("Unsuported type: variant");
     } else {
-        ERROR("%s", G_VALUE_TYPE_NAME(gvalue));
+        // Don't abort the whole process on a GValue type we can't convert
+        // (e.g. GStreamer's GstValueArray / GstValueList, #389). Warn and
+        // return null so the caller stays alive.
+        g_warning("GValueToV8: unhandled GValue type '%s'; returning null. "
+                  "Please report this at https://github.com/romgrk/node-gtk/issues",
+                  G_VALUE_TYPE_NAME (gvalue));
+        return Nan::Null();
     }
 }
 
