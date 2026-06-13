@@ -6,13 +6,9 @@
  *
  * node-gtk passes only the signal's own parameters to a handler (it does NOT
  * prepend the emitting instance), so a VOID__VOID signal handler takes no args.
- *
- * KNOWN ISSUE (skip()'d below): inout signal parameters are mismarshalled
- * (#405) — the value passed to the handler is garbage and the handler's return
- * value is not written back into the inout parameter.
  */
 
-const { describe, expect, assert, skip } = require('./__common__.js')
+const { describe, expect, assert } = require('./__common__.js')
 const { requireRegress } = require('./__gi-fixtures__.js')
 
 const R = requireRegress()
@@ -43,13 +39,12 @@ describe('signal with int64 return value ("sig-with-int64-prop")', () => {
   assert(received !== undefined, 'handler should receive the int64 argument')
 })
 
-// Everything below crashes — see the file header.
-skip()
-
-// #405 — inout signal parameter is mismarshalled (garbage in, return not
-// written back), so the library's `inout == 43` assertion aborts.
-describe('signal with inout int ("sig-with-inout-int") (#405)', () => {
+// The inout gint* is dereferenced for the handler (which sees 42), and the
+// handler's return value is written back into it (the library asserts 43).
+describe('signal with inout int ("sig-with-inout-int")', () => {
   const o = new R.TestObj()
-  o.connect('sig-with-inout-int', (v) => v + 1)
-  o.emitSigWithInoutInt()
+  let received
+  o.connect('sig-with-inout-int', (v) => { received = v; return v + 1 })
+  o.emitSigWithInoutInt() // g_asserts the inout param became 43
+  expect(received, 42)
 })
