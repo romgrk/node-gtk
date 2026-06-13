@@ -71,21 +71,21 @@ process.exit(app.run([]));
 ```
 
 <p align="center">
-  <img src="./img/hello-world.png" alt="Hello Adwaita" style="width: 220px; height: auto;"/>
+  <img src="./img/hello-world.png" style="width: 290px; height: auto;"/>
 </p>
 
 You can also easily create custom applications:
 
-[A web browser example using WebKit2GTK](./examples/browser.js)
+[A web browser (using WebKit2GTK)](./examples/browser.js)
 
 <p align="center">
-  <img src="./img/browser.png" alt="Hello Gtk" style="max-width: 500px; height: auto;"/>
+  <img src="./img/browser.png" style="max-width: 500px; height: auto;"/>
 </p>
 
 [A system monitor](./examples/system-monitor.js)
 
 <p align="center">
-  <img src="./img/system-monitor.png" alt="Hello Gtk" style="max-width: 500px; height: auto;"/>
+  <img src="./img/system-monitor.png" style="max-width: 400px; height: auto;"/>
 </p>
 
 #### Other projects
