@@ -43,6 +43,17 @@ size_t Boxed::GetSize (GIBaseInfo *boxed_info) {
     }
 }
 
+gpointer AllocateBoxed (GType gtype, size_t size) {
+    // Registered boxed types are freed via g_boxed_free, which by GLib
+    // convention uses g_slice_free; match that with g_slice so freeing doesn't
+    // corrupt the slice allocator (#290, #213). Non-registered structs are
+    // freed with g_free, so allocate them with g_malloc0.
+    if (G_TYPE_IS_BOXED(gtype))
+        return g_slice_alloc0(size);
+    else
+        return g_malloc0(size);
+}
+
 static bool IsNoArgsConstructor (GIFunctionInfo *info) {
     auto flags = g_function_info_get_flags (info);
     return ((flags & GI_FUNCTION_IS_CONSTRUCTOR) != 0
@@ -225,7 +236,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             boxed = return_value.v_pointer;
 
         } else if ((size = Boxed::GetSize(gi_info)) != 0) {
-            boxed = g_malloc0(size);
+            boxed = AllocateBoxed(gtype, size);
 
         } else {
             Nan::ThrowError("Boxed allocation failed: no constructor found");

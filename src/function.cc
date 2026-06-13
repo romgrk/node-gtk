@@ -55,7 +55,9 @@ static void* AllocateArgument (GIBaseInfo *arg_info) {
 
     GIBaseInfo* base_info = g_type_info_get_interface (&arg_type);
     size_t size = Boxed::GetSize (base_info);
-    void* pointer = g_malloc0(size);
+    GType gtype = g_registered_type_info_get_g_type (base_info);
+    // Match g_boxed_free's allocator for registered boxed types (#290, #213).
+    void* pointer = AllocateBoxed(gtype, size);
 
     g_base_info_unref(base_info);
     return pointer;

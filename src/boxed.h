@@ -29,6 +29,13 @@ public:
     static size_t GetSize (GIBaseInfo *boxed_info) ;
 };
 
+// Allocate zero-filled backing memory for a boxed/struct instance. Registered
+// boxed types are freed with g_boxed_free (which, by GLib convention, uses
+// g_slice_free), so they must be allocated with g_slice — allocating them with
+// g_malloc0 and freeing with g_slice_free corrupts the slice allocator on
+// GLib builds where GSlice is a real slab allocator (#290, #213).
+gpointer                AllocateBoxed    (GType gtype, size_t size);
+
 Local<Function>         MakeBoxedClass   (GIBaseInfo *info);
 Local<FunctionTemplate> GetBoxedTemplate (GIBaseInfo *info, GType gtype);
 Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data, ResourceOwnership ownership = kNone);
