@@ -287,6 +287,14 @@ static bool isZero(GIArgument &value, GITypeInfo *type_info) {
     }
 }
 
+static bool IsZeroMemory (const void *ptr, gsize size) {
+    const guint8 *bytes = (const guint8 *) ptr;
+    for (gsize i = 0; i < size; i++)
+        if (bytes[i] != 0)
+            return false;
+    return true;
+}
+
 Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
 
     auto array = New<Array>();
@@ -298,6 +306,26 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
     auto item_type_info = g_type_info_get_param_type (type_info, 0);
     auto item_size = GetTypeSize (item_type_info);
     // auto item_transfer = transfer == GI_TRANSFER_CONTAINER ? GI_TRANSFER_NOTHING : transfer;
+
+    // Composite values (a struct/union/boxed passed by value, e.g. an array of
+    // GValue) are stored inline and may be larger than a GIArgument, so they
+    // must not be memcpy'd into one — that overflows the stack (#398). Detect
+    // them up front so the fill loop can read them in place instead.
+    bool element_is_value_struct = false;
+    bool element_is_gvalue = false;
+    if (g_type_info_get_tag (item_type_info) == GI_TYPE_TAG_INTERFACE
+            && !g_type_info_is_pointer (item_type_info)) {
+        GIBaseInfo *element_interface = g_type_info_get_interface (item_type_info);
+        GIInfoType  element_interface_type = g_base_info_get_type (element_interface);
+        if (element_interface_type == GI_INFO_TYPE_STRUCT
+                || element_interface_type == GI_INFO_TYPE_BOXED
+                || element_interface_type == GI_INFO_TYPE_UNION) {
+            element_is_value_struct = true;
+            element_is_gvalue =
+                g_registered_type_info_get_g_type (element_interface) == G_TYPE_VALUE;
+        }
+        g_base_info_unref (element_interface);
+    }
 
     switch (array_type) {
         case GI_ARRAY_TYPE_C:
@@ -349,13 +377,27 @@ Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
         if (length != -1 && i >= length)
             break;
 
-        void** pointer = (void**)((size_t)data + i * item_size);
-        memcpy(&value, pointer, item_size);
+        void* element_ptr = (void*)((size_t)data + i * item_size);
 
-        if (length == -1 && isZero(value, item_type_info))
-            break;
+        if (element_is_value_struct) {
+            // A zero-terminated array of values ends on an all-zero element.
+            if (length == -1 && IsZeroMemory(element_ptr, item_size))
+                break;
 
-        Nan::Set(array, i, GIArgumentToV8(item_type_info, &value));
+            if (element_is_gvalue) {
+                Nan::Set(array, i, GValueToV8((GValue*) element_ptr));
+            } else {
+                value.v_pointer = element_ptr;
+                Nan::Set(array, i, GIArgumentToV8(item_type_info, &value));
+            }
+        } else {
+            memcpy(&value, element_ptr, item_size);
+
+            if (length == -1 && isZero(value, item_type_info))
+                break;
+
+            Nan::Set(array, i, GIArgumentToV8(item_type_info, &value));
+        }
     }
 
 

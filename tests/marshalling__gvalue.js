@@ -9,17 +9,13 @@
  * GObject.Value. A GValue coming back OUT is a GObject.Value whose contents are
  * read with the typed getters (getInt, getInt64, getString, ...).
  *
- * KNOWN ISSUE — returnGvalueFlatArray() and returnGvalueZeroTerminatedArray()
- * (a GValue* treated as a C array of GValue) segfault: node-gtk mismarshals
- * the array-of-GValue return. A segfault is an uncatchable process abort, so
- * those two cases are skip()'d (everything above the skip still runs and stays
- * enforced). Tracked in https://github.com/romgrk/node-gtk/issues/398; remove
- * the skip() once fixed.
+ * Also covers a GValue* returned as a (flat / zero-terminated) C array of
+ * GValue, which is unboxed element-by-element to plain JS values.
  */
 
 const gi = require('../lib/')
 const GObject = gi.require('GObject', '2.0')
-const { describe, expect, assert, skip } = require('./__common__.js')
+const { describe, expect, assert } = require('./__common__.js')
 const { requireGIMarshallingTests } = require('./__gi-fixtures__.js')
 
 const m = requireGIMarshallingTests()
@@ -79,9 +75,6 @@ describe('gvalue noncanonical NaN (float/double)', () => {
   assert(Number.isNaN(m.gvalueNoncanonicalNanDouble().getDouble()),
     'gvalueNoncanonicalNanDouble should hold NaN')
 })
-
-// Everything below segfaults (issue #398) — see the file header.
-skip()
 
 describe('gvalue flat array return ([42, "42", true])', () => {
   expect(m.returnGvalueFlatArray(), [42, '42', true])
