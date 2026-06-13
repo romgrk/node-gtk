@@ -42,4 +42,11 @@ if [[ $(uname -s) == 'Linux' ]]; then
         gir1.2-gst-plugins-base-1.0 \
         gstreamer1.0-plugins-bad \
         gir1.2-gst-plugins-bad-1.0
+
+    # Best-effort: prebuilt GObject-introspection test libraries
+    # (Regress, GIMarshallingTests) consumed by the marshalling test suite.
+    # If unavailable, scripts/build-test-fixtures.js falls back to compiling
+    # them from the gobject-introspection sources, and the tests skip if even
+    # that is not possible — so never fail the build over this.
+    sudo apt install -y gobject-introspection-tests || true
 fi;

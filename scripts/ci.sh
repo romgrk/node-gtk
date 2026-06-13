@@ -42,6 +42,10 @@ function npm_test() {
 
     if [[ $(uname -s) == 'Darwin' ]]; then
         export GST_PLUGIN_SYSTEM_PATH=$(brew --prefix gstreamer)/lib/gstreamer-1.0;
+        # This branch calls mocha directly (not `npm test`), so the pretest
+        # fixture build does not run automatically; do it here. Best-effort:
+        # marshalling tests skip if fixtures cannot be produced on macOS.
+        npm run build:test-fixtures || true;
         npx mocha                                 \
                   --skip=callback                 \
                   --skip=union__fields            \

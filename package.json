@@ -5,6 +5,8 @@
   "main": "lib/index.js",
   "scripts": {
     "install": "npx node-pre-gyp install --fallback-to-build",
+    "build:test-fixtures": "node scripts/build-test-fixtures.js",
+    "pretest": "node scripts/build-test-fixtures.js",
     "test": "mocha tests/__run__.js",
     "build": "npx node-pre-gyp build",
     "build:full": "npx node-pre-gyp rebuild",

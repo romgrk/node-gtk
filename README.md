@@ -234,6 +234,31 @@ If you'll see a little window saying hello that's it: it works!
 Please note in macOS the window doesn't automatically open above other windows.
 Try <kbd>Cmd</kbd> + <kbd>Tab</kbd> if you don't see it.
 
+#### Unit tests
+
+Run the test suite with:
+
+```sh
+npm test
+```
+
+The suite includes `marshalling__*.js` tests that exercise node-gtk's type
+conversions (in/out/inout/return for every GObject type) against the
+GObject-introspection test libraries — **GIMarshallingTests** and **Regress** —
+which ship with `gobject-introspection` itself.
+
+Those libraries are provided by `scripts/build-test-fixtures.js`, which runs
+automatically before `npm test`. It first reuses prebuilt typelibs if the system
+has them (e.g. the `gjs`/`gobject-introspection-tests` package), otherwise it
+compiles them from the `gobject-introspection` sources via `g-ir-scanner`. The
+generated fixtures live in `tests/gi-fixtures/` (git-ignored). If neither path is
+available, the marshalling tests skip rather than fail. To (re)build manually:
+
+```sh
+npm run build:test-fixtures          # reuse-or-build
+NO_PREBUILT=1 node scripts/build-test-fixtures.js --force --verbose   # force a fresh source build
+```
+
 #### Browser demo
 
 If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://webkitgtk.org/) libary.
