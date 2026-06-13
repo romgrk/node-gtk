@@ -1455,11 +1455,11 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership)
     } else if (G_VALUE_HOLDS_LONG (gvalue)) {
         g_value_set_long (gvalue, Nan::To<int64_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_ULONG (gvalue)) {
-        g_value_set_ulong (gvalue, Nan::To<uint32_t> (value).ToChecked());
+        g_value_set_ulong (gvalue, Nan::To<int64_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_INT64 (gvalue)) {
         g_value_set_int64 (gvalue, Nan::To<int64_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_UINT64 (gvalue)) {
-        g_value_set_uint64 (gvalue, Nan::To<uint32_t> (value).ToChecked());
+        g_value_set_uint64 (gvalue, Nan::To<int64_t> (value).ToChecked());
     } else if (G_VALUE_HOLDS_FLOAT (gvalue)) {
         g_value_set_float (gvalue, Nan::To<double> (value).ToChecked());
     } else if (G_VALUE_HOLDS_DOUBLE (gvalue)) {
