@@ -208,14 +208,14 @@ bool FunctionInfo::Init() {
                     if (closure_i >= 0 && closure_i < n_callable_args)
                         call_parameters[closure_i].type = ParameterType::kSKIP;
 
-                    if (destroy_i < i) {
+                    if (destroy_i >= 0 && destroy_i < i) {
                         if (IsDirectionIn(call_parameters[destroy_i].direction))
                             n_in_args--;
                         if (IsDirectionOut(call_parameters[destroy_i].direction))
                             n_out_args--;
                     }
 
-                    if (closure_i < i) {
+                    if (closure_i >= 0 && closure_i < i) {
                         if (IsDirectionIn(call_parameters[closure_i].direction))
                             n_in_args--;
                         if (IsDirectionOut(call_parameters[closure_i].direction))
