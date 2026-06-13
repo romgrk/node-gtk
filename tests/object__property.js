@@ -45,7 +45,7 @@ win.on('show', () => {
     // console.log('object:', win.parent)
 
     // console.log('ghash:', settings.colorHash = new GLib.HashTable(() => 0, () => false))
-    // console.log('array:', scaleBtn.icons = ['arrow1-down', 'diamond-outline-thick'])
+    console.log('strv:', scaleBtn.icons = ['arrow1-down', 'diamond-outline-thick'])
   })
 
   describe('getters', () => {
@@ -62,7 +62,7 @@ win.on('show', () => {
     console.log('object:',         isntUndefined(win.parent))
 
     console.log('ghash:',          isntUndefined(settings.colorHash))
-    // console.log('array:', isntUndefined(scaleBtn.icons))
+    console.log('strv:',           expect(scaleBtn.icons, ['arrow1-down', 'diamond-outline-thick']))
   })
 
   win.close()
