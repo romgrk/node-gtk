@@ -1410,6 +1410,9 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
         return value->IsString();
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue));
+    } else if (G_VALUE_HOLDS (gvalue, G_TYPE_STRV)) {
+        // GStrv is a boxed type, so this must come before G_VALUE_HOLDS_BOXED.
+        return value->IsArray();
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         return ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue));
     } else if (G_VALUE_HOLDS_PARAM (gvalue)) {
@@ -1482,6 +1485,16 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership)
             return false;
         }
         g_value_set_object (gvalue, GObjectFromWrapper (value));
+    } else if (G_VALUE_HOLDS (gvalue, G_TYPE_STRV)) {
+        // GStrv is a boxed type, so this must come before G_VALUE_HOLDS_BOXED.
+        Local<Array> array = Local<Array>::Cast(TO_OBJECT (value));
+        int length = array->Length();
+        char **strv = g_new0 (char *, length + 1);
+        for (int i = 0; i < length; i++) {
+            Nan::Utf8String element (Nan::Get(array, i).ToLocalChecked());
+            strv[i] = g_strdup (*element);
+        }
+        g_value_take_boxed (gvalue, strv);
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         if (!ValueIsInstanceOfGType(value, G_VALUE_TYPE (gvalue))) {
             Throw::CannotConvertGType("boxed", G_VALUE_TYPE (gvalue));
@@ -1548,6 +1561,15 @@ Local<Value> GValueToV8(const GValue *gvalue, ResourceOwnership ownership) {
             return Nan::EmptyString();
     } else if (G_VALUE_HOLDS_OBJECT (gvalue)) {
         return WrapperFromGObject (G_OBJECT (g_value_get_object (gvalue)));
+    } else if (G_VALUE_HOLDS (gvalue, G_TYPE_STRV)) {
+        // GStrv is a boxed type, so this must come before G_VALUE_HOLDS_BOXED.
+        char **strv = (char **) g_value_get_boxed (gvalue);
+        Local<Array> array = Nan::New<Array>();
+        if (strv != NULL) {
+            for (guint i = 0; strv[i] != NULL; i++)
+                Nan::Set(array, i, New<String>(strv[i]).ToLocalChecked());
+        }
+        return array;
     } else if (G_VALUE_HOLDS_BOXED (gvalue)) {
         GType gtype = G_VALUE_TYPE (gvalue);
         GIBaseInfo *info = g_irepository_find_by_gtype(NULL, gtype);
