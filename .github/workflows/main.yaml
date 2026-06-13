@@ -9,7 +9,11 @@ on:
 jobs:
   build-windows:
     name: windows - nodejs ${{ matrix.node }}
-    runs-on: windows-latest
+    # Pinned to windows-2022: windows-latest now ships Visual Studio 18 (2026),
+    # which node-gyp can't identify (reports version "undefined") and fails its
+    # win32 VS-detection gate during configure — even though the real compile
+    # uses MINGW gcc. windows-2022 has VS 2022 (v17), which node-gyp recognizes.
+    runs-on: windows-2022
     strategy:
       matrix:
         node:
@@ -31,22 +35,27 @@ jobs:
           update: true
           install: |
             git
+            make
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-python
             mingw-w64-x86_64-gobject-introspection
             mingw-w64-x86_64-gtk3
             mingw-w64-x86_64-cairo
             mingw-w64-x86_64-gstreamer
             mingw-w64-x86_64-gst-plugins-good
             mingw-w64-x86_64-gst-plugins-bad
-            mingw-w64-x86_64-libsoup
-
-      - name: Install VS 2017
-        shell: cmd
-        run: choco upgrade -y visualstudio2017-workload-vctools
+            mingw-w64-x86_64-libsoup3
 
       - name: Install & Build
+        env:
+          GYP_GENERATORS: make
+          CC: gcc
+          CXX: g++
         run: |
           ./windows/mingw_include_extra.sh
           export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
+          export PATH="/mingw64/bin:/usr/bin:$PATH"
           npm install --build-from-source
 
       - name: Run tests
