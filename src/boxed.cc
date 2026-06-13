@@ -162,7 +162,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         return;
     }
 
-    GIFunctionInfo* constructorInfo = NULL;
+    int n_constructor_args = -1;
 
     void *boxed = NULL;
     unsigned long size = 0;
@@ -200,6 +200,8 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         GIFunctionInfo* constructorInfo = FindBoxedConstructor(gi_info, gtype);
 
         if (constructorInfo != NULL) {
+
+            n_constructor_args = g_callable_info_get_n_args(constructorInfo);
 
             FunctionInfo func(constructorInfo);
             GIArgument return_value;
@@ -250,7 +252,7 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
 
     SET_OBJECT_GTYPE (self, gtype);
 
-    if (constructorInfo == NULL || g_callable_info_get_n_args(constructorInfo) == 0)
+    if (n_constructor_args <= 0)
         InitBoxedFromObject(self, info[0]);
 }
 

@@ -171,6 +171,7 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
             if (jsReturnArray->Length() != n_js_return_values) {
                 Throw::Error("Virtual function must return %u arguments but returned %u",
                         n_js_return_values, jsReturnArray->Length());
+                goto out;
             }
 
             if (hasVoidReturn)
@@ -194,6 +195,7 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
 
                 if (!success) {
                     Throw::InvalidReturnValue (&return_type_info, jsReturnValue);
+                    goto out;
                 }
             }
         }
