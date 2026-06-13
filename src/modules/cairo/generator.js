@@ -133,7 +133,7 @@ function getSource(fn) {
     })() : '' }
     NAN_METHOD(${getJSName(fn.name)}) {
         auto self = info.This();
-        auto ${selfArgument.name} = (${getTypeName(selfArgument.type)}) Nan::GetInternalFieldPointer(self, 0);
+        auto ${selfArgument.name} = (${getTypeName(selfArgument.type)}) self->GetAlignedPointerFromInternalField (0);
 ${inArguments.length > 0 ? `
         // in-arguments
         ${inArguments.map(getInArgumentSource).join('\n        ')}

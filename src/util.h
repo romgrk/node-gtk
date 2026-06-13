@@ -48,7 +48,14 @@ inline void SetProtoAccessor(
         Nan::SetterCallback setter,
         v8::Local<v8::FunctionTemplate> ctor
         ) {
-    Nan::SetAccessor(tpl, name, getter, setter);
+    Nan::SetAccessor(
+            tpl,
+            name,
+            getter,
+            setter,
+            v8::Local<v8::Value>(),
+            v8::DEFAULT,
+            v8::None);
 }
 
 namespace Util

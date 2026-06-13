@@ -39,7 +39,7 @@ static Nan::Persistent<v8::FunctionTemplate> constructorTemplate;
 
 NAN_METHOD(status) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_status_t result = cairo_status (cr);
@@ -51,7 +51,7 @@ NAN_METHOD(status) {
 
 NAN_METHOD(save) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_save (cr);
@@ -59,7 +59,7 @@ NAN_METHOD(save) {
 
 NAN_METHOD(restore) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_restore (cr);
@@ -67,7 +67,7 @@ NAN_METHOD(restore) {
 
 NAN_METHOD(getTarget) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_surface_t * result = cairo_get_target (cr);
@@ -81,7 +81,7 @@ NAN_METHOD(getTarget) {
 
 NAN_METHOD(pushGroup) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_push_group (cr);
@@ -89,7 +89,7 @@ NAN_METHOD(pushGroup) {
 
 NAN_METHOD(pushGroupWithContent) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto content = (cairo_content_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
@@ -100,7 +100,7 @@ NAN_METHOD(pushGroupWithContent) {
 
 NAN_METHOD(popGroup) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_pattern_t * result = cairo_pop_group (cr);
@@ -114,7 +114,7 @@ NAN_METHOD(popGroup) {
 
 NAN_METHOD(popGroupToSource) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_pop_group_to_source (cr);
@@ -122,7 +122,7 @@ NAN_METHOD(popGroupToSource) {
 
 NAN_METHOD(getGroupTarget) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_surface_t * result = cairo_get_group_target (cr);
@@ -136,7 +136,7 @@ NAN_METHOD(getGroupTarget) {
 
 NAN_METHOD(setSourceRgb) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto red = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -149,7 +149,7 @@ NAN_METHOD(setSourceRgb) {
 
 NAN_METHOD(setSourceRgba) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto red = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -163,7 +163,7 @@ NAN_METHOD(setSourceRgba) {
 
 NAN_METHOD(setSource) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto source = Nan::ObjectWrap::Unwrap<Pattern>(info[0].As<Object>())->_data;
@@ -174,7 +174,7 @@ NAN_METHOD(setSource) {
 
 NAN_METHOD(setSourceSurface) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto surface = Nan::ObjectWrap::Unwrap<Surface>(info[0].As<Object>())->_data;
@@ -187,7 +187,7 @@ NAN_METHOD(setSourceSurface) {
 
 NAN_METHOD(getSource) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_pattern_t * result = cairo_get_source (cr);
@@ -201,7 +201,7 @@ NAN_METHOD(getSource) {
 
 NAN_METHOD(setAntialias) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto antialias = (cairo_antialias_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
@@ -212,7 +212,7 @@ NAN_METHOD(setAntialias) {
 
 NAN_METHOD(getAntialias) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_antialias_t result = cairo_get_antialias (cr);
@@ -224,7 +224,7 @@ NAN_METHOD(getAntialias) {
 
 NAN_METHOD(getDashCount) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   int result = cairo_get_dash_count (cr);
@@ -236,7 +236,7 @@ NAN_METHOD(getDashCount) {
 
 NAN_METHOD(getDash) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double dashes = 0.0;
@@ -254,7 +254,7 @@ NAN_METHOD(getDash) {
 
 NAN_METHOD(setFillRule) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto fill_rule = (cairo_fill_rule_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
@@ -265,7 +265,7 @@ NAN_METHOD(setFillRule) {
 
 NAN_METHOD(getFillRule) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_fill_rule_t result = cairo_get_fill_rule (cr);
@@ -277,7 +277,7 @@ NAN_METHOD(getFillRule) {
 
 NAN_METHOD(setLineCap) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto line_cap = (cairo_line_cap_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
@@ -288,7 +288,7 @@ NAN_METHOD(setLineCap) {
 
 NAN_METHOD(getLineCap) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_line_cap_t result = cairo_get_line_cap (cr);
@@ -300,7 +300,7 @@ NAN_METHOD(getLineCap) {
 
 NAN_METHOD(setLineJoin) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto line_join = (cairo_line_join_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
@@ -311,7 +311,7 @@ NAN_METHOD(setLineJoin) {
 
 NAN_METHOD(getLineJoin) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_line_join_t result = cairo_get_line_join (cr);
@@ -323,7 +323,7 @@ NAN_METHOD(getLineJoin) {
 
 NAN_METHOD(setLineWidth) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto width = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -334,7 +334,7 @@ NAN_METHOD(setLineWidth) {
 
 NAN_METHOD(getLineWidth) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   double result = cairo_get_line_width (cr);
@@ -346,7 +346,7 @@ NAN_METHOD(getLineWidth) {
 
 NAN_METHOD(setMiterLimit) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto limit = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -357,7 +357,7 @@ NAN_METHOD(setMiterLimit) {
 
 NAN_METHOD(getMiterLimit) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   double result = cairo_get_miter_limit (cr);
@@ -369,7 +369,7 @@ NAN_METHOD(getMiterLimit) {
 
 NAN_METHOD(setOperator) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto op = (cairo_operator_t) Nan::To<int64_t>(info[0].As<Number>()).ToChecked();
@@ -380,7 +380,7 @@ NAN_METHOD(setOperator) {
 
 NAN_METHOD(getOperator) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_operator_t result = cairo_get_operator (cr);
@@ -392,7 +392,7 @@ NAN_METHOD(getOperator) {
 
 NAN_METHOD(setTolerance) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto tolerance = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -403,7 +403,7 @@ NAN_METHOD(setTolerance) {
 
 NAN_METHOD(getTolerance) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   double result = cairo_get_tolerance (cr);
@@ -415,7 +415,7 @@ NAN_METHOD(getTolerance) {
 
 NAN_METHOD(clip) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_clip (cr);
@@ -423,7 +423,7 @@ NAN_METHOD(clip) {
 
 NAN_METHOD(clipPreserve) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_clip_preserve (cr);
@@ -431,7 +431,7 @@ NAN_METHOD(clipPreserve) {
 
 NAN_METHOD(clipExtents) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double x1 = 0.0;
@@ -453,7 +453,7 @@ NAN_METHOD(clipExtents) {
 
 NAN_METHOD(inClip) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -469,7 +469,7 @@ NAN_METHOD(inClip) {
 
 NAN_METHOD(resetClip) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_reset_clip (cr);
@@ -477,7 +477,7 @@ NAN_METHOD(resetClip) {
 
 NAN_METHOD(copyClipRectangleList) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_rectangle_list_t * result = cairo_copy_clip_rectangle_list (cr);
@@ -489,7 +489,7 @@ NAN_METHOD(copyClipRectangleList) {
 
 NAN_METHOD(fill) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_fill (cr);
@@ -497,7 +497,7 @@ NAN_METHOD(fill) {
 
 NAN_METHOD(fillPreserve) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_fill_preserve (cr);
@@ -505,7 +505,7 @@ NAN_METHOD(fillPreserve) {
 
 NAN_METHOD(fillExtents) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double x1 = 0.0;
@@ -527,7 +527,7 @@ NAN_METHOD(fillExtents) {
 
 NAN_METHOD(inFill) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -543,7 +543,7 @@ NAN_METHOD(inFill) {
 
 NAN_METHOD(mask) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto pattern = Nan::ObjectWrap::Unwrap<Pattern>(info[0].As<Object>())->_data;
@@ -554,7 +554,7 @@ NAN_METHOD(mask) {
 
 NAN_METHOD(maskSurface) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto surface = Nan::ObjectWrap::Unwrap<Surface>(info[0].As<Object>())->_data;
@@ -567,7 +567,7 @@ NAN_METHOD(maskSurface) {
 
 NAN_METHOD(paint) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_paint (cr);
@@ -575,7 +575,7 @@ NAN_METHOD(paint) {
 
 NAN_METHOD(paintWithAlpha) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto alpha = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -586,7 +586,7 @@ NAN_METHOD(paintWithAlpha) {
 
 NAN_METHOD(stroke) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_stroke (cr);
@@ -594,7 +594,7 @@ NAN_METHOD(stroke) {
 
 NAN_METHOD(strokePreserve) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_stroke_preserve (cr);
@@ -602,7 +602,7 @@ NAN_METHOD(strokePreserve) {
 
 NAN_METHOD(strokeExtents) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double x1 = 0.0;
@@ -624,7 +624,7 @@ NAN_METHOD(strokeExtents) {
 
 NAN_METHOD(inStroke) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -640,7 +640,7 @@ NAN_METHOD(inStroke) {
 
 NAN_METHOD(copyPage) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_copy_page (cr);
@@ -648,7 +648,7 @@ NAN_METHOD(copyPage) {
 
 NAN_METHOD(showPage) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_show_page (cr);
@@ -656,7 +656,7 @@ NAN_METHOD(showPage) {
 
 NAN_METHOD(getReferenceCount) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   unsigned int result = cairo_get_reference_count (cr);
@@ -668,7 +668,7 @@ NAN_METHOD(getReferenceCount) {
 
 NAN_METHOD(copyPath) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_path_t * result = cairo_copy_path (cr);
@@ -682,7 +682,7 @@ NAN_METHOD(copyPath) {
 
 NAN_METHOD(copyPathFlat) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_path_t * result = cairo_copy_path_flat (cr);
@@ -696,7 +696,7 @@ NAN_METHOD(copyPathFlat) {
 
 NAN_METHOD(appendPath) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto path = Nan::ObjectWrap::Unwrap<Path>(info[0].As<Object>())->_data;
@@ -707,7 +707,7 @@ NAN_METHOD(appendPath) {
 
 NAN_METHOD(hasCurrentPoint) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_bool_t result = cairo_has_current_point (cr);
@@ -719,7 +719,7 @@ NAN_METHOD(hasCurrentPoint) {
 
 NAN_METHOD(getCurrentPoint) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double x = 0.0;
@@ -737,7 +737,7 @@ NAN_METHOD(getCurrentPoint) {
 
 NAN_METHOD(newPath) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_new_path (cr);
@@ -745,7 +745,7 @@ NAN_METHOD(newPath) {
 
 NAN_METHOD(newSubPath) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_new_sub_path (cr);
@@ -753,7 +753,7 @@ NAN_METHOD(newSubPath) {
 
 NAN_METHOD(closePath) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_close_path (cr);
@@ -761,7 +761,7 @@ NAN_METHOD(closePath) {
 
 NAN_METHOD(arc) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto xc = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -776,7 +776,7 @@ NAN_METHOD(arc) {
 
 NAN_METHOD(arcNegative) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto xc = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -791,7 +791,7 @@ NAN_METHOD(arcNegative) {
 
 NAN_METHOD(curveTo) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto x1 = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -807,7 +807,7 @@ NAN_METHOD(curveTo) {
 
 NAN_METHOD(lineTo) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -819,7 +819,7 @@ NAN_METHOD(lineTo) {
 
 NAN_METHOD(moveTo) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -831,7 +831,7 @@ NAN_METHOD(moveTo) {
 
 NAN_METHOD(rectangle) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto x = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -845,7 +845,7 @@ NAN_METHOD(rectangle) {
 
 NAN_METHOD(glyphPath) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[0].As<Object>())->_data;
@@ -857,7 +857,7 @@ NAN_METHOD(glyphPath) {
 
 NAN_METHOD(textPath) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto utf8 = *Nan::Utf8String (info[0].As<String>());
@@ -868,7 +868,7 @@ NAN_METHOD(textPath) {
 
 NAN_METHOD(relCurveTo) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto dx1 = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -884,7 +884,7 @@ NAN_METHOD(relCurveTo) {
 
 NAN_METHOD(relLineTo) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto dx = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -896,7 +896,7 @@ NAN_METHOD(relLineTo) {
 
 NAN_METHOD(relMoveTo) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto dx = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -908,7 +908,7 @@ NAN_METHOD(relMoveTo) {
 
 NAN_METHOD(pathExtents) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double x1 = 0.0;
@@ -930,7 +930,7 @@ NAN_METHOD(pathExtents) {
 
 NAN_METHOD(showText) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto utf8 = *Nan::Utf8String (info[0].As<String>());
@@ -941,7 +941,7 @@ NAN_METHOD(showText) {
 
 NAN_METHOD(showGlyphs) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[0].As<Object>())->_data;
@@ -953,7 +953,7 @@ NAN_METHOD(showGlyphs) {
 
 NAN_METHOD(showTextGlyphs) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto utf8 = *Nan::Utf8String (info[0].As<String>());
@@ -970,7 +970,7 @@ NAN_METHOD(showTextGlyphs) {
 
 NAN_METHOD(fontExtents) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   auto extents = Nan::NewInstance(
@@ -988,7 +988,7 @@ NAN_METHOD(fontExtents) {
 
 NAN_METHOD(textExtents) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto utf8 = *Nan::Utf8String (info[0].As<String>());
@@ -1009,7 +1009,7 @@ NAN_METHOD(textExtents) {
 
 NAN_METHOD(glyphExtents) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto glyphs = Nan::ObjectWrap::Unwrap<Glyph>(info[0].As<Object>())->_data;
@@ -1031,7 +1031,7 @@ NAN_METHOD(glyphExtents) {
 
 NAN_METHOD(selectFontFace) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto family = *Nan::Utf8String (info[0].As<String>());
@@ -1044,7 +1044,7 @@ NAN_METHOD(selectFontFace) {
 
 NAN_METHOD(setFontSize) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto size = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -1055,7 +1055,7 @@ NAN_METHOD(setFontSize) {
 
 NAN_METHOD(setFontMatrix) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(info[0].As<Object>())->_data;
@@ -1066,7 +1066,7 @@ NAN_METHOD(setFontMatrix) {
 
 NAN_METHOD(getFontMatrix) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   auto matrix = Nan::NewInstance(
@@ -1084,7 +1084,7 @@ NAN_METHOD(getFontMatrix) {
 
 NAN_METHOD(setFontOptions) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(info[0].As<Object>())->_data;
@@ -1095,7 +1095,7 @@ NAN_METHOD(setFontOptions) {
 
 NAN_METHOD(getFontOptions) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto options = Nan::ObjectWrap::Unwrap<FontOptions>(info[0].As<Object>())->_data;
@@ -1106,7 +1106,7 @@ NAN_METHOD(getFontOptions) {
 
 NAN_METHOD(setFontFace) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto font_face = Nan::ObjectWrap::Unwrap<FontFace>(info[0].As<Object>())->_data;
@@ -1117,7 +1117,7 @@ NAN_METHOD(setFontFace) {
 
 NAN_METHOD(getFontFace) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_font_face_t * result = cairo_get_font_face (cr);
@@ -1131,7 +1131,7 @@ NAN_METHOD(getFontFace) {
 
 NAN_METHOD(setScaledFont) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto scaled_font = Nan::ObjectWrap::Unwrap<ScaledFont>(info[0].As<Object>())->_data;
@@ -1142,7 +1142,7 @@ NAN_METHOD(setScaledFont) {
 
 NAN_METHOD(getScaledFont) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_scaled_font_t * result = cairo_get_scaled_font (cr);
@@ -1156,7 +1156,7 @@ NAN_METHOD(getScaledFont) {
 
 NAN_METHOD(translate) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto tx = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -1168,7 +1168,7 @@ NAN_METHOD(translate) {
 
 NAN_METHOD(scale) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto sx = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -1180,7 +1180,7 @@ NAN_METHOD(scale) {
 
 NAN_METHOD(rotate) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto angle = Nan::To<double>(info[0].As<Number>()).ToChecked();
@@ -1191,7 +1191,7 @@ NAN_METHOD(rotate) {
 
 NAN_METHOD(transform) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(info[0].As<Object>())->_data;
@@ -1202,7 +1202,7 @@ NAN_METHOD(transform) {
 
 NAN_METHOD(setMatrix) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto matrix = Nan::ObjectWrap::Unwrap<Matrix>(info[0].As<Object>())->_data;
@@ -1213,7 +1213,7 @@ NAN_METHOD(setMatrix) {
 
 NAN_METHOD(getMatrix) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   auto matrix = Nan::NewInstance(
@@ -1231,7 +1231,7 @@ NAN_METHOD(getMatrix) {
 
 NAN_METHOD(identityMatrix) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // function call
   cairo_identity_matrix (cr);
@@ -1239,7 +1239,7 @@ NAN_METHOD(identityMatrix) {
 
 NAN_METHOD(userToDevice) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double x = 0.0;
@@ -1257,7 +1257,7 @@ NAN_METHOD(userToDevice) {
 
 NAN_METHOD(userToDeviceDistance) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double dx = 0.0;
@@ -1275,7 +1275,7 @@ NAN_METHOD(userToDeviceDistance) {
 
 NAN_METHOD(deviceToUser) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double x = 0.0;
@@ -1293,7 +1293,7 @@ NAN_METHOD(deviceToUser) {
 
 NAN_METHOD(deviceToUserDistance) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // out-arguments
   double dx = 0.0;
@@ -1312,7 +1312,7 @@ NAN_METHOD(deviceToUserDistance) {
 #if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
 NAN_METHOD(tagBegin) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto tag_name = *Nan::Utf8String (info[0].As<String>());
@@ -1326,7 +1326,7 @@ NAN_METHOD(tagBegin) {
 #if CAIRO_VERSION_MAJOR >= 1 && CAIRO_VERSION_MINOR >= 16
 NAN_METHOD(tagEnd) {
   auto self = info.This();
-  auto cr = (cairo_t *) Nan::GetInternalFieldPointer(self, 0);
+  auto cr = (cairo_t *) self->GetAlignedPointerFromInternalField (0);
 
   // in-arguments
   auto tag_name = *Nan::Utf8String (info[0].As<String>());
@@ -1475,7 +1475,7 @@ static void InstanceConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         return;
     }
 
-    Nan::SetInternalFieldPointer(self, 0, context);
+    self->SetAlignedPointerInInternalField (0, context);
 
     SET_OBJECT_GTYPE (self, -1);
 
