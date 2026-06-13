@@ -458,6 +458,22 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     GITypeInfo* element_info = g_type_info_get_param_type (type_info, 0);
     gsize element_size = GetTypeSize(element_info);
 
+    // When the element is a struct/union/boxed passed by *value* (not a
+    // pointer), the C array stores the struct contents inline, so each
+    // element's bytes must be copied from the wrapped instance rather than
+    // copying the GIArgument (which only holds a pointer to it).
+    bool element_is_struct_by_value = false;
+    if (!g_type_info_is_pointer(element_info)
+            && g_type_info_get_tag(element_info) == GI_TYPE_TAG_INTERFACE) {
+        GIBaseInfo* interface_info = g_type_info_get_interface(element_info);
+        GIInfoType  interface_type = g_base_info_get_type(interface_info);
+        element_is_struct_by_value =
+               interface_type == GI_INFO_TYPE_STRUCT
+            || interface_type == GI_INFO_TYPE_BOXED
+            || interface_type == GI_INFO_TYPE_UNION;
+        g_base_info_unref(interface_info);
+    }
+
     void *result = g_malloc0(element_size * (length + (isZeroTerminated ? 1 : 0)));
 
     for (int i = 0; i < length; i++) {
@@ -467,7 +483,10 @@ static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
 
         if (V8ToGIArgument(element_info, &arg, value, true)) {
             void* pointer = (void*)((size_t)result + i * element_size);
-            memcpy(pointer, &arg, element_size);
+            if (element_is_struct_by_value && arg.v_pointer != NULL)
+                memcpy(pointer, arg.v_pointer, element_size);
+            else
+                memcpy(pointer, &arg, element_size);
         } else {
             WARN("couldnt convert value: %s", *Nan::Utf8String(TO_STRING (value)));
         }
