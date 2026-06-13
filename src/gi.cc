@@ -208,6 +208,49 @@ NAN_METHOD(ObjectPropertySetter) {
         RETURN(success.ToLocalChecked());
 }
 
+// All members of a C union live at offset 0. Some GLib versions (the
+// regression fixed in 2.86.1 — glib#3745) emit a bogus 0xffff offset for union
+// field members in the compiled typelib, so g_field_info_get_field /
+// g_field_info_set_field would read/write far out of bounds and crash. Detect
+// union fields so they can be accessed directly at offset 0 instead (#376).
+static bool FieldIsInUnion (GIFieldInfo *field) {
+    GIBaseInfo *container = g_base_info_get_container (field);
+    return container != NULL
+        && g_base_info_get_type (container) == GI_INFO_TYPE_UNION;
+}
+
+// Whether a field type is a simple (non-pointer) C value that can be read or
+// written by copying its bytes — mirrors what g_field_info_get/set_field
+// accept. Pointer-backed types (strings, nested structs, arrays, ...) return
+// false and are rejected, as before.
+static bool IsSimpleFieldType (GITypeInfo *type_info) {
+    switch (g_type_info_get_tag (type_info)) {
+        case GI_TYPE_TAG_BOOLEAN:
+        case GI_TYPE_TAG_INT8:
+        case GI_TYPE_TAG_UINT8:
+        case GI_TYPE_TAG_INT16:
+        case GI_TYPE_TAG_UINT16:
+        case GI_TYPE_TAG_INT32:
+        case GI_TYPE_TAG_UINT32:
+        case GI_TYPE_TAG_INT64:
+        case GI_TYPE_TAG_UINT64:
+        case GI_TYPE_TAG_FLOAT:
+        case GI_TYPE_TAG_DOUBLE:
+        case GI_TYPE_TAG_UNICHAR:
+        case GI_TYPE_TAG_GTYPE:
+            return true;
+        case GI_TYPE_TAG_INTERFACE: {
+            GIBaseInfo *iface = g_type_info_get_interface (type_info);
+            GIInfoType  itype = g_base_info_get_type (iface);
+            bool simple = (itype == GI_INFO_TYPE_ENUM || itype == GI_INFO_TYPE_FLAGS);
+            g_base_info_unref (iface);
+            return simple;
+        }
+        default:
+            return false;
+    }
+}
+
 NAN_METHOD(StructFieldSetter) {
     Local<Object> boxedWrapper = info[0].As<Object>();
     Local<Object> fieldInfo    = info[1].As<Object>();
@@ -230,6 +273,17 @@ NAN_METHOD(StructFieldSetter) {
         g_free(message);
 
         RETURN (Nan::Undefined());
+
+    } else if (FieldIsInUnion(field)) {
+
+        // Union members are at offset 0; write directly to avoid the bogus
+        // introspected offset (glib#3745, #376).
+        if (IsSimpleFieldType(field_type)) {
+            memcpy(boxed, &arg, GNodeJS::GetTypeSize(field_type));
+        } else {
+            Nan::ThrowError("Unable to set field (complex types not allowed)");
+            RETURN (Nan::Undefined());
+        }
 
     } else {
 
@@ -285,6 +339,19 @@ NAN_METHOD(StructFieldGetter) {
     GIArgument value;
     GNodeJS::ResourceOwnership ownership = GNodeJS::kCopy;
     BaseInfo typeInfo = g_field_info_get_type(*fieldInfo);
+
+    if (FieldIsInUnion(*fieldInfo)) {
+        // Union members are at offset 0; read directly to avoid the bogus
+        // introspected offset (glib#3745, #376).
+        if (!IsSimpleFieldType(*typeInfo)) {
+            Nan::ThrowError("Converting non-primitive fields is not allowed");
+            return;
+        }
+        memset(&value, 0, sizeof(value));
+        memcpy(&value, boxed, GNodeJS::GetTypeSize(*typeInfo));
+        RETURN(GNodeJS::GIArgumentToV8(*typeInfo, &value, -1, ownership));
+        return;
+    }
 
     if (!g_field_info_get_field(*fieldInfo, boxed, &value)) {
         /* If g_field_info_get_field() failed, this is a non-primitive type */

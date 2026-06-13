@@ -62,7 +62,6 @@ jobs:
         run: |
           npx mocha                                 \
                     --skip=callback                 \
-                    --skip=union__fields            \
                     tests/__run__.js
 
   build:
