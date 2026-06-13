@@ -6,15 +6,9 @@
  * field getters (camelCased, so long_ -> long, string_ -> string, g_strv ->
  * gStrv), instance methods, construction, and array-in (both as an array of
  * struct pointers and as a contiguous array of struct values).
- *
- * NOTE: this file ends in skip() (exit 222 / pending) because the suite
- * segfaults at *process teardown* — after every test has passed — due to a
- * pre-existing boxed-struct finalization bug (#409). Every test above the
- * skip() runs and is verified; the skip() merely exits before the crashing
- * V8 teardown.
  */
 
-const { describe, expect, assert, skip } = require('./__common__.js')
+const { describe, expect, assert } = require('./__common__.js')
 const { requireGIMarshallingTests } = require('./__gi-fixtures__.js')
 
 const m = requireGIMarshallingTests()
@@ -76,6 +70,3 @@ describe('array of structs by value in', () => {
   m.arraySimpleStructIn([mkS(1), mkS(2), mkS(3)])
   m.arrayStructValueIn([mkB(1), mkB(2), mkB(3)])
 })
-
-// Exit before V8 teardown, which segfaults on boxed-struct finalization (#409).
-skip()
