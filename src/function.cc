@@ -440,6 +440,15 @@ Local<Value> FunctionCall (
                     param.data.v_pointer = callable_arg_values[i].v_pointer;
                     callable_arg_values[i].v_pointer = &param.data;
                 }
+                // For a transfer-container IN GList/GSList/GHashTable the callee
+                // frees the container; snapshot the (caller-owned) element
+                // pointers now so they can be freed after the call (#399).
+                else if (IsTransferContainerInList(&type_info,
+                            g_arg_info_get_ownership_transfer(&arg_info), direction)) {
+                    param.data = {};
+                    param.data.v_pointer = CaptureTransferContainerElements(
+                            &type_info, callable_arg_values[i].v_pointer);
+                }
             }
 
             in_arg++;
@@ -537,6 +546,11 @@ Local<Value> FunctionCall (
             if (callback && callback->scope_type == GI_SCOPE_TYPE_CALL) {
                 delete callback;
             }
+        }
+        else if (IsTransferContainerInList (&arg_type, transfer, direction)) {
+            // The callee already freed the container structure; free only the
+            // captured (caller-owned) elements, never the freed container (#399).
+            FreeTransferContainerElements (&arg_type, param.data.v_pointer);
         }
         else {
             if (direction == GI_DIRECTION_INOUT || (direction == GI_DIRECTION_OUT && !g_arg_info_is_caller_allocates (&arg_info)))

@@ -4,12 +4,9 @@
  * Exercises GHashTable marshalling in every direction and across transfer
  * modes using the gobject-introspection GIMarshallingTests library. A
  * GHashTable marshals to/from a plain JS object (keys are stringified).
- *
- * KNOWN ISSUE (skip()'d below, kept for when it's fixed):
- *   - transfer-container IN corrupts the heap (#399)
  */
 
-const { describe, expect, assert, skip } = require('./__common__.js')
+const { describe, expect, assert } = require('./__common__.js')
 const { requireGIMarshallingTests } = require('./__gi-fixtures__.js')
 
 const m = requireGIMarshallingTests()
@@ -49,10 +46,8 @@ describe('ghashtable utf8 container out uninitialized (returns [false, {}])', ()
   expect(value, {})
 })
 
-// Everything below crashes — see the file header.
-skip()
-
-// #399 — transfer-container IN corrupts the heap.
-describe('ghashtable utf8 container in (#399)', () => {
+// transfer-container IN: the callee frees the table, node-gtk frees the
+// (caller-owned) key/value strings it captured before the call.
+describe('ghashtable utf8 container in', () => {
   m.ghashtableUtf8ContainerIn(UTF8_HASH)
 })
