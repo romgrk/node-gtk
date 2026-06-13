@@ -59,7 +59,10 @@ static GObject* CreateGObjectFromObject(GType gtype, Local<Value> object) {
 
     for (int i = 0; i < n_properties; i++) {
         Local<String> name = TO_STRING (Nan::Get(properties, i).ToLocalChecked());
-        const char *name_string = g_strdup (*Nan::Utf8String(name));
+        // Accept camelCase property names (e.g. iconName) in addition to
+        // dashed/underscored ones; GObject canonicalizes '_' to '-' but not
+        // camelCase, so convert here (#320).
+        char *name_string = Util::ToDashed (*Nan::Utf8String(name));
         Local<Value> value = Nan::Get(property_hash, name).ToLocalChecked();
 
         auto value_spec = g_object_class_find_property (G_OBJECT_CLASS (klass), name_string);
