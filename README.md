@@ -249,6 +249,35 @@ If you'll see a little window saying hello that's it: it works!
 Please note in macOS the window doesn't automatically open above other windows.
 Try <kbd>Cmd</kbd> + <kbd>Tab</kbd> if you don't see it.
 
+#### Unit tests
+
+Run the test suite with:
+
+```sh
+npm test
+```
+
+The suite includes `marshalling__*.js` and `regress__*.js` tests that exercise
+node-gtk's type conversions (in/out/inout/return for every GObject type) against
+the GObject-introspection test libraries — **GIMarshallingTests**, **Regress**,
+and **Utility**.
+
+Those libraries are provided by `scripts/build-test-fixtures.js`, which runs
+automatically before `npm test`. To keep the API identical on every machine, it
+always compiles them from a single pinned revision of the upstream
+[`gobject-introspection-tests`](https://gitlab.gnome.org/GNOME/gobject-introspection-tests)
+repo (downloaded once and cached), rather than relying on whatever version a
+distro happens to ship. It needs `g-ir-scanner`/`g-ir-compiler`, a C compiler,
+cairo dev headers, and `curl`/`tar`; if any are missing the marshalling tests
+skip rather than fail. The generated fixtures live in `tests/gi-fixtures/`
+(git-ignored). To bump the upstream revision, change `SOURCE_REF` in the script.
+To (re)build manually:
+
+```sh
+npm run build:test-fixtures                            # build if missing
+node scripts/build-test-fixtures.js --force --verbose  # force a fresh rebuild
+```
+
 #### Browser demo
 
 If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://webkitgtk.org/) libary.

@@ -42,4 +42,10 @@ if [[ $(uname -s) == 'Linux' ]]; then
         gir1.2-gst-plugins-base-1.0 \
         gstreamer1.0-plugins-bad \
         gir1.2-gst-plugins-bad-1.0
+
+    # The marshalling test suite's fixtures (Regress, GIMarshallingTests,
+    # Utility) are compiled from pinned upstream sources by
+    # scripts/build-test-fixtures.js, which needs g-ir-scanner (above) plus a
+    # C compiler, cairo dev headers (above), and curl/tar to fetch the sources.
+    sudo apt install -y curl tar || true
 fi;

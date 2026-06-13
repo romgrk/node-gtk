@@ -11,3 +11,6 @@ compile_commands.json
 
 build/
 lib/binding/*
+
+# Generated GObject-introspection test fixtures (scripts/build-test-fixtures.js)
+tests/gi-fixtures/
