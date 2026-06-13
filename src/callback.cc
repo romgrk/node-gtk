@@ -34,8 +34,18 @@ Callback::Callback(Local<Function> fn, GICallableInfo* callback_info, GIScopeTyp
     info = g_base_info_ref (callback_info);
     #ifdef GI_AVAILABLE_IN_1_72
     closure = g_callable_info_create_closure(info, &cif, Callback::Call, this);
+    /* On libffi 3.4+ the executable trampoline is a separate mapping from the
+     * writable ffi_closure, so the closure pointer is not itself callable and
+     * invoking it segfaults (#390, seen on Ubuntu 26 / libffi 3.5). Use the
+     * closure's native (executable) address instead. Fall back to the closure
+     * pointer if introspection can't supply one — passing NULL as the callback
+     * would break startup, since the bindings register callbacks at bootstrap. */
+    native_address = g_callable_info_get_closure_native_address(info, closure);
+    if (native_address == NULL)
+        native_address = (gpointer) closure;
     #else
     closure = g_callable_info_prepare_closure(info, &cif, Callback::Call, this);
+    native_address = (gpointer) closure;
     #endif
     scope_type = scope_type_;
 }
