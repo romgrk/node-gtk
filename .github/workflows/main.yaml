@@ -9,7 +9,11 @@ on:
 jobs:
   build-windows:
     name: windows - nodejs ${{ matrix.node }}
-    runs-on: windows-latest
+    # Pinned to windows-2022: windows-latest now ships Visual Studio 18 (2026),
+    # which node-gyp can't identify (reports version "undefined") and fails its
+    # win32 VS-detection gate during configure — even though the real compile
+    # uses MINGW gcc. windows-2022 has VS 2022 (v17), which node-gyp recognizes.
+    runs-on: windows-2022
     strategy:
       matrix:
         node:
