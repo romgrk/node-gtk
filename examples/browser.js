@@ -1,167 +1,120 @@
 #!/usr/bin/env node
 /*
- * A basic node-gtk Webkit based browser example.
- * Similar logic and basic interface found in this PyGTK example:
- * http://www.eurion.net/python-snippets/snippet/Webkit%20Browser.html
+ * A basic node-gtk WebKit based browser example, built with libadwaita (GTK 4).
+ *
+ * Usage:
+ *   node examples/browser.js [url] [dark]
+ *
+ * e.g.  node examples/browser.js github.com dark
  */
 
 const gi = require('../lib/')
 
-const Gtk     = gi.require('Gtk', '3.0')
-const WebKit2 = gi.require('WebKit2')
+const GLib   = gi.require('GLib', '2.0')
+const Gtk    = gi.require('Gtk', '4.0')
+const Adw    = gi.require('Adw', '1')
+const WebKit = gi.require('WebKit', '6.0')
 
-// Start the GLib event loop
+const loop = GLib.MainLoop.new(null, false)
+const app = new Adw.Application('com.github.romgrk.node-gtk.browser', 0)
+
+app.on('activate', onActivate)
 gi.startLoop()
+const status = app.run([])
+console.log('Finished with status:', status)
 
-// Necessary to initialize the graphic environment.
-// If this fails it means the host cannot show Gtk-3.0
-Gtk.init()
+function onActivate() {
+  // Optional dark theme (gotta love it!)
+  if (process.argv.some(arg => arg === 'dark'))
+    Adw.StyleManager.getDefault().setColorScheme(Adw.ColorScheme.FORCE_DARK)
 
-// Main program window
-const window = new Gtk.Window({
-  type : Gtk.WindowType.TOPLEVEL
-})
+  const window = new Adw.ApplicationWindow(app)
+  window.setTitle('node-gtk Browser')
+  window.setDefaultSize(1024, 720)
+  window.on('close-request', onQuit)
 
-// WebKit2 browser wrapper
-const webView = new WebKit2.WebView()
+  // WebKit2 browser wrapper. It scrolls internally, so no ScrolledWindow needed.
+  const webView = new WebKit.WebView({ vexpand: true, hexpand: true })
 
-// Toolbar with buttons
-const toolbar = new Gtk.Toolbar()
+  const settings = webView.getSettings()
+  settings.setEnableDeveloperExtras(true)
 
-// Buttons to go back, go forward, or refresh
-const button = {
-  back:    Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_BACK),
-  forward: Gtk.ToolButton.newFromStock(Gtk.STOCK_GO_FORWARD),
-  refresh: Gtk.ToolButton.newFromStock(Gtk.STOCK_REFRESH),
+  // Navigation buttons, grouped with the "linked" style so they read as a unit.
+  const backButton    = new Gtk.Button({ 'icon-name': 'go-previous-symbolic', sensitive: false })
+  const forwardButton = new Gtk.Button({ 'icon-name': 'go-next-symbolic', sensitive: false })
+  const navBox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL })
+  navBox.addCssClass('linked')
+  navBox.append(backButton)
+  navBox.append(forwardButton)
+
+  const refreshButton = new Gtk.Button({ 'icon-name': 'view-refresh-symbolic' })
+
+  // The URL bar lives in the header bar's title slot and doubles as a
+  // progress indicator while a page loads.
+  const urlBar = new Gtk.Entry({ hexpand: true })
+  urlBar.setInputPurpose(Gtk.InputPurpose.URL)
+
+  const header = new Adw.HeaderBar()
+  header.packStart(navBox)
+  header.packStart(refreshButton)
+  header.setTitleWidget(urlBar)
+
+  // ToolbarView is the canonical Adwaita way to stack a header bar over content.
+  const view = new Adw.ToolbarView()
+  view.addTopBar(header)
+  view.setContent(webView)
+  window.setContent(view)
+
+  /*
+   * Event handlers
+   */
+
+  webView.on('load-changed', (loadEvent) => {
+    if (loadEvent === WebKit.LoadEvent.COMMITTED)
+      urlBar.setText(webView.getUri() || '')
+    backButton.setSensitive(webView.canGoBack())
+    forwardButton.setSensitive(webView.canGoForward())
+  })
+
+  // Drive the entry's progress bar from the load estimate; clear it when done.
+  webView.on('notify::estimated-load-progress', () => {
+    const progress = webView.getEstimatedLoadProgress()
+    urlBar.setProgressFraction(progress < 1 ? progress : 0)
+  })
+
+  webView.on('notify::title', () => {
+    window.setTitle(webView.getTitle() || 'node-gtk Browser')
+  })
+
+  backButton.on('clicked',    () => webView.goBack())
+  forwardButton.on('clicked', () => webView.goForward())
+  refreshButton.on('clicked', () => webView.reload())
+
+  urlBar.on('activate', () => {
+    const href = url(urlBar.getText())
+    urlBar.setText(href)
+    webView.loadUri(href)
+  })
+
+  // Open the first non-flag argument, or Google by default.
+  const urlArg = process.argv.slice(2).find(arg => arg !== 'dark')
+  webView.loadUri(url(urlArg || 'google.com'))
+
+  window.present()
+  loop.run()
 }
 
-// where the URL is written and shown
-const urlBar = new Gtk.Entry()
-
-// the browser container, so that it is scrollable
-const scrollWindow = new Gtk.ScrolledWindow({})
-
-// horizontal and vertical boxes
-const hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL })
-const vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
-
-
-/*
- * Build our layout
- */
-
-scrollWindow.add(webView)
-
-toolbar.add(button.back)
-toolbar.add(button.forward)
-toolbar.add(button.refresh)
-
-// Gtk.Box.prototype
-//  .packStart(children: Gtk.Widget, expand: boolean, fill: boolean, padding: number): void
-
-// pack horizontally toolbar and url bar
-hbox.packStart(toolbar, false, false, 0)
-hbox.packStart(urlBar,  true,  true,  8)
-
-// pack vertically top bar (hbox) and scrollable window
-vbox.packStart(hbox,         false, true, 0)
-vbox.packStart(scrollWindow, true,  true, 0)
-
-// configure main window
-window.setDefaultSize(1024, 720)
-window.setResizable(true)
-window.add(vbox)
-
-
-
-/*
- * Settings
- */
-
-// Setting up optional Dark theme (gotta love it!)
-if (process.argv.some(color => color === 'dark')) {
-  let gtkSettings = Gtk.Settings.getDefault()
-  gtkSettings.gtkApplicationPreferDarkTheme = true
-  gtkSettings.gtkThemeName = 'Adwaita'
+function onQuit() {
+  loop.quit()
+  app.quit()
+  return false
 }
-
-{
-  // Update some webview settings
-  const webSettings = webView.getSettings()
-  webSettings.enableDeveloperExtras = true
-  webSettings.enableCaretBrowsing = true
-  console.log('webSettings: ', webSettings)
-}
-
-
-
-/*
- * Event handlers
- */
-
-// whenever a new page is loaded ...
-webView.on('load-changed', (loadEvent) => {
-  switch (loadEvent) {
-    case WebKit2.LoadEvent.COMMITTED:
-      // Update the URL bar with the current adress
-      urlBar.setText(webView.getUri())
-      button.back.setSensitive(webView.canGoBack())
-      button.forward.setSensitive(webView.canGoForward())
-      break
-  }
-})
-
-// configure buttons actions
-button.back.on('clicked',    () => webView.goBack())
-button.forward.on('clicked', () => webView.goForward())
-button.refresh.on('clicked', () => webView.reload())
-
-// define "enter" / call-to-action event (whenever the url changes on the bar)
-urlBar.on('activate', () => {
-  let href = url(urlBar.getText())
-  urlBar.setText(href)
-  webView.loadUri(href)
-})
-
-// window show event
-window.on('show', () => {
-  // bring it on top in OSX
-  // window.setKeepAbove(true)
-
-  // This start the Gtk event loop. It is required to process user events.
-  // It doesn't return until you don't need Gtk anymore, usually on window close.
-  Gtk.main()
-})
-
-// window after-close event
-window.on('destroy', () => Gtk.mainQuit())
-
-// window close event: returning true has the semantic of preventing the default behavior:
-// in this case, it would prevent the user from closing the window if we would return `true`
-window.on('delete-event', () => false)
-
-
-
-/*
- * Main
- */
-
-main()
-
-function main() {
-  // open first argument or Google
-  webView.loadUri(url(process.argv[2] || 'google.com'))
-
-  // add vertical ui and show them all
-  window.showAll()
-}
-
 
 /*
  * Helpers
  */
 
-// if link doesn't have a protocol, prefixes it via http://
+// If the link doesn't have a protocol, prefix it with http://
 function url(href) {
   return /^([a-z]{2,}):/.test(href) ? href : ('http://' + href)
 }

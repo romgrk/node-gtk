@@ -16,7 +16,7 @@
 </p>
 
 Node-Gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library for nodejs. It makes it possible to
-use any introspected library, such as Gtk+, usable.  It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) or [PyGObject](https://pygobject.readthedocs.io). Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
+use any introspected library, such as Gtk+, usable. It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) or [PyGObject](https://pygobject.readthedocs.io). Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
 will be welcomed.
 
 Supported Node.js versions: **20**, **22**, **24** (other versions may work but are untested)<br>
@@ -40,41 +40,57 @@ Pre-built binaries available for: **Linux**, **macOS**
 
 ## Usage
 
-Below is a minimal example of how to use the code, but take a look at
-our [template](https://github.com/romgrk/node-gtk-template) or at
-[react-gtk](https://github.com/codejamninja/react-gtk) to bootstrap your
-project.
+Below is a [minimal example](./examples/hello-world.js) of how to use node-gtk:
 
 ```javascript
-const gi = require('node-gtk')
-const Gtk = gi.require('Gtk', '3.0')
+const gi = require('node-gtk');
+const GLib = gi.require('GLib', '2.0');
+const Gtk = gi.require('Gtk', '4.0');
+const Adw = gi.require('Adw', '1');
 
-gi.startLoop()
-Gtk.init()
+const loop = GLib.MainLoop.new(null, false);
+const app = new Adw.Application('com.github.romgrk.node-gtk.hello', 0);
 
-const win = new Gtk.Window()
-win.on('destroy', () => Gtk.mainQuit())
-win.on('delete-event', () => false)
+app.on('activate', () => {
+  const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
+  content.append(new Adw.HeaderBar());
+  content.append(new Gtk.Label({ label: 'Hello Adwaita!', vexpand: true }));
 
-win.setDefaultSize(200, 80)
-win.add(new Gtk.Label({ label: 'Hello Gtk+' }))
+  const window = new Adw.ApplicationWindow(app);
+  window.setTitle('node-gtk');
+  window.setDefaultSize(300, 120);
+  window.setContent(content);
+  window.on('close-request', () => (loop.quit(), app.quit(), false));
+  window.present();
 
-win.showAll()
-Gtk.main()
+  gi.startLoop();
+  loop.run();
+});
+
+process.exit(app.run([]));
 ```
 
 <p align="center">
-  <img src="./img/hello-node-gtk.png" alt="Hello Gtk" style="width: 220px; height: auto;"/>
+  <img src="./img/hello-world.png" alt="Hello Adwaita" style="width: 220px; height: auto;"/>
 </p>
 
-See our [examples](./examples) folder for more examples, and in particular the
-[browser demo source](https://github.com/romgrk/node-gtk/blob/master/examples/browser.js) for
-a more complex application.
+You can also easily create custom applications:
+
+[A web browser example using WebKit2GTK](./examples/browser.js)
 
 <p align="center">
   <img src="./img/browser.png" alt="Hello Gtk" style="max-width: 500px; height: auto;"/>
 </p>
 
+[A system monitor](./examples/system-monitor.js)
+
+<p align="center">
+  <img src="./img/system-monitor.png.png" alt="Hello Gtk" style="max-width: 500px; height: auto;"/>
+</p>
+
+#### Other projects
+
+The [react-gtk](https://github.com/codejamninja/react-gtk) project may also allow you to use GTK via React (unmaintained).
 
 ## Documentation
 
@@ -86,16 +102,15 @@ Note that prebuilt binaries are available for common systems, in those cases bui
 
 ##### Target Platforms
 
- - **Linux**: prebuilt binaries available
- - **macOS**: prebuilt binaries available
- - **Windows**: no prebuilt binaries
+- **Linux**: prebuilt binaries available
+- **macOS**: prebuilt binaries available
+- **Windows**: no prebuilt binaries
 
 ### Requirements
 
- - `git`
- - `nodejs@10` or higher
- - `python3` (for `node-gyp`)
- - C compiler (`gcc@8` or higher, or `clang`)
+- `git`
+- `python3` (for `node-gyp`)
+- (depending on your system) C compiler (`gcc@8` or higher, or `clang`)
 
 ### How to build on Ubuntu
 
@@ -226,7 +241,7 @@ If you'd like to test everything builds and work properly, after installing and 
 examples:
 
 ```sh
-node ./examples/hello-gtk.js
+node ./examples/hello-world.js
 ```
 
 If you'll see a little window saying hello that's it: it works!
@@ -259,9 +274,9 @@ If you'd like to help, we'd be more than happy to have support. To setup your de
 run `npm run configure`. You can then build the project with `npm run build`. To generate the `compile_commands.json`
 for LSP to work nicely, you can use [bear](https://github.com/rizsotto/Bear) as `bear -- npm run build`.
 
- - https://developer.gnome.org/gi/stable/index.html
- - https://v8docs.nodesource.com/
- - https://github.com/nodejs/nan#api
+- https://developer.gnome.org/gi/stable/index.html
+- https://v8docs.nodesource.com/
+- https://github.com/nodejs/nan#api
 
 There is a [Discord channel](https://discord.gg/r2VqPUV) but it receives little monitoring, use github issues or
 discussions preferably.
