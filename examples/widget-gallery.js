@@ -66,14 +66,6 @@ function onActivate() {
   loop.run()
 }
 
-/* Add one or more CSS classes to a widget and return it.
- * (node-gtk can't set the array-valued `css-classes` construct property.) */
-function styled(widget, ...classes) {
-  for (const c of classes)
-    widget.addCssClass(c)
-  return widget
-}
-
 /* A scrolled, clamped vertical column — the canonical Adwaita content layout. */
 function makePage(spacing = 18) {
   const scrolled = new Gtk.ScrolledWindow({ vexpand: true })
@@ -96,7 +88,7 @@ function buildRowsPage() {
 
   const action = new Adw.ActionRow({ title: 'Action Row', subtitle: 'With a prefix icon and a suffix button' })
   action.addPrefix(new Gtk.Image({ 'icon-name': 'starred-symbolic' }))
-  action.addSuffix(styled(new Gtk.Button({ 'icon-name': 'go-next-symbolic', valign: Gtk.Align.CENTER }), 'flat'))
+  action.addSuffix(new Gtk.Button({ 'icon-name': 'go-next-symbolic', valign: Gtk.Align.CENTER, 'css-classes': ['flat'] }))
   action.setActivatableWidget(action)
   group.add(action)
 
@@ -137,8 +129,8 @@ function buildButtonsPage(toastOverlay) {
   column.append(styles)
   const styleBox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, spacing: 8, homogeneous: true, 'margin-top': 6 })
   const regular = new Gtk.Button({ label: 'Regular' })
-  const suggested = styled(new Gtk.Button({ label: 'Suggested' }), 'suggested-action')
-  const destructive = styled(new Gtk.Button({ label: 'Destructive' }), 'destructive-action')
+  const suggested = new Gtk.Button({ label: 'Suggested', 'css-classes': ['suggested-action'] })
+  const destructive = new Gtk.Button({ label: 'Destructive', 'css-classes': ['destructive-action'] })
   for (const b of [regular, suggested, destructive]) {
     b.on('clicked', toast(`${b.getLabel()} clicked`))
     styleBox.append(b)
@@ -149,15 +141,15 @@ function buildButtonsPage(toastOverlay) {
   const shapes = new Adw.PreferencesGroup({ title: 'Shapes' })
   column.append(shapes)
   const shapeBox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, spacing: 8, halign: Gtk.Align.CENTER, 'margin-top': 6 })
-  shapeBox.append(styled(new Gtk.Button({ label: 'Pill Button' }), 'pill', 'suggested-action'))
-  shapeBox.append(styled(new Gtk.Button({ 'icon-name': 'list-add-symbolic' }), 'circular'))
+  shapeBox.append(new Gtk.Button({ label: 'Pill Button', 'css-classes': ['pill', 'suggested-action'] }))
+  shapeBox.append(new Gtk.Button({ 'icon-name': 'list-add-symbolic', 'css-classes': ['circular'] }))
   shapes.add(shapeBox)
 
   // Linked group + a split button
   const grouped = new Adw.PreferencesGroup({ title: 'Grouped' })
   column.append(grouped)
   const groupedBox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, spacing: 12, halign: Gtk.Align.CENTER, 'margin-top': 6 })
-  const linked = styled(new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL }), 'linked')
+  const linked = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, 'css-classes': ['linked'] })
   linked.append(new Gtk.Button({ 'icon-name': 'format-justify-left-symbolic' }))
   linked.append(new Gtk.Button({ 'icon-name': 'format-justify-center-symbolic' }))
   linked.append(new Gtk.Button({ 'icon-name': 'format-justify-right-symbolic' }))
