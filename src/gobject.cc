@@ -333,8 +333,7 @@ static void StoreVFunc(GType gtype, Callback *callback) {
 static void DestroyVFuncs(GType gtype) {
     /* Destroy vfunc list, if any */
     GSList *list = (GSList *) g_type_get_qdata (gtype, GNodeJS::vfuncs_quark());
-    GSList *item = list;
-    while ((item = g_slist_next (item)) != NULL) {
+    for (GSList *item = list; item != NULL; item = item->next) {
         auto callback = (Callback *) item->data;
         delete callback;
     }
