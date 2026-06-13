@@ -5,12 +5,11 @@
  * transfer modes using the gobject-introspection GIMarshallingTests library.
  * Both marshal to/from plain JS arrays.
  *
- * KNOWN ISSUE (skip()'d below): GPtrArray IN/inout marshalling is unimplemented
- * and aborts at value.cc:823 (#401). GPtrArray OUT/return work fine; GArray
- * works in every direction.
+ * Both GArray and GPtrArray are exercised in every direction and transfer
+ * mode.
  */
 
-const { describe, expect, skip } = require('./__common__.js')
+const { describe, expect } = require('./__common__.js')
 const { requireGIMarshallingTests } = require('./__gi-fixtures__.js')
 
 const m = requireGIMarshallingTests()
@@ -50,11 +49,12 @@ describe('gptrarray utf8 return/out (none/full)', () => {
   expect(m.gptrarrayUtf8NoneOut(), STRS)
 })
 
-// Everything below crashes — see the file header.
-skip()
-
-// #401 — GPtrArray IN/inout marshalling is unimplemented (value.cc:823).
-describe('gptrarray utf8 in/inout (#401)', () => {
+describe('gptrarray utf8 in (none/full/container)', () => {
   m.gptrarrayUtf8NoneIn(STRS)
-  m.gptrarrayUtf8NoneInout(STRS)
+  m.gptrarrayUtf8FullIn(STRS)
+  m.gptrarrayUtf8ContainerIn(STRS)
+})
+
+describe('gptrarray utf8 inout (none -> [-2,-1,0,1])', () => {
+  expect(m.gptrarrayUtf8NoneInout(STRS), UTF8_INOUT_RESULT)
 })
