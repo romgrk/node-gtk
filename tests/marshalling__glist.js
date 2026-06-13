@@ -4,12 +4,9 @@
  * Exercises GList and GSList marshalling in every direction and across transfer
  * modes (none/full/container) using the gobject-introspection GIMarshallingTests
  * library. Both list types marshal to/from plain JS arrays.
- *
- * KNOWN ISSUE (skip()'d below, kept for when it's fixed):
- *   - transfer-container IN corrupts the heap (#399)
  */
 
-const { describe, expect, assert, skip } = require('./__common__.js')
+const { describe, expect, assert } = require('./__common__.js')
 const { requireGIMarshallingTests } = require('./__gi-fixtures__.js')
 
 const m = requireGIMarshallingTests()
@@ -79,11 +76,9 @@ describe('glist/gslist utf8 none out uninitialized (returns [false, []])', () =>
   expect(gslistVal, [])
 })
 
-// Everything below crashes — see the file header.
-skip()
-
-// #399 — transfer-container IN corrupts the heap (double/invalid free).
-describe('glist/gslist utf8 container in (#399)', () => {
+// transfer-container IN: the callee frees the list nodes, node-gtk frees the
+// (caller-owned) string elements it captured before the call.
+describe('glist/gslist utf8 container in', () => {
   m.glistUtf8ContainerIn(STRS)
   m.gslistUtf8ContainerIn(STRS)
 })

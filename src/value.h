@@ -30,6 +30,14 @@ bool         V8ToGIArgument (GITypeInfo *type_info, GIArgument *argument, Local<
 bool         V8ToOutGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, bool may_be_null);
 void         FreeGIArgument (GITypeInfo *type_info, GIArgument *argument, GITransfer transfer = GI_TRANSFER_EVERYTHING, GIDirection direction = GI_DIRECTION_OUT);
 void         FreeGIArgumentArray (GITypeInfo *type_info, GIArgument *arg, GITransfer transfer = GI_TRANSFER_EVERYTHING, GIDirection direction = GI_DIRECTION_OUT, long length = -1);
+
+// For a transfer-container IN GList/GSList/GHashTable, the callee frees the
+// container structure itself, so node-gtk cannot walk it afterwards to free
+// the (caller-owned) elements. These capture the element pointers *before*
+// the call so they can be freed *after* it. See #399.
+bool         IsTransferContainerInList (GITypeInfo *type_info, GITransfer transfer, GIDirection direction);
+gpointer     CaptureTransferContainerElements (GITypeInfo *type_info, gpointer container);
+void         FreeTransferContainerElements (GITypeInfo *type_info, gpointer captured);
 bool         CanConvertV8ToGIArgument (GITypeInfo *type_info, Local<Value> value, bool may_be_null);
 
 bool         V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership = kNone);

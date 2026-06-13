@@ -1486,6 +1486,98 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
     }
 }
 
+/*
+ * Transfer-container IN cleanup for GList/GSList/GHashTable.
+ *
+ * With transfer-container, the callee takes ownership of (and frees) the
+ * container structure but NOT its elements, which the caller still owns. By
+ * the time node-gtk runs its post-call cleanup the container has already been
+ * freed, so it can no longer be walked to reach the (owned) elements — doing
+ * so corrupts the heap (#399). Instead we snapshot the element pointers into a
+ * private structure *before* the call and free them from that snapshot after.
+ */
+
+struct CapturedContainer {
+    GList  *list;    // GLIST: copied node chain; GHASH: keys
+    GSList *slist;   // GSLIST: copied node chain
+    GList  *values;  // GHASH: values
+};
+
+bool IsTransferContainerInList (GITypeInfo *type_info, GITransfer transfer, GIDirection direction) {
+    if (direction != GI_DIRECTION_IN || transfer != GI_TRANSFER_CONTAINER)
+        return false;
+
+    switch (g_type_info_get_tag (type_info)) {
+        case GI_TYPE_TAG_GLIST:
+        case GI_TYPE_TAG_GSLIST:
+        case GI_TYPE_TAG_GHASH:
+            return true;
+        default:
+            return false;
+    }
+}
+
+gpointer CaptureTransferContainerElements (GITypeInfo *type_info, gpointer container) {
+    if (container == NULL)
+        return NULL;
+
+    CapturedContainer *captured = g_new0 (CapturedContainer, 1);
+
+    switch (g_type_info_get_tag (type_info)) {
+        case GI_TYPE_TAG_GLIST:
+            captured->list = g_list_copy ((GList *) container);
+            break;
+        case GI_TYPE_TAG_GSLIST:
+            captured->slist = g_slist_copy ((GSList *) container);
+            break;
+        case GI_TYPE_TAG_GHASH:
+            captured->list   = g_hash_table_get_keys ((GHashTable *) container);
+            captured->values = g_hash_table_get_values ((GHashTable *) container);
+            break;
+        default:
+            break;
+    }
+
+    return captured;
+}
+
+void FreeTransferContainerElements (GITypeInfo *type_info, gpointer captured_ptr) {
+    if (captured_ptr == NULL)
+        return;
+
+    CapturedContainer *captured = (CapturedContainer *) captured_ptr;
+    GITypeTag   type_tag = g_type_info_get_tag (type_info);
+    GITypeInfo *key_info = g_type_info_get_param_type (type_info, 0);
+    GIArgument  element;
+
+    if (type_tag == GI_TYPE_TAG_GSLIST) {
+        for (GSList *l = captured->slist; l != NULL; l = l->next) {
+            element.v_pointer = l->data;
+            FreeGIArgument (key_info, &element, GI_TRANSFER_EVERYTHING, GI_DIRECTION_OUT);
+        }
+        g_slist_free (captured->slist);
+    } else {
+        for (GList *l = captured->list; l != NULL; l = l->next) {
+            element.v_pointer = l->data;
+            FreeGIArgument (key_info, &element, GI_TRANSFER_EVERYTHING, GI_DIRECTION_OUT);
+        }
+        g_list_free (captured->list);
+    }
+    g_base_info_unref (key_info);
+
+    if (type_tag == GI_TYPE_TAG_GHASH) {
+        GITypeInfo *value_info = g_type_info_get_param_type (type_info, 1);
+        for (GList *l = captured->values; l != NULL; l = l->next) {
+            element.v_pointer = l->data;
+            FreeGIArgument (value_info, &element, GI_TRANSFER_EVERYTHING, GI_DIRECTION_OUT);
+        }
+        g_base_info_unref (value_info);
+        g_list_free (captured->values);
+    }
+
+    g_free (captured);
+}
+
 
 /*
  * GValue conversion functions
