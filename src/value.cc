@@ -450,6 +450,36 @@ GArray * V8ToGArray(GITypeInfo *type_info, Local<Value> value) {
     return g_array;
 }
 
+GPtrArray * V8ToGPtrArray(GITypeInfo *type_info, Local<Value> value) {
+    if (!value->IsArray()) {
+        Nan::ThrowTypeError("Expected an array.");
+        return NULL;
+    }
+
+    auto array = Local<Array>::Cast (TO_OBJECT (value));
+    int length = array->Length();
+
+    GITypeInfo *element_info = g_type_info_get_param_type (type_info, 0);
+    GPtrArray *ptr_array = g_ptr_array_sized_new (length);
+
+    for (int i = 0; i < length; i++) {
+        auto element = Nan::Get(array, i).ToLocalChecked();
+        GIArgument arg;
+
+        // A GPtrArray always stores its elements as pointers, so each element
+        // is converted to its pointer representation (e.g. g_strdup'd string,
+        // GObject/boxed pointer) and added directly.
+        if (V8ToGIArgument(element_info, &arg, element, false)) {
+            g_ptr_array_add (ptr_array, arg.v_pointer);
+        } else {
+            g_warning("V8ToGPtrArray: couldnt convert value at index %i", i);
+        }
+    }
+
+    g_base_info_unref (element_info);
+    return ptr_array;
+}
+
 static void *V8ArrayToCArray(GITypeInfo *type_info, Local<Value> value) {
     auto array = Local<Array>::Cast (TO_OBJECT (value));
     int length = array->Length();
@@ -825,6 +855,8 @@ bool V8ToGIArgument(GITypeInfo *type_info, GIArgument *arg, Local<Value> value, 
                 arg->v_pointer = V8ToGArray(type_info, value);
                 break;
             case GI_ARRAY_TYPE_PTR_ARRAY:
+                arg->v_pointer = V8ToGPtrArray(type_info, value);
+                break;
             default:
                 printf("%s", Util::ArrayTypeToString(array_type));
                 g_assert_not_reached ();
@@ -1363,9 +1395,15 @@ void FreeGIArgumentArray(GITypeInfo *type_info, GIArgument *arg, GITransfer tran
             }
         case GI_ARRAY_TYPE_ARRAY:
         case GI_ARRAY_TYPE_BYTE_ARRAY:
+            {
+                // Free the container struct, not `data`, which may have been
+                // reassigned to the inner buffer in the free-elements block.
+                g_array_free ((GArray*) arg->v_pointer, TRUE);
+                break;
+            }
         case GI_ARRAY_TYPE_PTR_ARRAY:
             {
-                g_array_free ((GArray*)data, TRUE);
+                g_ptr_array_free ((GPtrArray*) arg->v_pointer, TRUE);
                 break;
             }
         default:
