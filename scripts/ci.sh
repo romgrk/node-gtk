@@ -48,12 +48,10 @@ function npm_test() {
         npm run build:test-fixtures || true;
         npx mocha                                 \
                   --skip=callback                 \
-                  --skip=union__fields            \
                   tests/__run__.js
     else
         xvfb-run -a npm test --                   \
-                  --skip=callback                 \
-                  --skip=union__fields;
+                  --skip=callback;
     fi;
 }
 
