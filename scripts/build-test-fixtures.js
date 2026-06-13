@@ -43,6 +43,17 @@ const FIXTURES = [
     includes: ['Gio-2.0'],
   },
   {
+    // Regress depends on Utility, so it must be built/copied first.
+    namespace: 'Utility',
+    library: 'utility',
+    identifierPrefix: 'Utility',
+    symbolPrefix: 'utility',
+    sources: ['utility.c'],
+    headers: ['utility.h'],
+    packages: ['gobject-2.0'],
+    includes: [],
+  },
+  {
     namespace: 'Regress',
     library: 'regress',
     identifierPrefix: 'Regress',
@@ -50,7 +61,7 @@ const FIXTURES = [
     sources: ['regress.c'],
     headers: ['regress.h'],
     packages: ['gobject-2.0', 'gio-2.0', 'cairo', 'cairo-gobject'],
-    includes: ['Gio-2.0', 'cairo-1.0'],
+    includes: ['Gio-2.0', 'cairo-1.0', 'Utility-1.0'],
   },
 ]
 
@@ -141,6 +152,9 @@ function tryBuildFromSource(fixture, testsDir, tools) {
     '--symbol-prefix', fixture.symbolPrefix,
     '--library', fixture.library,
     '--library-path', FIXTURES_DIR,
+    // So that --include of an already-built local fixture (e.g. Utility-1.0,
+    // which Regress depends on) resolves its .gir from our output dir.
+    '--add-include-path', FIXTURES_DIR,
     ...fixture.includes.flatMap(i => ['--include', i]),
     ...fixture.packages.flatMap(p => ['--pkg', p]),
     '--cflags-begin', ...cflags.split(/\s+/).filter(Boolean), `-I${testsDir}`, '--cflags-end',
@@ -152,8 +166,8 @@ function tryBuildFromSource(fixture, testsDir, tools) {
     env: { ...process.env, LD_LIBRARY_PATH: `${FIXTURES_DIR}:${process.env.LD_LIBRARY_PATH || ''}` },
   })
 
-  // 3. compiled typelib
-  execFileSync(tools.compiler, [girPath, '--output', typelibPath], {
+  // 3. compiled typelib (--includedir resolves locally-built included girs)
+  execFileSync(tools.compiler, [girPath, '--includedir', FIXTURES_DIR, '--output', typelibPath], {
     stdio: VERBOSE ? 'inherit' : 'pipe',
   })
 
