@@ -1578,6 +1578,62 @@ void FreeTransferContainerElements (GITypeInfo *type_info, gpointer captured_ptr
     g_free (captured);
 }
 
+// Returns the boxed GType of a struct/union/boxed interface type, or
+// G_TYPE_INVALID if `type_info` isn't a registered boxed type.
+static GType BoxedGTypeOf (GITypeInfo *type_info) {
+    if (g_type_info_get_tag(type_info) != GI_TYPE_TAG_INTERFACE)
+        return G_TYPE_INVALID;
+
+    GIBaseInfo *interface_info = g_type_info_get_interface(type_info);
+    GIInfoType  interface_type = g_base_info_get_type(interface_info);
+    GType       gtype = G_TYPE_INVALID;
+
+    if (interface_type == GI_INFO_TYPE_BOXED
+            || interface_type == GI_INFO_TYPE_STRUCT
+            || interface_type == GI_INFO_TYPE_UNION) {
+        GType registered = g_registered_type_info_get_g_type(interface_info);
+        if (G_TYPE_IS_BOXED(registered))
+            gtype = registered;
+    }
+
+    g_base_info_unref(interface_info);
+    return gtype;
+}
+
+void CopyBoxedForTransferFullIn (GITypeInfo *type_info, GIArgument *arg, long length) {
+    if (arg->v_pointer == NULL)
+        return;
+
+    GITypeTag type_tag = g_type_info_get_tag(type_info);
+
+    // A single boxed argument passed by value/pointer.
+    if (type_tag == GI_TYPE_TAG_INTERFACE) {
+        GType gtype = BoxedGTypeOf(type_info);
+        if (gtype != G_TYPE_INVALID)
+            arg->v_pointer = g_boxed_copy(gtype, arg->v_pointer);
+        return;
+    }
+
+    // A C array of boxed pointers (e.g. GIMarshallingTestsBoxedStruct **).
+    if (type_tag == GI_TYPE_TAG_ARRAY
+            && g_type_info_get_array_type(type_info) == GI_ARRAY_TYPE_C
+            && length >= 0) {
+        GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
+
+        if (g_type_info_is_pointer(element_info)) {
+            GType gtype = BoxedGTypeOf(element_info);
+            if (gtype != G_TYPE_INVALID) {
+                gpointer *elements = (gpointer *) arg->v_pointer;
+                for (long i = 0; i < length; i++)
+                    if (elements[i] != NULL)
+                        elements[i] = g_boxed_copy(gtype, elements[i]);
+            }
+        }
+
+        g_base_info_unref(element_info);
+    }
+}
+
 
 /*
  * GValue conversion functions

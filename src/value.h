@@ -38,6 +38,14 @@ void         FreeGIArgumentArray (GITypeInfo *type_info, GIArgument *arg, GITran
 bool         IsTransferContainerInList (GITypeInfo *type_info, GITransfer transfer, GIDirection direction);
 gpointer     CaptureTransferContainerElements (GITypeInfo *type_info, gpointer container);
 void         FreeTransferContainerElements (GITypeInfo *type_info, gpointer captured);
+
+// For a transfer-full IN boxed argument (or a C array of boxed pointers) the
+// callee frees the passed memory, but the JS wrapper still owns its own copy,
+// which would then be double-freed when the wrapper is finalized. Replace each
+// such pointer with a g_boxed_copy so only the copy is handed to the callee.
+// See #409.
+void         CopyBoxedForTransferFullIn (GITypeInfo *type_info, GIArgument *arg, long length);
+
 bool         CanConvertV8ToGIArgument (GITypeInfo *type_info, Local<Value> value, bool may_be_null);
 
 bool         V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership = kNone);
