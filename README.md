@@ -85,7 +85,7 @@ You can also easily create custom applications:
 [A system monitor](./examples/system-monitor.js)
 
 <p align="center">
-  <img src="./img/system-monitor.png.png" alt="Hello Gtk" style="max-width: 500px; height: auto;"/>
+  <img src="./img/system-monitor.png" alt="Hello Gtk" style="max-width: 500px; height: auto;"/>
 </p>
 
 #### Other projects
