@@ -15,11 +15,12 @@ char *GetInfoName (GIBaseInfo* info) {
 
     char* name = g_strdup (info_name);
 
-    GIBaseInfo *parent;
-    while ((parent = g_base_info_get_container (info)) != NULL) {
+    GIBaseInfo *parent = g_base_info_get_container (info);
+    while (parent != NULL) {
         char *new_name = g_strconcat (g_base_info_get_name(parent), ".", name, NULL);
         g_free (name);
         name = new_name;
+        parent = g_base_info_get_container (parent);
     }
 
     char *new_name = g_strconcat (g_base_info_get_namespace(info), ".", name, NULL);
