@@ -19,8 +19,8 @@ describe('construct props', () => {
     expect(new Gtk.Image({ 'icon-name': 'go-up' }).iconName, 'go-up')
   })
 
-  it('still rejects unknown names', mustThrow(
-    'Invalid property name: does-not-exist',
+  it('still rejects unknown names (reported as written)', mustThrow(
+    'Invalid property name: doesNotExist',
     () => { new Gtk.Image({ doesNotExist: 1 }) }
   ))
 })
