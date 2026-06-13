@@ -87,9 +87,12 @@ function buildRowsPage() {
   column.append(group)
 
   const action = new Adw.ActionRow({ title: 'Action Row', subtitle: 'With a prefix icon and a suffix button' })
+  const actionSuffix = new Gtk.Button({ 'icon-name': 'go-next-symbolic', valign: Gtk.Align.CENTER, 'css-classes': ['flat'] })
   action.addPrefix(new Gtk.Image({ 'icon-name': 'starred-symbolic' }))
-  action.addSuffix(new Gtk.Button({ 'icon-name': 'go-next-symbolic', valign: Gtk.Align.CENTER, 'css-classes': ['flat'] }))
-  action.setActivatableWidget(action)
+  action.addSuffix(actionSuffix)
+  // The activatable widget must be a child control, not the row itself:
+  // pointing a row at itself makes activation recurse infinitely and crash.
+  action.setActivatableWidget(actionSuffix)
   group.add(action)
 
   const entry = new Adw.EntryRow({ title: 'Entry Row' })
