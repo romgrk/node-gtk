@@ -1,5 +1,5 @@
 /*
- * callback.js
+ * glib-timeout.js
  */
 
 const gi = require('../')
@@ -22,4 +22,7 @@ GLib.timeoutAddSeconds(0, 1, () => {
 console.log('Run loop.')
 loop.run()
 console.log('Loop ran.')
-loop.unref()
+// Note: don't call loop.unref() here. node-gtk's wrapper owns the MainLoop's
+// reference and releases it when the wrapper is garbage-collected; an explicit
+// unref() drops it a second time, which double-frees the loop and crashes at
+// process exit when gi.startLoop() is in use (#429).
