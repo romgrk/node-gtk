@@ -135,8 +135,13 @@ win.on('close-request', () => false)   // signal name + callback are typed
 You get typed constructor properties (including inherited and interface ones),
 camelCase methods with real return types, GI nullability, typed signal
 overloads, enums, `bigint` for 64-bit integers, out-parameters surfaced as the
-return value, and cross-namespace types. Because the output is a generated cache
-under `node_modules`, add a `postinstall` script so it regenerates on install:
+return value, and cross-namespace types. GNOME's API documentation is included
+as JSDoc (with `@param`/`@returns`), so editors show it on hover — this reads the
+`.gir` files installed by the libraries' `-dev`/`-devel` packages; pass
+`--no-docs` for leaner output if they aren't installed or you don't want them.
+
+Because the output is a generated cache under `node_modules`, add a `postinstall`
+script so it regenerates on install:
 
 ```json
 { "scripts": { "postinstall": "node-gtk generate-types Gtk-4.0 Adw-1" } }

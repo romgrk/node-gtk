@@ -77,6 +77,184 @@ function memberName(name) {
 }
 
 // ---------------------------------------------------------------------------
+// documentation (from .gir XML — the compiled typelib does not carry docs)
+// ---------------------------------------------------------------------------
+
+// Doc-map keys. Names match GIR `name` attributes, i.e. node-gtk's baseName()
+// (snake_case methods, dash-case properties), so the generator and parser agree.
+const DocKey = {
+  type:     (name)            => `T\0${name}`,
+  fn:       (container, name) => `M\0${container}\0${name}`, // method/ctor/static; '' container = top-level
+  prop:     (container, name) => `P\0${container}\0${name}`,
+  signal:   (container, name) => `S\0${container}\0${name}`,
+  field:    (container, name) => `F\0${container}\0${name}`,
+  enumVal:  (container, name) => `V\0${container}\0${name}`,
+  constant: (container, name) => `C\0${container}\0${name}`,
+}
+
+function girSearchDirs() {
+  const dirs = []
+  const xdg = process.env.XDG_DATA_DIRS || '/usr/local/share:/usr/share'
+  for (const d of xdg.split(':')) if (d) dirs.push(path.join(d, 'gir-1.0'))
+  dirs.push('/usr/share/gir-1.0', '/usr/local/share/gir-1.0')
+  return [...new Set(dirs)]
+}
+
+function findGir(ns, version) {
+  for (const d of girSearchDirs()) {
+    const p = path.join(d, `${ns}-${version}.gir`)
+    try { if (fs.statSync(p).isFile()) return p } catch (e) {}
+  }
+  return null
+}
+
+function unescapeXml(s) {
+  return s
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+    .replace(/&amp;/g, '&') // last, to avoid double-unescaping
+}
+
+// Turn GTK-doc markup into something readable inside a JSDoc comment.
+function cleanDoc(raw) {
+  let t = unescapeXml(raw)
+  t = t.replace(/\[(?:func|method|ctor|class|iface|struct|enum|flags|error|const|signal|property|callback|alias|vfunc|id)@([^\]]+)\]/g, '`$1`')
+  t = t.replace(/%(TRUE|FALSE|NULL)\b/g, (_, w) => '`' + w.toLowerCase() + '`')
+  t = t.replace(/%([A-Za-z_]\w*)/g, '`$1`')
+  t = t.replace(/#([A-Za-z_]\w*)/g, '`$1`')
+  t = t.replace(/\B@([A-Za-z_]\w*)/g, '`$1`')
+  t = t.replace(/\*\//g, '*\\/') // never terminate the enclosing comment
+  return t.trim()
+}
+
+// Minimal GIR scanner: walks the XML, attributing each <doc>/<doc-deprecated> to
+// its enclosing element (always the most-recently-opened element), and parameter
+// / return docs to their enclosing callable. Returns null if the .gir is absent
+// (docs are best-effort; types still generate without them).
+const TYPE_TAGS = new Set(['class', 'interface', 'record', 'union', 'enumeration', 'bitfield'])
+const CALLABLE_TAGS = new Set(['method', 'constructor', 'function', 'glib:signal', 'callback', 'virtual-method'])
+
+function loadGirDocs(ns, version) {
+  const file = findGir(ns, version)
+  if (!file) return null
+  let data
+  try { data = fs.readFileSync(file, 'utf8') } catch (e) { return null }
+
+  const docs = new Map(), deprecated = new Map()
+  const paramDocs = new Map(), returnDocs = new Map()
+  const stack = []
+  const nearestTypeName = (below) => { for (let j = below; j >= 0; j--) if (TYPE_TAGS.has(stack[j].tag)) return stack[j].name; return '' }
+  const nearestCallableKey = () => {
+    for (let j = stack.length - 1; j >= 0; j--) {
+      const f = stack[j]
+      if (CALLABLE_TAGS.has(f.tag)) {
+        const c = nearestTypeName(j - 1)
+        return f.tag === 'glib:signal' ? DocKey.signal(c, f.name) : DocKey.fn(c, f.name)
+      }
+    }
+    return null
+  }
+
+  const handleDoc = (tag, text) => {
+    const parent = stack[stack.length - 1]
+    if (!parent) return
+    if (tag === 'doc-deprecated') {
+      const k = symbolKey(parent, stack.length - 1)
+      if (k) deprecated.set(k, cleanDoc(text))
+      return
+    }
+    if (parent.tag === 'parameter') { // not instance-parameter (that's `this`)
+      const ck = nearestCallableKey()
+      if (ck && parent.name) { (paramDocs.get(ck) || paramDocs.set(ck, new Map()).get(ck)).set(parent.name, cleanDoc(text)) }
+      return
+    }
+    if (parent.tag === 'instance-parameter') return
+    if (parent.tag === 'return-value') {
+      const ck = nearestCallableKey()
+      if (ck) returnDocs.set(ck, cleanDoc(text))
+      return
+    }
+    const k = symbolKey(parent, stack.length - 1)
+    if (k) docs.set(k, cleanDoc(text))
+  }
+  const symbolKey = (frame, idx) => {
+    const c = nearestTypeName(idx - 1)
+    switch (frame.tag) {
+      case 'class': case 'interface': case 'record': case 'union':
+      case 'enumeration': case 'bitfield': case 'callback': return DocKey.type(frame.name)
+      case 'method': case 'constructor': case 'function': return DocKey.fn(c, frame.name)
+      case 'glib:signal': return DocKey.signal(c, frame.name)
+      case 'property': return DocKey.prop(c, frame.name)
+      case 'field': return DocKey.field(c, frame.name)
+      case 'member': return DocKey.enumVal(c, frame.name)
+      case 'constant': return DocKey.constant(c, frame.name)
+      default: return null
+    }
+  }
+
+  let i = 0, n = data.length
+  while (i < n) {
+    const lt = data.indexOf('<', i)
+    if (lt < 0) break
+    i = lt
+    if (data.startsWith('<!--', i)) { i = data.indexOf('-->', i) + 3; continue }
+    if (data.startsWith('<![CDATA[', i)) { i = data.indexOf(']]>', i) + 3; continue }
+    if (data.startsWith('<?', i)) { i = data.indexOf('?>', i) + 2; continue }
+    const gt = data.indexOf('>', i)
+    if (gt < 0) break
+    const raw = data.slice(i + 1, gt)
+    i = gt + 1
+    if (raw[0] === '/') { stack.pop(); continue }
+    const selfClose = raw.endsWith('/')
+    const body = selfClose ? raw.slice(0, -1) : raw
+    const sp = body.search(/\s/)
+    const tag = sp < 0 ? body : body.slice(0, sp)
+    if (tag === 'doc' || tag === 'doc-deprecated') {
+      const close = '</' + tag + '>'
+      const end = data.indexOf(close, i)
+      if (end < 0) break
+      handleDoc(tag, data.slice(i, end))
+      i = end + close.length
+      continue
+    }
+    if (selfClose) continue
+    const nm = /\bname="([^"]*)"/.exec(body)
+    stack.push({ tag, name: nm ? nm[1] : null })
+  }
+
+  return { docs, deprecated, paramDocs, returnDocs }
+}
+
+const oneLine = (s) => s.replace(/\s*\n\s*/g, ' ').trim()
+
+// Render a JSDoc block (with trailing newline) for `key`, or '' if no doc.
+// `opts.callable` pulls @param/@returns; `opts.deprecated` adds @deprecated.
+function docBlock(ctx, key, indent, opts = {}) {
+  if (!ctx.doc) return opts.deprecated ? `${indent}/** @deprecated */\n` : ''
+  const d = ctx.doc
+  const summary = d.docs.get(key)
+  const depReason = d.deprecated.get(key)
+  const params = opts.callable ? d.paramDocs.get(key) : null
+  const ret = opts.callable ? d.returnDocs.get(key) : null
+  if (!summary && !depReason && !params && !ret && !opts.deprecated) return ''
+
+  const lines = summary ? summary.split('\n') : []
+  const tags = []
+  if (params) for (const [pn, pd] of params) if (pd) tags.push(`@param ${camelCase(pn)} ${oneLine(pd)}`)
+  if (ret) tags.push(`@returns ${oneLine(ret)}`)
+  if (opts.deprecated || depReason) tags.push(`@deprecated${depReason ? ' ' + oneLine(depReason) : ''}`)
+  if (lines.length && tags.length) lines.push('')
+  lines.push(...tags)
+
+  const out = [`${indent}/**`]
+  for (const l of lines) out.push(`${indent} *${l ? ' ' + l : ''}`)
+  out.push(`${indent} */`)
+  return out.join('\n') + '\n'
+}
+
+// ---------------------------------------------------------------------------
 // type resolution: GITypeInfo -> TypeScript type string
 // ---------------------------------------------------------------------------
 
@@ -272,7 +450,7 @@ function makeMemberDedup() {
   const methodNames = new Set()
   const methodLines = new Set()
   return (l) => {
-    const m = l.match(/^\s*(?:\/\*\*.*?\*\/\s*)?(?:static\s+|readonly\s+)*("[^"]*"|[A-Za-z_$][\w$]*)(\s*\()?/)
+    const m = l.match(/^\s*(?:\/\*\*[\s\S]*?\*\/\s*)?(?:static\s+|readonly\s+)*("[^"]*"|[A-Za-z_$][\w$]*)(\s*\()?/)
     if (!m) return true
     const name = m[1], isMethod = !!m[2]
     if (isMethod) {
@@ -393,7 +571,8 @@ function emitMethods(info, nFn, getFn, ctx, ownerName, inherited) {
       const isMethod = (flags & Flags.IS_METHOD) !== 0 && (flags & Flags.IS_CONSTRUCTOR) === 0
       const isCtor = (flags & Flags.IS_CONSTRUCTOR) !== 0
       const isStatic = !isMethod // ctor or static
-      const name = memberName(camelCase(baseName(m)))
+      const rawName = baseName(m)
+      const name = memberName(camelCase(rawName))
       const sig = signature(m, ctx, { isConstructor: isCtor, ownerName })
       const decl = `(${sig.params}): ${sig.ret}`
       const kw = isStatic ? 'static ' : ''
@@ -403,19 +582,20 @@ function emitMethods(info, nFn, getFn, ctx, ownerName, inherited) {
         const inh = (isStatic ? inherited.statics : inherited.instance).get(name)
         if (inh) for (const s of inh) if (s !== decl) lines.push(`  ${kw}${name}${s}`)
       }
-      const dep = isDeprecated(m) ? '/** @deprecated */ ' : ''
-      lines.push(`  ${dep}${kw}${name}${decl}`)
+      const doc = docBlock(ctx, DocKey.fn(ownerName || '', rawName), '  ', { callable: true, deprecated: isDeprecated(m) })
+      lines.push(`${doc}  ${kw}${name}${decl}`)
     } catch (e) { /* skip unrepresentable member */ }
   }
   return lines
 }
 
-function emitProperties(info, nFn, getFn, ctx, inherited) {
+function emitProperties(info, nFn, getFn, ctx, inherited, containerName) {
   const lines = []
   const writable = []
   for (const p of each(info, nFn, getFn)) {
     try {
-      const name = memberName(camelCase(baseName(p)))
+      const rawName = baseName(p)
+      const name = memberName(camelCase(rawName))
       let t = resolveType(GI.property_info_get_type(p), ctx)
       const flags = GI.property_info_get_flags(p)
       // GParamFlags: READABLE=1, WRITABLE=2, CONSTRUCT=4, CONSTRUCT_ONLY=8
@@ -425,22 +605,25 @@ function emitProperties(info, nFn, getFn, ctx, inherited) {
       // plain field. node-gtk's accessor wins at runtime; intersect with a
       // callable so the declaration stays assignable to the inherited method.
       if (inherited && inherited.instance.has(name)) t = `${t} & ((...args: any[]) => any)`
-      lines.push(`  ${isWritable ? '' : 'readonly '}${name}: ${t}`)
+      const doc = docBlock(ctx, DocKey.prop(containerName || '', rawName), '  ')
+      lines.push(`${doc}  ${isWritable ? '' : 'readonly '}${name}: ${t}`)
       if (isWritable) writable.push({ name, t })
     } catch (e) {}
   }
   return { lines, writable }
 }
 
-function emitFields(info, nFn, getFn, ctx) {
+function emitFields(info, nFn, getFn, ctx, containerName) {
   const lines = []
   for (const f of each(info, nFn, getFn)) {
     try {
-      const name = memberName(camelCase(baseName(f)))
+      const rawName = baseName(f)
+      const name = memberName(camelCase(rawName))
       const t = resolveType(GI.field_info_get_type(f), ctx)
       const flags = GI.field_info_get_flags(f)
       const writable = (flags & FieldFlags.WRITABLE) !== 0
-      lines.push(`  ${writable ? '' : 'readonly '}${name}: ${t}`)
+      const doc = docBlock(ctx, DocKey.field(containerName || '', rawName), '  ')
+      lines.push(`${doc}  ${writable ? '' : 'readonly '}${name}: ${t}`)
     } catch (e) {}
   }
   return lines
@@ -453,7 +636,7 @@ function collectSignalsFrom(info, nFn, getFn, ctx, seen, out) {
       if (seen.has(rawName)) continue
       seen.add(rawName)
       const sig = signature(s, ctx, {})
-      out.push({ rawName, params: sig.params, ret: sig.ret })
+      out.push({ rawName, params: sig.params, ret: sig.ret, container: baseName(info) })
     } catch (e) {}
   }
 }
@@ -482,13 +665,16 @@ function collectAllSignals(info, ctx) {
 }
 
 // typed on()/once()/off()/emit() overloads (node-gtk EventEmitter style)
-function renderSignals(sigs) {
+function renderSignals(sigs, ctx) {
   if (sigs.length === 0) return []
   const lines = []
   for (const verb of ['on', 'once']) {
-    for (const s of sigs)
-      // node-gtk drops the emitting instance from the callback args (issue #21)
-      lines.push(`  ${verb}(signal: ${JSON.stringify(s.rawName)}, callback: (${s.params}) => ${s.ret}, after?: boolean): this`)
+    for (const s of sigs) {
+      // node-gtk drops the emitting instance from the callback args (issue #21).
+      // Attach the signal's doc to the `on` overload (skip `once` to avoid dupes).
+      const doc = verb === 'on' && s.container ? docBlock(ctx, DocKey.signal(s.container, s.rawName), '  ') : ''
+      lines.push(`${doc}  ${verb}(signal: ${JSON.stringify(s.rawName)}, callback: (${s.params}) => ${s.ret}, after?: boolean): this`)
+    }
     lines.push(`  ${verb}(signal: string, callback: (...args: any[]) => any, after?: boolean): this`)
   }
   lines.push(`  off(signal: string, callback: (...args: any[]) => any): this`)
@@ -535,13 +721,13 @@ function emitObject(info, ctx) {
 
   const hasIfaces = ifaces.length > 0
   const inherited = collectInheritedMethods(info, ctx)
-  const props = emitProperties(info, GI.object_info_get_n_properties, GI.object_info_get_property, ctx, inherited)
+  const props = emitProperties(info, GI.object_info_get_n_properties, GI.object_info_get_property, ctx, inherited, name)
   const methods = emitMethods(info, GI.object_info_get_n_methods, GI.object_info_get_method, ctx, name, inherited)
   // When the class merges interfaces, declare the signal API in the companion
   // interface (unified across the whole hierarchy) instead of the class body.
-  const signals = hasIfaces ? [] : renderSignals(collectSignals(info, ctx))
+  const signals = hasIfaces ? [] : renderSignals(collectSignals(info, ctx), ctx)
   const constants = each(info, GI.object_info_get_n_constants, GI.object_info_get_constant)
-    .map(c => { try { return `  static readonly ${memberName(baseName(c))}: ${resolveType(GI.constant_info_get_type(c), ctx)}` } catch { return null } })
+    .map(c => { try { return `${docBlock(ctx, DocKey.constant(name, baseName(c)), '  ')}  static readonly ${memberName(baseName(c))}: ${resolveType(GI.constant_info_get_type(c), ctx)}` } catch { return null } })
     .filter(Boolean)
 
   // constructor property bag: writable props from this class, its ancestors, and
@@ -563,9 +749,8 @@ function emitObject(info, ctx) {
   const body = [...constants, ...props.lines, ...methods, ...signals, ...signalApi].filter(dedup)
 
   const out = []
-  if (isDeprecated(info)) out.push('/** @deprecated */')
   const ext = parentRef ? ` extends ${parentRef}` : ''
-  out.push(`export class ${name}${ext} {`)
+  out.push(`${docBlock(ctx, DocKey.type(name), '', { deprecated: isDeprecated(info) })}export class ${name}${ext} {`)
   out.push(`  constructor(properties?: ${ctorProps})`)
   out.push(...body)
   out.push(`}`)
@@ -581,7 +766,7 @@ function emitObject(info, ctx) {
     const reserved = new Set(SIGNAL_API_INSTANCE.map(([n]) => n))
 
     const cdedup = makeMemberDedup()
-    const cbody = renderSignals(collectAllSignals(info, ctx)).filter(cdedup)
+    const cbody = renderSignals(collectAllSignals(info, ctx), ctx).filter(cdedup)
     for (const [mname, sigSet] of inherited.instance) {
       if (sigSet.size < 2 || ownMethodNames.has(mname) || reserved.has(mname)) continue
       for (const s of sigSet) { const line = `  ${mname}${s}`; if (cdedup(line)) cbody.push(line) }
@@ -600,14 +785,14 @@ function emitInterface(info, ctx) {
     .filter(r => !r.endsWith('.Object') && r !== 'Object') // avoid trivial cycles in prototype
 
   const inherited = collectInterfaceInheritedMethods(info, ctx)
-  const props = emitProperties(info, GI.interface_info_get_n_properties, GI.interface_info_get_property, ctx, inherited)
+  const props = emitProperties(info, GI.interface_info_get_n_properties, GI.interface_info_get_property, ctx, inherited, name)
   const methods = emitMethods(info, GI.interface_info_get_n_methods, GI.interface_info_get_method, ctx, name, inherited)
 
   const ext = prereqs.length ? ` extends ${prereqs.join(', ')}` : ''
   const dedup = makeMemberDedup()
   const instanceLines = methods.filter(l => !l.includes('static '))
   const out = []
-  out.push(`export interface ${name}${ext} {`)
+  out.push(`${docBlock(ctx, DocKey.type(name), '', { deprecated: isDeprecated(info) })}export interface ${name}${ext} {`)
   out.push(...[...props.lines, ...instanceLines].filter(dedup))
   out.push(`}`)
 
@@ -618,7 +803,7 @@ function emitInterface(info, ctx) {
   const ndedup = makeMemberDedup()
   const statics = methods
     .filter(l => l.includes('static '))
-    .map(l => l.replace(/^(\s*)(?:\/\*\*.*?\*\/\s*)?static /, '$1')) // -> `  name(params): ret`
+    .map(l => l.replace(/(^|\n)(\s*)static /, '$1$2')) // drop `static ` keyword (doc block preserved)
   const constants = each(info, GI.interface_info_get_n_constants, GI.interface_info_get_constant)
     .map(c => { try {
       return `  ${memberName(baseName(c))}: ${resolveType(GI.constant_info_get_type(c), ctx)}`
@@ -638,13 +823,12 @@ function emitStruct(info, ctx, kind) {
   const nMethFn = kind === 'union' ? GI.union_info_get_n_methods : GI.struct_info_get_n_methods
   const getMethFn = kind === 'union' ? GI.union_info_get_method : GI.struct_info_get_method
 
-  const fields = emitFields(info, nFieldsFn, getFieldFn, ctx)
+  const fields = emitFields(info, nFieldsFn, getFieldFn, ctx, name)
   const methods = emitMethods(info, nMethFn, getMethFn, ctx, name)
 
   const dedup = makeMemberDedup()
   const out = []
-  if (isDeprecated(info)) out.push('/** @deprecated */')
-  out.push(`export class ${name} {`)
+  out.push(`${docBlock(ctx, DocKey.type(name), '', { deprecated: isDeprecated(info) })}export class ${name} {`)
   out.push(`  constructor(fields?: { [key: string]: any })`)
   out.push(...[...fields, ...methods].filter(dedup))
   out.push(`}`)
@@ -654,12 +838,12 @@ function emitStruct(info, ctx, kind) {
 function emitEnum(info, ctx) {
   const name = safeIdent(baseName(info))
   const out = []
-  if (isDeprecated(info)) out.push('/** @deprecated */')
-  out.push(`export enum ${name} {`)
+  out.push(`${docBlock(ctx, DocKey.type(name), '', { deprecated: isDeprecated(info) })}export enum ${name} {`)
   for (const v of each(info, GI.enum_info_get_n_values, GI.enum_info_get_value)) {
-    const vname = safeIdent(baseName(v).toUpperCase())
+    const rawV = baseName(v)
+    const vname = safeIdent(rawV.toUpperCase())
     const value = GI.value_info_get_value(v)
-    out.push(`  ${vname} = ${value},`)
+    out.push(`${docBlock(ctx, DocKey.enumVal(name, rawV), '  ')}  ${vname} = ${value},`)
   }
   out.push(`}`)
 
@@ -678,22 +862,26 @@ function emitEnum(info, ctx) {
 }
 
 function emitFunction(info, ctx) {
-  const name = safeIdent(camelCase(baseName(info)))
+  const rawName = baseName(info)
+  const name = safeIdent(camelCase(rawName))
   const sig = signature(info, ctx, {})
-  const dep = isDeprecated(info) ? '/** @deprecated */ ' : ''
-  return `${dep}export function ${name}(${sig.params}): ${sig.ret}`
+  const doc = docBlock(ctx, DocKey.fn('', rawName), '', { callable: true, deprecated: isDeprecated(info) })
+  return `${doc}export function ${name}(${sig.params}): ${sig.ret}`
 }
 
 function emitConstant(info, ctx) {
-  const name = safeIdent(baseName(info))
+  const rawName = baseName(info)
+  const name = safeIdent(rawName)
   const t = resolveType(GI.constant_info_get_type(info), ctx)
-  return `export const ${name}: ${t}`
+  const doc = docBlock(ctx, DocKey.constant('', rawName), '', { deprecated: isDeprecated(info) })
+  return `${doc}export const ${name}: ${t}`
 }
 
 function emitCallback(info, ctx) {
   const name = safeIdent(baseName(info))
   const sig = signature(info, ctx, {})
-  return `export type ${name} = (${sig.params}) => ${sig.ret}`
+  const doc = docBlock(ctx, DocKey.type(name), '', { deprecated: isDeprecated(info) })
+  return `${doc}export type ${name} = (${sig.params}) => ${sig.ret}`
 }
 
 // ---------------------------------------------------------------------------
@@ -704,7 +892,7 @@ function generateNamespace(ns, version) {
   GI.Repository_require.call(repo, ns, version || null, 0)
   version = version || GI.Repository_get_version.call(repo, ns)
 
-  const ctx = { ns, imports: new Set() }
+  const ctx = { ns, imports: new Set(), doc: DOCS_ENABLED ? loadGirDocs(ns, version) : null }
   const decls = []
   const n = GI.Repository_get_n_infos.call(repo, ns)
 
@@ -816,13 +1004,18 @@ function generate(roots, outdir) {
 // machine / per installed library versions), so it doesn't belong in the repo.
 const DEFAULT_OUTDIR = ['node_modules', '.node-gtk-types']
 
-const USAGE = `Usage: node-gtk generate-types <Namespace-Version> [...] [--outdir DIR]
+// Doc comments are pulled from .gir XML; toggled off with --no-docs.
+let DOCS_ENABLED = true
+
+const USAGE = `Usage: node-gtk generate-types <Namespace-Version> [...] [options]
 
 Generates TypeScript declarations for the given GObject-Introspection
 namespaces (plus their dependency closure) from the typelibs installed on
 THIS machine, and a node-gtk.d.ts module shim.
 
-Output defaults to ./node_modules/.node-gtk-types (hidden, already gitignored).
+Options:
+  --outdir DIR   output directory (default: ./node_modules/.node-gtk-types)
+  --no-docs      omit JSDoc comments (smaller output; docs come from .gir XML)
 
 Examples:
   node-gtk generate-types Gtk-4.0
@@ -838,6 +1031,7 @@ function run(argv) {
   const roots = []
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--outdir') { outdir = path.resolve(argv[++i]); continue }
+    if (argv[i] === '--no-docs') { DOCS_ENABLED = false; continue }
     if (argv[i] === '-h' || argv[i] === '--help') { console.log(USAGE); return }
     roots.push(argv[i])
   }

@@ -76,11 +76,15 @@ type-check with **0 errors even without `skipLibCheck`**. Modelled faithfully:
 - Relative imports use `.js` extensions, so the output works under
   `moduleResolution` node16/nodenext (and bundler). `skipLibCheck` is no longer
   required for the GTK stack, though it remains a fine default.
+- **JSDoc comments** from the `.gir` XML — class/method/property/signal/enum
+  docs, with `@param`/`@returns`/`@deprecated` — so editors show GNOME's API docs
+  on hover. The typelib doesn't carry docs, so this reads the matching
+  `<Namespace>-<version>.gir` from `$XDG_DATA_DIRS/gir-1.0` (shipped by the
+  library's `-dev`/`-devel` package). Best-effort: if the `.gir` is absent, types
+  still generate without comments. Pass `--no-docs` for leaner output (~5× smaller).
 
 ## Remaining limitations
 
-- **GIR doc comments** are not emitted — the compiled typelib does not carry
-  them; this needs the `.gir` XML as a second input source.
 - **Overriding an inherited method that collides by name** in a user subclass
   (e.g. a gutter renderer's `activate(iter, …)` vs `GtkWidget.activate()`)
   requires the override to satisfy both signatures — an inherent consequence of
