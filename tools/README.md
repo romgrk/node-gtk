@@ -10,8 +10,9 @@ rules as `lib/bootstrap.js`, the output matches what node-gtk produces at runtim
 ## User workflow
 
 ```sh
-# 1. generate types for the namespaces you use (+ their dependency closure)
-npx node-gtk gen-types Gtk-4.0 --outdir ./gtk-types
+# 1. generate types for the namespaces you use (+ their dependency closure).
+#    Output defaults to ./node_modules/.node-gtk-types (hidden, gitignored).
+npx node-gtk generate-types Gtk-4.0
 
 # 2. point tsconfig at the generated shim
 ```
@@ -20,7 +21,7 @@ npx node-gtk gen-types Gtk-4.0 --outdir ./gtk-types
 {
   "compilerOptions": {
     "skipLibCheck": true,
-    "paths": { "node-gtk": ["./gtk-types/node-gtk.d.ts"] }
+    "paths": { "node-gtk": ["./node_modules/.node-gtk-types/node-gtk.d.ts"] }
   }
 }
 ```
@@ -32,24 +33,25 @@ const win = new Gtk.ApplicationWindow({ title: 'Hi', defaultWidth: 400 })
 win.on('close-request', () => false)
 ```
 
-`gen-types` emits one `<Namespace>-<version>.d.ts` per namespace plus a
+`generate-types` emits one `<Namespace>-<version>.d.ts` per namespace plus a
 `node-gtk.d.ts` module shim. The shim overloads `require()` so each
 `gi.require('Ns','ver')` resolves to the matching generated namespace; namespaces
-you didn't generate fall back to `any`. Typically wired into a `postinstall`
-script so it's invisible.
+you didn't generate fall back to `any`. Because the default output lives under
+`node_modules`, it's treated as a generated cache — wire it into a `postinstall`
+script so it regenerates after install.
 
 ## Pieces (prototype)
 
-- `bin/node-gtk.js` — CLI entry (`package.json` `"bin"`); dispatches `gen-types`.
+- `bin/node-gtk.js` — CLI entry (`package.json` `"bin"`); dispatches `generate-types`.
 - `tools/generate-types.js` — the generator. `run(argv)` / `generate(roots, outdir)`.
 - `examples/ts-demo/` — `app.ts` (valid, typechecks clean) and `app-errors.ts`
-  (4 deliberate mistakes, all caught). Run `gen-types` into `gtk-types/` first
+  (4 deliberate mistakes, all caught). Generate types into `.node-gtk-types/` first
   (see that dir's `.gitignore`).
 
 ## Verify the demo
 
 ```sh
-node bin/node-gtk.js gen-types Gtk-4.0 --outdir examples/ts-demo/gtk-types
+node bin/node-gtk.js generate-types Gtk-4.0 --outdir examples/ts-demo/.node-gtk-types
 node_modules/.bin/tsc -p examples/ts-demo/tsconfig.json          # passes clean
 sed 's/app.ts/app-errors.ts/' examples/ts-demo/tsconfig.json > examples/ts-demo/tsconfig.errors.json
 node_modules/.bin/tsc -p examples/ts-demo/tsconfig.errors.json   # 4 errors caught

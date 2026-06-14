@@ -3,13 +3,13 @@
  * node-gtk CLI
  *
  * Subcommands:
- *   gen-types   Generate TypeScript declarations from the installed typelibs.
+ *   generate-types   Generate TypeScript declarations from the installed typelibs.
  */
 
 const cmd = process.argv[2]
 
 switch (cmd) {
-  case 'gen-types':
+  case 'generate-types':
     require('../tools/generate-types.js').run(process.argv.slice(3))
     break
   case undefined:
@@ -20,9 +20,9 @@ switch (cmd) {
 Usage: node-gtk <command> [options]
 
 Commands:
-  gen-types <Namespace-Version> [...]   Generate TypeScript types (.d.ts)
+  generate-types <Namespace-Version> [...]   Generate TypeScript types (.d.ts)
 
-Run \`node-gtk gen-types --help\` for details.`)
+Run \`node-gtk generate-types --help\` for details.`)
     process.exit(cmd ? 0 : 1)
     break
   default:

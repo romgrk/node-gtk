@@ -8,7 +8,7 @@
     "noEmit": true,
     "types": [],
     "paths": {
-      "node-gtk": ["./gtk-types/node-gtk.d.ts"]
+      "node-gtk": ["./.node-gtk-types/node-gtk.d.ts"]
     }
   },
   "files": ["app-errors.ts"]
