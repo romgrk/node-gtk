@@ -34,7 +34,6 @@ namespace GNodeJS {
 static Nan::Persistent<FunctionTemplate> baseTemplate;
 
 
-static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data);
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
 static MaybeLocal<Function>         GetClass(GType gtype);
 static void StoreVFunc(GType gtype, Callback *callback);
@@ -101,17 +100,24 @@ out:
 }
 
 struct GObjectWrapper;
-static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObjectWrapper> &data);
+static void GObjectDestroyedFirstPass(const v8::WeakCallbackInfo<GObjectWrapper> &data);
+static void GObjectDestroyedSecondPass(const v8::WeakCallbackInfo<GObjectWrapper> &data);
 
 struct GObjectWrapper {
     Nan::Persistent<Object> persistent;
     GObject *gobject;
     /* Set to true the moment SetWeak is called. Between that point and the
-     * GObjectDestroyed weak callback actually running, the V8 handle is already
-     * zapped (kGlobalHandleZapValue). If ToggleNotify fires in that window
-     * (because native code adjusts the refcount), touching the persistent
-     * crashes. Guard every persistent access with this flag. */
+     * destroy callback actually running, the V8 handle is weak (and, once GC
+     * reclaims it, dead). If ToggleNotify fires in that window (because native
+     * code adjusts the refcount), touching the persistent crashes. Guard every
+     * persistent access with this flag. */
     bool dying = false;
+    /* Set in the first-pass weak callback, i.e. the instant GC reclaims the
+     * wrapper, before any JS/GTK code resumes. While this is true the
+     * persistent is dead but the qdata still points here until the second-pass
+     * callback runs; WrapperFromGObject must build a fresh wrapper rather than
+     * resurrect this one. */
+    bool collected = false;
 };
 
 static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down) {
@@ -121,7 +127,7 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
 
     auto *wrapper = (GObjectWrapper *) data;
 
-    /* If GObjectDestroyed is already pending (handle zapped by GC but callback
+    /* If the destroy callback is already pending (handle weak/dead but callback
      * not yet dispatched), don't touch the persistent — it's dead. */
     if (wrapper->dying)
         return;
@@ -130,7 +136,13 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
         /* We're dropping from 2 refs to 1 ref. We are the last holder. Make
          * sure that that our weak ref is installed. */
         wrapper->dying = true;
-        wrapper->persistent.SetWeak (wrapper, GObjectDestroyed, v8::WeakCallbackType::kParameter);
+        /* Two-pass weak callback: the first pass runs *during* GC (before any
+         * JS/GTK code resumes) and only flips a flag, so WrapperFromGObject can
+         * tell a reclaimed wrapper from a live one and never marshals a dead
+         * handle to JS. All GObject teardown happens in the second pass — a
+         * first-pass callback may not call into GObject. */
+        wrapper->persistent.v8::PersistentBase<Object>::SetWeak (
+            wrapper, GObjectDestroyedFirstPass, v8::WeakCallbackType::kParameter);
     } else {
         /* We're going from 1 ref to 2 refs. We can't let our wrapper be
          * collected, so make sure that our reference is persistent */
@@ -205,14 +217,37 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
     }
 }
 
-static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObjectWrapper> &data) {
+static void GObjectDestroyedFirstPass(const v8::WeakCallbackInfo<GObjectWrapper> &data) {
+    GObjectWrapper *wrapper = data.GetParameter ();
+
+    /* This runs *during* GC, where it is not legal to call into V8 (beyond
+     * resetting the handle, which the two-pass contract requires) or into
+     * GObject — the GObject is not safe to touch here, and doing so crashes in
+     * g_type_check_instance_is_fundamentally_a. So only flip a flag and reset
+     * the handle; the real teardown is deferred to the second pass.
+     *
+     * The flag lets WrapperFromGObject distinguish a reclaimed wrapper (whose
+     * persistent is now dead) from a live one during the window before the
+     * second pass nulls the qdata, so it builds a fresh wrapper instead of
+     * handing the dead handle to JS — which crashed on first property access. */
+    wrapper->collected = true;
+    wrapper->persistent.Reset ();
+
+    data.SetSecondPassCallback (GObjectDestroyedSecondPass);
+}
+
+static void GObjectDestroyedSecondPass(const v8::WeakCallbackInfo<GObjectWrapper> &data) {
     GObjectWrapper *wrapper = data.GetParameter ();
     GObject *gobject = wrapper->gobject;
 
-    g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
-    delete wrapper;
+    /* Runs after GC: GObject calls are safe again. Only detach the qdata if it
+     * still points at us — WrapperFromGObject may have resurrected this GObject
+     * with a fresh wrapper while we were pending, and we must not clobber it. */
+    if (g_object_get_qdata (gobject, GNodeJS::object_quark()) == wrapper)
+        g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
 
     g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
+    delete wrapper;
 }
 
 static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
@@ -676,8 +711,14 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
 
     if (data) {
         auto *wrapper = (GObjectWrapper *) data;
-        auto obj = New<Object> (wrapper->persistent);
-        return obj;
+        /* Reuse the existing wrapper unless GC has already reclaimed it (its
+         * persistent is dead and only awaiting the second-pass teardown). In
+         * that case fall through and build a fresh wrapper; the stale one's
+         * second pass is guarded so it won't clobber the new qdata. */
+        if (!wrapper->collected) {
+            auto obj = New<Object> (wrapper->persistent);
+            return obj;
+        }
     }
 
     GType gtype = G_OBJECT_TYPE(gobject);
