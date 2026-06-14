@@ -56,12 +56,14 @@ static gboolean loop_source_prepare (GSource *base, int *timeout) {
      * immediately every iteration -> loop_source_dispatch() busy-spins at 100%
      * CPU, starving GTK. Masking the fd lets GLib actually block until a GTK
      * source wakes us; we restore polling as soon as the loop is alive again. */
+#if !OS_WINDOWS
     if (source->fd_tag != NULL && loop_alive != source->fd_polled) {
         g_source_modify_unix_fd (&source->source, source->fd_tag,
                                  loop_alive ? (GIOCondition) (G_IO_IN | G_IO_OUT | G_IO_ERR)
                                             : (GIOCondition) 0);
         source->fd_polled = loop_alive;
     }
+#endif
 
     /* If the loop is dead, we can simply sleep forever until a GTK+ source
      * (presumably) wakes us back up again. */
