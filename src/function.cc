@@ -69,6 +69,35 @@ static bool IsMethod (GIBaseInfo *info) {
             (flags & GI_FUNCTION_IS_CONSTRUCTOR) == 0);
 }
 
+static bool EndsWith (const char *str, const char *suffix) {
+    size_t str_len = strlen (str);
+    size_t suffix_len = strlen (suffix);
+    return str_len >= suffix_len && strcmp (str + str_len - suffix_len, suffix) == 0;
+}
+
+/* True for an instance method that deallocates the instance itself — a *_free
+ * or *_unref on a boxed/struct/union. node-gtk's wrapper owns the memory and
+ * frees it on GC, so after such a call the wrapper must disown it or GC will
+ * double-free (#429). Restricted to boxed-like containers: GObject lifetime is
+ * handled separately, and gtk_widget_destroy() etc. don't free the wrapper. */
+static bool FreesInstance (GIFunctionInfo *info) {
+    if (!IsMethod (info))
+        return false;
+
+    const char *symbol = g_function_info_get_symbol (info);
+    if (symbol == NULL || !(EndsWith (symbol, "_free") || EndsWith (symbol, "_unref")))
+        return false;
+
+    GIBaseInfo *container = g_base_info_get_container (info);
+    if (container == NULL)
+        return false;
+
+    GIInfoType type = g_base_info_get_type (container);
+    return type == GI_INFO_TYPE_STRUCT
+        || type == GI_INFO_TYPE_UNION
+        || type == GI_INFO_TYPE_BOXED;
+}
+
 static bool ShouldSkipReturn(GIBaseInfo *info, GITypeInfo *return_type) {
     return g_type_info_get_tag(return_type) == GI_TYPE_TAG_VOID
         || g_callable_info_skip_return(info) == TRUE;
@@ -136,6 +165,7 @@ bool FunctionInfo::Init() {
 
     is_method = IsMethod(info);
     can_throw = g_callable_info_can_throw_gerror (info);
+    frees_instance = FreesInstance(info);
 
     n_callable_args = g_callable_info_get_n_args (info);
     n_total_args = n_callable_args;
@@ -568,6 +598,11 @@ Local<Value> FunctionCall (
                 FreeGIArgument (&arg_type, &arg_value, transfer, direction);
         }
     }
+
+    // If this method freed the instance, drop node-gtk's ownership of it so the
+    // GC finalizer won't free it a second time (#429).
+    if (func->frees_instance && !didThrow)
+        DisownBoxed (info.This());
 
     #ifndef __linux__
         delete[] total_arg_values;

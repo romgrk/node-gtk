@@ -41,4 +41,10 @@ Local<FunctionTemplate> GetBoxedTemplate (GIBaseInfo *info, GType gtype);
 Local<Value>            WrapperFromBoxed (GIBaseInfo *info, void *data, ResourceOwnership ownership = kNone);
 void *                  PointerFromWrapper (Local<Value>);
 
+// Relinquish ownership of a boxed wrapper's memory: clears owns_memory so the
+// GC finalizer won't free it, and nulls the data pointer so later use fails
+// cleanly instead of touching freed memory. Used after an introspected method
+// that frees the instance itself (e.g. *_free / *_unref) — see #429.
+void                    DisownBoxed (Local<Value>);
+
 };

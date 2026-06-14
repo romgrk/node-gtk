@@ -33,6 +33,7 @@ struct FunctionInfo {
 
     bool is_method;
     bool can_throw;
+    bool frees_instance; /* a *_free/*_unref method that deallocates the instance (#429) */
 
     int n_callable_args;
     int n_total_args;
