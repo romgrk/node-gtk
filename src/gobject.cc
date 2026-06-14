@@ -100,21 +100,41 @@ out:
     return gobject;
 }
 
+struct GObjectWrapper;
+static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObjectWrapper> &data);
+
+struct GObjectWrapper {
+    Nan::Persistent<Object> persistent;
+    GObject *gobject;
+    /* Set to true the moment SetWeak is called. Between that point and the
+     * GObjectDestroyed weak callback actually running, the V8 handle is already
+     * zapped (kGlobalHandleZapValue). If ToggleNotify fires in that window
+     * (because native code adjusts the refcount), touching the persistent
+     * crashes. Guard every persistent access with this flag. */
+    bool dying = false;
+};
+
 static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down) {
     void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
 
     g_assert (data != NULL);
 
-    auto *persistent = (Nan::Persistent<Object> *) data;
+    auto *wrapper = (GObjectWrapper *) data;
+
+    /* If GObjectDestroyed is already pending (handle zapped by GC but callback
+     * not yet dispatched), don't touch the persistent — it's dead. */
+    if (wrapper->dying)
+        return;
 
     if (toggle_down) {
         /* We're dropping from 2 refs to 1 ref. We are the last holder. Make
          * sure that that our weak ref is installed. */
-        persistent->SetWeak (gobject, GObjectDestroyed, v8::WeakCallbackType::kParameter);
+        wrapper->dying = true;
+        wrapper->persistent.SetWeak (wrapper, GObjectDestroyed, v8::WeakCallbackType::kParameter);
     } else {
         /* We're going from 1 ref to 2 refs. We can't let our wrapper be
          * collected, so make sure that our reference is persistent */
-        persistent->ClearWeak ();
+        wrapper->persistent.ClearWeak ();
     }
 }
 
@@ -123,8 +143,10 @@ static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype
 
     SET_OBJECT_GTYPE(object, gtype);
 
-    auto *persistent = new Nan::Persistent<Object>(object);
-    g_object_set_qdata (gobject, GNodeJS::object_quark(), persistent);
+    auto *wrapper = new GObjectWrapper();
+    wrapper->gobject = gobject;
+    wrapper->persistent.Reset(object);
+    g_object_set_qdata (gobject, GNodeJS::object_quark(), wrapper);
 
     // Because we can't sink floating ref and add toggle ref at the same time,
     // first sink the floating ref, add the toggle ref, and then release the
@@ -183,16 +205,12 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
     }
 }
 
-static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObject> &data) {
-    GObject *gobject = data.GetParameter ();
+static void GObjectDestroyed(const Nan::WeakCallbackInfo<GObjectWrapper> &data) {
+    GObjectWrapper *wrapper = data.GetParameter ();
+    GObject *gobject = wrapper->gobject;
 
-    void *type_data = g_object_get_qdata (gobject, GNodeJS::object_quark());
-    auto *persistent = (Nan::Persistent<Object> *) type_data;
-    delete persistent;
-
-    /* We're destroying the wrapper object, so make sure to clear out
-     * the qdata that points back to us. */
     g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
+    delete wrapper;
 
     g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
 }
@@ -657,9 +675,8 @@ Local<Value> WrapperFromGObject(GObject *gobject) {
     void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
 
     if (data) {
-        /* Easy case: we already have an object. */
-        auto *persistent = (Nan::Persistent<Object> *) data;
-        auto obj = New<Object> (*persistent);
+        auto *wrapper = (GObjectWrapper *) data;
+        auto obj = New<Object> (wrapper->persistent);
         return obj;
     }
 
