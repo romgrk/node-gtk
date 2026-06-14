@@ -12,6 +12,8 @@ namespace GNodeJS {
 
   void StartLoop();
 
+  bool IsRunningMicrotasks();
+
   void QuitLoopStack();
 
   Local<Array> GetLoopStack();

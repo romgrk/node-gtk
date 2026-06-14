@@ -380,6 +380,10 @@ NAN_METHOD(StartLoop) {
     GNodeJS::StartLoop ();
 }
 
+NAN_METHOD(IsRunningMicrotasks) {
+    info.GetReturnValue().Set(Nan::New<Boolean>(GNodeJS::IsRunningMicrotasks ()));
+}
+
 NAN_METHOD(GetBaseClass) {
     auto tpl = GNodeJS::GetBaseClassTemplate ();
     auto fn = Nan::GetFunction (tpl).ToLocalChecked();
@@ -425,6 +429,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     Nan::Export(exports, "ObjectPropertyGetter", ObjectPropertyGetter);
     Nan::Export(exports, "ObjectPropertySetter", ObjectPropertySetter);
     Nan::Export(exports, "StartLoop",            StartLoop);
+    Nan::Export(exports, "IsRunningMicrotasks",  IsRunningMicrotasks);
     Nan::Export(exports, "GetLoopStack",         GetLoopStack);
     Nan::Export(exports, "RegisterClass",        RegisterClass);
     Nan::Export(exports, "RegisterVFunc",        RegisterVFunc);
