@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "GNOME Gtk+ bindings for NodeJS",
   "main": "lib/index.js",
+  "bin": {
+    "node-gtk": "bin/node-gtk.js"
+  },
   "scripts": {
     "install": "npx node-pre-gyp install --fallback-to-build",
     "build:test-fixtures": "node scripts/build-test-fixtures.js",
@@ -53,9 +56,11 @@
     "node-pre-gyp-github": "^1.4.5"
   },
   "files": [
+    "/bin",
     "/lib",
     "/src",
     "/scripts",
+    "/tools",
     "binding.gyp"
   ],
   "binary": {
