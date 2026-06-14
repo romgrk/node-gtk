@@ -57,22 +57,31 @@ sed 's/app.ts/app-errors.ts/' examples/ts-demo/tsconfig.json > examples/ts-demo/
 node_modules/.bin/tsc -p examples/ts-demo/tsconfig.errors.json   # 4 errors caught
 ```
 
-## Known limitations (prototype)
+## Fidelity
 
-Real consumers use `skipLibCheck: true` (standard for generated GIR types) →
-the generated types and demos compile with **0 errors**. Running `tsc` directly
-over the `.d.ts` files surfaces ~52 internal conflicts — the canonical hard
-cases of modeling GObject in TS (the same ones ts-for-gir handles):
+The generated `.d.ts` for the full Gtk-3.0, Gtk-4.0, and Adw/GtkSource stacks
+type-check with **0 errors even without `skipLibCheck`**. Modelled faithfully:
 
-- **TS2416/2417/2430** — subclass method/static/property override covariance.
-- **TS2320** — class implementing multiple interfaces with a common ancestor
-  whose member types conflict.
+- OUT/INOUT params surfaced via the return value as node-gtk does
+  (`getStartIter(): TextIter`, `getIterAtLine(n): [boolean, TextIter]`).
+- Callback argument types expanded (e.g. `Gio.AsyncReadyCallback`).
+- 64-bit ints return `bigint` (full precision, #323/#149); params accept
+  `number | bigint`.
+- Enum methods and interface constants emitted (declaration-merged).
+- GObject override conflicts reconciled as overloads, so subclass methods stay
+  assignable to inherited ones; multiple-interface signal/method conflicts
+  resolved with a unified, assignable-to-all declaration.
+- Interfaces emit both a type and a value, so constructor functions and
+  constants work (`Gio.File.newForPath(...)`).
+- Relative imports use `.js` extensions, so the output works under
+  `moduleResolution` node16/nodenext (and bundler). `skipLibCheck` is no longer
+  required for the GTK stack, though it remains a fine default.
 
-Other simplifications, each marked `// LIMITATION` in the generator:
+## Remaining limitations
 
-- OUT/INOUT parameters are dropped (node-gtk surfaces them via return-value
-  tupling — needs modeling).
-- Callback parameter types not expanded (`(...args: any[]) => any`).
-- `int64`/`uint64` typed `number` (may be `bigint` at runtime).
-- Enum methods and interface constants not emitted.
-- GIR doc comments not included (the typelib carries less than the `.gir`).
+- **GIR doc comments** are not emitted — the compiled typelib does not carry
+  them; this needs the `.gir` XML as a second input source.
+- **Overriding an inherited method that collides by name** in a user subclass
+  (e.g. a gutter renderer's `activate(iter, …)` vs `GtkWidget.activate()`)
+  requires the override to satisfy both signatures — an inherent consequence of
+  the GObject API reusing a name, not specific to these types.

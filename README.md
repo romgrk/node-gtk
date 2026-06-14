@@ -26,6 +26,7 @@ Pre-built binaries available for: **Linux**, **macOS**
 
 - [Usage](#usage)
 - [Documentation](#documentation)
+- [TypeScript](#typescript)
 - [Installing and building](#installing-and-building)
   - [Target Platforms](#target-platforms)
   - [Requirements](#requirements)
@@ -95,6 +96,53 @@ The [react-gtk](https://github.com/codejamninja/react-gtk) project may also allo
 ## Documentation
 
 [Read our documentation here](./doc/index.md)
+
+## TypeScript
+
+node-gtk can generate TypeScript declarations for the libraries you use,
+straight from the GObject-Introspection typelibs installed on your machine — so
+the types always match your actual library versions and node-gtk's own runtime
+shape (camelCase methods, signal callbacks, nullability, etc.).
+
+```sh
+# generates ./node_modules/.node-gtk-types (a hidden, git-ignored cache)
+npx node-gtk generate-types Gtk-4.0 Adw-1
+```
+
+The command emits one declaration file per namespace (plus the full dependency
+closure) and a `node-gtk.d.ts` shim. Point your `tsconfig.json` at it:
+
+```jsonc
+{
+  "compilerOptions": {
+    "moduleResolution": "node16",
+    "paths": { "node-gtk": ["./node_modules/.node-gtk-types/node-gtk.d.ts"] }
+  }
+}
+```
+
+Then `gi.require` is fully typed — the namespace is inferred from the string
+arguments:
+
+```ts
+import * as gi from 'node-gtk'
+
+const Gtk = gi.require('Gtk', '4.0')   // typed as the Gtk-4.0 namespace
+const win = new Gtk.ApplicationWindow({ title: 'Hello', defaultWidth: 400 })
+win.on('close-request', () => false)   // signal name + callback are typed
+```
+
+You get typed constructor properties (including inherited and interface ones),
+camelCase methods with real return types, GI nullability, typed signal
+overloads, enums, `bigint` for 64-bit integers, out-parameters surfaced as the
+return value, and cross-namespace types. Because the output is a generated cache
+under `node_modules`, add a `postinstall` script so it regenerates on install:
+
+```json
+{ "scripts": { "postinstall": "node-gtk generate-types Gtk-4.0 Adw-1" } }
+```
+
+Run `npx node-gtk generate-types --help` for options.
 
 ## Installing and building
 

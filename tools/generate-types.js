@@ -91,9 +91,14 @@ function resolveType(typeInfo, ctx) {
     case Tag.BOOLEAN:
       return 'boolean'
     case Tag.INT8: case Tag.UINT8: case Tag.INT16: case Tag.UINT16:
-    case Tag.INT32: case Tag.UINT32: case Tag.INT64: case Tag.UINT64:
+    case Tag.INT32: case Tag.UINT32:
     case Tag.FLOAT: case Tag.DOUBLE: case Tag.UNICHAR:
-      return 'number' // LIMITATION: int64/uint64 may be bigint at runtime
+      return 'number'
+    case Tag.INT64: case Tag.UINT64:
+      // node-gtk marshals 64-bit integers as BigInt for full precision
+      // (#323/#149). Params additionally accept number — handled at the param
+      // site in signature().
+      return 'bigint'
     case Tag.GTYPE:
       return 'bigint' // node-gtk represents GType as BigInt (see getGType)
     case Tag.UTF8: case Tag.FILENAME:
@@ -135,12 +140,33 @@ function resolveInterfaceType(typeInfo, ctx) {
 
   switch (itype) {
     case T.CALLBACK:
-      return '(...args: any[]) => any' // LIMITATION: callback signature not expanded
-    case T.OBJECT: case T.INTERFACE: case T.STRUCT: case T.BOXED:
+      return callbackType(iface, ctx)
+    case T.STRUCT:
+      // gtype "class struct" (e.g. GObject.ObjectClass) is intentionally not
+      // emitted (bootstrap.js skips it); references resolve to `any`.
+      if (GI.struct_info_is_gtype_struct(iface)) return 'any'
+      return qualify(ns, safeIdent(name), ctx)
+    case T.OBJECT: case T.INTERFACE: case T.BOXED:
     case T.UNION: case T.ENUM: case T.FLAGS:
       return qualify(ns, safeIdent(name), ctx)
     default:
       return 'any'
+  }
+}
+
+// Expand a callback type to a TS function type. node-gtk invokes the JS callback
+// with the native args positionally (callback.cc); a TS type with the same/typed
+// params is assignable. Guard against deep self-referential callback nesting.
+function callbackType(iface, ctx) {
+  if ((ctx.cbDepth || 0) > 3) return '(...args: any[]) => any'
+  ctx.cbDepth = (ctx.cbDepth || 0) + 1
+  try {
+    const sig = signature(iface, ctx, {})
+    return `(${sig.params}) => ${sig.ret}`
+  } catch (e) {
+    return '(...args: any[]) => any'
+  } finally {
+    ctx.cbDepth--
   }
 }
 
@@ -156,37 +182,80 @@ function qualify(ns, name, ctx) {
 // callables (functions / methods / constructors / signals / vfuncs)
 // ---------------------------------------------------------------------------
 
-// Returns { params: string, ret: string }
+const DIR = GI.Direction
+
+// Mirrors src/function.cc: classify each arg, hide the ones node-gtk manages
+// automatically (array-length args; a callback's user_data/GDestroyNotify), and
+// model the return as node-gtk does — a tuple of
+//   [ C return (unless void/skip), ...each OUT/INOUT param ]
+// where 0 values -> void, 1 -> the bare value, >1 -> a [tuple].
+// Returns { params: string, ret: string }.
 function signature(callable, ctx, { isConstructor = false, ownerName = null } = {}) {
   const args = each(callable, GI.callable_info_get_n_args, GI.callable_info_get_arg)
+  const n = args.length
+  const dir = args.map(a => GI.arg_info_get_direction(a))
+  const types = args.map(a => GI.arg_info_get_type(a))
+  const kind = new Array(n).fill('NORMAL') // NORMAL | ARRAY | CALLBACK | SKIP
+
+  // classification pass (function.cc:157-238)
+  for (let i = 0; i < n; i++) {
+    if (kind[i] === 'SKIP') continue
+    const tag = GI.type_info_get_tag(types[i])
+
+    if (tag === Tag.ARRAY && GI.type_info_get_array_length(types[i]) >= 0) {
+      kind[i] = 'ARRAY'
+      kind[GI.type_info_get_array_length(types[i])] = 'SKIP' // length arg is hidden
+    } else if (tag === Tag.INTERFACE) {
+      const iface = GI.type_info_get_interface(types[i])
+      if (iface && baseType(iface) === T.CALLBACK) {
+        kind[i] = 'CALLBACK'
+        const destroyI = GI.arg_info_get_destroy(args[i])
+        const closureI = GI.arg_info_get_closure(args[i])
+        if (destroyI >= 0 && destroyI < n) kind[destroyI] = 'SKIP' // GDestroyNotify
+        if (closureI >= 0 && closureI < n) kind[closureI] = 'SKIP' // user_data
+      }
+    }
+  }
+
+  // JS input params: IN/INOUT, not hidden
   const params = []
-  let argIndex = 0
-
-  for (const arg of args) {
-    const dir = GI.arg_info_get_direction(arg)
-    // LIMITATION: OUT params are dropped here; node-gtk surfaces them via the
-    // return value (tupling). A production generator would model that.
-    if (dir === GI.Direction.OUT) continue
-
-    const argType = GI.arg_info_get_type(arg)
-    let t = resolveType(argType, ctx)
-    if (GI.arg_info_may_be_null(arg)) t += ' | null'
-
-    let pname = safeIdent(camelCase(baseName(arg))) || `arg${argIndex}`
-    params.push(`${pname}: ${t}`)
-    argIndex++
+  for (let i = 0; i < n; i++) {
+    if (kind[i] === 'SKIP' || dir[i] === DIR.OUT) continue
+    let t = resolveType(types[i], ctx)
+    // 64-bit integers come back as bigint, but the IN side also accepts number.
+    const tag = GI.type_info_get_tag(types[i])
+    if (tag === Tag.INT64 || tag === Tag.UINT64) t = 'number | bigint'
+    if (GI.arg_info_may_be_null(args[i])) t += ' | null'
+    params.push(`${safeIdent(camelCase(baseName(args[i]))) || `arg${i}`}: ${t}`)
   }
 
-  let ret
-  if (isConstructor && ownerName) {
-    ret = ownerName
-  } else {
-    const retType = GI.callable_info_get_return_type(callable)
-    ret = resolveType(retType, ctx)
-    if (GI.callable_info_may_return_null(callable) && ret !== 'void' && ret !== 'any')
-      ret += ' | null'
+  if (isConstructor && ownerName)
+    return { params: params.join(', '), ret: ownerName }
+
+  // out-values, in node-gtk's order
+  const retType = GI.callable_info_get_return_type(callable)
+  const retLengthI = GI.type_info_get_array_length(retType)
+  const skipReturn =
+    GI.type_info_get_tag(retType) === Tag.VOID || GI.callable_info_skip_return(callable)
+
+  const outs = []
+  if (!skipReturn) {
+    let rt = resolveType(retType, ctx)
+    if (GI.callable_info_may_return_null(callable) && rt !== 'any') rt += ' | null'
+    outs.push(rt)
+  }
+  for (let i = 0; i < n; i++) {
+    if (i === retLengthI || kind[i] === 'SKIP' || kind[i] === 'CALLBACK') continue
+    if (dir[i] === DIR.OUT || dir[i] === DIR.INOUT) {
+      let t = resolveType(types[i], ctx)
+      if (GI.arg_info_may_be_null(args[i])) t += ' | null'
+      outs.push(t)
+    }
   }
 
+  const ret = outs.length === 0 ? 'void'
+            : outs.length === 1 ? outs[0]
+            : `[${outs.join(', ')}]`
   return { params: params.join(', '), ret }
 }
 
@@ -194,34 +263,168 @@ function signature(callable, ctx, { isConstructor = false, ownerName = null } = 
 // member emitters
 // ---------------------------------------------------------------------------
 
-function emitMethods(info, nFn, getFn, ctx, ownerName) {
+// Returns a filter that dedups members within one class/interface body while
+// PRESERVING method overloads: non-method members (properties/fields/constants)
+// dedup by name (first wins); methods dedup by full signature so distinct
+// overloads survive; a method name colliding with a non-method is dropped.
+function makeMemberDedup() {
+  const nonMethod = new Set()
+  const methodNames = new Set()
+  const methodLines = new Set()
+  return (l) => {
+    const m = l.match(/^\s*(?:\/\*\*.*?\*\/\s*)?(?:static\s+|readonly\s+)*("[^"]*"|[A-Za-z_$][\w$]*)(\s*\()?/)
+    if (!m) return true
+    const name = m[1], isMethod = !!m[2]
+    if (isMethod) {
+      if (nonMethod.has(name) || methodLines.has(l)) return false
+      methodLines.add(l); methodNames.add(name); return true
+    }
+    if (nonMethod.has(name) || methodNames.has(name)) return false
+    nonMethod.add(name); return true
+  }
+}
+
+// The signal/event API every GObject inherits from BaseClass (lib/bootstrap.js).
+// Kept as [name, signature] so a subclass method that shadows one of these (e.g.
+// Gio.SocketConnection.connect) can carry it as an overload and stay assignable.
+const SIGNAL_API_INSTANCE = [
+  ['connect',    '(signal: string, callback: (...args: any[]) => any, after?: boolean): number'],
+  ['disconnect', '(handlerId: number): void'],
+  ['on',         '(signal: string, callback: (...args: any[]) => any, after?: boolean): this'],
+  ['once',       '(signal: string, callback: (...args: any[]) => any, after?: boolean): this'],
+  ['off',        '(signal: string, callback: (...args: any[]) => any): this'],
+  ['emit',       '(signal: string, ...args: any[]): any'],
+]
+
+// Walk ancestors + implemented interfaces, mapping method name -> set of emitted
+// signatures `(params): ret`. Used to reconcile overrides: TS requires a
+// subclass member to be assignable to the inherited one, so when a class's own
+// method shadows an inherited method with a different signature we re-emit the
+// inherited signature(s) as extra overloads. Mirrors what works at runtime,
+// where the JS method simply shadows the inherited one.
+function collectInheritedMethods(info, ctx) {
+  const instance = new Map(), statics = new Map()
+  const add = (map, k, s) => { (map.get(k) || map.set(k, new Set()).get(k)).add(s) }
+
+  if (GI.object_info_get_parent(info))
+    for (const [n, s] of SIGNAL_API_INSTANCE) add(instance, n, s)
+
+  const addMethods = (klass, ownerName) => {
+    for (const m of each(klass, GI.object_info_get_n_methods, GI.object_info_get_method)) {
+      try {
+        const flags = GI.function_info_get_flags(m)
+        const isMethod = (flags & Flags.IS_METHOD) !== 0 && (flags & Flags.IS_CONSTRUCTOR) === 0
+        const isCtor = (flags & Flags.IS_CONSTRUCTOR) !== 0
+        const sig = signature(m, ctx, { isConstructor: isCtor, ownerName })
+        add(isMethod ? instance : statics, memberName(camelCase(baseName(m))), `(${sig.params}): ${sig.ret}`)
+      } catch (e) {}
+    }
+  }
+  const addIfaceMethods = (klass) => {
+    for (const iface of each(klass, GI.object_info_get_n_interfaces, GI.object_info_get_interface))
+      for (const m of each(iface, GI.interface_info_get_n_methods, GI.interface_info_get_method)) {
+        try {
+          const sig = signature(m, ctx, {})
+          add(instance, memberName(camelCase(baseName(m))), `(${sig.params}): ${sig.ret}`)
+        } catch (e) {}
+      }
+  }
+
+  addIfaceMethods(info) // own interfaces (merged into the class type)
+  let p = GI.object_info_get_parent(info)
+  while (p && baseType(p) === T.OBJECT) {
+    // qualify so an inherited constructor's return type (ownerName) is valid
+    // across namespaces (e.g. Gtk.NumerableIcon extends Gio.EmblemedIcon).
+    addMethods(p, qualify(baseNamespace(p), safeIdent(baseName(p)), ctx))
+    addIfaceMethods(p)
+    p = GI.object_info_get_parent(p)
+  }
+  return { instance, statics }
+}
+
+// Like collectInheritedMethods but for an interface: gather methods from its
+// prerequisites (objects walked as classes, interfaces walked recursively) so
+// emitInterface can reconcile members it shadows (e.g. ToolShell.getStyle vs
+// Widget.getStyle).
+function collectInterfaceInheritedMethods(info, ctx) {
+  const instance = new Map()
+  const add = (k, s) => { (instance.get(k) || instance.set(k, new Set()).get(k)).add(s) }
+  const visited = new Set()
+
+  const addObj = (klass) => {
+    let p = klass
+    while (p && baseType(p) === T.OBJECT) {
+      for (const m of each(p, GI.object_info_get_n_methods, GI.object_info_get_method)) {
+        try {
+          const flags = GI.function_info_get_flags(m)
+          if ((flags & Flags.IS_METHOD) === 0 || (flags & Flags.IS_CONSTRUCTOR) !== 0) continue
+          const sig = signature(m, ctx, {})
+          add(memberName(camelCase(baseName(m))), `(${sig.params}): ${sig.ret}`)
+        } catch (e) {}
+      }
+      for (const iface of each(p, GI.object_info_get_n_interfaces, GI.object_info_get_interface)) visitIface(iface)
+      p = GI.object_info_get_parent(p)
+    }
+  }
+  function visitIface(iface) {
+    const key = baseNamespace(iface) + '.' + baseName(iface)
+    if (visited.has(key)) return
+    visited.add(key)
+    for (const m of each(iface, GI.interface_info_get_n_methods, GI.interface_info_get_method)) {
+      try { const sig = signature(m, ctx, {}); add(memberName(camelCase(baseName(m))), `(${sig.params}): ${sig.ret}`) } catch (e) {}
+    }
+    for (const pr of each(iface, GI.interface_info_get_n_prerequisites, GI.interface_info_get_prerequisite)) {
+      if (baseType(pr) === T.OBJECT) addObj(pr); else if (baseType(pr) === T.INTERFACE) visitIface(pr)
+    }
+  }
+
+  for (const pr of each(info, GI.interface_info_get_n_prerequisites, GI.interface_info_get_prerequisite)) {
+    if (baseType(pr) === T.OBJECT) addObj(pr); else if (baseType(pr) === T.INTERFACE) visitIface(pr)
+  }
+  for (const [n, s] of SIGNAL_API_INSTANCE) add(n, s)
+  return { instance, statics: new Map() }
+}
+
+function emitMethods(info, nFn, getFn, ctx, ownerName, inherited) {
   const lines = []
   for (const m of each(info, nFn, getFn)) {
     try {
       const flags = GI.function_info_get_flags(m)
       const isMethod = (flags & Flags.IS_METHOD) !== 0 && (flags & Flags.IS_CONSTRUCTOR) === 0
       const isCtor = (flags & Flags.IS_CONSTRUCTOR) !== 0
+      const isStatic = !isMethod // ctor or static
       const name = memberName(camelCase(baseName(m)))
       const sig = signature(m, ctx, { isConstructor: isCtor, ownerName })
+      const decl = `(${sig.params}): ${sig.ret}`
+      const kw = isStatic ? 'static ' : ''
+
+      // override reconciliation: carry differing inherited signatures as overloads
+      if (inherited) {
+        const inh = (isStatic ? inherited.statics : inherited.instance).get(name)
+        if (inh) for (const s of inh) if (s !== decl) lines.push(`  ${kw}${name}${s}`)
+      }
       const dep = isDeprecated(m) ? '/** @deprecated */ ' : ''
-      if (isCtor)        lines.push(`  ${dep}static ${name}(${sig.params}): ${sig.ret}`)
-      else if (isMethod) lines.push(`  ${dep}${name}(${sig.params}): ${sig.ret}`)
-      else               lines.push(`  ${dep}static ${name}(${sig.params}): ${sig.ret}`)
+      lines.push(`  ${dep}${kw}${name}${decl}`)
     } catch (e) { /* skip unrepresentable member */ }
   }
   return lines
 }
 
-function emitProperties(info, nFn, getFn, ctx) {
+function emitProperties(info, nFn, getFn, ctx, inherited) {
   const lines = []
   const writable = []
   for (const p of each(info, nFn, getFn)) {
     try {
       const name = memberName(camelCase(baseName(p)))
-      const t = resolveType(GI.property_info_get_type(p), ctx)
+      let t = resolveType(GI.property_info_get_type(p), ctx)
       const flags = GI.property_info_get_flags(p)
       // GParamFlags: READABLE=1, WRITABLE=2, CONSTRUCT=4, CONSTRUCT_ONLY=8
       const isWritable = (flags & 2) !== 0
+      // A property whose name shadows an inherited METHOD (e.g. GTK3
+      // AppChooserWidget.show-all vs Widget.show_all()) is irreconcilable as a
+      // plain field. node-gtk's accessor wins at runtime; intersect with a
+      // callable so the declaration stays assignable to the inherited method.
+      if (inherited && inherited.instance.has(name)) t = `${t} & ((...args: any[]) => any)`
       lines.push(`  ${isWritable ? '' : 'readonly '}${name}: ${t}`)
       if (isWritable) writable.push({ name, t })
     } catch (e) {}
@@ -243,24 +446,49 @@ function emitFields(info, nFn, getFn, ctx) {
   return lines
 }
 
-// signals -> typed on()/once()/off() overloads (node-gtk EventEmitter style)
-function emitSignals(info, nFn, getFn, ctx) {
-  const sigs = []
+function collectSignalsFrom(info, nFn, getFn, ctx, seen, out) {
   for (const s of each(info, nFn, getFn)) {
     try {
       const rawName = baseName(s)
+      if (seen.has(rawName)) continue
+      seen.add(rawName)
       const sig = signature(s, ctx, {})
-      sigs.push({ rawName, params: sig.params, ret: sig.ret })
+      out.push({ rawName, params: sig.params, ret: sig.ret })
     } catch (e) {}
   }
-  if (sigs.length === 0) return []
+}
 
+// own signals only
+function collectSignals(info, ctx) {
+  const out = []
+  collectSignalsFrom(info, GI.object_info_get_n_signals, GI.object_info_get_signal, ctx, new Set(), out)
+  return out
+}
+
+// all signals reachable: self + ancestors + every implemented interface. Used so
+// a class that merges interfaces can declare a single `on` that is a superset of
+// (and therefore assignable to) each base's `on`, resolving multiple-inheritance
+// conflicts (TS2320).
+function collectAllSignals(info, ctx) {
+  const seen = new Set(), out = []
+  let k = info
+  while (k && baseType(k) === T.OBJECT) {
+    collectSignalsFrom(k, GI.object_info_get_n_signals, GI.object_info_get_signal, ctx, seen, out)
+    for (const iface of each(k, GI.object_info_get_n_interfaces, GI.object_info_get_interface))
+      collectSignalsFrom(iface, GI.interface_info_get_n_signals, GI.interface_info_get_signal, ctx, seen, out)
+    k = GI.object_info_get_parent(k)
+  }
+  return out
+}
+
+// typed on()/once()/off()/emit() overloads (node-gtk EventEmitter style)
+function renderSignals(sigs) {
+  if (sigs.length === 0) return []
   const lines = []
   for (const verb of ['on', 'once']) {
-    for (const s of sigs) {
+    for (const s of sigs)
       // node-gtk drops the emitting instance from the callback args (issue #21)
       lines.push(`  ${verb}(signal: ${JSON.stringify(s.rawName)}, callback: (${s.params}) => ${s.ret}, after?: boolean): this`)
-    }
     lines.push(`  ${verb}(signal: string, callback: (...args: any[]) => any, after?: boolean): this`)
   }
   lines.push(`  off(signal: string, callback: (...args: any[]) => any): this`)
@@ -305,9 +533,13 @@ function emitObject(info, ctx) {
   const ifaces = each(info, GI.object_info_get_n_interfaces, GI.object_info_get_interface)
     .map(i => qualify(baseNamespace(i), safeIdent(baseName(i)), ctx))
 
-  const props = emitProperties(info, GI.object_info_get_n_properties, GI.object_info_get_property, ctx)
-  const methods = emitMethods(info, GI.object_info_get_n_methods, GI.object_info_get_method, ctx, name)
-  const signals = emitSignals(info, GI.object_info_get_n_signals, GI.object_info_get_signal, ctx)
+  const hasIfaces = ifaces.length > 0
+  const inherited = collectInheritedMethods(info, ctx)
+  const props = emitProperties(info, GI.object_info_get_n_properties, GI.object_info_get_property, ctx, inherited)
+  const methods = emitMethods(info, GI.object_info_get_n_methods, GI.object_info_get_method, ctx, name, inherited)
+  // When the class merges interfaces, declare the signal API in the companion
+  // interface (unified across the whole hierarchy) instead of the class body.
+  const signals = hasIfaces ? [] : renderSignals(collectSignals(info, ctx))
   const constants = each(info, GI.object_info_get_n_constants, GI.object_info_get_constant)
     .map(c => { try { return `  static readonly ${memberName(baseName(c))}: ${resolveType(GI.constant_info_get_type(c), ctx)}` } catch { return null } })
     .filter(Boolean)
@@ -319,35 +551,44 @@ function emitObject(info, ctx) {
     ? `{ ${[...ctor].map(([n, t]) => `${n}?: ${t}`).join(', ')} }`
     : '{}'
 
-  // dedup members by declared identifier (props/methods/constants can collide,
-  // e.g. a property `foo` plus a getter method also surfaced as `foo`)
-  const seen = new Set()
-  const dedup = (lines) => lines.filter(l => {
-    const m = l.match(/^\s*(?:static\s+|readonly\s+|\/\*\*[^*]*\*\/\s*)*([A-Za-z_$][\w$]*)\s*[(:]/)
-    if (!m) return true
-    if (seen.has(m[1])) return false
-    seen.add(m[1])
-    return true
-  })
+  // The synthetic signal API is declared once on root classes; subclasses
+  // inherit it (and reconcile via collectInheritedMethods when they shadow it).
+  const signalApi = []
+  if (!parentRef) {
+    for (const [n, s] of SIGNAL_API_INSTANCE) signalApi.push(`  ${n}${s}`)
+    signalApi.push(`  readonly __gtype__: bigint`)
+  }
+
+  const dedup = makeMemberDedup()
+  const body = [...constants, ...props.lines, ...methods, ...signals, ...signalApi].filter(dedup)
 
   const out = []
   if (isDeprecated(info)) out.push('/** @deprecated */')
   const ext = parentRef ? ` extends ${parentRef}` : ''
   out.push(`export class ${name}${ext} {`)
   out.push(`  constructor(properties?: ${ctorProps})`)
-  out.push(...dedup(constants))
-  out.push(...dedup(props.lines))
-  out.push(...dedup(methods))
-  out.push(...signals)
-  // low-level signal API always present (from BaseClass)
-  out.push(`  connect(signal: string, callback: (...args: any[]) => any, after?: boolean): number`)
-  out.push(`  disconnect(handlerId: number): void`)
-  out.push(`  readonly __gtype__: bigint`)
+  out.push(...body)
   out.push(`}`)
 
-  // declaration merge to pull in interface members
-  if (ifaces.length)
-    out.push(`export interface ${name} extends ${ifaces.join(', ')} {}`)
+  // Companion interface: declaration-merges the implemented interfaces, and
+  // resolves multiple-inheritance conflicts (TS2320) by declaring a unified,
+  // assignable-to-all version of any member two bases disagree on:
+  //  - `on`/`once`/... unified across the whole signal hierarchy
+  //  - real methods present on >1 base with differing signatures, as overloads
+  if (hasIfaces) {
+    const ownMethodNames = new Set(each(info, GI.object_info_get_n_methods, GI.object_info_get_method)
+      .map(m => { try { return memberName(camelCase(baseName(m))) } catch { return null } }))
+    const reserved = new Set(SIGNAL_API_INSTANCE.map(([n]) => n))
+
+    const cdedup = makeMemberDedup()
+    const cbody = renderSignals(collectAllSignals(info, ctx)).filter(cdedup)
+    for (const [mname, sigSet] of inherited.instance) {
+      if (sigSet.size < 2 || ownMethodNames.has(mname) || reserved.has(mname)) continue
+      for (const s of sigSet) { const line = `  ${mname}${s}`; if (cdedup(line)) cbody.push(line) }
+    }
+
+    out.push(`export interface ${name} extends ${ifaces.join(', ')} {${cbody.length ? '\n' + cbody.join('\n') + '\n' : ''}}`)
+  }
 
   return out.join('\n')
 }
@@ -358,23 +599,35 @@ function emitInterface(info, ctx) {
     .map(p => qualify(baseNamespace(p), safeIdent(baseName(p)), ctx))
     .filter(r => !r.endsWith('.Object') && r !== 'Object') // avoid trivial cycles in prototype
 
-  const props = emitProperties(info, GI.interface_info_get_n_properties, GI.interface_info_get_property, ctx)
-  const methods = emitMethods(info, GI.interface_info_get_n_methods, GI.interface_info_get_method, ctx, name)
+  const inherited = collectInterfaceInheritedMethods(info, ctx)
+  const props = emitProperties(info, GI.interface_info_get_n_properties, GI.interface_info_get_property, ctx, inherited)
+  const methods = emitMethods(info, GI.interface_info_get_n_methods, GI.interface_info_get_method, ctx, name, inherited)
 
   const ext = prereqs.length ? ` extends ${prereqs.join(', ')}` : ''
-  const seen = new Set()
-  const dedup = (lines) => lines.filter(l => {
-    const m = l.match(/^\s*(?:static\s+|readonly\s+|\/\*\*[^*]*\*\/\s*)*([A-Za-z_$][\w$]*)\s*[(:]/)
-    if (!m) return true
-    if (seen.has(m[1])) return false
-    seen.add(m[1]); return true
-  })
+  const dedup = makeMemberDedup()
+  const instanceLines = methods.filter(l => !l.includes('static '))
   const out = []
   out.push(`export interface ${name}${ext} {`)
-  out.push(...dedup(props.lines))
-  // interface methods: strip leading indentation markers that imply static
-  out.push(...dedup(methods.filter(l => !l.includes('static '))))
+  out.push(...[...props.lines, ...instanceLines].filter(dedup))
   out.push(`}`)
+
+  // node-gtk exposes an interface as a runtime value carrying its constructor
+  // functions (e.g. Gio.File.newForPath) and constants. Emit a same-named const
+  // (coexists with the interface type) so the name is usable as a value too. An
+  // object-type member may be named `new`/`default` etc., unlike a namespace fn.
+  const ndedup = makeMemberDedup()
+  const statics = methods
+    .filter(l => l.includes('static '))
+    .map(l => l.replace(/^(\s*)(?:\/\*\*.*?\*\/\s*)?static /, '$1')) // -> `  name(params): ret`
+  const constants = each(info, GI.interface_info_get_n_constants, GI.interface_info_get_constant)
+    .map(c => { try {
+      return `  ${memberName(baseName(c))}: ${resolveType(GI.constant_info_get_type(c), ctx)}`
+    } catch (e) { return null } })
+    .filter(Boolean)
+  const valueLines = [...statics, ...constants].filter(ndedup)
+  if (valueLines.length)
+    out.push(`export const ${name}: {\n${valueLines.join('\n')}\n}`)
+
   return out.join('\n')
 }
 
@@ -388,19 +641,12 @@ function emitStruct(info, ctx, kind) {
   const fields = emitFields(info, nFieldsFn, getFieldFn, ctx)
   const methods = emitMethods(info, nMethFn, getMethFn, ctx, name)
 
-  const seen = new Set()
-  const dedup = (lines) => lines.filter(l => {
-    const m = l.match(/^\s*(?:static\s+|readonly\s+|\/\*\*[^*]*\*\/\s*)*([A-Za-z_$][\w$]*)\s*[(:]/)
-    if (!m) return true
-    if (seen.has(m[1])) return false
-    seen.add(m[1]); return true
-  })
+  const dedup = makeMemberDedup()
   const out = []
   if (isDeprecated(info)) out.push('/** @deprecated */')
   out.push(`export class ${name} {`)
   out.push(`  constructor(fields?: { [key: string]: any })`)
-  out.push(...dedup(fields))
-  out.push(...dedup(methods))
+  out.push(...[...fields, ...methods].filter(dedup))
   out.push(`}`)
   return out.join('\n')
 }
@@ -416,6 +662,18 @@ function emitEnum(info, ctx) {
     out.push(`  ${vname} = ${value},`)
   }
   out.push(`}`)
+
+  // node-gtk attaches enum methods to the enum object (bootstrap.js makeEnum);
+  // surface them via a declaration-merged namespace.
+  const methods = each(info, GI.enum_info_get_n_methods, GI.enum_info_get_method)
+    .map(m => { try {
+      const sig = signature(m, ctx, {})
+      return `  export function ${memberName(camelCase(baseName(m)))}(${sig.params}): ${sig.ret}`
+    } catch (e) { return null } })
+    .filter(Boolean)
+  if (methods.length)
+    out.push(`export namespace ${name} {\n${methods.join('\n')}\n}`)
+
   return out.join('\n')
 }
 
@@ -485,7 +743,9 @@ function generateNamespace(ns, version) {
   ]
   const imports = [...ctx.imports]
     .filter(dep => dep !== ns)
-    .map(dep => `import type * as ${dep} from './${dep}-${depVersion[dep] || '*'}'`)
+    // `.js` extension: required under moduleResolution node16/nodenext (and fine
+    // for bundler); resolves to the sibling `.d.ts`.
+    .map(dep => `import type * as ${dep} from './${dep}-${depVersion[dep] || '*'}.js'`)
   if (imports.length) { header.push(...imports, '') }
 
   return { version, deps, body: header.join('\n') + decls.join('\n\n') + '\n' }
@@ -513,7 +773,7 @@ function writeShim(outdir, nsVersions) {
   lines.push(``)
   lines.push(`declare module 'node-gtk' {`)
   for (const [ns, version] of nsVersions) {
-    lines.push(`  export function require(ns: ${JSON.stringify(ns)}, version: ${JSON.stringify(version)}): typeof import('./${ns}-${version}')`)
+    lines.push(`  export function require(ns: ${JSON.stringify(ns)}, version: ${JSON.stringify(version)}): typeof import('./${ns}-${version}.js')`)
   }
   lines.push(`  export function require(ns: string, version?: string): any`)
   lines.push(SHIM_STATIC_API)
