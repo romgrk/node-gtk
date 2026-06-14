@@ -90,6 +90,24 @@ is being invoked from within a microtask. Two consequences for ESM code:
 Under CommonJS (and inside signal callbacks) nothing changes: the run calls block
 synchronously and return their value exactly as before.
 
+> **Design note (may be reconsidered).** Two approaches were considered for #442:
+>
+> - **Transparent auto-defer (chosen).** node-gtk detects the microtask context
+>   and defers the blocking call automatically, so existing ESM code keeps
+>   working with no changes. The cost is the leaky behavior above: under ESM the
+>   run call no longer blocks, which is surprising and silently breaks idioms
+>   like `process.exit(app.run([]))`.
+> - **Explicit async API (alternative).** Keep the blocking calls strictly
+>   synchronous and add awaitable variants (e.g. `await loop.runAsync()`),
+>   leaving ESM users to opt in. This has clean, predictable semantics and no
+>   hidden return-immediately behavior, but it does *not* transparently fix
+>   existing ESM code — users must change their code, and plain `loop.run()`
+>   would still starve microtasks under ESM (or would need to throw/warn).
+>
+> The transparent approach was chosen to fix existing code out of the box, but
+> given the leaky semantics this trade-off may be revisited — possibly moving to
+> (or also offering) the explicit async API.
+
 You can also easily create custom applications:
 
 [A web browser (using WebKit2GTK)](./examples/browser.js)
