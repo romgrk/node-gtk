@@ -481,12 +481,15 @@ Local<Value> FunctionCall (
                     param.data.v_pointer = CaptureTransferContainerElements(
                             &type_info, callable_arg_values[i].v_pointer);
                 }
-                // For a transfer-full IN boxed (or array of boxed) the callee
-                // frees the memory; hand it a copy so the JS wrapper's own
-                // memory isn't double-freed when it's finalized (#409).
+                // For a transfer-full IN argument the callee takes ownership.
+                // Boxed: hand it a copy so the JS wrapper's own memory isn't
+                // double-freed when finalized (#409). GObject: add the reference
+                // the callee will own, so it isn't finalized out from under the
+                // callee once the wrapper is GC'd (#439).
                 else if (direction == GI_DIRECTION_IN
                         && g_arg_info_get_ownership_transfer(&arg_info) == GI_TRANSFER_EVERYTHING) {
                     CopyBoxedForTransferFullIn(&type_info, &callable_arg_values[i], param.length);
+                    RefObjectForTransferFullIn(&type_info, &callable_arg_values[i]);
                 }
             }
 

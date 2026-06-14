@@ -1650,6 +1650,30 @@ void CopyBoxedForTransferFullIn (GITypeInfo *type_info, GIArgument *arg, long le
     }
 }
 
+void RefObjectForTransferFullIn (GITypeInfo *type_info, GIArgument *arg) {
+    if (arg->v_pointer == NULL)
+        return;
+
+    if (g_type_info_get_tag(type_info) != GI_TYPE_TAG_INTERFACE)
+        return;
+
+    GIBaseInfo *iface = g_type_info_get_interface(type_info);
+    GIInfoType  itype = g_base_info_get_type(iface);
+
+    // The callee owns one reference after the call (transfer-full). node-gtk
+    // keeps only its toggle ref, so without this the callee would effectively
+    // "own" the toggle ref: the refcount never accounts for the new owner, no
+    // toggle-up fires, the wrapper stays weak, and once GC collects it the
+    // destroy callback finalizes the object while the callee still uses it
+    // (e.g. a controller passed to gtk_widget_add_controller). The G_IS_OBJECT
+    // guard skips boxed/fundamental interface types (handled elsewhere).
+    if ((itype == GI_INFO_TYPE_OBJECT || itype == GI_INFO_TYPE_INTERFACE)
+            && G_IS_OBJECT(arg->v_pointer))
+        g_object_ref(arg->v_pointer);
+
+    g_base_info_unref(iface);
+}
+
 
 /*
  * GValue conversion functions
