@@ -26,6 +26,8 @@ static Nan::Persistent<Array> loopStack(Nan::New<Array> ());
 struct uv_loop_source {
     GSource source;
     uv_loop_t *loop;
+    gpointer fd_tag;
+    bool fd_polled;
 };
 
 static gboolean loop_source_prepare (GSource *base, int *timeout) {
@@ -44,6 +46,22 @@ static gboolean loop_source_prepare (GSource *base, int *timeout) {
     CallMicrotaskHandlers ();
 
     bool loop_alive = uv_loop_alive (source->loop);
+
+    /* Toggle whether GLib polls uv's backend fd. When the loop is dead we must
+     * stop polling it: an *unref'd* but still-active uv handle (e.g. the async
+     * eventfd left signaling by emscripten/WASM runtimes such as web-tree-sitter,
+     * or by worker_threads) keeps the backend epoll fd perpetually readable.
+     * uv_loop_alive() reports the loop dead (unref'd handles don't count), so we
+     * intend to sleep here, but a polled-and-ready fd makes GLib's poll() return
+     * immediately every iteration -> loop_source_dispatch() busy-spins at 100%
+     * CPU, starving GTK. Masking the fd lets GLib actually block until a GTK
+     * source wakes us; we restore polling as soon as the loop is alive again. */
+    if (source->fd_tag != NULL && loop_alive != source->fd_polled) {
+        g_source_modify_unix_fd (&source->source, source->fd_tag,
+                                 loop_alive ? (GIOCondition) (G_IO_IN | G_IO_OUT | G_IO_ERR)
+                                            : (GIOCondition) 0);
+        source->fd_polled = loop_alive;
+    }
 
     /* If the loop is dead, we can simply sleep forever until a GTK+ source
      * (presumably) wakes us back up again. */
@@ -92,13 +110,15 @@ static GSourceFuncs uv_loop_source_funcs = {
 static GSource *loop_source_new (uv_loop_t *loop) {
     struct uv_loop_source *source = (struct uv_loop_source *) g_source_new (&uv_loop_source_funcs, sizeof (*source));
     source->loop = loop;
+    source->fd_tag = NULL;
+    source->fd_polled = true;
 #if OS_WINDOWS
     // FIXME
     // https://github.com/nodejs/node/issues/36015
 #else
-    g_source_add_unix_fd (&source->source,
-                          uv_backend_fd (loop),
-                          (GIOCondition) (G_IO_IN | G_IO_OUT | G_IO_ERR));
+    source->fd_tag = g_source_add_unix_fd (&source->source,
+                                           uv_backend_fd (loop),
+                                           (GIOCondition) (G_IO_IN | G_IO_OUT | G_IO_ERR));
 #endif
     return &source->source;
 }
