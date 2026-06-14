@@ -44,6 +44,8 @@ Changes to be released are kept in the unreleased section.
   value (#404).
 - Marshal integer-keyed `GHashTable` IN without dereferencing keys (#402).
 - Report the original property name for an unknown construct property (#320).
+- Disown boxed wrappers freed via their own `*_free`/`*_unref` methods to avoid
+  a double free (#429).
 - Fixed nine correctness/safety bugs found in a full-source review (#395).
 
 ## v0.5.0
