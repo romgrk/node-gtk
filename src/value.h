@@ -46,6 +46,12 @@ void         FreeTransferContainerElements (GITypeInfo *type_info, gpointer capt
 // See #409.
 void         CopyBoxedForTransferFullIn (GITypeInfo *type_info, GIArgument *arg, long length);
 
+// For a transfer-full IN GObject argument the callee takes ownership of one
+// reference. node-gtk only holds a toggle ref on the wrapper, so add the
+// reference the callee expects — otherwise the object is finalized out from
+// under the callee once the wrapper is GC'd. See #439.
+void         RefObjectForTransferFullIn (GITypeInfo *type_info, GIArgument *arg);
+
 bool         CanConvertV8ToGIArgument (GITypeInfo *type_info, Local<Value> value, bool may_be_null);
 
 bool         V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership = kNone);
