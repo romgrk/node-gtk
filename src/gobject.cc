@@ -128,14 +128,17 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
 
     auto *wrapper = (GObjectWrapper *) data;
 
-    /* If the destroy callback is already pending (handle weak/dead but callback
-     * not yet dispatched), don't touch the persistent — it's dead. */
-    if (wrapper->dying)
+    /* The V8 handle has already been reclaimed by GC (collected) — it is dead
+     * and can be made neither weak nor strong. If the object is marshalled
+     * again, WrapperFromGObject builds a fresh wrapper. */
+    if (wrapper->collected)
         return;
 
     if (toggle_down) {
-        /* We're dropping from 2 refs to 1 ref. We are the last holder. Make
-         * sure that that our weak ref is installed. */
+        /* We're dropping from 2 refs to 1 ref: we are the last holder, so the
+         * wrapper may be collected. Install the weak ref (unless it already is). */
+        if (wrapper->dying)
+            return;
         wrapper->dying = true;
         /* Two-pass weak callback: the first pass runs *during* GC (before any
          * JS/GTK code resumes) and only flips a flag, so WrapperFromGObject can
@@ -145,8 +148,16 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
         wrapper->persistent.v8::PersistentBase<Object>::SetWeak (
             wrapper, GObjectDestroyedFirstPass, v8::WeakCallbackType::kParameter);
     } else {
-        /* We're going from 1 ref to 2 refs. We can't let our wrapper be
-         * collected, so make sure that our reference is persistent */
+        /* We're going from 1 ref to 2 refs: something other than us now holds
+         * the object, so the wrapper must stay alive (strong) until that ref is
+         * dropped again. Reviving here is essential — without it a wrapper that
+         * went weak once (e.g. a freshly constructed object at refcount 1) would
+         * never become strong again when GTK takes ownership, and GC could then
+         * collect a wrapper whose GObject is still in use (notably a subclassed
+         * widget owned by GTK, losing its overridden vfuncs and instance state). */
+        if (!wrapper->dying)
+            return;
+        wrapper->dying = false;
         wrapper->persistent.ClearWeak ();
     }
 }
