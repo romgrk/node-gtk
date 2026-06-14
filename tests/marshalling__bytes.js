@@ -36,7 +36,9 @@ describe('bytearray full inout (-> [h,e,l,0,255])', () => {
 
 describe('gbytes full return', () => {
   const bytes = m.gbytesFullReturn()
-  assert(bytes.getSize() === 4, `gbytes size should be 4, got ${bytes.getSize()}`)
+  // g_bytes_get_size returns a gsize, which is 64-bit on LP64 and marshalled
+  // as BigInt (#323, #149).
+  assert(bytes.getSize() === 4n, `gbytes size should be 4, got ${bytes.getSize()}`)
 })
 
 describe('gbytes none in', () => {

@@ -9,6 +9,9 @@
  * the callback also has a return value it comes first ([retval, ...outs]). The
  * caller-side function returns a single unwrapped value when there is exactly
  * one result, or an array when there are several.
+ *
+ * The glong return value / out params come back as BigInt (#323, #149); the
+ * JS callback may still produce a plain Number for them.
  */
 
 const { describe, expect } = require('./__common__.js')
@@ -17,7 +20,7 @@ const { requireGIMarshallingTests } = require('./__gi-fixtures__.js')
 const m = requireGIMarshallingTests()
 
 describe('callback return value only', () => {
-  expect(m.callbackReturnValueOnly(() => 42), 42)
+  expect(m.callbackReturnValueOnly(() => 42), 42n)
 })
 
 describe('callback one out parameter', () => {
@@ -29,11 +32,11 @@ describe('callback multiple out parameters', () => {
 })
 
 describe('callback return value and one out parameter', () => {
-  expect(m.callbackReturnValueAndOneOutParameter(() => [46, 47]), [46, 47])
+  expect(m.callbackReturnValueAndOneOutParameter(() => [46, 47]), [46n, 47n])
 })
 
 describe('callback return value and multiple out parameters', () => {
-  expect(m.callbackReturnValueAndMultipleOutParameters(() => [48, 49, 50]), [48, 49, 50])
+  expect(m.callbackReturnValueAndMultipleOutParameters(() => [48, 49, 50]), [48n, 49n, 50n])
 })
 
 describe('gclosure return (-> GClosure)', () => {

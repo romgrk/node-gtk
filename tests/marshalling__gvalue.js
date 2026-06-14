@@ -33,10 +33,9 @@ describe('gvalue return/out (int 42)', () => {
   expect(m.gvalueOutCallerAllocates().getInt(), 42)
 })
 
-describe('gvalue int64 out (G_MAXINT64, with double precision loss)', () => {
-  // G_MAXINT64 (2^63 - 1) is not exactly representable as a JS double; both
-  // sides round identically, so compare against the rounded reference value.
-  expect(m.gvalueInt64Out().getInt64(), Number(2n ** 63n - 1n))
+describe('gvalue int64 out (G_MAXINT64, exact via BigInt)', () => {
+  // 64-bit integers come back as BigInt (#323), so G_MAXINT64 is exact.
+  expect(m.gvalueInt64Out().getInt64(), 2n ** 63n - 1n)
 })
 
 describe('gvalue int64 in (G_MAXINT64)', () => {
@@ -44,6 +43,29 @@ describe('gvalue int64 in (G_MAXINT64)', () => {
   v.init(GObject.TYPE_INT64)
   v.setInt64(9223372036854775807n)
   m.gvalueInt64In(v)
+})
+
+describe('gvalue platform-dependent long/ulong (BigInt, exact)', () => {
+  // glong/gulong are 64-bit on LP64 platforms, so they are marshalled as
+  // BigInt and keep full precision past Number.MAX_SAFE_INTEGER (#323, #149).
+  const maxLong = 2n ** 63n - 1n
+  const maxUlong = 2n ** 64n - 1n
+
+  const l = new GObject.Value()
+  l.init(GObject.TYPE_LONG)
+  l.setLong(maxLong)
+  expect(l.getLong(), maxLong)
+
+  const ul = new GObject.Value()
+  ul.init(GObject.TYPE_ULONG)
+  ul.setUlong(maxUlong)
+  expect(ul.getUlong(), maxUlong)
+
+  // A plain Number is still accepted on the IN side.
+  const n = new GObject.Value()
+  n.init(GObject.TYPE_LONG)
+  n.setLong(123)
+  expect(n.getLong(), 123n)
 })
 
 describe('gvalue in (int 42)', () => {
