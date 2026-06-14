@@ -1,215 +1,249 @@
+/*
+ * A small source-code editor built with GtkSourceView 5, GTK 4 and Adwaita.
+ *
+ * Features:
+ *   - Syntax highlighting with language auto-detection
+ *   - Adwaita light/dark style schemes that follow the system preference,
+ *     plus a toolbar toggle to force dark mode
+ *   - Open / Save / Save-As via the native Gtk.FileDialog
+ *   - A source-map (minimap) gutter on the right
+ *   - Keyboard shortcuts: Ctrl+O open, Ctrl+S save, Ctrl+Shift+S save-as,
+ *     Ctrl+Q quit
+ *
+ * Run with:  node examples/editor.js [file]
+ */
 
-const gi = require('../lib/index');
-gi.startLoop()
+const gi = require('../lib/');
+const GLib = gi.require('GLib', '2.0');
+const Gio = gi.require('Gio', '2.0');
+const Gtk = gi.require('Gtk', '4.0');
+const Adw = gi.require('Adw', '1');
+const GtkSource = gi.require('GtkSource', '5');
 
-const Gdk          = gi.require('Gdk', '3.0');
-const Gtk          = gi.require('Gtk', '3.0');
-const GtkSource    = gi.require('GtkSource', '3.0');
+const Fs = require('fs');
+const Path = require('path');
 
-const Fs     = require('fs')
-const Path   = require('path');
-const ChildP = require('child_process');
-const spawnSync = ChildP.spawnSync;
+const loop = GLib.MainLoop.new(null, false);
+const app = new Adw.Application('com.github.romgrk.node-gtk.editor', 0);
 
-Gdk.init([])
-Gtk.init()
+app.on('activate', () => {
+  const schemeManager = GtkSource.StyleSchemeManager.getDefault();
+  const langManager = GtkSource.LanguageManager.getDefault();
+  const styleManager = Adw.StyleManager.getDefault();
 
-const schemeManager = GtkSource.StyleSchemeManager.getDefault();
-const langManager = GtkSource.LanguageManager.getDefault();
-const scheme = schemeManager.getScheme('oblivion');
+  let currentFile = null;
 
-const css = new Gtk.CssProvider();
-css.loadFromPath(Path.join(__dirname, 'style.css'));
+  // --- Source view & buffer ------------------------------------------------
 
-const win = new Gtk.Window({
-    title: 'Node-GTK Editor',
-    type: Gtk.WindowType.TOPLEVEL,
-    window_position: Gtk.WindowPosition.CENTER
-});
-win.setDefaultSize(600, 800);
-win.on('show', Gtk.main);
-win.on('destroy', Gtk.mainQuit);
+  const buffer = new GtkSource.Buffer();
+  buffer.setHighlightSyntax(true);
 
-const grid   = new Gtk.Grid();
+  const view = new GtkSource.View({ buffer });
+  view.setMonospace(true);
+  view.setShowLineNumbers(true);
+  view.setHighlightCurrentLine(true);
+  view.setAutoIndent(true);
+  view.setTabWidth(4);
+  view.setShowRightMargin(true);
+  view.setRightMarginPosition(80);
+  view.setVexpand(true);
+  view.setHexpand(true);
 
-const header = new Gtk.HeaderBar();
-const label  = new Gtk.Label('label');
-header.add(label);
+  const scrolled = new Gtk.ScrolledWindow();
+  scrolled.setChild(view);
+  scrolled.setHexpand(true);
 
-const entryView = new Gtk.Entry();
-entryView.setIconFromIconName(Gtk.EntryIconPosition.PRIMARY, 'application-exit-symbolic');
-// entryView.getStyleContext().addProvider(css, 9999);
-entryView.name = 'entry';
+  // The minimap mirrors the view and doubles as a scrollbar.
+  const minimap = new GtkSource.Map();
+  minimap.setView(view);
 
-const scrollView = new Gtk.ScrolledWindow();
-const textView   = new GtkSource.View();
-scrollView.add(textView);
+  const editorBox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
+  editorBox.append(scrolled);
+  editorBox.append(minimap);
 
-const btn = new Gtk.Button('yo');
-header.add(btn);
+  // --- Style scheme: follow the system light/dark preference ---------------
 
-const pop = new Gtk.Popover(btn);
-pop.setSizeRequest(200, 100);
-pop.setRelativeTo(btn);
-// add(pop);
+  function applyScheme() {
+    const id = styleManager.getDark() ? 'Adwaita-dark' : 'Adwaita';
+    buffer.setStyleScheme(schemeManager.getScheme(id));
+  }
+  applyScheme();
+  styleManager.on('notify::dark', applyScheme);
 
-scrollView.margin = 10;
+  // --- File operations -----------------------------------------------------
 
-textView.vexpand = true;
-textView.hexpand = true;
-textView.monospace = true;
-textView.showLineNumbers = true;
-textView.highlightCurrentLine = true;
-// textView.get_style_context().add_provider(css, 9999);
+  function setTitle(title) {
+    windowTitle.setTitle(title);
+    windowTitle.setSubtitle(currentFile ? Path.dirname(currentFile) : '');
+  }
 
-const buffer = textView.getBuffer();
-buffer.highlightSyntax = true;
-buffer.styleScheme = scheme;
-
-grid.attach(header,     0, 0, 2, 1);
-grid.attach(scrollView, 0, 1, 2, 1);
-grid.attach(entryView,  0, 2, 2, 1);
-
-win.add(grid);
-
-function loadFile(filename) {
+  function loadFile(path) {
     try {
-        const content = Fs.readFileSync(filename);
-        const lang = langManager.guessLanguage(filename, null)
-            || langManager.guessLanguage('file.js', null);
-        label.setText(filename);
-
-        buffer.language = lang;
-        buffer.text = content
-        buffer.filename = filename;
-
-        textView.grabFocus();
+      const content = Fs.readFileSync(path, 'utf8');
+      buffer.setLanguage(langManager.guessLanguage(path, null));
+      buffer.setText(content, -1);
+      buffer.placeCursor(buffer.getStartIter());
+      currentFile = path;
+      setTitle(Path.basename(path));
+      view.grabFocus();
     } catch (error) {
-        console.error(error)
-        buffer.language = null;
-        buffer.text = error.toString()
+      toast(`Could not open ${Path.basename(path)}: ${error.message}`);
     }
-}
+  }
 
-function saveFile(filename) {
+  function saveTo(path) {
+    const start = buffer.getStartIter();
+    const end = buffer.getEndIter();
+    const content = buffer.getText(start, end, false);
     try {
-        if (filename == null) {
-            filename = buffer.filename;
-        }
-        let start = buffer.getStartIter();
-        let end = buffer.getEndIter();
-        const content = buffer.getText(start, end, false);
-        Fs.writeFileSync(filename, content);
-        return console.log(filename + ' written ' + content.length);
+      Fs.writeFileSync(path, content);
+      currentFile = path;
+      setTitle(Path.basename(path));
+      toast(`Saved ${Path.basename(path)}`);
     } catch (error) {
-        console.error(error);
+      toast(`Could not save: ${error.message}`);
     }
-}
+  }
 
-const resolvePath = function(file) {
-    file = Path.resolve(__dirname, Path.normalize(file));
-    if (Fs.fileExistsSync(file)) {
-        return file;
-    } else {
-        return 'index.es';
+  function openDialog() {
+    const dialog = new Gtk.FileDialog();
+    dialog.setTitle('Open File');
+    dialog.open(window, null, (self, result) => {
+      try {
+        const file = self.openFinish(result);
+        if (file)
+          loadFile(file.getPath());
+      } catch (error) {
+        // The user dismissed the dialog; nothing to do.
+      }
+    });
+  }
+
+  function saveAsDialog() {
+    const dialog = new Gtk.FileDialog();
+    dialog.setTitle('Save File As');
+    if (currentFile)
+      dialog.setInitialName(Path.basename(currentFile));
+    dialog.save(window, null, (self, result) => {
+      try {
+        const file = self.saveFinish(result);
+        if (file)
+          saveTo(file.getPath());
+      } catch (error) {
+        // Cancelled.
+      }
+    });
+  }
+
+  // --- Vim modal editing (GtkSource.VimIMContext) --------------------------
+
+  // VimIMContext is a Gtk.IMContext that turns the view into a modal (vim)
+  // editor. It must be driven by a key controller in the CAPTURE phase so it
+  // sees keystrokes before the view inserts them as text.
+  const vim = new GtkSource.VimIMContext();
+  vim.setClientWidget(view);
+
+  const vimKeys = new Gtk.EventControllerKey();
+  vimKeys.setImContext(vim);
+  vimKeys.setPropagationPhase(Gtk.PropagationPhase.CAPTURE);
+  view.addController(vimKeys);
+
+  // `:e [path]` — open a file, or reload the current one when path is empty.
+  vim.on('edit', (_view, path) => loadFile(path || currentFile));
+  // `:w [path]` — save to the given path, or the current file.
+  vim.on('write', (_view, path) => saveTo(path || currentFile));
+  // Catch-all for ex commands; we only need to implement quit.
+  vim.on('execute-command', (command) => {
+    if (/^\s*(wq|x|q)a?!?\s*$/.test(command)) {
+      loop.quit();
+      app.quit();
+      return true;
     }
-};
-
-const safeEval = function(code) {
-    try {
-        return eval(code)
-    } catch (error) {
-        console.error(error);
-    }
-    return null;
-};
-
-const execute = function(command) {
-    if (command.charAt(0) === '!') {
-        return spawnSync(command.substring(1));
-    }
-
-    const tokens = command.split(' ');
-
-    if (tokens[0] === 'e') {
-        if (tokens.length > 1) {
-            return loadFile((tokens[1]));
-        } else if (buffer.filename != null) {
-            return loadFile(buffer.filename);
-        } else {
-            return console.log('No filename');
-        }
-    } else if (tokens[0] === 'w') {
-        if (tokens.length > 1) {
-            return saveFile(resolvePath(tokens[1]));
-        } else {
-            return saveFile();
-        }
-    } else if (tokens[0] === 'q') {
-        win.close();
-        return process.exit();
-    } else if (tokens[0] === 'pop') {
-        return pop.showAll();
-    } else {
-        return console.log(command, ' => ', safeEval(command));
-    }
-};
-
-
-textView.on('key-press-event', function(event) {
-    const keyname = Gdk.keyvalName(event.keyval);
-    const label = Gtk.acceleratorGetLabel(event.keyval, event.state);
-
-    console.log(event, event.keyval, keyname, label)
-
-    btn.label = label;
-
-    if (keyname.match(/(semi)?colon/)) {
-        entryView.grabFocus();
-        return true;
-    }
-    if (event.keyval === Gdk.KEY_G) {
-        buffer.placeCursor(buffer.getEndIter());
-        return true;
-    }
-    if (event.keyval === Gdk.KEY_g) {
-        let start = buffer.getStartIter()
-        buffer.placeCursor(start)
-        return true;
-    }
-
     return false;
+  });
+
+  // --- Actions & keyboard shortcuts ----------------------------------------
+
+  function addAction(name, accel, callback) {
+    const action = Gio.SimpleAction.new(name, null);
+    action.on('activate', callback);
+    app.addAction(action);
+    app.setAccelsForAction(`app.${name}`, [accel]);
+  }
+
+  addAction('open', '<Control>o', openDialog);
+  addAction('save', '<Control>s', () =>
+    currentFile ? saveTo(currentFile) : saveAsDialog());
+  addAction('save-as', '<Control><Shift>s', saveAsDialog);
+  addAction('quit', '<Control>q', () => (loop.quit(), app.quit()));
+
+  // --- Header bar ----------------------------------------------------------
+
+  const windowTitle = new Adw.WindowTitle({ title: 'node-gtk editor' });
+  const header = new Adw.HeaderBar();
+  header.setTitleWidget(windowTitle);
+
+  const openButton = Gtk.Button.newFromIconName('document-open-symbolic');
+  openButton.setTooltipText('Open (Ctrl+O)');
+  openButton.setActionName('app.open');
+  header.packStart(openButton);
+
+  const saveButton = Gtk.Button.newFromIconName('document-save-symbolic');
+  saveButton.setTooltipText('Save (Ctrl+S)');
+  saveButton.setActionName('app.save');
+  header.packEnd(saveButton);
+
+  const darkToggle = new Gtk.ToggleButton({ iconName: 'weather-clear-night-symbolic' });
+  darkToggle.setTooltipText('Toggle dark mode');
+  darkToggle.setActive(styleManager.getDark());
+  darkToggle.on('toggled', () => {
+    styleManager.setColorScheme(
+      darkToggle.getActive() ? Adw.ColorScheme.FORCE_DARK : Adw.ColorScheme.FORCE_LIGHT);
+  });
+  header.packEnd(darkToggle);
+
+  // --- Window assembly -----------------------------------------------------
+
+  // Vim status line: command bar (`:`, `/`) on the left, pending command
+  // preview (e.g. "2dw") on the right — mirroring Vim's bottom row.
+  const commandBar = new Gtk.Label({ xalign: 0, hexpand: true });
+  const commandPreview = new Gtk.Label({ xalign: 1 });
+  commandBar.addCssClass('monospace');
+  commandPreview.addCssClass('monospace');
+  vim.on('notify::command-bar-text', () => commandBar.setText(vim.getCommandBarText()));
+  vim.on('notify::command-text', () => commandPreview.setText(vim.getCommandText()));
+
+  const statusBar = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, spacing: 12 });
+  statusBar.setMarginStart(6);
+  statusBar.setMarginEnd(6);
+  statusBar.append(commandBar);
+  statusBar.append(commandPreview);
+
+  const toolbarView = new Adw.ToolbarView();
+  toolbarView.addTopBar(header);
+  toolbarView.setContent(editorBox);
+  toolbarView.addBottomBar(statusBar);
+
+  const toastOverlay = new Adw.ToastOverlay();
+  toastOverlay.setChild(toolbarView);
+
+  function toast(message) {
+    toastOverlay.addToast(new Adw.Toast({ title: message, timeout: 3 }));
+  }
+
+  const window = new Adw.ApplicationWindow(app);
+  window.setDefaultSize(800, 600);
+  window.setContent(toastOverlay);
+  window.on('close-request', () => (loop.quit(), app.quit(), false));
+  window.present();
+
+  // --- Initial document ----------------------------------------------------
+
+  const arg = process.argv[2];
+  loadFile(arg ? Path.resolve(arg) : __filename);
+
+  gi.startLoop();
+  loop.run();
 });
 
-entryView.on('key-press-event', function(event) {
-    btn.label = Gtk.acceleratorGetLabel(event.keyval, event.state);
-
-    switch (event.keyval) {
-        case Gdk.KEY_Escape: {
-            textView.grabFocus();
-            break;
-        }
-        case Gdk.KEY_Return: {
-            let text = entryView.getText();
-            entryView.setText('');
-            execute(text);
-            break;
-        }
-        default:
-            return false;
-    }
-    return true;
-});
-
-btn.on('clicked', () => {
-    if (pop.getVisible()) {
-        return pop.hide();
-    } else {
-        return pop.showAll();
-    }
-})
-
-
-loadFile(__filename)
-
-win.showAll()
+process.exit(app.run([]));
