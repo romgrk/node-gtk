@@ -260,16 +260,15 @@ static void GObjectDestroyedFirstPass(const v8::WeakCallbackInfo<GObjectWrapper>
     data.SetSecondPassCallback (GObjectDestroyedSecondPass);
 }
 
-static void GObjectDestroyedSecondPass(const v8::WeakCallbackInfo<GObjectWrapper> &data) {
-    GObjectWrapper *wrapper = data.GetParameter ();
+static gboolean GObjectTeardownIdle(gpointer data) {
+    GObjectWrapper *wrapper = (GObjectWrapper *) data;
     GObject *gobject = wrapper->gobject;
 
     /* If the GObject was already finalized out from under us, GObjectFinalized
      * cleared the pointer; there is nothing left to detach or unref. */
     if (gobject != NULL) {
-        /* Runs after GC: GObject calls are safe again. Drop the weak ref first
-         * so removing the toggle ref (which may finalize the object) doesn't
-         * re-enter GObjectFinalized. */
+        /* Drop the weak ref first so removing the toggle ref (which may finalize
+         * the object) doesn't re-enter GObjectFinalized. */
         g_object_weak_unref (gobject, GObjectFinalized, wrapper);
 
         /* Only detach the qdata if it still points at us — WrapperFromGObject
@@ -278,10 +277,35 @@ static void GObjectDestroyedSecondPass(const v8::WeakCallbackInfo<GObjectWrapper
         if (g_object_get_qdata (gobject, GNodeJS::object_quark()) == wrapper)
             g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
 
+        /* Dropping the last toggle ref disposes the object, and GTK's dispose
+         * synchronously emits signals (e.g. ::destroy) into still-connected
+         * node-gtk closures — i.e. it re-enters arbitrary JS. That is only legal
+         * here because we run from a GLib idle on the main loop, not from the GC
+         * second-pass callback that scheduled us (see GObjectDestroyedSecondPass). */
         g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
     }
 
     delete wrapper;
+    return G_SOURCE_REMOVE;
+}
+
+static void GObjectDestroyedSecondPass(const v8::WeakCallbackInfo<GObjectWrapper> &data) {
+    GObjectWrapper *wrapper = data.GetParameter ();
+
+    /* Defer the actual teardown to a main-loop idle instead of running it here.
+     * This callback fires from V8's InvokeSecondPassPhantomCallbacks *during* a
+     * garbage collection. Dropping the toggle ref can take the GObject's refcount
+     * to zero, and GTK's dispose then emits signals into node-gtk closures,
+     * re-entering JS (Nan::Call) — which crashes when invoked mid-GC. Running the
+     * teardown from a GLib idle moves the ref drop (and any disposal/signal
+     * emission it triggers) to a point where calling into JS is safe again.
+     *
+     * The GObject stays alive across the window because we still hold the toggle
+     * ref; the wrapper (with its now-reset persistent and collected=true) is kept
+     * until the idle deletes it. WrapperFromGObject already handles a resurrected
+     * GObject during this window by building a fresh wrapper, and the idle's
+     * qdata check above won't clobber it. */
+    g_idle_add (GObjectTeardownIdle, wrapper);
 }
 
 static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
