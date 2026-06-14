@@ -458,4 +458,21 @@ void* PointerFromWrapper(Local<Value> value) {
     return boxed;
 }
 
+void DisownBoxed(Local<Value> value) {
+    if (!value->IsObject())
+        return;
+
+    Local<Object> object = TO_OBJECT (value);
+    // Boxed wrappers store the data pointer in field 0 and the Boxed* in field 1.
+    if (object->InternalFieldCount() < 2)
+        return;
+
+    Boxed *box = static_cast<Boxed *>(object->GetAlignedPointerFromInternalField(1));
+    if (box != NULL) {
+        box->owns_memory = false;
+        box->data = NULL;
+    }
+    object->SetAlignedPointerInInternalField(0, NULL);
+}
+
 };
