@@ -102,6 +102,7 @@ out:
 struct GObjectWrapper;
 static void GObjectDestroyedFirstPass(const v8::WeakCallbackInfo<GObjectWrapper> &data);
 static void GObjectDestroyedSecondPass(const v8::WeakCallbackInfo<GObjectWrapper> &data);
+static void GObjectFinalized(gpointer data, GObject *where_the_object_was);
 
 struct GObjectWrapper {
     Nan::Persistent<Object> persistent;
@@ -166,6 +167,18 @@ static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype
     g_object_ref_sink (gobject);
     g_object_add_toggle_ref (gobject, ToggleNotify, NULL);
     g_object_unref (gobject);
+
+    // The toggle ref above is supposed to keep the GObject alive for as long as
+    // the wrapper exists. A weak ref guards against the case where it doesn't —
+    // e.g. a JS-subclassed instance whose refcount is driven to 0 from the GTK
+    // side while we still hold the toggle ref: GObjectFinalized then clears the
+    // dangling pointer so the destroy callbacks never touch freed memory.
+    g_object_weak_ref (gobject, GObjectFinalized, wrapper);
+}
+
+static void GObjectFinalized(gpointer data, GObject *where_the_object_was) {
+    auto *wrapper = (GObjectWrapper *) data;
+    wrapper->gobject = NULL;
 }
 
 static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
@@ -240,13 +253,23 @@ static void GObjectDestroyedSecondPass(const v8::WeakCallbackInfo<GObjectWrapper
     GObjectWrapper *wrapper = data.GetParameter ();
     GObject *gobject = wrapper->gobject;
 
-    /* Runs after GC: GObject calls are safe again. Only detach the qdata if it
-     * still points at us — WrapperFromGObject may have resurrected this GObject
-     * with a fresh wrapper while we were pending, and we must not clobber it. */
-    if (g_object_get_qdata (gobject, GNodeJS::object_quark()) == wrapper)
-        g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
+    /* If the GObject was already finalized out from under us, GObjectFinalized
+     * cleared the pointer; there is nothing left to detach or unref. */
+    if (gobject != NULL) {
+        /* Runs after GC: GObject calls are safe again. Drop the weak ref first
+         * so removing the toggle ref (which may finalize the object) doesn't
+         * re-enter GObjectFinalized. */
+        g_object_weak_unref (gobject, GObjectFinalized, wrapper);
 
-    g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
+        /* Only detach the qdata if it still points at us — WrapperFromGObject
+         * may have resurrected this GObject with a fresh wrapper while we were
+         * pending, and we must not clobber it. */
+        if (g_object_get_qdata (gobject, GNodeJS::object_quark()) == wrapper)
+            g_object_set_qdata (gobject, GNodeJS::object_quark(), NULL);
+
+        g_object_remove_toggle_ref (gobject, &ToggleNotify, NULL);
+    }
+
     delete wrapper;
 }
 
