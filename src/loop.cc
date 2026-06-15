@@ -167,6 +167,20 @@ void CallMicrotaskHandlers () {
 #endif
 }
 
+bool IsRunningMicrotasks() {
+    /* True while V8 is draining the microtask queue. Under ES modules the
+     * top-level body executes as a microtask, so a synchronous blocking call
+     * (e.g. g_main_loop_run) made from it nests inside this drain. V8 refuses
+     * nested microtask checkpoints, so any Promise/async continuation queued
+     * by user code is stuck until the blocking call returns. Callers use this
+     * to detect that situation and defer the blocking call to a macrotask so
+     * the module's top-level microtask can return and the queue can drain.
+     *
+     * - https://github.com/romgrk/node-gtk/issues/442
+     */
+    return MicrotasksScope::IsRunningMicrotasks(Isolate::GetCurrent());
+}
+
 void StartLoop() {
     GSource *source = loop_source_new (uv_default_loop ());
     g_source_attach (source, NULL);
