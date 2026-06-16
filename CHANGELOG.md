@@ -4,6 +4,20 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v2.1.0
+
+### Fixes
+
+- Drain Promise/`async` microtasks while the GLib main loop runs under ES
+  modules; they were previously starved until the loop exited (#442).
+- Fixed several GObject wrapper lifetime crashes: revival of toggled-up
+  wrappers, collected-while-owned objects, and over-unref of transfer-full IN
+  GObjects (#439).
+- Guard the GObject toggle-reference notify against a zapped V8 handle during
+  GC (#438).
+- Stop the main loop busy-spinning at 100% CPU when an unref'd libuv handle
+  keeps the backend fd readable (#437).
+
 ## v2.0.0
 
 ### Breaking
