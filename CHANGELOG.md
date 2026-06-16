@@ -8,6 +8,9 @@ Changes to be released are kept in the unreleased section.
 
 ### Fixes
 
+- Pass caller-allocated out-struct signal parameters (e.g.
+  `GtkOverlay::get-child-position`'s `GdkRectangle`) as live wrappers so
+  handlers can fill them in place instead of receiving `null` (#444, #445).
 - Drain Promise/`async` microtasks while the GLib main loop runs under ES
   modules; they were previously starved until the loop exited (#442).
 - Fixed several GObject wrapper lifetime crashes: revival of toggled-up
