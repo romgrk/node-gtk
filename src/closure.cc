@@ -113,9 +113,19 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
                 LoadGIArgumentFromPointer(&type_info, &argument);
                 ownership = kNone;
             } else if (direction == GI_DIRECTION_OUT) {
-                // Pure out: there is no meaningful incoming value.
-                memset(&argument, 0, sizeof(argument));
-                ownership = kNone;
+                if (g_arg_info_is_caller_allocates(&arg_info)) {
+                    // Caller-allocated out (e.g. a GdkRectangle in
+                    // GtkOverlay::get-child-position): the GValue already holds a
+                    // pointer to caller (GLib/GTK) memory. Pass a live wrapper so the
+                    // handler fills it in place — it is NOT written back from the
+                    // return value (see the output loop below). #444.
+                    ownership = kNone;
+                } else {
+                    // Callee-allocated out: no meaningful incoming value; the handler
+                    // supplies it through the return value.
+                    memset(&argument, 0, sizeof(argument));
+                    ownership = kNone;
+                }
             }
 
             js_args[i - 1] = GIArgumentToV8(&type_info, &argument, -1, ownership);
@@ -156,11 +166,14 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
             GIArgInfo  out_arg_info;
             GITypeInfo out_type_info;
 
+            // Caller-allocated out structs are filled in place via the wrapper
+            // passed to the handler, so they are not part of the return value.
             int n_outputs = (g_return_value != NULL) ? 1 : 0;
             for (guint i = 1; i < n_param_values; i++) {
                 g_callable_info_load_arg(info, i - 1, &out_arg_info);
                 GIDirection d = g_arg_info_get_direction(&out_arg_info);
-                if (d == GI_DIRECTION_OUT || d == GI_DIRECTION_INOUT)
+                if (d == GI_DIRECTION_INOUT ||
+                    (d == GI_DIRECTION_OUT && !g_arg_info_is_caller_allocates(&out_arg_info)))
                     n_outputs++;
             }
 
@@ -183,6 +196,10 @@ void Closure::Execute(GICallableInfo *info, guint signal_id,
                 g_callable_info_load_arg(info, i - 1, &out_arg_info);
                 GIDirection d = g_arg_info_get_direction(&out_arg_info);
                 if (d != GI_DIRECTION_OUT && d != GI_DIRECTION_INOUT)
+                    continue;
+                // Caller-allocated out structs were filled in place by the handler
+                // via their wrapper; nothing to write back from the return value.
+                if (d == GI_DIRECTION_OUT && g_arg_info_is_caller_allocates(&out_arg_info))
                     continue;
 
                 g_arg_info_load_type(&out_arg_info, &out_type_info);
