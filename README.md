@@ -15,9 +15,12 @@
   <img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
 </p>
 
-Node-Gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library for nodejs. It makes it possible to
-use any introspected library, such as Gtk+, usable. It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) or [PyGObject](https://pygobject.readthedocs.io). Please note this project is currently in a _beta_ state and is being developed. Any contributors willing to help
-will be welcomed.
+Node-gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library 
+for nodejs. It makes it possible to use any introspected C library, such as Gtk, 
+usable. It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) 
+or [PyGObject](https://pygobject.readthedocs.io). Please note this project is 
+currently in a _beta_ state and is being developed. Any contributors willing to 
+help will be welcomed.
 
 Supported Node.js versions: **20**, **22**, **24** (other versions may work but are untested)<br>
 Pre-built binaries available for: **Linux**, **macOS**
@@ -25,6 +28,7 @@ Pre-built binaries available for: **Linux**, **macOS**
 ### Table of contents
 
 - [Usage](#usage)
+- [ES modules](#es-modules)
 - [Documentation](#documentation)
 - [TypeScript](#typescript)
 - [Installing and building](#installing-and-building)
@@ -66,48 +70,6 @@ process.exit(app.run([]));
   <img src="./img/hello-world.png" style="width: 290px; height: auto;"/>
 </p>
 
-#### ES modules
-
-The example above is CommonJS. node-gtk also works under ES modules, but with one
-behavioral difference around the blocking main-loop calls (`GLib.MainLoop.run`,
-`Gio`/`Gtk.Application.run`, `Gtk.main`).
-
-Under ESM, a module's top-level body runs as a V8 *microtask*. If a blocking
-loop call ran synchronously from there, it would nest inside V8's microtask
-drain and starve every `Promise`/`async` continuation (so `await fetch(...)`,
-`fs/promises`, etc. would never settle) for the entire lifetime of the loop —
-see [#442](https://github.com/romgrk/node-gtk/issues/442). To avoid this,
-node-gtk defers the blocking call to the next event-loop tick when it detects it
-is being invoked from within a microtask. Two consequences for ESM code:
-
-- The run call **returns immediately** instead of blocking until quit, so any
-  code placed *after* it executes *before* the loop. Make the run call the last
-  statement, and do cleanup/exit from your quit/`close-request` handler.
-- Its **return value is not available** (e.g. the application's exit status), so
-  don't wrap it like `process.exit(app.run([]))` — call `app.run([])` on its own
-  and exit from the handler instead.
-
-Under CommonJS (and inside signal callbacks) nothing changes: the run calls block
-synchronously and return their value exactly as before.
-
-> **Design note (may be reconsidered).** Two approaches were considered for #442:
->
-> - **Transparent auto-defer (chosen).** node-gtk detects the microtask context
->   and defers the blocking call automatically, so existing ESM code keeps
->   working with no changes. The cost is the leaky behavior above: under ESM the
->   run call no longer blocks, which is surprising and silently breaks idioms
->   like `process.exit(app.run([]))`.
-> - **Explicit async API (alternative).** Keep the blocking calls strictly
->   synchronous and add awaitable variants (e.g. `await loop.runAsync()`),
->   leaving ESM users to opt in. This has clean, predictable semantics and no
->   hidden return-immediately behavior, but it does *not* transparently fix
->   existing ESM code — users must change their code, and plain `loop.run()`
->   would still starve microtasks under ESM (or would need to throw/warn).
->
-> The transparent approach was chosen to fix existing code out of the box, but
-> given the leaky semantics this trade-off may be revisited — possibly moving to
-> (or also offering) the explicit async API.
-
 You can also easily create custom applications:
 
 [A web browser (using WebKit2GTK)](./examples/browser.js)
@@ -122,9 +84,28 @@ You can also easily create custom applications:
   <img src="./img/system-monitor.png" style="width: 400px; height: auto;"/>
 </p>
 
-#### Other projects
+## ES modules
 
-The [react-gtk](https://github.com/codejamninja/react-gtk) project may also allow you to use GTK via React (unmaintained).
+The Usage example above is CommonJS. node-gtk also works under ESM, but the
+blocking main-loop calls (`GLib.MainLoop.run`, `Gio`/`Gtk.Application.run`,
+`Gtk.main`) **return immediately** instead of blocking and **don't return a
+value** — so make the run call the last statement and exit from your handler:
+
+```javascript
+app.on('activate', () => {
+  // ...build the window...
+  window.on('close-request', () => (loop.quit(), app.quit(), false));
+  window.present();
+
+  gi.startLoop();
+  loop.run();      // returns immediately under ESM; do cleanup/exit in the handler
+});
+
+app.run([]);       // not `process.exit(app.run([]))` — the return value is unavailable
+```
+
+CommonJS (and signal callbacks) are unaffected. For the why and the design
+trade-off, see [#449](https://github.com/romgrk/node-gtk/issues/449).
 
 ## Documentation
 
@@ -195,6 +176,3 @@ for LSP to work nicely, you can use [bear](https://github.com/rizsotto/Bear) as 
 - https://developer.gnome.org/gi/stable/index.html
 - https://v8docs.nodesource.com/
 - https://github.com/nodejs/nan#api
-
-There is a [Discord channel](https://discord.gg/r2VqPUV) but it receives little monitoring, use github issues or
-discussions preferably.
