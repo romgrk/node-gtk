@@ -1,0 +1,156 @@
+name: test-windows-prebuilt
+#
+# Answers: "do prebuilt Windows binaries let users `npm install node-gtk` and use
+# it WITHOUT compiling?"
+#
+#   build-prebuilt  - build the addon under MSYS2/MinGW (as today), then bundle
+#                     its full DLL closure + GI typelibs next to the .node and
+#                     upload it as an artifact (this is the candidate prebuilt).
+#   consume-clean   - a SEPARATE, clean Windows runner with NO MSYS2 and NO
+#                     compiler. Installs node-gtk's JS deps with --ignore-scripts
+#                     (so nothing is ever built), drops in the prebuilt, and runs
+#                     a smoke test that loads GTK and exercises GObject-Introspection.
+#
+on:
+  push:
+    branches:
+      - test-windows-prebuilt
+  workflow_dispatch:
+
+jobs:
+  build-prebuilt:
+    name: build prebuilt - nodejs ${{ matrix.node }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 22
+          - 20
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          path-type: inherit
+          update: true
+          install: |
+            git
+            make
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-ntldd-git
+            mingw-w64-x86_64-gobject-introspection
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-gtk4
+            mingw-w64-x86_64-libadwaita
+            mingw-w64-x86_64-gtksourceview5
+            mingw-w64-x86_64-graphene
+            mingw-w64-x86_64-adwaita-icon-theme
+
+      - name: Build from source
+        env:
+          GYP_GENERATORS: make
+          CC: gcc
+          CXX: g++
+        run: |
+          ./windows/mingw_include_extra.sh
+          export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
+          export PATH="/mingw64/bin:/usr/bin:$PATH"
+          npm install --build-from-source
+
+      - name: Bundle GTK4 runtime (DLLs + typelibs + data)
+        run: |
+          ABI=$(node -p "process.versions.modules")
+          BINDING="lib/binding/node-v${ABI}-win32-x64"
+          echo "ABI=$ABI BINDING=$BINDING"
+          ls -la "$BINDING"
+          ./scripts/windows-bundle-runtime.sh "$BINDING"
+
+      - name: Report compressed download size (what users fetch)
+        run: |
+          npx node-pre-gyp package >/dev/null 2>&1 || true
+          TARBALL=$(find build/stage -name '*.tar.gz' 2>/dev/null | head -1)
+          if [ -n "$TARBALL" ]; then
+            echo "## node-pre-gyp tarball (gzip, the S3 download): $(du -h "$TARBALL" | cut -f1)  -> $TARBALL"
+          else
+            echo "## (node-pre-gyp package produced no tarball; uncompressed size is in the bundle step)"
+          fi
+
+      - name: Upload prebuilt artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuilt-node-${{ matrix.node }}
+          path: lib/binding/
+          if-no-files-found: error
+
+  consume-clean:
+    name: consume prebuilt (clean machine) - nodejs ${{ matrix.node }}
+    needs: build-prebuilt
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 22
+          - 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # Install ONLY the JS dependencies, never the native build hook.
+      # This is what a user gets when a prebuilt is available: no compiler runs.
+      - name: Install JS deps (no build)
+        shell: bash
+        run: npm install --ignore-scripts
+
+      - name: Download prebuilt
+        uses: actions/download-artifact@v4
+        with:
+          name: prebuilt-node-${{ matrix.node }}
+          path: lib/binding/
+
+      - name: Show what we got
+        shell: bash
+        run: |
+          echo "Tools available on this runner (expect NONE of these):"
+          (which gcc && echo "gcc FOUND") || echo "no gcc (good)"
+          (where.exe pacman && echo "pacman FOUND") || echo "no pacman (good)"
+          echo "---- bundled prebuilt ----"
+          ls -la lib/binding/*/ || true
+
+      # Negative control: move the bundled typelibs aside so native.js cannot
+      # auto-wire; the addon must then fail to load. Proves the pass below comes
+      # from the bundle (not the runner's GTK), then restores it. Allowed to fail.
+      - name: Negative control (no bundled runtime — expected to fail)
+        continue-on-error: true
+        shell: bash
+        run: |
+          export PATH=$(echo "$PATH" | tr ':' '\n' | grep -viE 'mingw|msys|chocolatey' | paste -sd ':' -)
+          DIR=$(echo lib/binding/node-v*-win32-x64)
+          mv "$DIR/girepository-1.0" "$DIR/girepository-1.0.off"
+          if node -e "require('.')"; then
+            echo "UNEXPECTED - loaded without the bundled GTK runtime"
+          else
+            echo "expected failure - addon needs the bundled GTK runtime/typelibs"
+          fi
+          mv "$DIR/girepository-1.0.off" "$DIR/girepository-1.0"
+
+      # The real test: NO env vars set here, and the runner's own MinGW/MSYS is
+      # stripped from PATH to simulate a clean user machine. A pass proves
+      # lib/native.js auto-wires the bundled runtime by itself.
+      - name: Smoke test (auto-wired, simulated clean machine)
+        shell: bash
+        run: |
+          export PATH=$(echo "$PATH" | tr ':' '\n' | grep -viE 'mingw|msys|chocolatey' | paste -sd ':' -)
+          echo "gcc on PATH? $(which gcc || echo no)"
+          node scripts/windows-smoke-test.js

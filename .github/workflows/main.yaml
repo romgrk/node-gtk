@@ -39,13 +39,19 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-python
+            mingw-w64-x86_64-ntldd-git
             mingw-w64-x86_64-gobject-introspection
-            mingw-w64-x86_64-gtk3
             mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-gtk3
             mingw-w64-x86_64-gstreamer
             mingw-w64-x86_64-gst-plugins-good
             mingw-w64-x86_64-gst-plugins-bad
             mingw-w64-x86_64-libsoup3
+            mingw-w64-x86_64-gtk4
+            mingw-w64-x86_64-libadwaita
+            mingw-w64-x86_64-gtksourceview5
+            mingw-w64-x86_64-graphene
+            mingw-w64-x86_64-adwaita-icon-theme
 
       - name: Install & Build
         env:
@@ -63,6 +69,27 @@ jobs:
           npx mocha                                 \
                     --skip=callback                 \
                     tests/__run__.js
+
+      # Make the freshly-built addon a self-contained prebuilt: bundle the GTK4
+      # runtime (DLLs + GI typelibs + data) next to the .node so Windows users
+      # can `npm install node-gtk` with no MSYS2/compiler. lib/native.js wires
+      # this bundle up automatically at load time.
+      - name: Bundle GTK4 runtime
+        run: |
+          ABI=$(node -p "process.versions.modules")
+          ./scripts/windows-bundle-runtime.sh "lib/binding/node-v${ABI}-win32-x64"
+
+      # Publish the prebuilt to S3 on a `[publish binary]` commit, like the
+      # Linux/macOS jobs do via scripts/ci.sh.
+      - name: Publish prebuilt
+        if: contains(github.event.head_commit.message, '[publish binary]')
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          npx node-pre-gyp package
+          npx node-pre-gyp publish
+          npx node-pre-gyp info
 
   build:
     name: ${{ matrix.os }} - nodejs ${{ matrix.node }}
