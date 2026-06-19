@@ -52,25 +52,63 @@ console.log('OK: require(node-gtk) — prebuilt + bundled DLLs loaded')
 // Belt and suspenders: also register the typelib dir through GI's own API.
 try { gi.prependSearchPath(typelibDir) } catch (e) { /* ignore */ }
 
-function load(ns, version) {
-  const mod = gi.require(ns, version)
-  console.log(`OK: gi.require('${ns}', '${version}')`)
-  return mod
+// Point GTK4/Adwaita at the bundled runtime data so a real app could run.
+const bundledShare = path.join(bindingDir, 'share')
+if (fs.existsSync(bundledShare)) {
+  process.env.XDG_DATA_DIRS = bundledShare + (process.env.XDG_DATA_DIRS ? path.delimiter + process.env.XDG_DATA_DIRS : '')
+  const schemas = path.join(bundledShare, 'glib-2.0', 'schemas')
+  if (fs.existsSync(schemas)) process.env.GSETTINGS_SCHEMA_DIR = schemas
 }
 
-const GLib = load('GLib', '2.0')
-if (typeof GLib.getMonotonicTime !== 'function')
+// The full quilx namespace set. Vte (3.91) has no Windows port, so it is
+// expected to be unavailable; everything else must load.
+const REQUIRED = [
+  ['GLib', '2.0'], ['GObject', '2.0'], ['Gio', '2.0'],
+  ['Pango', '1.0'], ['PangoCairo', '1.0'],
+  ['Gdk', '4.0'], ['GdkPixbuf', '2.0'], ['Graphene', '1.0'],
+  ['Gtk', '4.0'], ['Adw', '1'], ['GtkSource', '5'],
+]
+const OPTIONAL = [['Vte', '3.91']]
+
+const loaded = {}
+function load(ns, version, optional) {
+  try {
+    const mod = gi.require(ns, version)
+    console.log(`OK: gi.require('${ns}', '${version}')`)
+    loaded[ns] = mod
+    return mod
+  } catch (e) {
+    console.log(`${optional ? 'note' : 'FAIL'}: gi.require('${ns}', '${version}') — ${e.message}`)
+    if (!optional) throw e
+    return null
+  }
+}
+
+for (const [ns, v] of REQUIRED) load(ns, v, false)
+for (const [ns, v] of OPTIONAL) load(ns, v, true)
+
+// Sanity: the typelibs really resolved their symbols.
+if (typeof loaded.GLib.getMonotonicTime !== 'function')
   throw new Error('GLib.getMonotonicTime missing — typelib not really loaded')
-load('GObject', '2.0')
-load('Gio', '2.0')
-const Gtk = load('Gtk', '3.0')
-if (typeof Gtk.Window !== 'function')
-  throw new Error('Gtk.Window missing — Gtk typelib not really loaded')
+if (typeof loaded.Gtk.Window !== 'function')
+  throw new Error('Gtk.Window missing — Gtk4 typelib not really loaded')
+if (typeof loaded.Adw.ApplicationWindow !== 'function')
+  throw new Error('Adw.ApplicationWindow missing — libadwaita not really loaded')
 
-// Gtk.init may fail without a display; that is not a binary-usability problem,
-// so we report it but do not fail the smoke test on it.
-let initOk = false
-try { Gtk.init(); initOk = true } catch (e) { console.log('note: Gtk.init() threw:', e.message) }
-console.log('Gtk.init():', initOk ? 'ok' : 'skipped/failed (no display)')
+// Exercise a real GTK4 + Adwaita object graph (needs a display; the runner has one).
+let appOk = false
+try {
+  loaded.Gtk.init()
+  const win = new loaded.Adw.ApplicationWindow()
+  const buffer = new loaded.GtkSource.Buffer()
+  const view = new loaded.GtkSource.View()
+  view.setBuffer(buffer)
+  win.setContent(view)
+  console.log('OK: created Adw.ApplicationWindow + GtkSource.View')
+  appOk = true
+} catch (e) {
+  console.log('note: live widget creation threw (likely no display):', e.message)
+}
+console.log('live GTK4/Adwaita widgets:', appOk ? 'ok' : 'skipped (no display)')
 
-console.log('\n=== SMOKE TEST PASSED: prebuilt is usable with NO compiler/MSYS2 ===')
+console.log('\n=== SMOKE TEST PASSED: GTK4/Adwaita prebuilt usable with NO compiler/MSYS2 ===')
