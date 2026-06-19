@@ -22,7 +22,11 @@ or [PyGObject](https://pygobject.readthedocs.io). Please note this project is
 currently in a _alpha_ state.
 
 Supported Node.js versions: **20**, **22**, **24** (other versions may work but are untested)<br>
-Pre-built binaries available for: **Linux**, **macOS**
+Supported platforms:
+- **Linux** — prebuilt binaries available
+- **macOS** — prebuilt binaries available
+- **Windows** — prebuilt binaries available (but read [Windows](#windows))
+
 
 ### Table of contents
 
@@ -30,7 +34,7 @@ Pre-built binaries available for: **Linux**, **macOS**
 - [ES modules](#es-modules)
 - [Documentation](#documentation)
 - [TypeScript](#typescript)
-- [Installing and building](#installing-and-building)
+- [Installing](#installing)
 - [Contributing](#contributing)
 
 ## Usage
@@ -162,9 +166,44 @@ script so it regenerates on install:
 
 Run `npx node-gtk generate-types --help` for options.
 
-## Installing and building
+## Installing
 
-See [Installing & building](./doc/installation.md) for prebuilt-binary notes, per-platform build instructions (Linux, macOS, Windows), and how to run the tests and examples.
+1. Install `node-gtk` itself
+2. Install the native libraries you use (see examples per platform below)
+
+```sh
+npm install node-gtk
+
+# This installs a prebuilt binary when one is available for your platform and
+# Node.js version, otherwise it falls back to building from source.
+```
+
+#### Linux
+
+```sh
+# archlinux
+pacman -S gtk4
+
+# ubuntu
+apt install libgtk-4-1
+```
+
+#### macOS
+
+```sh
+brew install gtk4
+```
+
+#### Windows
+
+Windows doesn't have the dependencies we need in a package manager, therefore 
+`node-gtk` ships prebuilt versions of GTK 4 / Adwaita runtime (DLLs, typelibs, 
+icons), so `npm install node-gtk` is all you need **if** your dependency is in 
+our [list of prebuilt libraries](./windows/runtime-libraries.txt).
+
+### build from source
+
+Building from source, or contributing? See [Building from source](./doc/building.md).
 
 ## Contributing
 

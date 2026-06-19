@@ -1,10 +1,12 @@
-# Installing & building
+# Building from source
 
-Note that prebuilt binaries are available for common systems, in those cases building is not necessary.
+This guide is for **contributors** and anyone building node-gtk from source.
+Most users don't need it — `npm install node-gtk` ships prebuilt binaries (see
+[Installing](../README.md#installing)). Build from source to hack on node-gtk,
+or to target a platform/Node.js version that has no prebuilt.
 
 ### Table of contents
 
-- [Target Platforms](#target-platforms)
 - [Requirements](#requirements)
 - [How to build on Ubuntu](#how-to-build-on-ubuntu)
 - [How to build on Fedora](#how-to-build-on-fedora)
@@ -14,15 +16,6 @@ Note that prebuilt binaries are available for common systems, in those cases bui
 - [Testing the project](#testing-the-project)
   - [Unit tests](#unit-tests)
   - [Browser demo](#browser-demo)
-
-##### Target Platforms
-
-- **Linux**: prebuilt binaries available
-- **macOS**: prebuilt binaries available
-- **Windows**: prebuilt binaries available (the GTK4/Adwaita runtime is bundled
-  with the binary, so no MSYS2/compiler is needed to *use* node-gtk; the terminal
-  widget Vte is the one exception — it has no Windows port). Building from source
-  still requires MSYS2 (see below).
 
 ### Requirements
 
