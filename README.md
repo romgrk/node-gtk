@@ -10,7 +10,7 @@
 
 <h1 align="center">node-gtk</h1>
 <p align="center">
-  <b>GNOME Gtk+ bindings for NodeJS</b>
+  <b>GTK bindings for NodeJS</b>
   <br/>
   <img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
 </p>
