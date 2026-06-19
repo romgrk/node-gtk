@@ -4,6 +4,16 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v2.2.0
+
+### Features
+
+- Prebuilt binaries for **Windows**. `npm install node-gtk` now works on Windows
+  with no MSYS2 and no compiler: the prebuilt bundles the GTK 4 / Adwaita runtime
+  (DLLs, GObject-Introspection typelibs, and data), and node-gtk wires it up at
+  load time. The bundled libraries are listed in `windows/runtime-libraries.txt`;
+  the terminal widget Vte is the one exception, as it has no Windows port (#450).
+
 ## v2.1.0
 
 ### Fixes
