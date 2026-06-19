@@ -123,7 +123,12 @@ jobs:
       - name: Negative control (no bundled runtime — expected to fail)
         continue-on-error: true
         shell: bash
-        run: node -e "require('.')" && echo "UNEXPECTED: loaded without runtime" || echo "expected failure: addon needs the bundled GTK runtime"
+        run: |
+          if node -e "require('.')"; then
+            echo "UNEXPECTED - loaded without the bundled GTK runtime"
+          else
+            echo "expected failure - addon needs the bundled GTK runtime/typelibs"
+          fi
 
       - name: Smoke test (bundled runtime — expected to pass)
         shell: bash
