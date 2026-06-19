@@ -15,12 +15,11 @@
   <img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
 </p>
 
-Node-gtk is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library 
-for nodejs. It makes it possible to use any introspected C library, such as Gtk, 
+`node-gtk` is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library 
+for nodejs. It makes it possible to use any introspected C library, such as GTK, 
 usable. It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) 
 or [PyGObject](https://pygobject.readthedocs.io). Please note this project is 
-currently in a _beta_ state and is being developed. Any contributors willing to 
-help will be welcomed.
+currently in a _alpha_ state.
 
 Supported Node.js versions: **20**, **22**, **24** (other versions may work but are untested)<br>
 Pre-built binaries available for: **Linux**, **macOS**
