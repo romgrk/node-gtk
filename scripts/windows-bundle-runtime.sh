@@ -133,6 +133,16 @@ copy_tree /mingw64/share/icons/hicolor "$BINDING_DIR/share/icons/hicolor"
 # GtkSourceView language definitions + style schemes
 copy_tree /mingw64/share/gtksourceview-5 "$BINDING_DIR/share/gtksourceview-5"
 
+# Make the gdk-pixbuf loaders cache path-portable: the build machine bakes in
+# absolute paths to each loader DLL, which don't exist on the user's machine.
+# Rewrite each loader path to its bare file name; lib/native.js puts the loaders
+# dir on PATH so g_module_open() resolves the bare name at run time.
+LOADER_CACHE="$BINDING_DIR/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+if [ -f "$LOADER_CACHE" ]; then
+  sed -i -E 's#^"[^"]*[\\/]([^"\\/]+\.dll)"#"\1"#' "$LOADER_CACHE"
+  echo "## Rewrote $LOADER_CACHE to portable (bare) loader names"
+fi
+
 echo
 echo "## ===== SIZE BREAKDOWN ====="
 size() { # label dir-or-glob

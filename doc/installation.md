@@ -19,7 +19,10 @@ Note that prebuilt binaries are available for common systems, in those cases bui
 
 - **Linux**: prebuilt binaries available
 - **macOS**: prebuilt binaries available
-- **Windows**: no prebuilt binaries
+- **Windows**: prebuilt binaries available (the GTK4/Adwaita runtime is bundled
+  with the binary, so no MSYS2/compiler is needed to *use* node-gtk; the terminal
+  widget Vte is the one exception — it has no Windows port). Building from source
+  still requires MSYS2 (see below).
 
 ### Requirements
 

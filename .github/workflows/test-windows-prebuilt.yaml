@@ -128,18 +128,29 @@ jobs:
           echo "---- bundled prebuilt ----"
           ls -la lib/binding/*/ || true
 
-      # Negative control: without the bundled DLLs on PATH the addon must fail to
-      # load. Documents WHY bundling is required. Allowed to fail.
+      # Negative control: move the bundled typelibs aside so native.js cannot
+      # auto-wire; the addon must then fail to load. Proves the pass below comes
+      # from the bundle (not the runner's GTK), then restores it. Allowed to fail.
       - name: Negative control (no bundled runtime — expected to fail)
         continue-on-error: true
         shell: bash
         run: |
+          export PATH=$(echo "$PATH" | tr ':' '\n' | grep -viE 'mingw|msys|chocolatey' | paste -sd ':' -)
+          DIR=$(echo lib/binding/node-v*-win32-x64)
+          mv "$DIR/girepository-1.0" "$DIR/girepository-1.0.off"
           if node -e "require('.')"; then
             echo "UNEXPECTED - loaded without the bundled GTK runtime"
           else
             echo "expected failure - addon needs the bundled GTK runtime/typelibs"
           fi
+          mv "$DIR/girepository-1.0.off" "$DIR/girepository-1.0"
 
-      - name: Smoke test (bundled runtime — expected to pass)
+      # The real test: NO env vars set here, and the runner's own MinGW/MSYS is
+      # stripped from PATH to simulate a clean user machine. A pass proves
+      # lib/native.js auto-wires the bundled runtime by itself.
+      - name: Smoke test (auto-wired, simulated clean machine)
         shell: bash
-        run: node scripts/windows-smoke-test.js
+        run: |
+          export PATH=$(echo "$PATH" | tr ':' '\n' | grep -viE 'mingw|msys|chocolatey' | paste -sd ':' -)
+          echo "gcc on PATH? $(which gcc || echo no)"
+          node scripts/windows-smoke-test.js
