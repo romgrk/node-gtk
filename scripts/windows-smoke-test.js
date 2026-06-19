@@ -29,8 +29,17 @@ if (fs.existsSync(bindingDir)) {
 // 1) Make the bundled GTK DLLs discoverable. This covers BOTH:
 //      - the addon's own static imports (resolved when node loads the .node)
 //      - GObject-Introspection's g_module_open() of each namespace's shared lib
-//    Prepending to PATH before the addon is required is enough for both.
-process.env.PATH = bindingDir + path.delimiter + (process.env.PATH || '')
+//    We REPLACE the PATH (rather than prepend) with the bundle dir + only the
+//    Windows system dirs. The GitHub windows-latest runner ships its own
+//    C:\mingw64; isolating the PATH proves the test uses ONLY the bundled
+//    runtime, not whatever GTK happens to be on the machine.
+const sysRoot = process.env.SystemRoot || 'C:\\Windows'
+process.env.PATH = [
+  bindingDir,
+  path.dirname(process.execPath),       // node.exe dir
+  path.join(sysRoot, 'System32'),
+  sysRoot,
+].join(path.delimiter)
 // 2) Point GI at the bundled typelibs.
 process.env.GI_TYPELIB_PATH =
   typelibDir + (process.env.GI_TYPELIB_PATH ? path.delimiter + process.env.GI_TYPELIB_PATH : '')

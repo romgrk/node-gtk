@@ -22,27 +22,53 @@ if [ ! -f "$NODE_FILE" ]; then
   exit 1
 fi
 
-echo "## Computing recursive DLL closure for $NODE_FILE"
+# GObject-Introspection loads each namespace's shared library at runtime via
+# g_module_open() when you call gi.require('Gtk', ...). Those libraries
+# (libgio, libgtk, libgdk, libpango, libatk, libgdk_pixbuf, ...) are NOT linked
+# by node_gtk.node, so ntldd on the addon alone misses them. We therefore seed
+# the closure from the addon AND from the GTK runtime libraries themselves.
+MB=/mingw64/bin
+ENTRY_LIBS=(
+  "$NODE_FILE"
+  "$MB/libgirepository-1.0-1.dll"
+  "$MB/libgio-2.0-0.dll"
+  "$MB/libgtk-3-0.dll"
+  "$MB/libgdk-3-0.dll"
+  "$MB/libgdk_pixbuf-2.0-0.dll"
+  "$MB/libpango-1.0-0.dll"
+  "$MB/libpangocairo-1.0-0.dll"
+  "$MB/libatk-1.0-0.dll"
+  "$MB/libcairo-gobject-2.dll"
+)
+
+echo "## Computing recursive DLL closure for the addon + GTK runtime"
 # ntldd -R prints every transitive dependency with its resolved Windows path:
 #   libgtk-3-0.dll => C:\msys64\mingw64\bin\libgtk-3-0.dll (0x...)
-# We keep only the MinGW-provided DLLs (skip C:\Windows\System32 OS DLLs).
+# Collect the union of every entry's closure, keep only MinGW-provided DLLs
+# (skip C:\Windows\System32 OS DLLs), and copy them next to the .node.
+: > /tmp/dll-closure.txt
+for lib in "${ENTRY_LIBS[@]}"; do
+  [ -f "$lib" ] || { echo "  (skip missing entry $lib)"; continue; }
+  # the entry library itself (when it is one of the GTK runtime DLLs)
+  case "$lib" in *mingw64*) echo "$lib" >> /tmp/dll-closure.txt ;; esac
+  ntldd -R "$lib" \
+    | sed -n 's/.* => \(.*\) (0x.*/\1/p' \
+    | while IFS= read -r winpath; do
+        [ -z "$winpath" ] && continue
+        u=$(cygpath -u "$winpath" 2>/dev/null || echo "$winpath")
+        case "$u" in *mingw64*) echo "$u" >> /tmp/dll-closure.txt ;; esac
+      done
+done
+
 copied=0
-ntldd -R "$NODE_FILE" \
-  | sed -n 's/.* => \(.*\) (0x.*/\1/p' \
-  | while IFS= read -r winpath; do
-      [ -z "$winpath" ] && continue
-      u=$(cygpath -u "$winpath" 2>/dev/null || echo "$winpath")
-      case "$u" in
-        *mingw64*)
-          if [ -f "$u" ]; then
-            cp -f "$u" "$BINDING_DIR/"
-            echo "  + $(basename "$u")"
-            copied=$((copied + 1))
-          fi
-          ;;
-      esac
-    done
-echo "## DLLs bundled into $BINDING_DIR"
+sort -u /tmp/dll-closure.txt | while IFS= read -r u; do
+  if [ -f "$u" ]; then
+    cp -f "$u" "$BINDING_DIR/"
+    echo "  + $(basename "$u")"
+    copied=$((copied + 1))
+  fi
+done
+echo "## DLLs bundled into $BINDING_DIR ($(ls "$BINDING_DIR"/*.dll | wc -l) total)"
 
 echo "## Bundling GObject-Introspection typelibs"
 TYPELIB_SRC=$(pkg-config --variable=typelibdir gobject-introspection-1.0 2>/dev/null || true)
