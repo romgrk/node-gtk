@@ -1,0 +1,43 @@
+# windows/runtime-libraries.txt
+#
+# Seed libraries bundled with the node-gtk Windows prebuilt.
+#
+# These are the high-level GObject-Introspection runtime libraries that a
+# GTK4 / Adwaita application loads at run time (via g_module_open when you call
+# gi.require('Gtk', '4.0') etc.). They are NOT linked by node_gtk.node itself,
+# so scanning the addon's own imports does not find them — they must be listed
+# here explicitly.
+#
+# scripts/windows-bundle-runtime.sh reads this file, then uses `ntldd -R` to
+# expand each entry into its full transitive DLL closure (~78 DLLs: harfbuzz,
+# cairo, pixman, fribidi, freetype, zlib, ...) and copies the whole set next to
+# the compiled addon. The exact resolved list that actually ships is written to
+# <binding-dir>/bundled-dlls.txt at build time — read that file to see every DLL.
+#
+# Format:
+#   - one DLL file name per line (no path; resolved against the MinGW bin dir,
+#     e.g. /mingw64/bin)
+#   - lines starting with '#' and blank lines are ignored
+#   - entries that don't exist in the MinGW prefix are skipped with a warning,
+#     so it is safe to list optional libraries
+#
+# To support additional namespaces, add the providing DLL here. For example:
+#   libgstreamer-1.0-0.dll     # GStreamer (gi.require('Gst', '1.0'))
+#   libsoup-3.0-0.dll          # libsoup   (gi.require('Soup', '3.0'))
+# Note: VTE (terminal) has no Windows port and cannot be bundled.
+
+# --- GObject-Introspection core ---
+libgirepository-1.0-1.dll
+libgio-2.0-0.dll
+
+# --- GTK4 stack (quilx target) ---
+libgtk-4-1.dll
+libadwaita-1-0.dll
+libgtksourceview-5-0.dll
+
+# --- text / graphics ---
+libpango-1.0-0.dll
+libpangocairo-1.0-0.dll
+libgdk_pixbuf-2.0-0.dll
+libgraphene-1.0-0.dll
+libcairo-gobject-2.dll
