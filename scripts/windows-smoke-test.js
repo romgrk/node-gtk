@@ -88,7 +88,7 @@ console.log('live GTK4/Adwaita widgets:', appOk ? 'ok' : 'skipped (no display)')
 // Exercise the bundled gdk-pixbuf image loaders + (portable) loaders.cache by
 // decoding a real PNG. This proves the loader subsystem works from the bundle.
 const PNG_1x1 = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
   'base64')
 const pngPath = path.join(__dirname, '..', 'smoke-test-pixel.png')
 fs.writeFileSync(pngPath, PNG_1x1)
