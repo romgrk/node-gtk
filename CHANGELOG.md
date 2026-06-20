@@ -4,6 +4,18 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+### Features
+
+- Support `super.<vfunc>()` chain-up from a registered subclass. A vfunc override
+  replaces the parent's implementation in the class vtable, so a JS subclass could
+  not previously call the implementation it overrode. `registerClass` now installs
+  a bridge on the parent GI class's prototype that invokes the parent's native
+  vfunc implementation, making the idiomatic `super.snapshotLine(...)` work. Applies
+  to "pure" vfuncs (those without a same-named public invoker method, e.g.
+  `snapshot_line`, `query_data`, `constructed`); invoker-backed vfuncs such as
+  `get_request_mode` are intentionally not bridged (their prototype method already
+  dispatches virtually, so `super` would recurse).
+
 ## v2.2.0
 
 ### Features

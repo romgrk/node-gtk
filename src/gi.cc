@@ -413,6 +413,10 @@ NAN_METHOD(RegisterVFunc) {
     GNodeJS::ObjectClass::RegisterVFunc(info);
 }
 
+NAN_METHOD(CallVFunc) {
+    GNodeJS::ObjectClass::CallVFunc(info);
+}
+
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     GNodeJS::AsyncCallEnvironment::Initialize();
 
@@ -433,6 +437,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     Nan::Export(exports, "GetLoopStack",         GetLoopStack);
     Nan::Export(exports, "RegisterClass",        RegisterClass);
     Nan::Export(exports, "RegisterVFunc",        RegisterVFunc);
+    Nan::Export(exports, "CallVFunc",            CallVFunc);
 
     Nan::Set(exports, UTF8("System"), GNodeJS::System::GetModule());
     Nan::Set(exports, UTF8("Cairo"),  GNodeJS::Cairo::GetModule());
