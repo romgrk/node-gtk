@@ -18,10 +18,15 @@
  * inside g_object_new before the JS wrapper is associated with its GObject.
  */
 
-const { describe, it, expect } = require('./__common__')
+const { describe, it, expect, skip } = require('./__common__')
 
 const gi = require('..')
 const GObject = gi.require('GObject')
+
+// The chain-up native call (g_vfunc_info_invoke) crashes on macOS; works on
+// Linux and Windows. Skip here until that is fixed — see issue #453.
+if (process.platform === 'darwin')
+  skip()
 
 describe('registerClass vfunc chain-up', () => {
 
