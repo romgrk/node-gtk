@@ -1,6 +1,8 @@
 
 #include <string.h>
 
+#include <vector>
+
 #include "boxed.h"
 #include "callback.h"
 #include "closure.h"
@@ -1032,6 +1034,66 @@ NAN_METHOD(RegisterVFunc) {
 
     RETURN(true);
     return;
+}
+
+/*
+ * Invoke a parent class's implementation of a vfunc — the native half of
+ * `super.<vfunc>(...)`. JS args: (vfuncInfo, implementorGType, instance, argsArray).
+ *
+ * `g_vfunc_info_invoke` resolves the vfunc through `implementorGType`'s class
+ * vtable, so passing the *parent* GType runs the parent's implementation rather
+ * than the overriding subclass's (which is what `super` means). The instance is
+ * passed as in-arg 0, the JS args follow.
+ *
+ * Scope: in-only arguments + (void or simple) return value. Out/inout arguments
+ * are rejected rather than silently mishandled.
+ */
+NAN_METHOD(CallVFunc) {
+    auto jsVFuncInfo  = info[0].As<Object>();
+    auto jsImplGType  = info[1].As<BigInt>();
+    auto jsInstance   = info[2];
+    auto jsArgs       = info[3].As<Array>();
+
+    BaseInfo vfuncInfo(jsVFuncInfo);
+    GType implementor = jsImplGType->Uint64Value();
+
+    int n_callable = g_callable_info_get_n_args(*vfuncInfo);
+
+    std::vector<GIArgument> in_args(n_callable + 1);
+    in_args[0].v_pointer = GObjectFromWrapper(jsInstance);
+
+    for (int i = 0; i < n_callable; i++) {
+        GIArgInfo arg_info;
+        GITypeInfo arg_type;
+        g_callable_info_load_arg(*vfuncInfo, i, &arg_info);
+        g_arg_info_load_type(&arg_info, &arg_type);
+
+        if (g_arg_info_get_direction(&arg_info) != GI_DIRECTION_IN) {
+            Throw::Error("Cannot chain up to parent vfunc '%s': out/inout argument %d is unsupported",
+                    g_base_info_get_name(*vfuncInfo), i);
+            return;
+        }
+
+        Local<Value> value = Nan::Get(jsArgs, i).ToLocalChecked();
+        bool may_be_null = g_arg_info_may_be_null(&arg_info);
+        V8ToGIArgument(&arg_type, &in_args[i + 1], value, may_be_null);
+    }
+
+    GIArgument return_value = {};
+    GError *error = NULL;
+    gboolean ok = g_vfunc_info_invoke(*vfuncInfo, implementor,
+            in_args.data(), n_callable + 1, NULL, 0, &return_value, &error);
+
+    if (!ok) {
+        Throw::GError("Failed to chain up to parent vfunc", error);
+        return;
+    }
+
+    GITypeInfo return_type;
+    g_callable_info_load_return_type(*vfuncInfo, &return_type);
+    if (g_type_info_get_tag(&return_type) != GI_TYPE_TAG_VOID) {
+        info.GetReturnValue().Set(GIArgumentToV8(&return_type, &return_value));
+    }
 }
 
 };

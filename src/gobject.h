@@ -26,6 +26,7 @@ namespace ObjectClass {
 
 NAN_METHOD(RegisterClass);
 NAN_METHOD(RegisterVFunc);
+NAN_METHOD(CallVFunc);
 
 };
 
