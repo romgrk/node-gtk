@@ -1059,8 +1059,20 @@ NAN_METHOD(CallVFunc) {
 
     int n_callable = g_callable_info_get_n_args(*vfuncInfo);
 
+    GObject *instance = GObjectFromWrapper(jsInstance);
+    if (instance == NULL) {
+        // The wrapper has no associated GObject yet — e.g. chaining up to a
+        // construction-time vfunc (`constructed`), which fires inside g_object_new
+        // before node-gtk associates the JS wrapper with the GObject. There is no
+        // valid instance to invoke the parent on; fail loudly instead of crashing.
+        Throw::Error("Cannot chain up to parent vfunc '%s': instance has no GObject yet "
+                "(chaining up during construction is unsupported)",
+                g_base_info_get_name(*vfuncInfo));
+        return;
+    }
+
     std::vector<GIArgument> in_args(n_callable + 1);
-    in_args[0].v_pointer = GObjectFromWrapper(jsInstance);
+    in_args[0].v_pointer = instance;
 
     for (int i = 0; i < n_callable; i++) {
         GIArgInfo arg_info;

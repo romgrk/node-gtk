@@ -12,6 +12,10 @@
  * vfuncs (e.g. get_request_mode, which the prototype already exposes as a method
  * that dispatches virtually) `super.<name>()` resolves to that invoker and would
  * recurse, so it is intentionally not bridged.
+ *
+ * Chain-up needs a fully-constructed instance: it is invoked here from a regular
+ * method (post-construction), not from `constructed` itself, since that fires
+ * inside g_object_new before the JS wrapper is associated with its GObject.
  */
 
 const { describe, it, expect } = require('./__common__')
@@ -26,7 +30,12 @@ describe('registerClass vfunc chain-up', () => {
 
     class A extends GObject.Object {
       static GTypeName = 'NodeGTKChainA'
-      constructed() {
+      // Overriding `constructed` registers the override (and installs the bridge);
+      // kept a no-op so construction itself doesn't chain (the wrapper isn't
+      // associated yet during g_object_new).
+      constructed() {}
+      // Idiomatic chain-up, invoked when WE choose — the instance is live by then.
+      chain() {
         order.push('A:before')
         super.constructed()   // -> native GObject.Object.constructed (the bridge)
         order.push('A:after')
@@ -36,9 +45,9 @@ describe('registerClass vfunc chain-up', () => {
 
     class B extends A {
       static GTypeName = 'NodeGTKChainB'
-      constructed() {
+      chain() {
         order.push('B:before')
-        super.constructed()   // -> A.prototype.constructed (a plain JS method)
+        super.chain()         // -> A.prototype.chain (a plain JS method)
         order.push('B:after')
       }
     }
@@ -47,10 +56,12 @@ describe('registerClass vfunc chain-up', () => {
     // The bridge for a pure vfunc lands on the native parent prototype.
     expect(typeof GObject.Object.prototype.constructed, 'function')
 
-    new B()
+    const b = new B()
+    b.chain()
 
-    // B's super hits A's JS override; A's super hits GObject's native impl.
-    // Correct LIFO nesting proves the chain dispatched once at each level.
+    // B's super hits A's JS method; A's super hits GObject's native constructed.
+    // Correct LIFO nesting proves the chain dispatched once at each level without
+    // recursing or throwing.
     expect(order, ['B:before', 'A:before', 'A:after', 'B:after'])
   })
 })
