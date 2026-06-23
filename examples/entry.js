@@ -34,6 +34,7 @@ const entry = new Gtk.Entry()
 entry.on('key-press-event', (event) => {
   console.log(event)
   console.log(event.string)
+  return false
 })
 
 
