@@ -134,6 +134,43 @@ bool IsDestroyNotify (GIBaseInfo *info) {
         && strcmp(g_base_info_get_namespace(info), "GLib") == 0;
 }
 
+/*
+ * A transfer-full GObject return value hands node-gtk an *owning* reference. The
+ * JS wrapper only needs node-gtk's toggle reference, so that extra reference has
+ * to be released — otherwise the refcount never falls back to 1, ToggleNotify
+ * never flips the V8 handle to weak, and the GObject (plus its wrapper) leaks for
+ * the lifetime of the process. This is the leak reported in #446: objects from
+ * GI function returns (`Type.new()`, transfer-full getters, …) were never GC'd,
+ * while `new Type()` — which drops its construction ref in GObjectConstructor —
+ * was. It is the return-value counterpart of OUT GObject args, which
+ * FreeGIArgument already balances; the return value is otherwise never freed on
+ * the success path. (The IN counterpart is RefObjectForTransferFullIn, #439.)
+ *
+ * Must be sampled *before* the value is wrapped: associating the wrapper sinks a
+ * floating reference (consuming it), after which a floating incoming ref (nothing
+ * extra to drop) is indistinguishable from a real owned one. G_IS_OBJECT excludes
+ * GParamSpec (wrapped via ParamSpec::FromGParamSpec) and boxed/fundamental
+ * interface types.
+ */
+static bool OwnsExtraGObjectReturnRef(GITypeInfo *return_type, GITransfer transfer, gpointer ptr) {
+    if (transfer != GI_TRANSFER_EVERYTHING || ptr == NULL)
+        return false;
+
+    if (g_type_info_get_tag(return_type) != GI_TYPE_TAG_INTERFACE)
+        return false;
+
+    GIBaseInfo *iface = g_type_info_get_interface(return_type);
+    GIInfoType  itype = g_base_info_get_type(iface);
+
+    bool result =
+        (itype == GI_INFO_TYPE_OBJECT || itype == GI_INFO_TYPE_INTERFACE)
+        && G_IS_OBJECT(ptr)
+        && !g_object_is_floating(ptr);
+
+    g_base_info_unref(iface);
+    return result;
+}
+
 
 /**
  * The constructor just stores the GIBaseInfo ref. The rest of the
@@ -549,6 +586,13 @@ Local<Value> FunctionCall (
 
     } else if (!use_return_value) {
 
+        // A transfer-full GObject return hands us an extra owning reference on
+        // top of the wrapper's toggle ref; drop it once wrapped so the object
+        // isn't pinned alive forever (#446). Sampled now, before wrapping sinks
+        // any floating reference.
+        bool release_return_ref =
+            OwnsExtraGObjectReturnRef(&return_type, return_transfer, return_value_stack.v_pointer);
+
         // Value transferred to jsReturnValue
         jsReturnValue = func->JsReturnValue (
                 info.This(),
@@ -556,6 +600,9 @@ Local<Value> FunctionCall (
                 &return_value_stack,
                 callable_arg_values,
                 return_transfer);
+
+        if (release_return_ref)
+            g_object_unref (return_value_stack.v_pointer);
     } else {
 
         // Value returned in return_value
