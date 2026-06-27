@@ -64,11 +64,9 @@ never strictly needs `install()`.
 
 ## Hot-reload
 
-Hot-reload runs **only in development** (and is silently off otherwise — in
-production nothing is watched). "Development" means either `NODE_ENV=development`
-or that the process was started with Node's `--watch` flag (so an app run with
-`node --watch …`, as the `node-gtk create` scaffold does for `npm run dev`, gets
-live reload without setting any env var). You can opt out with
+Hot-reload runs **only when `NODE_ENV=development`** (and is silently off
+otherwise — in production nothing is watched). Apps created with `node-gtk
+create` set this for you in their `npm run dev` script. You can opt out with
 `NODE_GTK_STYLE_HOT_RELOAD=0`.
 
 Every file that contributes styles is watched (via Node's `fs.watch`, no extra

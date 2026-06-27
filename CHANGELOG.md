@@ -49,10 +49,9 @@ Changes to be released are kept in the unreleased section.
 - **Styles & hot-reload.** New `node-gtk/styles` subpath export — a small,
   dependency-free `StyleManager` wrapping `Gtk.CssProvider`/`Gtk.StyleContext`.
   It applies inline CSS (`styles.add`) and `.css` files (`styles.addFile`), and
-  in development **hot-reloads** them as you edit, with no restart. Development
-  is `NODE_ENV=development` or running under Node's `--watch`; opt out with
-  `NODE_GTK_STYLE_HOT_RELOAD=0`. Ships with TypeScript types. See
-  [Styles & hot-reload](./doc/styles.md).
+  in development **hot-reloads** them as you edit, with no restart. Hot-reload
+  is on when `NODE_ENV=development` (opt out with `NODE_GTK_STYLE_HOT_RELOAD=0`).
+  Ships with TypeScript types. See [Styles & hot-reload](./doc/styles.md).
 - **App creator.** `node-gtk create <dir>` creates a ready-to-run TypeScript +
   ESM Adwaita app, with `style.css` wired through `node-gtk/styles` so it
   hot-reloads live under `npm run dev`. See

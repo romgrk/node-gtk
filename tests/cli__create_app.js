@@ -58,8 +58,11 @@ assert.ok(pkg.scripts['dev:app-reload'].includes('--watch'), 'dev:app-reload sho
 // the scripts that actually launch node must install the gi: loader hooks.
 for (const s of ['dev:css-reload', 'dev:app-reload', 'start'])
   assert.ok(pkg.scripts[s].includes('node-gtk/register'), `${s} should --import node-gtk/register`)
-// CSS-reload mode enables node-gtk/styles hot-reload (NODE_ENV=development).
-assert.ok(pkg.scripts['dev:css-reload'].includes('NODE_ENV=development'), 'dev:css-reload sets NODE_ENV=development')
+// Both dev modes enable node-gtk/styles hot-reload via cross-env (cross-platform
+// NODE_ENV=development — a bare `NODE_ENV=...` prefix would break on Windows).
+for (const s of ['dev:css-reload', 'dev:app-reload'])
+  assert.ok(pkg.scripts[s].includes('cross-env NODE_ENV=development'), `${s} should set NODE_ENV via cross-env`)
+assert.ok(pkg.devDependencies['cross-env'], 'cross-env should be a devDependency')
 
 // tsconfig.json is valid JSON, points at the generated types, and pulls the
 // shim into the program (via `files`, since it lives under node_modules) so the

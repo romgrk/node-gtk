@@ -6,8 +6,8 @@
   "private": true,
   "scripts": {
     "dev": "npm run dev:css-reload",
-    "dev:css-reload": "NODE_ENV=development node --import tsx --import node-gtk/register src/main.ts",
-    "dev:app-reload": "NODE_ENV=development node --import tsx --import node-gtk/register --watch src/main.ts",
+    "dev:css-reload": "cross-env NODE_ENV=development node --import tsx --import node-gtk/register src/main.ts",
+    "dev:app-reload": "cross-env NODE_ENV=development node --import tsx --import node-gtk/register --watch src/main.ts",
     "start": "node --import tsx --import node-gtk/register src/main.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "cross-env": "^7.0.3",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0"
   }

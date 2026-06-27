@@ -24,10 +24,10 @@ const loop = GLib.MainLoop.new(null, false)
 const app = new Adw.Application({ applicationId: APP_ID, flags: Gio.ApplicationFlags.FLAGS_NONE })
 
 app.on('activate', () => {
-  // Apply style.css, layered on top of Adwaita. In `npm run dev` (node --watch)
-  // the file is re-read live as you edit it — no restart, no flash. style.css
-  // sits at the project root, one level up from both src/ (dev, via tsx) and
-  // dist/ (built, via node), so this URL resolves in either case.
+  // Apply style.css, layered on top of Adwaita. Under `npm run dev` the file is
+  // re-read live as you edit it — no restart, no flash. style.css sits at the
+  // project root, one level up from both src/ (dev, via tsx) and dist/ (built,
+  // via node), so this URL resolves in either case.
   styles.addFile(new URL('../style.css', import.meta.url))
 
   const window = new Adw.ApplicationWindow({ application: app })
