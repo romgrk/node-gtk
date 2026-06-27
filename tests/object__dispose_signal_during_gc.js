@@ -36,7 +36,6 @@ if (typeof global.gc !== 'function') {
 const GLib = gi.require('GLib', '2.0')
 const Gio = gi.require('Gio', '2.0')
 
-gi.startLoop()
 
 // Run the GLib main loop briefly so any deferred teardown idles get to fire,
 // then return control to JS.

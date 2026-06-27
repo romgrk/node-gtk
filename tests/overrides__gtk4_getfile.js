@@ -12,7 +12,6 @@ const { describe, it, expect, skip } = require('./__common__.js')
 let Gtk
 try {
   Gtk = gi.require('Gtk', '4.0')
-  gi.startLoop()
   Gtk.init()
 } catch (e) {
   console.log('Gtk 4.0 not available, skipping:', e.message)

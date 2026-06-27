@@ -8,7 +8,6 @@ const Gtk = gi.require('Gtk', '3.0')
 const GLib = gi.require('GLib')
 const { describe, it, expect } = require('./__common__.js')
 
-gi.startLoop()
 Gtk.init()
 
 describe('function out parameters', () => {

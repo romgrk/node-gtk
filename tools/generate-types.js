@@ -946,7 +946,6 @@ const SHIM_STATIC_API = `  export function isLoaded(ns: string, version?: string
   export function prependLibraryPath(path: string): void
   export function listAvailableModules(): Promise<{ name: string, version: string }[]>
   export function registerClass(klass: Function): Function
-  export function startLoop(): void
   export function getGType(value: Function | object | bigint): bigint
   export const System: any`
 
@@ -966,6 +965,25 @@ function writeShim(outdir, nsVersions) {
   lines.push(`  export function require(ns: string, version?: string): any`)
   lines.push(SHIM_STATIC_API)
   lines.push(`}`)
+
+  // Ambient declarations for the `gi:` ESM import scheme, so
+  // `import Gtk from 'gi:Gtk-4.0'` is typed as the namespace object (the same
+  // type `gi.require('Gtk','4.0')` returns). The versionless `gi:Gtk` alias
+  // resolves to the version generated here. The `gi:*` fallback does NOT make
+  // un-generated namespaces `any` — its default export is typed as an
+  // instruction string, so any use of one is a TypeScript error that names the
+  // fix (a more specific `gi:<Ns>-<v>` declaration above always wins over it).
+  lines.push(``)
+  for (const [ns, version] of nsVersions) {
+    const type = `typeof import('./${ns}-${version}.js')`
+    lines.push(`declare module 'gi:${ns}-${version}' { const ns: ${type}; export default ns }`)
+    lines.push(`declare module 'gi:${ns}' { const ns: ${type}; export default ns }`)
+  }
+  lines.push(`declare module 'gi:*' {`)
+  lines.push(`  const ns: 'node-gtk: no generated types for this gi: namespace. Run: node-gtk generate-types <Namespace>-<version>'`)
+  lines.push(`  export default ns`)
+  lines.push(`}`)
+
   fs.writeFileSync(path.join(outdir, 'node-gtk.d.ts'), lines.join('\n') + '\n')
 }
 

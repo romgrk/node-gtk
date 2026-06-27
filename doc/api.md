@@ -10,6 +10,9 @@ This is the documentation for the API of node-gtk itself. For documentation on t
 - **[listAvailableModules()](#list-available-modules)**
 - **[registerClass(klass)](#register-class-klass)**
 
+You can also import a namespace directly under ES modules with the `gi:` scheme —
+see [require](#require).
+
 <a id="require" />
 
 #### require(ns, [version]) ⇒ `Object`
@@ -22,6 +25,16 @@ Requires a module. Automatically loads dependencies.
 | ------- | -------- | ------- | --------------------------------- |
 | ns      | `string` |         | namespace to load                 |
 | version | `string` | `null`  | version to load (null for latest) |
+
+Under ES modules you can also import a namespace directly with the `gi:` scheme,
+which calls `require` under the hood. Install the hooks with
+`node --import node-gtk/register app.mjs`, then:
+
+```javascript
+import Gtk from 'gi:Gtk-4.0'      // default export is the namespace object
+import GLib from 'gi:GLib-2.0'    // `gi:Name-Version`, or `gi:Name` for the latest
+const { Box, Label } = Gtk        // members are read off the namespace
+```
 
 <a id="prepend-search-path" />
 
@@ -55,9 +68,15 @@ Returns a list of available modules
 
 #### registerClass(klass)
 
-Prepends a path to GObject-Introspection library path (for shared libraries)
+Registers a JS class (which must extend a GObject type) as a new GType, so it can
+be instantiated and used like a native type. The parent type must be registered
+first.
 
-| Param | Type     |
-| ----- | -------- |
-| klass  | `object` |
+By default the GType name is the class name; override it with a static
+`GTypeName`. Vfunc overrides are matched by the `snake_case` of the method name
+(e.g. `getRequestMode` → `get_request_mode`).
+
+| Param | Type     | Description                                          |
+| ----- | -------- | ---------------------------------------------------- |
+| klass | `Class`  | the class to register (must extend a GObject type)   |
 

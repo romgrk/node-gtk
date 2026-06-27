@@ -9,7 +9,6 @@ const Gdk = gi.require('Gdk', '3.0')
 
 const { it } = require('./__common__.js')
 
-gi.startLoop()
 Gtk.init()
 Gdk.init([])
 

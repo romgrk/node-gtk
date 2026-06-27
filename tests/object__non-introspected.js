@@ -3,7 +3,6 @@ const Gst = gi.require('Gst', '1.0')
 const GObject = gi.require('GObject', '2.0')
 const { assert, describe, expect, it } = require('./__common__.js')
 
-gi.startLoop()
 Gst.init([])
 
 describe('create introspected objected', () => {

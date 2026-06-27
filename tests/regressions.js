@@ -13,7 +13,6 @@ const { describe, expect } = require('./__common__.js')
 
 Gst.init([])
 Gtk.init()
-gi.startLoop()
 
 
 /*

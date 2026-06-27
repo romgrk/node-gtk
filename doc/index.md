@@ -22,7 +22,9 @@ const Gtk = gi.require('Gtk', '3.0')
 // Use GTK
 ```
 
-See [api.md](./api.md) for more information on the `node-gtk` API.
+For the full picture — ES module `gi:` imports, CommonJS, and skipping the
+`--import` flag — see [importing.md](./importing.md). See [api.md](./api.md) for
+more information on the `node-gtk` API.
 
 ## 2. Data types
 
