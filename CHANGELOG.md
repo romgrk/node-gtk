@@ -34,6 +34,11 @@ Changes to be released are kept in the unreleased section.
   `snapshot_line`, `query_data`, `constructed`); invoker-backed vfuncs such as
   `get_request_mode` are intentionally not bridged (their prototype method already
   dispatches virtually, so `super` would recurse).
+- **App scaffolder.** `node-gtk init <dir>` (alias `create`) generates a
+  ready-to-run TypeScript + ESM Adwaita application — an `Adw.Application` with a
+  header bar, primary menu, About window, and a welcome screen — wired up with
+  `gi:` imports, `tsx` live-reload, and a `postinstall` that runs `generate-types`.
+  Run `npx node-gtk init my-app && cd my-app && npm run dev`.
 
 ## v2.2.0
 

@@ -1,23 +1,23 @@
 /*
  * __APP_NAME__ — an Adwaita application built with node-gtk.
  *
- * node-gtk runs fine under ES modules, with one caveat: the blocking main-loop
- * call (`loop.run()` / `app.run()`) RETURNS IMMEDIATELY instead of blocking. So
- * we make `app.run()` the last statement and tear everything down from the
- * window's close handler. See: https://github.com/romgrk/node-gtk#es-modules
+ * Namespaces are imported with the `gi:` scheme (`import Gtk from 'gi:Gtk-4.0'`);
+ * the app is run with `node --import node-gtk/register …` (see the package.json
+ * scripts). node-gtk integrates the GTK main loop with Node's event loop
+ * automatically — there's nothing to call to enable it.
  *
- * `import gi from 'node-gtk'` (default import) is intentional: node-gtk is a
- * CommonJS module, and only the default import exposes `gi.require` at runtime
- * under ESM (a `import * as gi` namespace import would leave it undefined).
+ * One ESM caveat: the blocking run call (`loop.run()` / `app.run()`) RETURNS
+ * IMMEDIATELY instead of blocking. So `app.run()` is the last statement and we
+ * tear everything down from the window's close handler / quit action.
+ * See: https://github.com/romgrk/node-gtk/blob/master/doc/importing.md
  */
 import { fileURLToPath } from 'node:url'
-import gi from 'node-gtk'
 
-const GLib = gi.require('GLib', '2.0')
-const Gio = gi.require('Gio', '2.0')
-const Gdk = gi.require('Gdk', '4.0')
-const Gtk = gi.require('Gtk', '4.0')
-const Adw = gi.require('Adw', '1')
+import GLib from 'gi:GLib-2.0'
+import Gio from 'gi:Gio-2.0'
+import Gdk from 'gi:Gdk-4.0'
+import Gtk from 'gi:Gtk-4.0'
+import Adw from 'gi:Adw-1'
 
 const APP_ID = '__APP_ID__'
 
@@ -104,9 +104,8 @@ app.on('activate', () => {
   window.on('close-request', () => (loop.quit(), app.quit(), false))
   window.present()
 
-  // Hand the event loop to node-gtk. Under ESM this returns immediately; the
-  // app keeps running until the close handler (or quit action) stops it.
-  gi.startLoop()
+  // The loop integration is already running; under ESM this returns immediately.
+  // The app keeps running until the close handler (or quit action) stops it.
   loop.run()
 })
 

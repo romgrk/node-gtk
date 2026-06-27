@@ -49,15 +49,23 @@ assert.strictEqual(pkg.name, 'demo-app')
 assert.strictEqual(pkg.type, 'module')
 assert.ok(/^\^\d+\.\d+\.\d+/.test(pkg.dependencies['node-gtk']), 'node-gtk version should be substituted')
 assert.ok(pkg.scripts.dev && pkg.scripts.build && pkg.scripts.types, 'expected scripts present')
+// run scripts must install the gi: loader hooks.
+assert.ok(pkg.scripts.dev.includes('node-gtk/register'), 'dev should --import node-gtk/register')
+assert.ok(pkg.scripts.start.includes('node-gtk/register'), 'start should --import node-gtk/register')
 
-// tsconfig.json is valid JSON and points at the generated types.
+// tsconfig.json is valid JSON, points at the generated types, and pulls the
+// shim into the program so the `gi:` ambient modules resolve.
 const tsconfig = JSON.parse(fs.readFileSync(path.join(dir, 'tsconfig.json'), 'utf8'))
 assert.ok(tsconfig.compilerOptions.paths['node-gtk'][0].includes('.node-gtk-types'))
+assert.ok(tsconfig.include.some((p) => p.includes('.node-gtk-types')), 'tsconfig should include the shim')
 
 // tokens are fully substituted in the source — no leftover placeholders.
 const main = fs.readFileSync(path.join(dir, 'src', 'main.ts'), 'utf8')
 assert.ok(main.includes("const APP_ID = 'com.example.DemoApp'"), 'app id substituted')
 assert.ok(main.includes('Welcome to Demo App'), 'app name substituted')
+// uses the `gi:` import scheme, and not the removed startLoop()/gi.require shape.
+assert.ok(main.includes("import Gtk from 'gi:Gtk-4.0'"), 'uses gi: imports')
+assert.ok(!main.includes('startLoop'), 'must not call the removed gi.startLoop()')
 for (const file of expected) {
   const text = fs.readFileSync(path.join(dir, file), 'utf8')
   assert.ok(!/__[A-Z_]+__/.test(text), `no unsubstituted tokens left in ${file}`)

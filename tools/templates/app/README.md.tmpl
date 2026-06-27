@@ -16,38 +16,56 @@ on your system. node-gtk talks to the libraries you actually have installed.
 The `-dev`/`-devel` packages also ship the `.gir` files used to embed GNOME's API
 documentation into the generated TypeScript types (shown on hover in your editor).
 
+You also need **Node.js ≥ 20.6** (for the `gi:` import hooks).
+
 ## Getting started
 
 ```sh
 npm install        # installs deps and generates TypeScript types (postinstall)
-npm run dev        # run the app with live reload (tsx watch)
+npm run dev        # run the app with live reload
 ```
 
 That's it — a window should appear.
 
+## How it works
+
+Namespaces are imported with the `gi:` scheme, and their default export is the
+namespace object:
+
+```ts
+import Gtk from 'gi:Gtk-4.0'
+import Adw from 'gi:Adw-1'
+```
+
+For those imports to resolve, node-gtk's loader hooks must be installed, which is
+why the app is run with `node --import node-gtk/register`. The `dev`/`start`
+scripts already include this (along with `tsx`, which runs the TypeScript without
+a separate build step). node-gtk integrates the GTK main loop with Node's event
+loop automatically.
+
 ## Scripts
 
-| command            | what it does                                                        |
-| ------------------ | ------------------------------------------------------------------- |
-| `npm run dev`      | Run with live reload on file changes (`tsx watch`).                 |
-| `npm start`        | Run once without building (`tsx`).                                  |
-| `npm run build`    | Type-check and compile `src/` to `dist/` with `tsc`.                |
-| `npm run typecheck`| Type-check only, no output.                                         |
-| `npm run types`    | (Re)generate TypeScript types for the GI namespaces you use.        |
+| command             | what it does                                                       |
+| ------------------- | ----------------------------------------------------------------- |
+| `npm run dev`       | Run with live reload on file changes (`node --watch`).            |
+| `npm start`         | Run once without building.                                        |
+| `npm run build`     | Type-check and compile `src/` to `dist/` with `tsc`.             |
+| `npm run typecheck` | Type-check only, no output.                                      |
+| `npm run types`     | (Re)generate TypeScript types for the GI namespaces you use.     |
 
 ## TypeScript types
 
 Types are generated **on your machine** from the GObject-Introspection typelibs
 you have installed, so they match your actual library versions and node-gtk's
 runtime shape (camelCase methods, typed signals, nullability, …). They live in
-`node_modules/.node-gtk-types/` (git-ignored) and `tsconfig.json` points at them.
+`.node-gtk-types/` (git-ignored) and `tsconfig.json` points at them.
 
 The `postinstall` script regenerates them automatically. If you start using
 another library, add it to the `types` script in `package.json` and re-run it:
 
 ```jsonc
 // package.json
-"types": "node-gtk generate-types Gtk-4.0 Adw-1 GtkSource-5"
+"types": "node-gtk generate-types Gtk-4.0 Adw-1 GtkSource-5 --outdir .node-gtk-types"
 ```
 
 ```sh
@@ -68,6 +86,7 @@ npm run types
 ## Learn more
 
 - [node-gtk](https://github.com/romgrk/node-gtk) — the bindings
+- [Importing libraries](https://github.com/romgrk/node-gtk/blob/master/doc/importing.md) — the `gi:` scheme and ESM details
 - [GTK 4 API reference](https://docs.gtk.org/gtk4/)
 - [libadwaita API reference](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/)
 - [Adwaita style classes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/style-classes.html)

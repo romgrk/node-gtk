@@ -110,28 +110,32 @@ What it generates (a TypeScript + ESM project):
   accelerator), an `Adw.AboutWindow`, an `Adw.StatusPage` welcome screen, and an
   `Adw.ToastOverlay`. It loads a `style.css` via `Gtk.CssProvider`.
 - `package.json` — depends on `node-gtk`; scripts for `dev` (live reload via
-  `tsx watch`), `start`, `build`/`typecheck` (`tsc`), and `types`. A `postinstall`
-  hook runs `generate-types` so the GI APIs are typed straight after install.
-- `tsconfig.json` — strict, `nodenext`, `esModuleInterop`, with `paths` pointed at
-  the generated `node_modules/.node-gtk-types`.
+  `node --watch`), `start`, `build`/`typecheck` (`tsc`), and `types`. A
+  `postinstall` hook runs `generate-types` so the GI APIs are typed straight after
+  install.
+- `tsconfig.json` — strict, `nodenext`, with the generated shim wired in so the
+  `gi:` imports resolve.
 - `style.css`, `.gitignore`, and a project `README.md`.
 
 ### Why these specific shapes
 
-- **ESM default import.** The boilerplate uses `import gi from 'node-gtk'`, not
-  `import * as gi`. node-gtk is CommonJS and builds its exports with a spread
-  (`module.exports = { ...module_, … }`), which Node's CJS named-export detection
-  can't see through — so under a namespace import `gi.require` is `undefined` at
-  runtime. The default import binds the whole `module.exports`, so it works; with
-  `esModuleInterop` it also type-checks against the generated module shim.
+- **`gi:` scheme imports.** The app imports namespaces with the `gi:` scheme
+  (`import Gtk from 'gi:Gtk-4.0'`, default export = the namespace) — the default,
+  documented import form (see [`doc/importing.md`](../doc/importing.md)). That
+  requires node-gtk's loader hooks, so the `dev`/`start` scripts run with
+  `node --import node-gtk/register` (plus `--import tsx` to run TypeScript with no
+  build step). The generated shim declares each `gi:<Namespace>-<version>` module,
+  so the imports are typed; `tsconfig.json` pulls the shim into the program via
+  `include` so those ambient declarations are visible.
 - **Property-bag constructors.** The type generator exposes the JS
   `constructor(properties?)` (a camelCase property bag) as the only `new`-able
   constructor; GI's positional constructors are emitted as static methods. So the
   app uses `new Adw.Application({ applicationId, flags })` and
   `GLib.MainLoop.new(null, false)` accordingly.
-- **ESM loop handling.** Under ESM the blocking loop call returns immediately, so
-  `app.run()` is the last statement and teardown happens in the close handler /
-  quit action (see the README's ES-modules section).
+- **ESM loop handling.** The loop integration starts automatically (no
+  `startLoop()` call), but under ESM the blocking run call returns immediately —
+  so `app.run()` is the last statement and teardown happens in the close handler /
+  quit action.
 
 ### Options
 

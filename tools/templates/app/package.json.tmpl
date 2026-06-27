@@ -5,12 +5,12 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts",
+    "dev": "node --watch --import tsx --import node-gtk/register src/main.ts",
+    "start": "node --import tsx --import node-gtk/register src/main.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "types": "node-gtk generate-types Gtk-4.0 Adw-1",
-    "postinstall": "node-gtk generate-types Gtk-4.0 Adw-1"
+    "types": "node-gtk generate-types Gtk-4.0 Adw-1 --outdir .node-gtk-types",
+    "postinstall": "node-gtk generate-types Gtk-4.0 Adw-1 --outdir .node-gtk-types"
   },
   "dependencies": {
     "node-gtk": "__NODE_GTK_VERSION__"
