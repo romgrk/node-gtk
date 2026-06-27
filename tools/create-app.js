@@ -24,6 +24,7 @@ const FILES = [
   ['README.md.tmpl', 'README.md'],
   ['style.css.tmpl', 'style.css'],
   ['src/main.ts.tmpl', path.join('src', 'main.ts')],
+  ['src/welcome.ts.tmpl', path.join('src', 'welcome.ts')],
 ]
 
 // ---------------------------------------------------------------------------

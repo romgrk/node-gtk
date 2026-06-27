@@ -38,7 +38,7 @@ const written = createApp.createProject({
   nodeGtkVersion: '^9.9.9',
 })
 
-const expected = ['package.json', 'tsconfig.json', '.gitignore', 'README.md', 'style.css', path.join('src', 'main.ts')]
+const expected = ['package.json', 'tsconfig.json', '.gitignore', 'README.md', 'style.css', path.join('src', 'main.ts'), path.join('src', 'welcome.ts')]
 for (const f of expected) {
   assert.ok(written.includes(f), `createProject() should report writing ${f}`)
   assert.ok(fs.existsSync(path.join(dir, f)), `${f} should exist on disk`)
@@ -73,8 +73,9 @@ assert.ok(tsconfig.files.some((p) => p.includes('.node-gtk-types')), 'tsconfig s
 
 // tokens are fully substituted in the source — no leftover placeholders.
 const main = fs.readFileSync(path.join(dir, 'src', 'main.ts'), 'utf8')
+const welcome = fs.readFileSync(path.join(dir, 'src', 'welcome.ts'), 'utf8')
 assert.ok(main.includes("const APP_ID = 'com.example.DemoApp'"), 'app id substituted')
-assert.ok(main.includes('Welcome to Demo App'), 'app name substituted')
+assert.ok(welcome.includes('Welcome to Demo App'), 'app name substituted (in the welcome component)')
 // uses the `gi:` import scheme, and not the removed startLoop()/gi.require shape.
 assert.ok(main.includes("import Gtk from 'gi:Gtk-4.0'"), 'uses gi: imports')
 assert.ok(!main.includes('startLoop'), 'must not call the removed gi.startLoop()')
@@ -83,6 +84,11 @@ assert.ok(!main.includes('startLoop'), 'must not call the removed gi.startLoop()
 assert.ok(main.includes("import { styles } from 'node-gtk/styles'"), 'imports node-gtk/styles')
 assert.ok(main.includes('styles.addFile('), 'loads style.css through node-gtk/styles')
 assert.ok(!main.includes('new Gtk.CssProvider'), 'no longer hand-rolls a CssProvider')
+// the welcome screen is split into its own component module with inline,
+// hot-reloadable styles.add(), and main.ts imports it (NodeNext `.js` specifier).
+assert.ok(main.includes("import { createWelcome } from './welcome.js'"), 'main imports the welcome component')
+assert.ok(main.includes('createWelcome('), 'main uses createWelcome()')
+assert.ok(welcome.includes('styles.add(') && welcome.includes('export function createWelcome'), 'welcome.ts registers inline styles and exports createWelcome')
 for (const file of expected) {
   const text = fs.readFileSync(path.join(dir, file), 'utf8')
   assert.ok(!/__[A-Z_]+__/.test(text), `no unsubstituted tokens left in ${file}`)
