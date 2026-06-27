@@ -4,8 +4,33 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+### Breaking changes
+
+- Removed `gi.startLoop()`. The GLib main-loop integration now starts
+  automatically the first time you run a main loop, so the call is no longer
+  needed — delete any `gi.startLoop()` from your code.
+
 ### Features
 
+- **Direct ESM imports.** Import a GObject-Introspection namespace with the `gi:`
+  scheme — `import Gtk from 'gi:Gtk-4.0'`, whose default export is the namespace
+  object — after installing the hooks with `node --import node-gtk/register`. The
+  examples and README now use this style by default; CommonJS (`gi.require`) is
+  still supported. node-gtk's own API can be imported by name
+  (`import { registerClass } from 'node-gtk'`) via a new ESM entry point. Requires
+  Node ≥ 20.6.
+- **Automatic main-loop integration.** Running a main loop (`GLib.MainLoop.run`,
+  `Gio`/`Gtk.Application.run`, `Gtk.main`) now starts the Node↔GLib loop
+  integration automatically; this replaces the former `gi.startLoop()` call.
+- **Deferred `registerClass()`.** `registerClass` may now be called before the
+  runtime is ready: if a class's parent GType isn't registered yet, the call is
+  accumulated and retried once it (or its namespace) loads, making registration
+  order-independent. It now returns the class (so it can be used as a decorator),
+  and `flushRegistrations()` is exposed to retry pending registrations manually.
+- **Typed `gi:` imports.** `node-gtk generate-types` now declares each
+  `gi:<Namespace>-<version>` module, so `import Gtk from 'gi:Gtk-4.0'` is fully
+  typed. Importing a namespace you haven't generated types for is a TypeScript
+  error that names the fix.
 - Support `super.<vfunc>()` chain-up from a registered subclass. A vfunc override
   replaces the parent's implementation in the class vtable, so a JS subclass could
   not previously call the implementation it overrode. `registerClass` now installs
