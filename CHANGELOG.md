@@ -16,9 +16,11 @@ Changes to be released are kept in the unreleased section.
   scheme — `import Gtk from 'gi:Gtk-4.0'`, whose default export is the namespace
   object — after installing the hooks with `node --import node-gtk/register`. The
   examples and README now use this style by default; CommonJS (`gi.require`) is
-  still supported. node-gtk's own API can be imported by name
-  (`import { registerClass } from 'node-gtk'`) via a new ESM entry point. Requires
-  Node ≥ 20.6.
+  still supported. Requires Node ≥ 20.6.
+- **Named ESM imports from `node-gtk`.** node-gtk's own API can now be imported by
+  name — `import gi, { registerClass } from 'node-gtk'` — via a new ESM entry point
+  that re-exports the CommonJS API (the same module instance, so there is no
+  duplicated state).
 - **Automatic main-loop integration.** Running a main loop (`GLib.MainLoop.run`,
   `Gio`/`Gtk.Application.run`, `Gtk.main`) now starts the Node↔GLib loop
   integration automatically; this replaces the former `gi.startLoop()` call.
