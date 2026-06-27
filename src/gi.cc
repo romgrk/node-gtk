@@ -405,6 +405,10 @@ NAN_METHOD(GetModuleCache) {
     info.GetReturnValue().Set(Nan::New<Object>(GNodeJS::moduleCache));
 }
 
+NAN_METHOD(SetLazyClassRegister) {
+    GNodeJS::ObjectClass::SetLazyClassRegister(info);
+}
+
 NAN_METHOD(RegisterClass) {
     GNodeJS::ObjectClass::RegisterClass(info);
 }
@@ -435,6 +439,7 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     Nan::Export(exports, "StartLoop",            StartLoop);
     Nan::Export(exports, "IsRunningMicrotasks",  IsRunningMicrotasks);
     Nan::Export(exports, "GetLoopStack",         GetLoopStack);
+    Nan::Export(exports, "SetLazyClassRegister", SetLazyClassRegister);
     Nan::Export(exports, "RegisterClass",        RegisterClass);
     Nan::Export(exports, "RegisterVFunc",        RegisterVFunc);
     Nan::Export(exports, "CallVFunc",            CallVFunc);

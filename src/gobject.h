@@ -24,6 +24,7 @@ MaybeLocal<v8::Boolean> SetGObjectProperty   (GObject * gobject, const char *pro
 
 namespace ObjectClass {
 
+NAN_METHOD(SetLazyClassRegister);
 NAN_METHOD(RegisterClass);
 NAN_METHOD(RegisterVFunc);
 NAN_METHOD(CallVFunc);

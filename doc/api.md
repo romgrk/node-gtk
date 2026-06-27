@@ -69,8 +69,14 @@ Returns a list of available modules
 #### registerClass(klass)
 
 Registers a JS class (which must extend a GObject type) as a new GType, so it can
-be instantiated and used like a native type. The parent type must be registered
-first.
+be instantiated and used like a native type.
+
+**This call is optional.** The first time you do `new MySubclass()`, node-gtk
+registers the subclass on demand (along with any not-yet-registered ancestors),
+so most code never needs to call `registerClass` explicitly. Call it when you
+need the GType *before* constructing an instance — e.g. to read it with
+`getGType`, reference it by name in a GtkBuilder template, or use it as another
+type's property/child type. Calling it on an already-registered class is a no-op.
 
 By default the GType name is the class name; override it with a static
 `GTypeName`. Vfunc overrides are matched by the `snake_case` of the method name

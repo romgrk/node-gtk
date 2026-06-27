@@ -4,7 +4,6 @@
  * Run with:  node --import node-gtk/register examples/gtk-4-custom-widget.mjs
  */
 
-import { registerClass } from 'node-gtk'
 import GLib from 'gi:GLib-2.0'
 import Gtk from 'gi:Gtk-4.0'
 import Gdk from 'gi:Gdk-4.0'
@@ -38,7 +37,8 @@ class CustomWidget extends Gtk.Widget {
   }
 }
 
-registerClass(CustomWidget)
+/* No registerClass(CustomWidget) needed: the first `new CustomWidget()` below
+ * registers the GType and installs the `measure`/`snapshot` vfunc overrides. */
 
 
 /* Setup & start the application */

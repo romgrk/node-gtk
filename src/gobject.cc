@@ -35,6 +35,11 @@ namespace GNodeJS {
 // Our base template for all GObjects
 static Nan::Persistent<FunctionTemplate> baseTemplate;
 
+// JS callback (registerClass) invoked to lazily register an unregistered JS
+// subclass the first time it is constructed. Installed via SetLazyClassRegister,
+// this makes registerClass() optional. Empty until JS installs it.
+static Nan::Persistent<Function> lazyClassRegister;
+
 
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
 static MaybeLocal<Function>         GetClass(GType gtype);
@@ -221,11 +226,34 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
 
     /* User code calling `new Gtk.Widget({ ... })` */
 
+    Local<Object> proto = Nan::To<Object>(self->GetPrototype()).ToLocalChecked();
+
+    /* A JS subclass (`class Foo extends Gtk.Widget {}`) that was never passed to
+     * registerClass() owns no GType: `__gtype__` is only *inherited* from its
+     * nearest registered ancestor, so constructing it as-is would silently
+     * instantiate that ancestor — losing the subtype and any vfunc overrides.
+     * Detect the missing *own* property and register the subclass on demand,
+     * which is what makes registerClass() optional. The JS callback installs an
+     * own `__gtype__` on `proto`, so the lookup below resolves to the
+     * freshly-registered subtype. */
+    if (!lazyClassRegister.IsEmpty()
+            && !Nan::HasOwnProperty(proto, UTF8("__gtype__")).FromMaybe(true)) {
+        Local<Function> registerFn = Nan::New<Function>(lazyClassRegister);
+        Local<Value> klass = Nan::Get(proto, UTF8("constructor")).ToLocalChecked();
+        Local<Value> argv[] = { klass };
+        Nan::TryCatch tryCatch;
+        Nan::Call(registerFn, Nan::GetCurrentContext()->Global(), 1, argv);
+        if (tryCatch.HasCaught()) {
+            tryCatch.ReThrow();
+            return;
+        }
+    }
+
     // FIXME: getting the gtype from the External is faster but doesn't
     // work for dynamically-registered types. Check if we can find something
     // better.
     //gtype = (GType) External::Cast(*info.Data())->Value();
-    gtype = GET_OBJECT_GTYPE (Nan::To<Object>(self->GetPrototype()).ToLocalChecked());
+    gtype = GET_OBJECT_GTYPE (proto);
 
     gobject = CreateGObjectFromObject (gtype, info[0]);
 
@@ -965,6 +993,10 @@ out:
     return result;
 }
 
+
+NAN_METHOD(SetLazyClassRegister) {
+    lazyClassRegister.Reset(info[0].As<Function>());
+}
 
 NAN_METHOD(RegisterClass) {
     auto jsKlassName  = Nan::To<String>(info[0]).ToLocalChecked();
