@@ -34,30 +34,20 @@ app.on('activate', () => {
 })
 ```
 
-## The three kinds of styles
+## The two ways to add styles
 
 | Method | Use it for | Hot-reload |
 | --- | --- | --- |
 | `styles.addFile(path)` | a `.css` stylesheet | re-reads the file into its provider |
 | `styles.add(css)` | inline CSS in a source module | re-imports that module (see the caveat below) |
-| `styles.set(css, { key })` | dynamic, *keyed* CSS you replace from code | n/a — you drive it |
 
-`styles.add` / `styles.addFile` return a **handle** — `{ update(next), remove() }` —
-so you can replace or drop a sheet later from code:
+Both return a **handle** — `{ update(next), remove() }` — so you can replace or
+drop a sheet later from code:
 
 ```javascript
 const sheet = styles.add(`label { color: red; }`)
 sheet.update(`label { color: green; }`)   // replace in place
 sheet.remove()                            // remove from the display
-```
-
-`styles.set` is for CSS your app changes at runtime (e.g. theme-derived colors).
-Reusing the same `key` replaces the previous sheet in place instead of stacking
-a new provider:
-
-```javascript
-styles.set(`window { --accent: ${color}; }`, { key: 'theme' })  // call again to update
-styles.remove('theme')                                          // or remove it
 ```
 
 ## When styles install
@@ -67,7 +57,7 @@ the app activates are **queued**. Call `styles.install()` once from your
 `activate` handler to flush the queue (and start the file watcher). Styles added
 *after* the display exists install immediately — and the first such call
 auto-flushes the queue, so an app that does all its styling inside `activate`
-never strictly needs `install()`. (`styles.set` always requires the display.)
+never strictly needs `install()`.
 
 `priority` defaults to `Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION`; pass
 `{ priority }` to override it.
@@ -112,9 +102,6 @@ styles.add(`.headline { font-size: 20px; font-weight: bold; }`)
 import './styles.ts'
 ```
 
-If you have inline CSS that must live in a non-reloadable module, register it
-with `styles.addStatic(css)` — same as `add`, but never watched.
-
 See [`examples/style-manager.mjs`](../examples/style-manager.mjs) for a runnable
 demo of both reload paths.
 
@@ -123,12 +110,8 @@ demo of both reload paths.
 | Member | Description |
 | --- | --- |
 | `styles.add(css, { priority? })` | Inline CSS; hot-reloads via module re-import. Returns a handle. |
-| `styles.addStatic(css, { priority? })` | Inline CSS that is never hot-reloaded. Returns a handle. |
 | `styles.addFile(path, { priority?, watch? })` | A `.css` file (string, `file://` URL, or `URL`); hot-reloads by re-reading. Idempotent per path. Returns a handle. |
-| `styles.set(css, { key?, priority? })` | Keyed dynamic sheet, replaced in place when `key` repeats. Requires the display. Returns a handle. |
-| `styles.remove(key)` | Remove a keyed sheet. |
-| `styles.install()` *(alias `flush()`)* | Install queued styles and start the watcher. |
-| `styles.stopHotReload()` | Stop watching and clear pending reloads (teardown / tests). |
+| `styles.install()` | Install queued styles and start the watcher. |
 
-`StyleManager` (the class) and the convenience functions `addStyles`,
-`addStyleFile`, and `installStyles` are also exported.
+The handle returned by `add` / `addFile` is `{ update(next), remove() }`.
+`StyleManager` (the class) and the shared `styles` instance are the only exports.

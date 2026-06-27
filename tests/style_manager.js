@@ -2,9 +2,9 @@
  * style_manager.js
  *
  * Covers the synchronous surface of lib/styles.js (the StyleManager) against a
- * real display: immediate install once the display exists, keyed replace-in-place,
- * per-path idempotency of addFile, and handle update/remove bookkeeping. The
- * file/module hot-reload paths are exercised manually via examples/style-manager.mjs.
+ * real display: immediate install once the display exists, per-path idempotency
+ * of addFile, and handle update/remove bookkeeping. The file/module hot-reload
+ * paths are exercised manually via examples/style-manager.mjs.
  */
 
 // Exercise the hot-reload bookkeeping (watch tracking, cssEntries) — which only
@@ -47,25 +47,6 @@ describe('StyleManager', () => {
     isntNull(sheet)
     // No queue should remain: the display is up, so it installed right away.
     expect(styles.queued.length, 0)
-  })
-
-  it('replaces a keyed sheet in place rather than stacking providers', () => {
-    const styles = new StyleManager()
-    const first = styles.set('.b { color: red; }', { key: 'theme' })
-    const second = styles.set('.b { color: blue; }', { key: 'theme' })
-    expect(styles.byKey.size, 1)
-    // Same underlying provider is reused across set() calls with the same key.
-    assert(styles.byKey.get('theme').provider, 'keyed provider should exist')
-    isntNull(first)
-    isntNull(second)
-  })
-
-  it('removes a keyed sheet', () => {
-    const styles = new StyleManager()
-    styles.set('.c { color: red; }', { key: 'gone' })
-    styles.remove('gone')
-    expect(styles.byKey.size, 0)
-    styles.remove('gone') // second remove is a no-op, must not throw
   })
 
   it('is idempotent per .css path: addFile twice tracks one entry', () => {
