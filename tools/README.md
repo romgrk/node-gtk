@@ -117,39 +117,10 @@ cd my-app
 npm run dev
 ```
 
-What it generates (a TypeScript + ESM project):
-
-- `src/main.ts` — an idiomatic `Adw.Application`: an `Adw.ApplicationWindow` with
-  an `Adw.HeaderBar`, a primary menu, app actions (About / Quit + a `<Ctrl>Q`
-  accelerator), an `Adw.AboutWindow`, an `Adw.StatusPage` welcome screen, and an
-  `Adw.ToastOverlay`. It loads a `style.css` via `Gtk.CssProvider`.
-- `package.json` — depends on `node-gtk`; scripts for `dev` (live reload via
-  `node --watch`), `start`, `build`/`typecheck` (`tsc`), and `generate-types`. A
-  `postinstall` hook runs it so the GI APIs are typed straight after install.
-- `tsconfig.json` — strict, `nodenext`, with the generated shim wired in so the
-  `gi:` imports resolve.
-- `style.css`, `.gitignore`, and a project `README.md`.
-
-### Why these specific shapes
-
-- **`gi:` scheme imports.** The app imports namespaces with the `gi:` scheme
-  (`import Gtk from 'gi:Gtk-4.0'`, default export = the namespace) — the default,
-  documented import form (see [`doc/importing.md`](../doc/importing.md)). That
-  requires node-gtk's loader hooks, so the `dev`/`start` scripts run with
-  `node --import node-gtk/register` (plus `--import tsx` to run TypeScript with no
-  build step). The generated shim declares each `gi:<Namespace>-<version>` module,
-  so the imports are typed; `tsconfig.json` pulls the shim into the program via
-  `files` (the types live under `node_modules`, which `include` would exclude) so
-  those ambient declarations are visible.
-- **Property-bag constructors.** The type generator exposes the JS
-  `constructor(properties?)` (a camelCase property bag) as the only `new`-able
-  constructor; GI's positional constructors are emitted as static methods. So the
-  app uses `new Adw.Application({ applicationId, flags })` and
-  `GLib.MainLoop.new(null, false)` accordingly.
-- **ESM loop handling.** The loop integration starts automatically (no
-  `startLoop()` call), but under ESM the blocking run call returns immediately —
-  so `app.run()` is the last statement and teardown happens in the close handler /
-  quit action.
+It generates a TypeScript + ESM project: an idiomatic Adwaita application plus its
+tooling — typed `gi:` imports (with `tsconfig` wired to the generated types) and
+npm scripts to run (`dev`/`start`), build (`build`), and regenerate types
+(`generate-types`, also run on `postinstall`).
 
 ### Options
 
@@ -166,15 +137,5 @@ node-gtk init <directory> [options]
 The directory basename drives the defaults: `my-cool-app` →
 name *"My Cool App"*, package `my-cool-app`, id `com.example.MyCoolApp`.
 
-### Pieces
-
-- `bin/node-gtk.js` — CLI entry; dispatches `init` / `create`.
-- `tools/create-app.js` — the scaffolder. `run(argv)` parses + installs;
-  `scaffold(opts)` is the pure file-writing core (also used by the test).
-  `nodeGtkDependency()` picks the generated `node-gtk` dependency: `^<version>`
-  for a normal install, or `file:<checkout>` when `init` is run from a node-gtk
-  source checkout (so contributors test against the same, possibly unreleased,
-  node-gtk rather than the published release).
-- `tools/templates/app/` — the template tree (`*.tmpl`, with `__APP_NAME__` /
-  `__APP_ID__` / `__PKG_NAME__` / `__NODE_GTK_VERSION__` tokens).
-- `tests/cli__create_app.js` — smoke test (pure fs; no addon/display needed).
+The command lives in `tools/create-app.js`; the generated files come from the
+template tree in `tools/templates/app/`.
