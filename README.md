@@ -73,6 +73,22 @@ process.exit(app.run([]));
   <img src="./img/hello-world.png" style="width: 290px; height: auto;"/>
 </p>
 
+### Scaffold a new app
+
+To start a new GTK/Adwaita project from scratch, run:
+
+```sh
+npx node-gtk init my-app
+cd my-app
+npm run dev
+```
+
+This generates a ready-to-run, TypeScript + ESM Adwaita application — an
+`Adw.Application` with a header bar, a primary menu, an About window, and live
+reload — and wires up `generate-types` so the GI APIs are fully typed. See
+[`tools/README.md`](./tools/README.md#node-gtk-init--scaffold-a-new-app) for the
+available options.
+
 You can also easily create custom applications:
 
 [A web browser (using WebKit2GTK)](./examples/browser.js)

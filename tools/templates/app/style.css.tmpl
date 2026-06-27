@@ -1,0 +1,18 @@
+/*
+ * Custom styles for __APP_NAME__.
+ *
+ * Loaded at startup by src/main.ts via Gtk.CssProvider, layered on top of the
+ * Adwaita stylesheet. See the GTK4 CSS reference:
+ *   https://docs.gtk.org/gtk4/css-overview.html
+ *   https://docs.gtk.org/gtk4/css-properties.html
+ *
+ * Adwaita ships many ready-made style classes (`.pill`, `.suggested-action`,
+ * `.title-1`, `.dim-label`, …) — prefer those before writing custom CSS:
+ *   https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/style-classes.html
+ */
+
+/* Example: nudge the welcome button. Delete or edit freely. */
+button.suggested-action.pill {
+  padding-left: 24px;
+  padding-right: 24px;
+}

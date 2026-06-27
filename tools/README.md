@@ -89,3 +89,70 @@ type-check with **0 errors even without `skipLibCheck`**. Modelled faithfully:
   (e.g. a gutter renderer's `activate(iter, …)` vs `GtkWidget.activate()`)
   requires the override to satisfy both signatures — an inherent consequence of
   the GObject API reusing a name, not specific to these types.
+
+---
+
+# `node-gtk init` — scaffold a new app
+
+`node-gtk init <directory>` (alias `create`) scaffolds a complete, ready-to-run
+GTK/Adwaita application that uses node-gtk, so a new project is one command away.
+
+```sh
+npx node-gtk init my-app
+cd my-app
+npm run dev
+```
+
+What it generates (a TypeScript + ESM project):
+
+- `src/main.ts` — an idiomatic `Adw.Application`: an `Adw.ApplicationWindow` with
+  an `Adw.HeaderBar`, a primary menu, app actions (About / Quit + a `<Ctrl>Q`
+  accelerator), an `Adw.AboutWindow`, an `Adw.StatusPage` welcome screen, and an
+  `Adw.ToastOverlay`. It loads a `style.css` via `Gtk.CssProvider`.
+- `package.json` — depends on `node-gtk`; scripts for `dev` (live reload via
+  `tsx watch`), `start`, `build`/`typecheck` (`tsc`), and `types`. A `postinstall`
+  hook runs `generate-types` so the GI APIs are typed straight after install.
+- `tsconfig.json` — strict, `nodenext`, `esModuleInterop`, with `paths` pointed at
+  the generated `node_modules/.node-gtk-types`.
+- `style.css`, `.gitignore`, and a project `README.md`.
+
+### Why these specific shapes
+
+- **ESM default import.** The boilerplate uses `import gi from 'node-gtk'`, not
+  `import * as gi`. node-gtk is CommonJS and builds its exports with a spread
+  (`module.exports = { ...module_, … }`), which Node's CJS named-export detection
+  can't see through — so under a namespace import `gi.require` is `undefined` at
+  runtime. The default import binds the whole `module.exports`, so it works; with
+  `esModuleInterop` it also type-checks against the generated module shim.
+- **Property-bag constructors.** The type generator exposes the JS
+  `constructor(properties?)` (a camelCase property bag) as the only `new`-able
+  constructor; GI's positional constructors are emitted as static methods. So the
+  app uses `new Adw.Application({ applicationId, flags })` and
+  `GLib.MainLoop.new(null, false)` accordingly.
+- **ESM loop handling.** Under ESM the blocking loop call returns immediately, so
+  `app.run()` is the last statement and teardown happens in the close handler /
+  quit action (see the README's ES-modules section).
+
+### Options
+
+```
+node-gtk init <directory> [options]
+
+  --name <name>      Human-facing app name (default: derived from <directory>)
+  --app-id <id>      Reverse-DNS application id (default: com.example.<Name>)
+  --no-install       Don't run `npm install` after scaffolding
+  --force            Scaffold even if <directory> exists and is non-empty
+  -h, --help         Show this help
+```
+
+The directory basename drives the defaults: `my-cool-app` →
+name *"My Cool App"*, package `my-cool-app`, id `com.example.MyCoolApp`.
+
+### Pieces
+
+- `bin/node-gtk.js` — CLI entry; dispatches `init` / `create`.
+- `tools/create-app.js` — the scaffolder. `run(argv)` parses + installs;
+  `scaffold(opts)` is the pure file-writing core (also used by the test).
+- `tools/templates/app/` — the template tree (`*.tmpl`, with `__APP_NAME__` /
+  `__APP_ID__` / `__PKG_NAME__` / `__NODE_GTK_VERSION__` tokens).
+- `tests/cli__create_app.js` — smoke test (pure fs; no addon/display needed).

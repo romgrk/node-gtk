@@ -1,0 +1,127 @@
+/*
+ * __APP_NAME__ — an Adwaita application built with node-gtk.
+ *
+ * node-gtk runs fine under ES modules, with one caveat: the blocking main-loop
+ * call (`loop.run()` / `app.run()`) RETURNS IMMEDIATELY instead of blocking. So
+ * we make `app.run()` the last statement and tear everything down from the
+ * window's close handler. See: https://github.com/romgrk/node-gtk#es-modules
+ *
+ * `import gi from 'node-gtk'` (default import) is intentional: node-gtk is a
+ * CommonJS module, and only the default import exposes `gi.require` at runtime
+ * under ESM (a `import * as gi` namespace import would leave it undefined).
+ */
+import { fileURLToPath } from 'node:url'
+import gi from 'node-gtk'
+
+const GLib = gi.require('GLib', '2.0')
+const Gio = gi.require('Gio', '2.0')
+const Gdk = gi.require('Gdk', '4.0')
+const Gtk = gi.require('Gtk', '4.0')
+const Adw = gi.require('Adw', '1')
+
+const APP_ID = '__APP_ID__'
+
+const loop = GLib.MainLoop.new(null, false)
+const app = new Adw.Application({ applicationId: APP_ID, flags: Gio.ApplicationFlags.FLAGS_NONE })
+
+app.on('activate', () => {
+  loadStyles()
+
+  const window = new Adw.ApplicationWindow({ application: app })
+  window.setTitle('__APP_NAME__')
+  window.setDefaultSize(640, 520)
+
+  // ---- header bar with a primary menu ----------------------------------
+  const header = new Adw.HeaderBar()
+
+  const menu = new Gio.Menu()
+  menu.append('About __APP_NAME__', 'app.about')
+  menu.append('Quit', 'app.quit')
+
+  const menuButton = new Gtk.MenuButton({
+    iconName: 'open-menu-symbolic',
+    menuModel: menu,
+    primary: true,
+  })
+  header.packEnd(menuButton)
+
+  // ---- content: a welcome screen ---------------------------------------
+  // Adw.ToastOverlay lets us pop transient "toast" notifications.
+  const toasts = new Adw.ToastOverlay({ vexpand: true })
+
+  // Adw.StatusPage is the idiomatic "empty state" / welcome widget.
+  const welcome = new Adw.StatusPage({
+    iconName: 'face-smile-symbolic',
+    title: 'Welcome to __APP_NAME__',
+    description: 'Edit src/main.ts to start building your application.',
+  })
+
+  const button = new Gtk.Button({
+    label: 'Say hello',
+    halign: Gtk.Align.CENTER,
+    cssClasses: ['pill', 'suggested-action'],
+  })
+  button.on('clicked', () => {
+    toasts.addToast(new Adw.Toast({ title: 'Hello from __APP_NAME__ 👋' }))
+  })
+  welcome.setChild(button)
+  toasts.setChild(welcome)
+
+  // Adw.ApplicationWindow has no built-in title bar, so we stack our own
+  // header above the content inside a vertical box.
+  const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
+  content.append(header)
+  content.append(toasts)
+  window.setContent(content)
+
+  // ---- app actions (wired to the menu above) ---------------------------
+  const showAbout = () => {
+    // Adw.AboutWindow works on libadwaita 1.2+. On 1.5+ you can switch to
+    // Adw.AboutDialog (a Gtk.Window-free dialog) if you prefer.
+    const about = new Adw.AboutWindow({
+      transientFor: window,
+      applicationName: '__APP_NAME__',
+      applicationIcon: APP_ID,
+      developerName: 'Your Name',
+      version: '0.1.0',
+      comments: 'An Adwaita application built with node-gtk.',
+      developers: ['Your Name <you@example.com>'],
+      copyright: '© 2026 Your Name',
+      licenseType: Gtk.License.MIT_X11,
+    })
+    about.present()
+  }
+
+  const aboutAction = Gio.SimpleAction.new('about', null)
+  aboutAction.on('activate', () => showAbout())
+  app.addAction(aboutAction)
+
+  const quitAction = Gio.SimpleAction.new('quit', null)
+  quitAction.on('activate', () => { loop.quit(); app.quit() })
+  app.addAction(quitAction)
+  app.setAccelsForAction('app.quit', ['<Control>q'])
+
+  window.on('close-request', () => (loop.quit(), app.quit(), false))
+  window.present()
+
+  // Hand the event loop to node-gtk. Under ESM this returns immediately; the
+  // app keeps running until the close handler (or quit action) stops it.
+  gi.startLoop()
+  loop.run()
+})
+
+function loadStyles() {
+  const provider = new Gtk.CssProvider()
+  // style.css sits at the project root, one level up from both src/ (dev, via
+  // tsx) and dist/ (built, via node), so this resolves in either case.
+  const cssPath = fileURLToPath(new URL('../style.css', import.meta.url))
+  provider.loadFromPath(cssPath)
+  Gtk.StyleContext.addProviderForDisplay(
+    Gdk.Display.getDefault()!,
+    provider,
+    600, // Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+  )
+}
+
+// Must be the last statement — returns immediately under ESM (see top of file).
+app.run([])

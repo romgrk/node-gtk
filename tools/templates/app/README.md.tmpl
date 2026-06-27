@@ -1,0 +1,73 @@
+# __APP_NAME__
+
+An [Adwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/) application built
+with [node-gtk](https://github.com/romgrk/node-gtk) and TypeScript.
+
+## Prerequisites
+
+You need GTK 4 and libadwaita — plus their GObject-Introspection data — installed
+on your system. node-gtk talks to the libraries you actually have installed.
+
+- **Fedora:** `sudo dnf install gtk4-devel libadwaita-devel gobject-introspection-devel`
+- **Debian/Ubuntu:** `sudo apt install libgtk-4-dev libadwaita-1-dev gobject-introspection`
+- **Arch:** `sudo pacman -S gtk4 libadwaita gobject-introspection`
+- **macOS (Homebrew):** `brew install gtk4 libadwaita gobject-introspection`
+
+The `-dev`/`-devel` packages also ship the `.gir` files used to embed GNOME's API
+documentation into the generated TypeScript types (shown on hover in your editor).
+
+## Getting started
+
+```sh
+npm install        # installs deps and generates TypeScript types (postinstall)
+npm run dev        # run the app with live reload (tsx watch)
+```
+
+That's it — a window should appear.
+
+## Scripts
+
+| command            | what it does                                                        |
+| ------------------ | ------------------------------------------------------------------- |
+| `npm run dev`      | Run with live reload on file changes (`tsx watch`).                 |
+| `npm start`        | Run once without building (`tsx`).                                  |
+| `npm run build`    | Type-check and compile `src/` to `dist/` with `tsc`.                |
+| `npm run typecheck`| Type-check only, no output.                                         |
+| `npm run types`    | (Re)generate TypeScript types for the GI namespaces you use.        |
+
+## TypeScript types
+
+Types are generated **on your machine** from the GObject-Introspection typelibs
+you have installed, so they match your actual library versions and node-gtk's
+runtime shape (camelCase methods, typed signals, nullability, …). They live in
+`node_modules/.node-gtk-types/` (git-ignored) and `tsconfig.json` points at them.
+
+The `postinstall` script regenerates them automatically. If you start using
+another library, add it to the `types` script in `package.json` and re-run it:
+
+```jsonc
+// package.json
+"types": "node-gtk generate-types Gtk-4.0 Adw-1 GtkSource-5"
+```
+
+```sh
+npm run types
+```
+
+## Project structure
+
+```
+.
+├── src/
+│   └── main.ts        # the application entry point
+├── style.css          # custom CSS, layered on top of Adwaita
+├── tsconfig.json
+└── package.json
+```
+
+## Learn more
+
+- [node-gtk](https://github.com/romgrk/node-gtk) — the bindings
+- [GTK 4 API reference](https://docs.gtk.org/gtk4/)
+- [libadwaita API reference](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/)
+- [Adwaita style classes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/style-classes.html)

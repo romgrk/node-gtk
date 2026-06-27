@@ -1,0 +1,23 @@
+{
+  "name": "__PKG_NAME__",
+  "version": "0.1.0",
+  "description": "An Adwaita application built with node-gtk.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "types": "node-gtk generate-types Gtk-4.0 Adw-1",
+    "postinstall": "node-gtk generate-types Gtk-4.0 Adw-1"
+  },
+  "dependencies": {
+    "node-gtk": "__NODE_GTK_VERSION__"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
