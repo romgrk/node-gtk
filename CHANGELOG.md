@@ -46,11 +46,9 @@ Changes to be released are kept in the unreleased section.
   work. Because the override carries the `virtual_` prefix, its name is distinct
   from any public invoker method of the same vfunc, so `super` reaches the parent
   implementation without recursing.
-- **App scaffolder.** `node-gtk init <dir>` (alias `create`) generates a complete,
-  ready-to-run TypeScript + ESM Adwaita application — an `Adw.Application` with a
-  header bar, primary menu, About window, and a welcome screen — fully typed via
-  `generate-types` and wired up with `gi:` imports, live reload, and a `tsc` build.
-  Run `npx node-gtk init my-app && cd my-app && npm run dev`.
+- **App scaffolder.** `node-gtk init <dir>` (alias `create`) scaffolds a
+  ready-to-run TypeScript + ESM Adwaita app. See
+  [Scaffold a new app](./README.md#scaffold-a-new-app).
 
 ## v2.2.0
 
