@@ -79,8 +79,11 @@ need the GType *before* constructing an instance — e.g. to read it with
 type's property/child type. Calling it on an already-registered class is a no-op.
 
 By default the GType name is the class name; override it with a static
-`GTypeName`. Vfunc overrides are matched by the `snake_case` of the method name
-(e.g. `getRequestMode` → `get_request_mode`).
+`GTypeName`. To override a virtual function, define a method named `virtual_` +
+the camelCase vfunc name (e.g. `virtual_sizeAllocate` overrides `size_allocate`);
+plain methods are never treated as overrides. Chain up with
+`super.virtual_<name>()`. See the [Inheritance](./index.md#inheritance) guide for
+details.
 
 | Param | Type     | Description                                          |
 | ----- | -------- | ---------------------------------------------------- |

@@ -53,10 +53,10 @@ describe('registerClass (lazy)', () => {
 
     class LazyA extends GObject.Object {
       static GTypeName = 'NodeGTKLazyChainA'
-      constructed() {}                 // registers the override + parent bridge
+      virtual_constructed() {}         // registers the override + parent bridge
       chain() {
         order.push('A:before')
-        super.constructed()            // -> native GObject.Object.constructed
+        super.virtual_constructed()    // -> native GObject.Object.constructed
         order.push('A:after')
       }
     }
@@ -71,7 +71,7 @@ describe('registerClass (lazy)', () => {
 
     // First construction registers both LazyB and LazyA (vfuncs included).
     const b = new LazyB()
-    expect(typeof GObject.Object.prototype.constructed, 'function')
+    expect(typeof GObject.Object.prototype.virtual_constructed, 'function')
 
     b.chain()
     expect(order, ['B:before', 'A:before', 'A:after', 'B:after'])
