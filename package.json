@@ -3,6 +3,12 @@
   "version": "2.2.0",
   "description": "GNOME Gtk+ bindings for NodeJS",
   "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./register": "./lib/esm/register.mjs",
+    "./hooks": "./lib/esm/hooks.mjs",
+    "./package.json": "./package.json"
+  },
   "bin": {
     "node-gtk": "bin/node-gtk.js"
   },

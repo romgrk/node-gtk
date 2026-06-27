@@ -110,6 +110,33 @@ app.run([]);       // not `process.exit(app.run([]))` — the return value is un
 CommonJS (and signal callbacks) are unaffected. For the why and the design
 trade-off, see [#449](https://github.com/romgrk/node-gtk/issues/449).
 
+### Direct imports
+
+Under ESM you can import a namespace directly with the `gi:` scheme instead of
+calling `gi.require`. Install the import hooks by running Node with
+`--import node-gtk/register`:
+
+```sh
+node --import node-gtk/register app.mjs
+```
+
+```javascript
+// app.mjs
+import Gtk from 'gi:Gtk-4.0'      // `gi:Name-Version` (or `gi:Name` for the latest)
+import GLib from 'gi:GLib-2.0'
+
+const { Box, Label } = Gtk        // the default export is the namespace object;
+                                  // read members off it
+
+const app = new Gtk.Application('com.example.app', 0)
+// ...
+```
+
+The default export is exactly what `gi.require('Gtk', '4.0')` returns, so
+everything else works the same. (Static named imports like
+`import { Box } from 'gi:Gtk-4.0'` are not supported — destructure from the default
+export.) The hooks need Node ≥ 20.6.
+
 ## Documentation
 
 [Read our documentation here](./doc/index.md)
