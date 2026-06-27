@@ -176,6 +176,15 @@ const win = new Gtk.ApplicationWindow({ title: 'Hello', defaultWidth: 400 })
 win.on('close-request', () => false)   // signal name + callback are typed
 ```
 
+The [direct `gi:` import form](#direct-imports) is typed too — the generated
+shim declares each `gi:<Namespace>-<version>` module, so its default export is the
+namespace:
+
+```ts
+import Gtk from 'gi:Gtk-4.0'           // typed as the Gtk-4.0 namespace
+const win = new Gtk.ApplicationWindow({ title: 'Hello', defaultWidth: 400 })
+```
+
 You get typed constructor properties (including inherited and interface ones),
 camelCase methods with real return types, GI nullability, typed signal
 overloads, enums, `bigint` for 64-bit integers, out-parameters surfaced as the
