@@ -15,10 +15,10 @@ describe('registerClass', () => {
 
     class CustomWidget extends Gtk.Widget {
       static GTypeName = 'NodeGTKCustomWidget'
-      focus() {}
+      virtual_focus() {}
     }
     class DerivedWidget extends CustomWidget {
-      focus() {}
+      virtual_focus() {}
     }
 
     gi.registerClass(CustomWidget)
@@ -33,6 +33,30 @@ describe('registerClass', () => {
     expect(GObject.typeName(custom.__gtype__), CustomWidget.GTypeName)
     expect(GObject.typeName(derived.__gtype__), DerivedWidget.name)
   })
+
+  it('binds only virtual_* methods as vfunc overrides', () => {
+    class Bound extends Gtk.Widget {
+      static GTypeName = 'NodeGTKVfuncBound'
+      virtual_focus() {}      // a real vfunc -> wired into the vtable
+      dispose() {}           // plain method -> must NOT override GObject::dispose
+    }
+    gi.registerClass(Bound)
+
+    // The override's super-bridge lands on the parent (native) prototype.
+    expect(typeof Gtk.Widget.prototype.virtual_focus, 'function')
+    // A plain method named like a vfunc is left untouched: no bridge installed,
+    // nothing wired into the GObject vtable (issue #457).
+    expect(Object.prototype.hasOwnProperty.call(GObject.Object.prototype, 'dispose'), false)
+  })
+
+  it('fails for a virtual_* method that names no vfunc',
+    mustThrow(/no virtual function 'no_such_vfunc'/, () => {
+      class BadVfunc extends Gtk.Widget {
+        static GTypeName = 'NodeGTKBadVfunc'
+        virtual_noSuchVfunc() {}
+      }
+      gi.registerClass(BadVfunc)
+    }))
 
   it('fails with invalid GTypeName',
     mustThrow('GTypeName value is invalid: Invalid Gtype Name #$%^&', () => {

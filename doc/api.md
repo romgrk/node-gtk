@@ -69,12 +69,15 @@ Returns a list of available modules
 #### registerClass(klass)
 
 Registers a JS class (which must extend a GObject type) as a new GType, so it can
-be instantiated and used like a native type. The parent type must be registered
-first.
+be instantiated and used like a native type. Call this once, before instantiating
+the subclass; the parent type must be registered first.
 
 By default the GType name is the class name; override it with a static
-`GTypeName`. Vfunc overrides are matched by the `snake_case` of the method name
-(e.g. `getRequestMode` → `get_request_mode`).
+`GTypeName`. To override a virtual function, define a method named `virtual_` +
+the camelCase vfunc name (e.g. `virtual_sizeAllocate` overrides `size_allocate`);
+plain methods are never treated as overrides. Chain up with
+`super.virtual_<name>()`. See the [Inheritance](./index.md#inheritance) guide for
+details.
 
 | Param | Type     | Description                                          |
 | ----- | -------- | ---------------------------------------------------- |

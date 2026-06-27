@@ -4,6 +4,7 @@
 
 import Gtk from 'gi:Gtk-4.0'    // typed as the Gtk-4.0 namespace
 import GLib from 'gi:GLib-2.0'
+import { registerClass } from 'node-gtk'
 
 Gtk.init()
 
@@ -29,7 +30,21 @@ win.setChild(box)
 // Cross-namespace types flow through (GLib here).
 const ctx = GLib.MainContext.default()
 
+// Virtual-function overrides: define `virtual_<name>` to override a vfunc.
+// node-gtk wires these into the GObject vtable via registerClass(); the
+// override signature is type-checked against the emitted vfunc declaration
+// (out-params folded into the return tuple) and `super.virtual_<name>()` resolves.
+class CustomWidget extends Gtk.Widget {
+  static GTypeName = 'TSDemoCustomWidget'
+  virtual_measure(orientation: number, forSize: number): [number, number, number, number] {
+    const size = orientation === Gtk.Orientation.HORIZONTAL ? 100 : 40
+    return [size, size, -1, -1]
+  }
+}
+registerClass(CustomWidget)
+const custom = new CustomWidget()
+
 win.on('close-request', () => false)
 win.present()
 
-export { win, button, current, ctx }
+export { win, button, current, ctx, custom }

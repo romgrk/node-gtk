@@ -17,7 +17,7 @@ Gtk.init()
 class CustomWidget extends Gtk.Widget {
   customMethod() {}
 
-  measure(orientation, forSize) {
+  virtual_measure(orientation, forSize) {
     const [minWidth, natWidth] = [100, 200]
     const [minHeight, natHeight] = [20, 40]
     const isHorizontal = orientation === Gtk.Orientation.HORIZONTAL
@@ -30,7 +30,7 @@ class CustomWidget extends Gtk.Widget {
     return [minimum, natural, minimumBaseline, naturalBaseline]
   }
 
-  snapshot(snapshot) {
+  virtual_snapshot(snapshot) {
     const width = this.getAllocatedWidth()
     const color = Gdk.RGBA.create('red')
     const rect = Graphene.Rect.create(10, 10, width / 2, 10)
