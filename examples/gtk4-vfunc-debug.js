@@ -11,9 +11,9 @@ Gtk.init();
 class CustomFixedLayout extends Gtk.FixedLayout {
   static GTypeName = "CustomFixedLayout";
 
-  measure(widget, orientation, forSize) {
+  virtual_measure(widget, orientation, forSize) {
     console.log("measure");
-    return super.measure(widget, orientation, forSize);
+    return super.virtual_measure(widget, orientation, forSize);
   }
 }
 
@@ -29,8 +29,8 @@ class CustomFixed extends Gtk.Fixed {
 gi.registerClass(CustomFixedLayout);
 gi.registerClass(CustomFixed);
 
-console.log(Gtk.FixedLayout.prototype.measure)
-console.log(Gtk.FixedLayout.prototype.measure.toString())
+console.log(Gtk.FixedLayout.prototype.virtual_measure)
+console.log(Gtk.FixedLayout.prototype.virtual_measure.toString())
 process.exit(0)
 
 /* Setup & start the application */

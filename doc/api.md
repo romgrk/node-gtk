@@ -55,7 +55,13 @@ Returns a list of available modules
 
 #### registerClass(klass)
 
-Prepends a path to GObject-Introspection library path (for shared libraries)
+Registers a JS subclass of a GObject type with the GObject type system. Call this
+once, before instantiating the subclass.
+
+Methods named `virtual_` + the camelCase vfunc name (e.g. `virtual_sizeAllocate`
+for `size_allocate`) are wired in as virtual-function overrides; plain methods are
+not. Chain up with `super.virtual_<name>()`. See the
+[Inheritance](./index.md#inheritance) guide for details.
 
 | Param | Type     |
 | ----- | -------- |

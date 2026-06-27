@@ -30,7 +30,21 @@ win.setChild(box)
 // Cross-namespace types flow through (GLib here).
 const ctx = GLib.MainContext.default()
 
+// Virtual-function overrides: define `virtual_<name>` to override a vfunc.
+// node-gtk wires these into the GObject vtable via gi.registerClass(); the
+// override signature is type-checked against the emitted vfunc declaration
+// (out-params folded into the return tuple) and `super.virtual_<name>()` resolves.
+class CustomWidget extends Gtk.Widget {
+  static GTypeName = 'TSDemoCustomWidget'
+  virtual_measure(orientation: number, forSize: number): [number, number, number, number] {
+    const size = orientation === Gtk.Orientation.HORIZONTAL ? 100 : 40
+    return [size, size, -1, -1]
+  }
+}
+gi.registerClass(CustomWidget)
+const custom = new CustomWidget()
+
 win.on('close-request', () => false)
 win.present()
 
-export { win, button, current, ctx }
+export { win, button, current, ctx, custom }

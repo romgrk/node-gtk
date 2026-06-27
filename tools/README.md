@@ -45,7 +45,7 @@ script so it regenerates after install.
 - `bin/node-gtk.js` — CLI entry (`package.json` `"bin"`); dispatches `generate-types`.
 - `tools/generate-types.js` — the generator. `run(argv)` / `generate(roots, outdir)`.
 - `examples/ts-demo/` — `app.ts` (valid, typechecks clean) and `app-errors.ts`
-  (4 deliberate mistakes, all caught). Generate types into `.node-gtk-types/` first
+  (5 deliberate mistakes, all caught). Generate types into `.node-gtk-types/` first
   (see that dir's `.gitignore`).
 
 ## Verify the demo
@@ -54,7 +54,7 @@ script so it regenerates after install.
 node bin/node-gtk.js generate-types Gtk-4.0 --outdir examples/ts-demo/.node-gtk-types
 node_modules/.bin/tsc -p examples/ts-demo/tsconfig.json          # passes clean
 sed 's/app.ts/app-errors.ts/' examples/ts-demo/tsconfig.json > examples/ts-demo/tsconfig.errors.json
-node_modules/.bin/tsc -p examples/ts-demo/tsconfig.errors.json   # 4 errors caught
+node_modules/.bin/tsc -p examples/ts-demo/tsconfig.errors.json   # 5 errors caught
 ```
 
 ## Fidelity
@@ -68,6 +68,11 @@ type-check with **0 errors even without `skipLibCheck`**. Modelled faithfully:
 - 64-bit ints return `bigint` (full precision, #323/#149); params accept
   `number | bigint`.
 - Enum methods and interface constants emitted (declaration-merged).
+- Virtual functions emitted as the `virtual_*` override surface that
+  `registerClass` wires into the vtable (`virtual_sizeAllocate` overrides
+  `size_allocate`), including invoker-less lifecycle vfuncs (`virtual_dispose`,
+  `virtual_constructed`, …) so subclass overrides are type-checked and
+  `super.virtual_<name>()` chain-up resolves (issue #457).
 - GObject override conflicts reconciled as overloads, so subclass methods stay
   assignable to inherited ones; multiple-interface signal/method conflicts
   resolved with a unified, assignable-to-all declaration.
@@ -89,3 +94,12 @@ type-check with **0 errors even without `skipLibCheck`**. Modelled faithfully:
   (e.g. a gutter renderer's `activate(iter, …)` vs `GtkWidget.activate()`)
   requires the override to satisfy both signatures — an inherent consequence of
   the GObject API reusing a name, not specific to these types.
+- **`virtual_*` overrides with non-primitive OUT params** are typed with those
+  params in the return tuple (the public-method convention). At runtime a vfunc
+  implementation receives non-primitive OUT params as objects to mutate rather
+  than returning them; the common all-primitive case (e.g. `virtual_measure`)
+  matches exactly.
+- **Interface vfuncs are not emitted** (only object/class vfuncs). Emitting
+  `virtual_*` members on interfaces collides across multiple-interface diamonds
+  (e.g. GTK3's Atk accessibility stack → TS2320). Overriding an interface vfunc
+  still works at runtime; it just isn't type-checked.

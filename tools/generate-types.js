@@ -589,6 +589,35 @@ function emitMethods(info, nFn, getFn, ctx, ownerName, inherited) {
   return lines
 }
 
+// Virtual functions, emitted as the `virtual_*` override surface that
+// registerClass() wires into the GObject vtable (lib/register-class.js). A
+// subclass overrides a vfunc by defining `virtual_<camelCaseVfuncName>` — e.g.
+// the `size_allocate` vfunc is overridden as `virtual_sizeAllocate`. We emit ALL
+// vfuncs (even invoker-backed ones whose public method is also emitted) so the
+// override surface is explicit and `super.virtual_<name>(...)` chain-up resolves.
+//
+// The signature is modelled exactly like a method's (signature(): IN params,
+// OUT/INOUT folded into a return tuple) because node-gtk marshals a vfunc
+// implementation's out-params from its JS return value (src/callback.cc). The
+// `virtual_` prefix keeps these names distinct from the public invoker method of
+// the same vfunc, so the two never collide (issue #457).
+// LIMITATION: non-primitive OUT params of a vfunc are passed in as objects to be
+// mutated rather than returned; they are surfaced in the return tuple here to
+// match the public-method convention, which is the common (all-primitive) case.
+function emitVFuncs(info, nFn, getFn, ctx, ownerName) {
+  const lines = []
+  for (const v of each(info, nFn, getFn)) {
+    try {
+      const rawName = baseName(v)
+      const name = 'virtual_' + camelCase(rawName)
+      const sig = signature(v, ctx, {})
+      const doc = docBlock(ctx, DocKey.fn(ownerName || '', rawName), '  ', { callable: true, deprecated: isDeprecated(v) })
+      lines.push(`${doc}  ${name}(${sig.params}): ${sig.ret}`)
+    } catch (e) { /* skip unrepresentable vfunc */ }
+  }
+  return lines
+}
+
 function emitProperties(info, nFn, getFn, ctx, inherited, containerName) {
   const lines = []
   const writable = []
@@ -723,6 +752,7 @@ function emitObject(info, ctx) {
   const inherited = collectInheritedMethods(info, ctx)
   const props = emitProperties(info, GI.object_info_get_n_properties, GI.object_info_get_property, ctx, inherited, name)
   const methods = emitMethods(info, GI.object_info_get_n_methods, GI.object_info_get_method, ctx, name, inherited)
+  const vfuncs = emitVFuncs(info, GI.object_info_get_n_vfuncs, GI.object_info_get_vfunc, ctx, name)
   // When the class merges interfaces, declare the signal API in the companion
   // interface (unified across the whole hierarchy) instead of the class body.
   const signals = hasIfaces ? [] : renderSignals(collectSignals(info, ctx), ctx)
@@ -746,7 +776,7 @@ function emitObject(info, ctx) {
   }
 
   const dedup = makeMemberDedup()
-  const body = [...constants, ...props.lines, ...methods, ...signals, ...signalApi].filter(dedup)
+  const body = [...constants, ...props.lines, ...methods, ...vfuncs, ...signals, ...signalApi].filter(dedup)
 
   const out = []
   const ext = parentRef ? ` extends ${parentRef}` : ''
@@ -787,6 +817,13 @@ function emitInterface(info, ctx) {
   const inherited = collectInterfaceInheritedMethods(info, ctx)
   const props = emitProperties(info, GI.interface_info_get_n_properties, GI.interface_info_get_property, ctx, inherited, name)
   const methods = emitMethods(info, GI.interface_info_get_n_methods, GI.interface_info_get_method, ctx, name, inherited)
+  // NOTE: interface vfuncs are intentionally NOT emitted. A class implementing
+  // several interfaces declaration-merges them into its companion interface, and
+  // emitting `virtual_*` members on interfaces that collide across that diamond
+  // (e.g. GTK3's Atk Component/TableCell/Action accessibility stack) produces
+  // TS2320. Overriding an interface vfunc is rare; object (class) vfuncs — which
+  // cover the issue-#457 cases (Widget, GObject lifecycle, LayoutManager) — are
+  // emitted in emitObject() and are unaffected.
 
   const ext = prereqs.length ? ` extends ${prereqs.join(', ')}` : ''
   const dedup = makeMemberDedup()
