@@ -35,6 +35,7 @@ const written = createApp.scaffold({
   appName: 'Demo App',
   appId: 'com.example.DemoApp',
   pkgName: 'demo-app',
+  nodeGtkVersion: '^9.9.9',
 })
 
 const expected = ['package.json', 'tsconfig.json', '.gitignore', 'README.md', 'style.css', path.join('src', 'main.ts')]
@@ -47,7 +48,9 @@ for (const f of expected) {
 const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
 assert.strictEqual(pkg.name, 'demo-app')
 assert.strictEqual(pkg.type, 'module')
-assert.ok(/^\^\d+\.\d+\.\d+/.test(pkg.dependencies['node-gtk']), 'node-gtk version should be substituted')
+assert.strictEqual(pkg.dependencies['node-gtk'], '^9.9.9', 'node-gtk version should be substituted')
+// nodeGtkDependency() falls back to a file: spec when run from a source checkout.
+assert.ok(/^(\^\d|file:)/.test(createApp.nodeGtkDependency()), 'dependency is a version range or file: path')
 assert.ok(pkg.scripts.dev && pkg.scripts.build && pkg.scripts['generate-types'], 'expected scripts present')
 // run scripts must install the gi: loader hooks.
 assert.ok(pkg.scripts.dev.includes('node-gtk/register'), 'dev should --import node-gtk/register')

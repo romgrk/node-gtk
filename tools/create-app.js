@@ -64,6 +64,22 @@ function isValidAppId(id) {
   return /^[A-Za-z][A-Za-z0-9_-]*(\.[A-Za-z][A-Za-z0-9_-]*)+$/.test(id)
 }
 
+// The `node-gtk` dependency to write into the generated package.json.
+//
+// The scaffolded app uses the `gi:` import scheme and `node-gtk/register`, which
+// exist only in this node-gtk. When run from a normal install we depend on the
+// matching published version (`^x.y.z`). But when run from a *source checkout*
+// (a contributor testing `node bin/node-gtk.js init`), `^x.y.z` would resolve to
+// the published release — which may predate these features — so we instead point
+// the app at the local checkout via `file:`, so it uses the exact node-gtk it was
+// scaffolded with.
+function nodeGtkDependency() {
+  const repoRoot = path.resolve(__dirname, '..')
+  const version = require('../package.json').version
+  const isInstalled = repoRoot.split(path.sep).includes('node_modules')
+  return isInstalled ? `^${version}` : `file:${repoRoot}`
+}
+
 // ---------------------------------------------------------------------------
 // scaffolding (pure: writes files, never installs, never exits the process)
 // ---------------------------------------------------------------------------
@@ -74,7 +90,7 @@ function scaffold(opts) {
   if (fs.existsSync(dir) && fs.readdirSync(dir).length > 0 && !force)
     throw new Error(`target directory is not empty: ${dir}\nUse --force to scaffold into it anyway.`)
 
-  const nodeGtkVersion = `^${require('../package.json').version}`
+  const nodeGtkVersion = opts.nodeGtkVersion || nodeGtkDependency()
   const tokens = {
     __APP_NAME__: appName,
     __APP_ID__: appId,
@@ -168,7 +184,11 @@ function run(argv) {
   process.stdout.write(`\nScaffolded ${appName} in ${dir}\n`)
   for (const f of written) process.stdout.write(`  create ${f}\n`)
 
-  const rel = path.relative(process.cwd(), dir) || '.'
+  // Shortest copy-pasteable path to the new project: the relative path unless it
+  // escapes the cwd (e.g. `../../tmp/app`), in which case the absolute path reads
+  // better.
+  const relPath = path.relative(process.cwd(), dir)
+  const rel = (!relPath || relPath.startsWith('..')) ? dir : relPath
 
   if (opts.install) {
     process.stdout.write(`\nInstalling dependencies (npm install)…\n\n`)
@@ -188,4 +208,4 @@ function run(argv) {
     `  npm run dev\n\n`)
 }
 
-module.exports = { run, scaffold, toAppName, toPkgName, toAppId, isValidAppId }
+module.exports = { run, scaffold, nodeGtkDependency, toAppName, toPkgName, toAppId, isValidAppId }

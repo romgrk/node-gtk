@@ -157,6 +157,10 @@ name *"My Cool App"*, package `my-cool-app`, id `com.example.MyCoolApp`.
 - `bin/node-gtk.js` — CLI entry; dispatches `init` / `create`.
 - `tools/create-app.js` — the scaffolder. `run(argv)` parses + installs;
   `scaffold(opts)` is the pure file-writing core (also used by the test).
+  `nodeGtkDependency()` picks the generated `node-gtk` dependency: `^<version>`
+  for a normal install, or `file:<checkout>` when `init` is run from a node-gtk
+  source checkout (so contributors test against the same, possibly unreleased,
+  node-gtk rather than the published release).
 - `tools/templates/app/` — the template tree (`*.tmpl`, with `__APP_NAME__` /
   `__APP_ID__` / `__PKG_NAME__` / `__NODE_GTK_VERSION__` tokens).
 - `tests/cli__create_app.js` — smoke test (pure fs; no addon/display needed).
