@@ -10,7 +10,8 @@
     },
     "./register": "./lib/esm/register.mjs",
     "./hooks": "./lib/esm/hooks.mjs",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./*": "./*"
   },
   "bin": {
     "node-gtk": "bin/node-gtk.js"
