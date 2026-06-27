@@ -18,12 +18,14 @@ describe('registerClass', () => {
 
     class NoLeakWidget extends Gtk.Widget {
       static GTypeName = 'NodeGTKNoLeakWidget'
-      // A method whose snake_case name is not a parent vfunc forces
-      // findVFuncOnInterfaces() to run.
-      someCustomMethod() {}
+      // A virtual_* method whose vfunc is on neither the parents nor the
+      // interfaces forces findVFuncOnInterfaces() to run (the path that leaked).
+      virtual_notARealVfunc() {}
     }
 
-    gi.registerClass(NoLeakWidget)
+    // registerClass now throws for an unresolved virtual_* name; the global-leak
+    // check is what this test guards, so swallow the throw.
+    try { gi.registerClass(NoLeakWidget) } catch (e) {}
 
     expect('i' in global, false)
   })
