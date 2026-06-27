@@ -52,9 +52,14 @@ assert.strictEqual(pkg.dependencies['node-gtk'], '^9.9.9', 'node-gtk version sho
 // nodeGtkDependency() falls back to a file: spec when run from a source checkout.
 assert.ok(/^(\^\d|file:)/.test(createApp.nodeGtkDependency()), 'dependency is a version range or file: path')
 assert.ok(pkg.scripts.dev && pkg.scripts.build && pkg.scripts['generate-types'], 'expected scripts present')
-// run scripts must install the gi: loader hooks.
-assert.ok(pkg.scripts.dev.includes('node-gtk/register'), 'dev should --import node-gtk/register')
-assert.ok(pkg.scripts.start.includes('node-gtk/register'), 'start should --import node-gtk/register')
+// `dev` delegates to the CSS-reload mode; `dev:app-reload` adds node --watch.
+assert.ok(pkg.scripts.dev.includes('dev:css-reload'), 'dev should run the css-reload script')
+assert.ok(pkg.scripts['dev:app-reload'].includes('--watch'), 'dev:app-reload should use node --watch')
+// the scripts that actually launch node must install the gi: loader hooks.
+for (const s of ['dev:css-reload', 'dev:app-reload', 'start'])
+  assert.ok(pkg.scripts[s].includes('node-gtk/register'), `${s} should --import node-gtk/register`)
+// CSS-reload mode enables node-gtk/styles hot-reload (NODE_ENV=development).
+assert.ok(pkg.scripts['dev:css-reload'].includes('NODE_ENV=development'), 'dev:css-reload sets NODE_ENV=development')
 
 // tsconfig.json is valid JSON, points at the generated types, and pulls the
 // shim into the program (via `files`, since it lives under node_modules) so the

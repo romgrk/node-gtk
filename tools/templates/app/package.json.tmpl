@@ -5,7 +5,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "node --watch --import tsx --import node-gtk/register src/main.ts",
+    "dev": "npm run dev:css-reload",
+    "dev:css-reload": "NODE_ENV=development node --import tsx --import node-gtk/register src/main.ts",
+    "dev:app-reload": "NODE_ENV=development node --import tsx --import node-gtk/register --watch src/main.ts",
     "start": "node --import tsx --import node-gtk/register src/main.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",

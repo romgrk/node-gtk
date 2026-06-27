@@ -26,8 +26,8 @@ npm run dev        # run the app with live reload
 ```
 
 That's it — a window should appear. Edit `style.css` while it runs and the
-window restyles instantly (no restart); edit anything under `src/` and
-`node --watch` restarts the app.
+window restyles instantly, no restart. To also restart the app when you edit
+`src/`, run `npm run dev:app-reload` instead (it adds `node --watch`).
 
 ## How it works
 
@@ -47,10 +47,11 @@ loop automatically.
 
 ## Scripts
 
-| command             | what it does                                                       |
-| ------------------- | ----------------------------------------------------------------- |
-| `npm run dev`       | Run with live reload on file changes (`node --watch`).            |
-| `npm start`         | Run once without building.                                        |
+| command                  | what it does                                                       |
+| ------------------------ | ----------------------------------------------------------------- |
+| `npm run dev`            | Run with live CSS reload — edit `style.css`, the window restyles, no restart. |
+| `npm run dev:app-reload` | Like `dev`, but also restarts the app when you edit `src/` (`node --watch`). |
+| `npm start`              | Run once without building.                                        |
 | `npm run build`     | Type-check and compile `src/` to `dist/` with `tsc`.             |
 | `npm run typecheck` | Type-check only, no output.                                      |
 | `npm run generate-types` | (Re)generate TypeScript types for the GI namespaces you use. |
