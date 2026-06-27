@@ -13,12 +13,8 @@ Changes to be released are kept in the unreleased section.
 
 ### Features
 
-- **`registerClass()` is now optional.** The first `new MySubclass()` registers
-  an unregistered JS subclass on demand (including any not-yet-registered
-  ancestors) and installs its vfunc overrides, so you no longer need to call
-  `registerClass` for the common case. It is still available — and still required
-  — when you need the GType before constructing an instance (e.g. `getGType`,
-  GtkBuilder templates). Calling it on an already-registered class is a no-op.
+- **[`registerClass()`](./doc/api.md#register-class-klass) is now optional** —
+  the first `new MySubclass()` registers the subclass on demand.
 - **Direct ESM imports.** Import a namespace with the `gi:` scheme
   (`import Gtk from 'gi:Gtk-4.0'`) after running with
   `node --import node-gtk/register` (Node ≥ 20.6); node-gtk's own API is importable

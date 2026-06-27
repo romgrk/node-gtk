@@ -86,3 +86,5 @@ By default the GType name is the class name; override it with a static
 | ----- | -------- | ---------------------------------------------------- |
 | klass | `Class`  | the class to register (must extend a GObject type)   |
 
+Returns `klass`, so it can be assigned or used as a decorator.
+
