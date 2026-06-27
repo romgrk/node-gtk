@@ -1,10 +1,9 @@
 // PROTOTYPE consumer — this file is EXPECTED TO TYPECHECK CLEANLY.
-// It demonstrates the IntelliSense / checking a node-gtk user gets.
+// It demonstrates the IntelliSense / checking a node-gtk user gets, using the
+// `gi:` import form (the generated shim types each `gi:<Namespace>-<version>`).
 
-import * as gi from 'node-gtk'
-
-const Gtk = gi.require('Gtk', '4.0')   // typed as the Gtk-4.0 namespace
-const GLib = gi.require('GLib', '2.0')
+import Gtk from 'gi:Gtk-4.0'    // typed as the Gtk-4.0 namespace
+import GLib from 'gi:GLib-2.0'
 
 Gtk.init()
 

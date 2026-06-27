@@ -5,7 +5,6 @@ const Gst = gi.require('Gst', '1.0')
 const common = require('./__common__.js')
 
 Gst.init([])
-gi.startLoop()
 
 common.describe('callback value is set', () => {
   const loop = new GLib.MainLoop(null, false)

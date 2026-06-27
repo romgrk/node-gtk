@@ -1,12 +1,14 @@
 /*
- * test-gtk-4.js
+ * gtk-4-custom-widget.mjs
+ *
+ * Run with:  node --import node-gtk/register examples/gtk-4-custom-widget.mjs
  */
 
-const gi = require('..')
-const GLib = gi.require('GLib', '2.0')
-const Gtk = gi.require('Gtk', '4.0')
-const Gdk = gi.require('Gdk', '4.0')
-const Graphene = gi.require('Graphene', '1.0')
+import { registerClass } from 'node-gtk'
+import GLib from 'gi:GLib-2.0'
+import Gtk from 'gi:Gtk-4.0'
+import Gdk from 'gi:Gdk-4.0'
+import Graphene from 'gi:Graphene-1.0'
 
 Gtk.init()
 
@@ -36,7 +38,7 @@ class CustomWidget extends Gtk.Widget {
   }
 }
 
-gi.registerClass(CustomWidget)
+registerClass(CustomWidget)
 
 
 /* Setup & start the application */
@@ -44,9 +46,7 @@ gi.registerClass(CustomWidget)
 const loop = GLib.MainLoop.new(null, false)
 const app = new Gtk.Application('com.github.romgrk.node-gtk.demo', 0)
 app.on('activate', onActivate)
-const status = app.run()
-
-console.log('Finished with status:', status)
+app.run()
 
 
 
@@ -76,7 +76,6 @@ function onActivate() {
   window.setChild(root)
   window.present()
 
-  gi.startLoop()
   loop.run()
 }
 

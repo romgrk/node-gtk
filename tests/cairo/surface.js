@@ -7,7 +7,6 @@ const gi = require('../../lib/')
 const Cairo = gi.require('cairo')
 const { describe, it, expect } = require('../__common__.js')
 
-gi.startLoop()
 
 describe('Surface:', () => {
   it('works', () => {

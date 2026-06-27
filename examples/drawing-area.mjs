@@ -1,12 +1,13 @@
 /*
- * drawing-area.js
+ * drawing-area.mjs
+ *
+ * Run with:  node --import node-gtk/register examples/drawing-area.mjs
  */
 
-const gi = require('../')
-const Gtk = gi.require('Gtk', '3.0')
-const Cairo = gi.require('cairo')
-const Pango = gi.require('Pango')
-const PangoCairo = gi.require('PangoCairo')
+import Gtk from 'gi:Gtk-3.0'
+import Cairo from 'gi:cairo'
+import Pango from 'gi:Pango'
+import PangoCairo from 'gi:PangoCairo'
 
 Gtk.init()
 

@@ -1,5 +1,5 @@
 /*
- * system-monitor.js
+ * system-monitor.mjs
  *
  * A live system monitor built with libadwaita (GTK 4).
  *
@@ -12,24 +12,20 @@
  * Adw.Clamp, Adw.PreferencesGroup and Adw.ActionRow (with progress-bar
  * suffixes), plus a Gtk.Box layout.
  *
- *   node examples/system-monitor.js
+ * Run with:  node --import node-gtk/register examples/system-monitor.mjs
  */
 
-const os = require('os')
-const fs = require('fs')
-
-const gi = require('..')
-const GLib = gi.require('GLib', '2.0')
-const Gtk = gi.require('Gtk', '4.0')
-const Adw = gi.require('Adw', '1')
+import GLib from 'gi:GLib-2.0'
+import Gtk from 'gi:Gtk-4.0'
+import Adw from 'gi:Adw-1'
+import os from 'node:os'
+import fs from 'node:fs'
 
 const loop = GLib.MainLoop.new(null, false)
 const app = new Adw.Application('com.github.romgrk.node-gtk.system-monitor', 0)
 
 app.on('activate', onActivate)
-gi.startLoop()
-const status = app.run([])
-console.log('Finished with status:', status)
+app.run([])
 
 function onActivate() {
   const window = new Adw.ApplicationWindow(app)

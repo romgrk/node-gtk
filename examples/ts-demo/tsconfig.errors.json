@@ -11,5 +11,5 @@
       "node-gtk": ["./.node-gtk-types/node-gtk.d.ts"]
     }
   },
-  "files": ["app-errors.ts"]
+  "files": ["app-errors.ts", "./.node-gtk-types/node-gtk.d.ts"]
 }

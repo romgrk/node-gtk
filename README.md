@@ -39,35 +39,45 @@ Supported platforms:
 
 ## Usage
 
-Below is a [minimal example](./examples/hello-world.js) of how to use node-gtk:
+Below is a [minimal example](./examples/hello-world.mjs) of how to use node-gtk.
+Namespaces are imported with the `gi:` scheme; run your app with
+`node --import node-gtk/register`:
+
+```sh
+node --import node-gtk/register app.mjs
+```
 
 ```javascript
-const gi = require('node-gtk');
-const GLib = gi.require('GLib', '2.0');
-const Gtk = gi.require('Gtk', '4.0');
-const Adw = gi.require('Adw', '1');
+// app.mjs
+import GLib from 'gi:GLib-2.0'   // `gi:Name-Version` (or `gi:Name` for the latest)
+import Gtk from 'gi:Gtk-4.0'
+import Adw from 'gi:Adw-1'
 
-const loop = GLib.MainLoop.new(null, false);
-const app = new Adw.Application('com.github.romgrk.node-gtk.hello', 0);
+const loop = GLib.MainLoop.new(null, false)
+const app = new Adw.Application('com.github.romgrk.node-gtk.hello', 0)
 
 app.on('activate', () => {
-  const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
-  content.append(new Adw.HeaderBar());
-  content.append(new Gtk.Label({ label: 'Hello Adwaita!', vexpand: true }));
+  const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
+  content.append(new Adw.HeaderBar())
+  content.append(new Gtk.Label({ label: 'Hello Adwaita!', vexpand: true }))
 
-  const window = new Adw.ApplicationWindow(app);
-  window.setTitle('node-gtk');
-  window.setDefaultSize(300, 120);
-  window.setContent(content);
-  window.on('close-request', () => (loop.quit(), app.quit(), false));
-  window.present();
+  const window = new Adw.ApplicationWindow(app)
+  window.setTitle('node-gtk')
+  window.setDefaultSize(300, 120)
+  window.setContent(content)
+  window.on('close-request', () => (loop.quit(), app.quit(), false))
+  window.present()
 
-  gi.startLoop();
-  loop.run();
-});
+  loop.run()
+})
 
-process.exit(app.run([]));
+// Under ESM the run call returns immediately; the app keeps running and the
+// process exits when the window is closed. See "ES modules" below.
+app.run([])
 ```
+
+> Prefer CommonJS? node-gtk supports it too — see the
+> [importing guide](./doc/importing.md#commonjs).
 
 <p align="center">
   <img src="./img/hello-world.png" style="width: 290px; height: auto;"/>
@@ -91,13 +101,13 @@ available options.
 
 You can also easily create custom applications:
 
-[A web browser (using WebKit2GTK)](./examples/browser.js)
+[A web browser (using WebKit2GTK)](./examples/browser.mjs)
 
 <p align="center">
   <img src="./img/browser.png" style="max-width: 500px; height: auto;"/>
 </p>
 
-[A system monitor](./examples/system-monitor.js)
+[A system monitor](./examples/system-monitor.mjs)
 
 <p align="center">
   <img src="./img/system-monitor.png" style="width: 400px; height: auto;"/>
@@ -105,26 +115,31 @@ You can also easily create custom applications:
 
 ## ES modules
 
-The Usage example above is CommonJS. node-gtk also works under ESM, but the
-blocking main-loop calls (`GLib.MainLoop.run`, `Gio`/`Gtk.Application.run`,
-`Gtk.main`) **return immediately** instead of blocking and **don't return a
-value** — so make the run call the last statement and exit from your handler:
+ES modules are the default (see [Usage](#usage)): namespaces are imported with the
+`gi:` scheme (`import Gtk from 'gi:Gtk-4.0'`) after installing the hooks with
+`node --import node-gtk/register`, and the loop integration starts automatically.
+
+One thing to know up front: under ESM, blocking main-loop calls (`loop.run()`,
+`app.run()`, `Gtk.main()`) **return immediately** instead of blocking, and don't
+return a value — so make the run call the last statement and do cleanup/exit from
+your handler:
 
 ```javascript
 app.on('activate', () => {
   // ...build the window...
-  window.on('close-request', () => (loop.quit(), app.quit(), false));
-  window.present();
+  window.on('close-request', () => (loop.quit(), app.quit(), false))
+  window.present()
 
-  gi.startLoop();
-  loop.run();      // returns immediately under ESM; do cleanup/exit in the handler
-});
+  loop.run()       // returns immediately under ESM; do cleanup/exit in the handler
+})
 
-app.run([]);       // not `process.exit(app.run([]))` — the return value is unavailable
+app.run([])        // not `process.exit(app.run([]))` — the return value is unavailable
 ```
 
-CommonJS (and signal callbacks) are unaffected. For the why and the design
-trade-off, see [#449](https://github.com/romgrk/node-gtk/issues/449).
+See the **[importing guide](./doc/importing.md)** for the full details: the `gi:`
+scheme, importing node-gtk's own API, skipping the `--import` flag, and CommonJS.
+For the why behind the immediate-return behaviour, see
+[#449](https://github.com/romgrk/node-gtk/issues/449).
 
 ## Documentation
 
@@ -163,6 +178,15 @@ import * as gi from 'node-gtk'
 const Gtk = gi.require('Gtk', '4.0')   // typed as the Gtk-4.0 namespace
 const win = new Gtk.ApplicationWindow({ title: 'Hello', defaultWidth: 400 })
 win.on('close-request', () => false)   // signal name + callback are typed
+```
+
+The [direct `gi:` import form](./doc/importing.md#es-modules) is typed too — the generated
+shim declares each `gi:<Namespace>-<version>` module, so its default export is the
+namespace:
+
+```ts
+import Gtk from 'gi:Gtk-4.0'           // typed as the Gtk-4.0 namespace
+const win = new Gtk.ApplicationWindow({ title: 'Hello', defaultWidth: 400 })
 ```
 
 You get typed constructor properties (including inherited and interface ones),
