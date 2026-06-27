@@ -36,7 +36,6 @@ Supported platforms:
 - [TypeScript](#typescript)
 - [Installing](#installing)
 - [Contributing](#contributing)
-- [CommonJS](#commonjs)
 
 ## Usage
 
@@ -77,7 +76,8 @@ app.on('activate', () => {
 app.run([])
 ```
 
-> Prefer CommonJS? node-gtk supports it too — see [CommonJS](#commonjs).
+> Prefer CommonJS? node-gtk supports it too — see the
+> [importing guide](./doc/importing.md#commonjs).
 
 <p align="center">
   <img src="./img/hello-world.png" style="width: 290px; height: auto;"/>
@@ -99,25 +99,14 @@ You can also easily create custom applications:
 
 ## ES modules
 
-ES modules are the default (see [Usage](#usage)). A few specifics:
+ES modules are the default (see [Usage](#usage)): namespaces are imported with the
+`gi:` scheme (`import Gtk from 'gi:Gtk-4.0'`) after installing the hooks with
+`node --import node-gtk/register`, and the loop integration starts automatically.
 
-**The `gi:` import scheme.** `import Gtk from 'gi:Gtk-4.0'` is equivalent to
-`gi.require('Gtk', '4.0')` — the default export is the namespace object, so read
-members off it (`const { Box, Label } = Gtk`). Use `gi:Name-Version`, or `gi:Name`
-for the latest installed version. Static named imports (`import { Box } from
-'gi:Gtk-4.0'`) are **not** supported — destructure from the default export.
-node-gtk's own API (e.g. `registerClass`) is imported from `node-gtk`
-(`import { registerClass } from 'node-gtk'`). The hooks are installed
-with `node --import node-gtk/register` and need Node ≥ 20.6.
-
-**The loop integration starts automatically.** The first time you run a main
-loop (`GLib.MainLoop.run`, `Gio`/`Gtk.Application.run`, `Gtk.main`), node-gtk
-integrates it with Node's event loop for you — there is nothing to call to enable
-it.
-
-**Blocking main-loop calls return immediately.** Under ESM, those same run calls
-**return immediately** instead of blocking, and **don't return a value** — so make
-the run call the last statement and do cleanup/exit from your handler:
+One thing to know up front: under ESM, blocking main-loop calls (`loop.run()`,
+`app.run()`, `Gtk.main()`) **return immediately** instead of blocking, and don't
+return a value — so make the run call the last statement and do cleanup/exit from
+your handler:
 
 ```javascript
 app.on('activate', () => {
@@ -131,28 +120,10 @@ app.on('activate', () => {
 app.run([])        // not `process.exit(app.run([]))` — the return value is unavailable
 ```
 
-CommonJS (and signal callbacks) are unaffected. For the why and the design
-trade-off, see [#449](https://github.com/romgrk/node-gtk/issues/449).
-
-### Skipping the `--import` flag
-
-The flag is only required for a **static** `import … from 'gi:…'` in the file you
-run directly: ESM resolves the whole static graph before any code executes, so the
-hooks must be installed first. You can avoid it in a few ways:
-
-```javascript
-// 1) Register programmatically, then use dynamic import (no flag):
-import 'node-gtk/register'
-const Gtk = (await import('gi:Gtk-4.0')).default
-
-// 2) Tiny bootstrap entry — register, then load the real app, which is free to
-//    use static `import … from 'gi:…'` (it loads after registration):
-import 'node-gtk/register'
-await import('./app.mjs')
-```
-
-Or move the flag into the environment instead of the command line:
-`NODE_OPTIONS="--import node-gtk/register" node app.mjs` (e.g. in an npm script).
+See the **[importing guide](./doc/importing.md)** for the full details: the `gi:`
+scheme, importing node-gtk's own API, skipping the `--import` flag, and CommonJS.
+For the why behind the immediate-return behaviour, see
+[#449](https://github.com/romgrk/node-gtk/issues/449).
 
 ## Documentation
 
@@ -193,7 +164,7 @@ const win = new Gtk.ApplicationWindow({ title: 'Hello', defaultWidth: 400 })
 win.on('close-request', () => false)   // signal name + callback are typed
 ```
 
-The [direct `gi:` import form](#direct-imports) is typed too — the generated
+The [direct `gi:` import form](./doc/importing.md#es-modules) is typed too — the generated
 shim declares each `gi:<Namespace>-<version>` module, so its default export is the
 namespace:
 
@@ -267,38 +238,3 @@ for LSP to work nicely, you can use [bear](https://github.com/rizsotto/Bear) as 
 - https://developer.gnome.org/gi/stable/index.html
 - https://v8docs.nodesource.com/
 - https://github.com/nodejs/nan#api
-
-## CommonJS
-
-node-gtk works under CommonJS too. Load namespaces with `gi.require(name, version)`
-instead of `gi:` imports — the rest of the API is identical, and you run it with
-plain `node app.js` (no `--import` flag):
-
-```javascript
-const gi = require('node-gtk')
-const GLib = gi.require('GLib', '2.0')
-const Gtk = gi.require('Gtk', '4.0')
-const Adw = gi.require('Adw', '1')
-
-const loop = GLib.MainLoop.new(null, false)
-const app = new Adw.Application('com.github.romgrk.node-gtk.hello', 0)
-
-app.on('activate', () => {
-  const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
-  content.append(new Adw.HeaderBar())
-  content.append(new Gtk.Label({ label: 'Hello Adwaita!', vexpand: true }))
-
-  const window = new Adw.ApplicationWindow(app)
-  window.setContent(content)
-  window.on('close-request', () => (loop.quit(), app.quit(), false))
-  window.present()
-
-  loop.run()
-})
-
-// Unlike ESM, under CommonJS the run call blocks and returns the exit status.
-process.exit(app.run([]))
-```
-
-The only difference from ESM is module loading and the blocking main-loop
-semantics (see [ES modules](#es-modules)).
