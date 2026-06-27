@@ -25,7 +25,9 @@ npm install        # installs deps and generates TypeScript types (postinstall)
 npm run dev        # run the app with live reload
 ```
 
-That's it — a window should appear.
+That's it — a window should appear. Edit `style.css` while it runs and the
+window restyles instantly (no restart); edit anything under `src/` and
+`node --watch` restarts the app.
 
 ## How it works
 
@@ -79,7 +81,7 @@ npm run generate-types
 .
 ├── src/
 │   └── main.ts        # the application entry point
-├── style.css          # custom CSS, layered on top of Adwaita
+├── style.css          # custom CSS (hot-reloads live under `npm run dev`)
 ├── tsconfig.json
 └── package.json
 ```

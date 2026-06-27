@@ -70,6 +70,11 @@ assert.ok(main.includes('Welcome to Demo App'), 'app name substituted')
 // uses the `gi:` import scheme, and not the removed startLoop()/gi.require shape.
 assert.ok(main.includes("import Gtk from 'gi:Gtk-4.0'"), 'uses gi: imports')
 assert.ok(!main.includes('startLoop'), 'must not call the removed gi.startLoop()')
+// styles are applied via node-gtk/styles (hot-reloadable), not a hand-rolled
+// CssProvider.
+assert.ok(main.includes("import { styles } from 'node-gtk/styles'"), 'imports node-gtk/styles')
+assert.ok(main.includes('styles.addFile('), 'loads style.css through node-gtk/styles')
+assert.ok(!main.includes('new Gtk.CssProvider'), 'no longer hand-rolls a CssProvider')
 for (const file of expected) {
   const text = fs.readFileSync(path.join(dir, file), 'utf8')
   assert.ok(!/__[A-Z_]+__/.test(text), `no unsubstituted tokens left in ${file}`)

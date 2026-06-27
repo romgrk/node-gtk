@@ -11,13 +11,12 @@
  * tear everything down from the window's close handler / quit action.
  * See: https://github.com/romgrk/node-gtk/blob/master/doc/importing.md
  */
-import { fileURLToPath } from 'node:url'
-
 import GLib from 'gi:GLib-2.0'
 import Gio from 'gi:Gio-2.0'
-import Gdk from 'gi:Gdk-4.0'
 import Gtk from 'gi:Gtk-4.0'
 import Adw from 'gi:Adw-1'
+
+import { styles } from 'node-gtk/styles'
 
 const APP_ID = '__APP_ID__'
 
@@ -25,7 +24,11 @@ const loop = GLib.MainLoop.new(null, false)
 const app = new Adw.Application({ applicationId: APP_ID, flags: Gio.ApplicationFlags.FLAGS_NONE })
 
 app.on('activate', () => {
-  loadStyles()
+  // Apply style.css, layered on top of Adwaita. In `npm run dev` (node --watch)
+  // the file is re-read live as you edit it — no restart, no flash. style.css
+  // sits at the project root, one level up from both src/ (dev, via tsx) and
+  // dist/ (built, via node), so this URL resolves in either case.
+  styles.addFile(new URL('../style.css', import.meta.url))
 
   const window = new Adw.ApplicationWindow({ application: app })
   window.setTitle('__APP_NAME__')
@@ -102,25 +105,14 @@ app.on('activate', () => {
   app.setAccelsForAction('app.quit', ['<Control>q'])
 
   window.on('close-request', () => (loop.quit(), app.quit(), false))
+
+  styles.install() // flush queued styles and start the dev hot-reload watcher
   window.present()
 
   // The loop integration is already running; under ESM this returns immediately.
   // The app keeps running until the close handler (or quit action) stops it.
   loop.run()
 })
-
-function loadStyles() {
-  const provider = new Gtk.CssProvider()
-  // style.css sits at the project root, one level up from both src/ (dev, via
-  // tsx) and dist/ (built, via node), so this resolves in either case.
-  const cssPath = fileURLToPath(new URL('../style.css', import.meta.url))
-  provider.loadFromPath(cssPath)
-  Gtk.StyleContext.addProviderForDisplay(
-    Gdk.Display.getDefault()!,
-    provider,
-    600, // Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-  )
-}
 
 // Must be the last statement — returns immediately under ESM (see top of file).
 app.run([])

@@ -10,7 +10,10 @@
     },
     "./register": "./lib/esm/register.mjs",
     "./hooks": "./lib/esm/hooks.mjs",
-    "./styles": "./lib/styles.js",
+    "./styles": {
+      "types": "./lib/styles.d.ts",
+      "default": "./lib/styles.js"
+    },
     "./package.json": "./package.json",
     "./*": "./*"
   },

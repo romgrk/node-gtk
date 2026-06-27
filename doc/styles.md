@@ -11,6 +11,9 @@ import { styles } from 'node-gtk/styles'
 
 It targets GTK 4 (the version your app already loaded is used automatically).
 
+Apps created with [`node-gtk create`](../README.md#create-a-new-app) already wire
+this in — their `style.css` hot-reloads under `npm run dev` out of the box.
+
 ## Quick start
 
 ```javascript
@@ -71,9 +74,12 @@ never strictly needs `install()`. (`styles.set` always requires the display.)
 
 ## Hot-reload
 
-Hot-reload runs **only when `NODE_ENV=development`** (and is silently off
-otherwise — in production nothing is watched). Within development you can opt out
-with `NODE_GTK_STYLE_HOT_RELOAD=0`.
+Hot-reload runs **only in development** (and is silently off otherwise — in
+production nothing is watched). "Development" means either `NODE_ENV=development`
+or that the process was started with Node's `--watch` flag (so an app run with
+`node --watch …`, as the `node-gtk create` scaffold does for `npm run dev`, gets
+live reload without setting any env var). You can opt out with
+`NODE_GTK_STYLE_HOT_RELOAD=0`.
 
 Every file that contributes styles is watched (via Node's `fs.watch`, no extra
 dependency):
