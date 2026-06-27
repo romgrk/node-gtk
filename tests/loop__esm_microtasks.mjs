@@ -30,7 +30,6 @@ GLib.timeoutAdd(GLib.PRIORITY_DEFAULT, 100, () => {
   return false
 })
 
-gi.startLoop()
 
 /* Under ESM this returns immediately (the blocking call is deferred to a
  * macrotask so the module's top-level microtask can return); the loop still

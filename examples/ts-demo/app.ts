@@ -1,10 +1,10 @@
 // PROTOTYPE consumer — this file is EXPECTED TO TYPECHECK CLEANLY.
-// It demonstrates the IntelliSense / checking a node-gtk user gets.
+// It demonstrates the IntelliSense / checking a node-gtk user gets, using the
+// `gi:` import form (the generated shim types each `gi:<Namespace>-<version>`).
 
-import * as gi from 'node-gtk'
-
-const Gtk = gi.require('Gtk', '4.0')   // typed as the Gtk-4.0 namespace
-const GLib = gi.require('GLib', '2.0')
+import Gtk from 'gi:Gtk-4.0'    // typed as the Gtk-4.0 namespace
+import GLib from 'gi:GLib-2.0'
+import { registerClass } from 'node-gtk'
 
 Gtk.init()
 
@@ -31,7 +31,7 @@ win.setChild(box)
 const ctx = GLib.MainContext.default()
 
 // Virtual-function overrides: define `virtual_<name>` to override a vfunc.
-// node-gtk wires these into the GObject vtable via gi.registerClass(); the
+// node-gtk wires these into the GObject vtable via registerClass(); the
 // override signature is type-checked against the emitted vfunc declaration
 // (out-params folded into the return tuple) and `super.virtual_<name>()` resolves.
 class CustomWidget extends Gtk.Widget {
@@ -41,7 +41,7 @@ class CustomWidget extends Gtk.Widget {
     return [size, size, -1, -1]
   }
 }
-gi.registerClass(CustomWidget)
+registerClass(CustomWidget)
 const custom = new CustomWidget()
 
 win.on('close-request', () => false)

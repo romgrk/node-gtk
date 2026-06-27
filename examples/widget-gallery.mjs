@@ -1,5 +1,5 @@
 /*
- * widget-gallery.js
+ * widget-gallery.mjs
  *
  * A tour of common libadwaita (GTK 4) widgets, organized into pages behind an
  * Adw.ViewStack with an Adw.ViewSwitcher in the header bar (and a bottom
@@ -9,21 +9,18 @@
  * list rows, buttons, controls, avatars and feedback widgets (toasts, banners,
  * status pages) — using the same node-gtk idioms as the other examples.
  *
- *   node examples/widget-gallery.js
+ *   Run with:  node --import node-gtk/register examples/widget-gallery.mjs
  */
 
-const gi = require('..')
-const GLib = gi.require('GLib', '2.0')
-const Gtk = gi.require('Gtk', '4.0')
-const Adw = gi.require('Adw', '1')
+import GLib from 'gi:GLib-2.0'
+import Gtk from 'gi:Gtk-4.0'
+import Adw from 'gi:Adw-1'
 
 const loop = GLib.MainLoop.new(null, false)
 const app = new Adw.Application('com.github.romgrk.node-gtk.widget-gallery', 0)
 
 app.on('activate', onActivate)
-gi.startLoop()
-const status = app.run([])
-console.log('Finished with status:', status)
+app.run([])
 
 function onActivate() {
   const window = new Adw.ApplicationWindow(app)

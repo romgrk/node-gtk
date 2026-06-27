@@ -31,7 +31,12 @@ const Gtk = gi.require('Gtk', '4.0')
 ```
 
 A process can only load one version of a given namespace, so pick the version up
-front. See [api.md](./api.md) for the rest of the `node-gtk` API.
+front.
+
+Under ES modules you can import a namespace directly with the `gi:` scheme
+(`import Gtk from 'gi:Gtk-4.0'`). For the full picture — `gi:` imports, CommonJS,
+and skipping the `--import` flag — see [importing.md](./importing.md). See
+[api.md](./api.md) for the rest of the `node-gtk` API.
 
 ## 2. Data types
 

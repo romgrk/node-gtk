@@ -4,8 +4,27 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+### Breaking changes
+
+- Removed `gi.startLoop()`. The GLib main-loop integration now starts
+  automatically the first time you run a main loop, so the call is no longer
+  needed — delete any `gi.startLoop()` from your code. See
+  [importing](./doc/importing.md).
+
 ### Features
 
+- **Direct ESM imports.** Import a namespace with the `gi:` scheme
+  (`import Gtk from 'gi:Gtk-4.0'`) after running with
+  `node --import node-gtk/register` (Node ≥ 20.6); node-gtk's own API is importable
+  by name (`import { registerClass } from 'node-gtk'`). CommonJS (`gi.require`) is
+  still supported. See the [importing guide](./doc/importing.md).
+- **Automatic main-loop integration.** Running a main loop (`GLib.MainLoop.run`,
+  `Gio`/`Gtk.Application.run`, `Gtk.main`) now starts the Node↔GLib loop
+  integration automatically; this replaces the former `gi.startLoop()` call.
+- **Typed `gi:` imports.** `node-gtk generate-types` now declares each
+  `gi:<Namespace>-<version>` module, so `import Gtk from 'gi:Gtk-4.0'` is fully
+  typed; importing a namespace you haven't generated types for is a TypeScript
+  error that names the fix.
 - Support `super.<vfunc>()` chain-up from a registered subclass. A vfunc override
   replaces the parent's implementation in the class vtable, so a JS subclass could
   not previously call the implementation it overrode. `registerClass` now installs

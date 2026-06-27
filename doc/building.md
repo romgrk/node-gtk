@@ -152,7 +152,7 @@ If you'd like to test everything builds and work properly, after installing and 
 examples:
 
 ```sh
-node ./examples/hello-world.js
+node --import node-gtk/register ./examples/hello-world.mjs
 ```
 
 If you'll see a little window saying hello that's it: it works!
@@ -191,19 +191,19 @@ node scripts/build-test-fixtures.js --force --verbose  # force a fresh rebuild
 
 #### Browser demo
 
-If you'd like to test `./examples/browser.js` you'll need [WebKit2 GTK+](http://webkitgtk.org/) libary.
+If you'd like to test `./examples/browser.mjs` you'll need [WebKit2 GTK+](http://webkitgtk.org/) libary.
 
 - in **Ubuntu**, you can `apt-get install libwebkit2gtk-3.0` (`4.0` works too) and try it out.
 - in **Fedora**, you should run `sudo dnf install webkit2gtk3`
 - in **ArchLinux**, you can `pacman -S --needed webkitgtk` and try it out.
 - in **macOS**, there is no way to run it right now because `webkitgtk` was removed from homebrew
 
-Once installed, you can `./examples/browser.js google.com` or any other page, and you might try the _dark theme_ out too:
+Once installed, you can run it on `google.com` or any other page, and you might try the _dark theme_ out too:
 
 ```sh
 # macOS needs to have the Adwaita theme installed
 # brew install adwaita-icon-theme
 
-# Usage: ./examples/browser.js <url> [theme]
-./examples/browser.js  google.com  dark
+# Usage: node --import node-gtk/register ./examples/browser.mjs <url> [theme]
+node --import node-gtk/register ./examples/browser.mjs  google.com  dark
 ```

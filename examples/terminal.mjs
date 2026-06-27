@@ -4,16 +4,15 @@
  * It embeds a Vte.Terminal inside an Adwaita window and spawns the user's
  * login shell into it, giving you a real, interactive terminal.
  *
- * Run with:  node examples/terminal.js
+ * Run with:  node --import node-gtk/register examples/terminal.mjs
  */
 
-const gi = require('../lib/');
-const GLib = gi.require('GLib', '2.0');
-const Gio = gi.require('Gio', '2.0');
-const Gtk = gi.require('Gtk', '4.0');
-const Adw = gi.require('Adw', '1');
-const Vte = gi.require('Vte', '3.91');
-const Pango = gi.require('Pango', '1.0');
+import GLib from 'gi:GLib-2.0';
+import Gio from 'gi:Gio-2.0';
+import Gtk from 'gi:Gtk-4.0';
+import Adw from 'gi:Adw-1';
+import Vte from 'gi:Vte-3.91';
+import Pango from 'gi:Pango-1.0';
 
 // Read the desktop's configured monospace font, falling back to the generic
 // "Monospace" family if the GNOME interface schema isn't installed.
@@ -90,8 +89,7 @@ app.on('activate', () => {
   // Give the terminal keyboard focus so you can start typing immediately.
   terminal.grabFocus();
 
-  gi.startLoop();
   loop.run();
 });
 
-process.exit(app.run([]));
+app.run([]);

@@ -8,7 +8,6 @@ const Gtk = gi.require('Gtk', '3.0')
 const Gdk = gi.require('Gdk', '3.0')
 const { describe, it, expect, assert, isntUndefined } = require('./__common__.js')
 
-gi.startLoop()
 Gtk.init()
 Gdk.init([])
 

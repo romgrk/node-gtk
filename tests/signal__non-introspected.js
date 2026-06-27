@@ -7,7 +7,6 @@ const gi = require('../lib/')
 const Gst = gi.require('Gst', '1.0')
 const { describe, it, mustThrow, assert, expect, skip } = require('./__common__.js')
 
-gi.startLoop()
 Gst.init([])
 
 it('should throw when signal name is invalid', mustThrow('Signal name is invalid', () => {

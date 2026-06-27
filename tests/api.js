@@ -12,10 +12,6 @@ describe('require', () => {
   expect(typeof Gtk, 'object')
 })
 
-describe('startLoop', () => {
-  gi.startLoop()
-})
-
 describe('prependSearchPath', () => {
   gi.prependSearchPath(os.tmpdir())
 })
