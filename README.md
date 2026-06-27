@@ -85,7 +85,8 @@ app.run([])
 
 ### Scaffold a new app
 
-To start a new GTK/Adwaita project from scratch, run:
+`node-gtk init` generates a complete, ready-to-run GTK/Adwaita project, so you can
+start building immediately:
 
 ```sh
 npx node-gtk init my-app
@@ -93,11 +94,13 @@ cd my-app
 npm run dev
 ```
 
-This generates a ready-to-run, TypeScript + ESM Adwaita application — an
-`Adw.Application` with a header bar, a primary menu, an About window, and live
-reload — and wires up `generate-types` so the GI APIs are fully typed. See
-[`tools/README.md`](./tools/README.md#node-gtk-init--scaffold-a-new-app) for the
-available options.
+You get a **TypeScript + ESM** application — an `Adw.Application` with a header
+bar, a primary menu, an About window, and a welcome screen — fully typed against
+the libraries installed on your machine (via `generate-types`), with live reload
+(`npm run dev`) and a `tsc` build (`npm run build`). Pass `--name` / `--app-id`,
+or run `node-gtk init --help`; see
+[`tools/README.md`](./tools/README.md#node-gtk-init--scaffold-a-new-app) for
+details.
 
 You can also easily create custom applications:
 
