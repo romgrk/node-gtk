@@ -154,6 +154,15 @@ function parseArgs(argv) {
   return opts
 }
 
+// Minimal ANSI styling (chalk is only a devDependency, so we can't use it at
+// runtime). No-ops when stdout isn't a TTY or NO_COLOR is set.
+const useColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR
+const ansi = (open, close) => (s) => useColor ? `\x1b[${open}m${s}\x1b[${close}m` : s
+const bold = ansi(1, 22)
+const dim = ansi(2, 22)
+const cyan = ansi(36, 39)
+const green = ansi(32, 39)
+
 function run(argv) {
   const opts = parseArgs(argv)
 
@@ -181,19 +190,21 @@ function run(argv) {
     process.exit(1)
   }
 
-  process.stdout.write(`\nScaffolded ${appName} in ${dir}\n`)
-  for (const f of written) process.stdout.write(`  create ${f}\n`)
-
   // Shortest copy-pasteable path to the new project: the relative path unless it
   // escapes the cwd (e.g. `../../tmp/app`), in which case the absolute path reads
   // better.
   const relPath = path.relative(process.cwd(), dir)
   const rel = (!relPath || relPath.startsWith('..')) ? dir : relPath
 
+  process.stdout.write(`\n${green('✓')} ${bold(`Scaffolded ${appName}`)} ${dim(`(${written.length} files) in ${dir}`)}\n`)
+
   if (opts.install) {
-    process.stdout.write(`\nInstalling dependencies (npm install)…\n\n`)
-    const res = child_process.spawnSync('npm', ['install'], { cwd: dir, stdio: 'inherit' })
+    process.stdout.write(`${dim('…')} ${bold('Installing dependencies')}${dim(' (npm install)')}\n`)
+    // Capture output and surface it only on failure — keep the happy path quiet.
+    const res = child_process.spawnSync('npm', ['install'], { cwd: dir, encoding: 'utf8' })
     if (res.status !== 0) {
+      if (res.stdout) process.stderr.write(res.stdout)
+      if (res.stderr) process.stderr.write(res.stderr)
       process.stderr.write(
         `\nnpm install did not complete cleanly. Your project is scaffolded — ` +
         `finish setup manually:\n\n  cd ${rel}\n  npm install\n  npm run dev\n\n` +
@@ -202,10 +213,12 @@ function run(argv) {
     }
   }
 
-  process.stdout.write(
-    `\nDone! Next steps:\n\n  cd ${rel}\n` +
-    (opts.install ? '' : '  npm install\n') +
-    `  npm run dev\n\n`)
+  process.stdout.write(`${green('✓')} ${bold('Done!')}\n`)
+
+  const steps = [`cd ${rel}`].concat(opts.install ? [] : ['npm install']).concat(['npm run dev'])
+  process.stdout.write(`\n${bold('Next steps:')}\n\n`)
+  for (const s of steps) process.stdout.write(`  ${cyan(s)}\n`)
+  process.stdout.write('\n')
 }
 
 module.exports = { run, scaffold, nodeGtkDependency, toAppName, toPkgName, toAppId, isValidAppId }
