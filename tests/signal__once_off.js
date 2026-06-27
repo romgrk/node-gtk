@@ -11,7 +11,6 @@ const gi = require('../lib/')
 const Gtk = gi.require('Gtk', '3.0')
 const { describe, it, expect } = require('./__common__.js')
 
-gi.startLoop()
 Gtk.init()
 
 describe('once', () => {

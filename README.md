@@ -112,8 +112,8 @@ with `node --import node-gtk/register` and need Node ≥ 20.6.
 
 **The loop integration starts automatically.** The first time you run a main
 loop (`GLib.MainLoop.run`, `Gio`/`Gtk.Application.run`, `Gtk.main`), node-gtk
-integrates it with Node's event loop for you — you no longer need to call
-`startLoop()` (it still exists and is a harmless no-op once started).
+integrates it with Node's event loop for you — there is nothing to call to enable
+it.
 
 **Blocking main-loop calls return immediately.** Under ESM, those same run calls
 **return immediately** instead of blocking, and **don't return a value** — so make

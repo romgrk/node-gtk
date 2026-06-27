@@ -11,7 +11,6 @@ const Gdk = gi.require('Gdk', '3.0')
 const GObject = gi.require('GObject')
 const common = require('./__common__.js')
 
-gi.startLoop()
 Gtk.init()
 
 

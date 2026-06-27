@@ -947,7 +947,6 @@ const SHIM_STATIC_API = `  export function isLoaded(ns: string, version?: string
   export function listAvailableModules(): Promise<{ name: string, version: string }[]>
   export function registerClass(klass: Function): Function
   export function flushRegistrations(): void
-  export function startLoop(): void
   export function getGType(value: Function | object | bigint): bigint
   export const System: any`
 

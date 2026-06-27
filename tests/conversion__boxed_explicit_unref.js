@@ -5,7 +5,7 @@
  * instance itself (e.g. GLib.MainLoop's *_unref) must make node-gtk's wrapper
  * relinquish ownership, so the GC finalizer doesn't free the same memory a
  * second time. The double-free is a benign warning on lenient allocators but a
- * hard SIGSEGV with gi.startLoop() on libffi 3.5 (Ubuntu 26).
+ * hard SIGSEGV with the loop integration active on libffi 3.5 (Ubuntu 26).
  *
  * Run with --expose-gc (the runner does).
  */

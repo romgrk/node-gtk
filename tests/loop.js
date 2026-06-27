@@ -116,7 +116,6 @@ function onActivate() {
   window.present()
 
   resolve()
-  gi.startLoop()
   loop.run()
 }
 
