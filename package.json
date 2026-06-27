@@ -10,6 +10,7 @@
     },
     "./register": "./lib/esm/register.mjs",
     "./hooks": "./lib/esm/hooks.mjs",
+    "./styles": "./lib/styles.js",
     "./package.json": "./package.json",
     "./*": "./*"
   },

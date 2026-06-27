@@ -1,0 +1,13 @@
+/*
+ * style-manager.css — live-reloaded by node-gtk/styles.
+ *
+ * Edit any value while examples/style-manager.mjs is running and the window
+ * updates instantly, no restart. See https://docs.gtk.org/gtk4/css-overview.html
+ */
+
+.card {
+  padding: 24px;
+  border-radius: 12px;
+  background-color: alpha(currentColor, 0.05);
+  border: 1px solid alpha(currentColor, 0.1);
+}
