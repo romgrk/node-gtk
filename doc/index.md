@@ -8,7 +8,7 @@ JavaScript. For what a given function *does*, refer to the library's own
 documentation.
 
 > The examples below use GTK 4. node-gtk also supports GTK 3 (and any other
-> introspected library) — just `gi.require()` the version you want.
+> introspected library) — just import the version you want (`gi:Gtk-3.0`).
 
 #### Table of contents
   1. [Loading a library](#1-loading-a-library)
@@ -21,22 +21,26 @@ documentation.
 
 ## 1. Loading a library
 
-Load a library with `gi.require(name: string, version?: string)`. For example,
-GTK:
+Under ES modules — the default — run your app with `node --import node-gtk/register`
+and import a namespace with the `gi:` scheme:
 
 ```javascript
-const gi = require('node-gtk')
-const Gtk = gi.require('Gtk', '4.0')
+import Gtk from 'gi:Gtk-4.0'   // `gi:Name-Version`, or `gi:Name` for the latest
 // use Gtk
 ```
 
-A process can only load one version of a given namespace, so pick the version up
-front.
+node-gtk's own API (`registerClass`, `require`, …) is imported by name from the
+`node-gtk` package:
 
-Under ES modules you can import a namespace directly with the `gi:` scheme
-(`import Gtk from 'gi:Gtk-4.0'`). For the full picture — `gi:` imports, CommonJS,
-and skipping the `--import` flag — see [importing.md](./importing.md). See
-[api.md](./api.md) for the rest of the `node-gtk` API.
+```javascript
+import gi, { registerClass } from 'node-gtk'
+```
+
+CommonJS works too — `const Gtk = require('node-gtk').require('Gtk', '4.0')`. A
+process can only load one version of a given namespace, so pick the version up
+front. For the full picture — `gi:` imports, CommonJS, and skipping the `--import`
+flag — see [importing.md](./importing.md). See [api.md](./api.md) for the rest of
+the `node-gtk` API.
 
 ## 2. Data types
 
@@ -162,11 +166,11 @@ class CustomWidget extends Gtk.Widget {
   static GTypeName = 'NodeGTKCustomWidget'
   virtual_snapshot(snapshot) {} // overrides the `snapshot` virtual function
 }
-gi.registerClass(CustomWidget)
+registerClass(CustomWidget)
 ```
 
 > **Register before you instantiate.** `new CustomWidget()` only works *after*
-> `gi.registerClass(CustomWidget)`. Instantiating an unregistered subclass falls
+> `registerClass(CustomWidget)`. Instantiating an unregistered subclass falls
 > back to the abstract base type and aborts the process.
 
 ##### Virtual functions
@@ -199,7 +203,7 @@ class CustomWidget extends Gtk.Widget {
     /* ...then draw on top... */
   }
 }
-gi.registerClass(CustomWidget)
+registerClass(CustomWidget)
 ```
 
 If a `virtual_*` method matches no vfunc on the parent or its interfaces,
@@ -272,7 +276,7 @@ crash the process. A few frequent mistakes:
 
 <details>
   <summary><b>Instantiating a subclass before registering it</b></summary>
-  Call <code>gi.registerClass(MyClass)</code> before <code>new MyClass()</code>;
+  Call <code>registerClass(MyClass)</code> before <code>new MyClass()</code>;
   otherwise construction falls back to the abstract base type and aborts the
   process. See <a href="#4-gobjects">§4 → Inheritance</a>.
 </details>
@@ -280,5 +284,5 @@ crash the process. A few frequent mistakes:
 <details>
   <summary><b>Getting a display causes a segfault (X11)</b></summary>
   Backend-specific APIs live in their own namespace — under X11 you may need
-  <code>gi.require('GdkX11', '4.0')</code> before reaching for them.
+  <code>import GdkX11 from 'gi:GdkX11-4.0'</code> before reaching for them.
 </details>

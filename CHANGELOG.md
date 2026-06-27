@@ -10,6 +10,14 @@ Changes to be released are kept in the unreleased section.
   automatically the first time you run a main loop, so the call is no longer
   needed — delete any `gi.startLoop()` from your code. See
   [importing](./doc/importing.md).
+- **Virtual-function overrides now require a `virtual_` prefix.** A method
+  overrides a vfunc only if it is named `virtual_` + the camelCase vfunc name
+  (e.g. `virtual_sizeAllocate` overrides `size_allocate`). Previously any method
+  whose `snake_case` name matched a vfunc was silently treated as an override, so
+  a plain method named `dispose`, `getProperty`, `sizeAllocate`, … could hijack
+  the matching vfunc. Rename your overrides to the `virtual_` form; plain methods
+  are no longer overrides, and a `virtual_*` method that names no vfunc throws.
+  See the [Inheritance guide](./doc/index.md#inheritance).
 
 ### Features
 
@@ -25,15 +33,19 @@ Changes to be released are kept in the unreleased section.
   `gi:<Namespace>-<version>` module, so `import Gtk from 'gi:Gtk-4.0'` is fully
   typed; importing a namespace you haven't generated types for is a TypeScript
   error that names the fix.
-- Support `super.<vfunc>()` chain-up from a registered subclass. A vfunc override
-  replaces the parent's implementation in the class vtable, so a JS subclass could
-  not previously call the implementation it overrode. `registerClass` now installs
-  a bridge on the parent GI class's prototype that invokes the parent's native
-  vfunc implementation, making the idiomatic `super.snapshotLine(...)` work. Applies
-  to "pure" vfuncs (those without a same-named public invoker method, e.g.
-  `snapshot_line`, `query_data`, `constructed`); invoker-backed vfuncs such as
-  `get_request_mode` are intentionally not bridged (their prototype method already
-  dispatches virtually, so `super` would recurse).
+- **Typed virtual-function overrides.** `node-gtk generate-types` now emits each
+  GObject vfunc as a `virtual_<name>` member, so subclass overrides are
+  type-checked and `super.virtual_<name>(...)` resolves. (Interface vfuncs are not
+  emitted — they collide across multiple-interface diamonds, e.g. GTK 3's Atk
+  accessibility stack.)
+- Support `super.virtual_<name>()` chain-up from a registered subclass. A vfunc
+  override replaces the parent's implementation in the class vtable, so a JS
+  subclass could not previously call the implementation it overrode. `registerClass`
+  installs a bridge on the parent GI class's prototype that invokes the parent's
+  native vfunc implementation, making the idiomatic `super.virtual_snapshot(...)`
+  work. Because the override carries the `virtual_` prefix, its name is distinct
+  from any public invoker method of the same vfunc, so `super` reaches the parent
+  implementation without recursing.
 
 ## v2.2.0
 
