@@ -48,6 +48,8 @@ Changes to be released are kept in the unreleased section.
   work. Because the override carries the `virtual_` prefix, its name is distinct
   from any public invoker method of the same vfunc, so `super` reaches the parent
   implementation without recursing.
+- **App creator.** `node-gtk create <dir>` creates a ready-to-run TypeScript +
+  ESM Adwaita app. See [Create a new app](./README.md#create-a-new-app).
 
 ## v2.2.0
 

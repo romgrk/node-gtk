@@ -103,3 +103,39 @@ type-check with **0 errors even without `skipLibCheck`**. Modelled faithfully:
   `virtual_*` members on interfaces collides across multiple-interface diamonds
   (e.g. GTK3's Atk accessibility stack → TS2320). Overriding an interface vfunc
   still works at runtime; it just isn't type-checked.
+
+---
+
+# `node-gtk create` — create a new app
+
+`node-gtk create <directory>` creates a complete, ready-to-run GTK/Adwaita
+application that uses node-gtk, so a new project is one command away.
+
+```sh
+npx node-gtk create my-app
+cd my-app
+npm run dev
+```
+
+It generates a TypeScript + ESM project: an idiomatic Adwaita application plus its
+tooling — typed `gi:` imports (with `tsconfig` wired to the generated types) and
+npm scripts to run (`dev`/`start`), build (`build`), and regenerate types
+(`generate-types`, also run on `postinstall`).
+
+### Options
+
+```
+node-gtk create <directory> [options]
+
+  --name <name>      Human-facing app name (default: derived from <directory>)
+  --app-id <id>      Reverse-DNS application id (default: com.example.<Name>)
+  --no-install       Don't run `npm install` after creating the project
+  --force            Create into <directory> even if it exists and is non-empty
+  -h, --help         Show this help
+```
+
+The directory basename drives the defaults: `my-cool-app` →
+name *"My Cool App"*, package `my-cool-app`, id `com.example.MyCoolApp`.
+
+The command lives in `tools/create-app.js`; the generated files come from the
+template tree in `tools/templates/app/`.
