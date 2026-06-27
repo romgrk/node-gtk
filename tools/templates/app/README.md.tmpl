@@ -51,25 +51,26 @@ loop automatically.
 | `npm start`         | Run once without building.                                        |
 | `npm run build`     | Type-check and compile `src/` to `dist/` with `tsc`.             |
 | `npm run typecheck` | Type-check only, no output.                                      |
-| `npm run types`     | (Re)generate TypeScript types for the GI namespaces you use.     |
+| `npm run generate-types` | (Re)generate TypeScript types for the GI namespaces you use. |
 
 ## TypeScript types
 
 Types are generated **on your machine** from the GObject-Introspection typelibs
 you have installed, so they match your actual library versions and node-gtk's
 runtime shape (camelCase methods, typed signals, nullability, …). They live in
-`.node-gtk-types/` (git-ignored) and `tsconfig.json` points at them.
+`node_modules/.node-gtk-types/` (git-ignored) and `tsconfig.json` points at them.
 
 The `postinstall` script regenerates them automatically. If you start using
-another library, add it to the `types` script in `package.json` and re-run it:
+another library, add it to the `generate-types` script in `package.json` and
+re-run it:
 
 ```jsonc
 // package.json
-"types": "node-gtk generate-types Gtk-4.0 Adw-1 GtkSource-5 --outdir .node-gtk-types"
+"generate-types": "node-gtk generate-types Gtk-4.0 Adw-1 GtkSource-5"
 ```
 
 ```sh
-npm run types
+npm run generate-types
 ```
 
 ## Project structure

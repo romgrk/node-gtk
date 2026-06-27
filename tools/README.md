@@ -110,9 +110,8 @@ What it generates (a TypeScript + ESM project):
   accelerator), an `Adw.AboutWindow`, an `Adw.StatusPage` welcome screen, and an
   `Adw.ToastOverlay`. It loads a `style.css` via `Gtk.CssProvider`.
 - `package.json` — depends on `node-gtk`; scripts for `dev` (live reload via
-  `node --watch`), `start`, `build`/`typecheck` (`tsc`), and `types`. A
-  `postinstall` hook runs `generate-types` so the GI APIs are typed straight after
-  install.
+  `node --watch`), `start`, `build`/`typecheck` (`tsc`), and `generate-types`. A
+  `postinstall` hook runs it so the GI APIs are typed straight after install.
 - `tsconfig.json` — strict, `nodenext`, with the generated shim wired in so the
   `gi:` imports resolve.
 - `style.css`, `.gitignore`, and a project `README.md`.
@@ -126,7 +125,8 @@ What it generates (a TypeScript + ESM project):
   `node --import node-gtk/register` (plus `--import tsx` to run TypeScript with no
   build step). The generated shim declares each `gi:<Namespace>-<version>` module,
   so the imports are typed; `tsconfig.json` pulls the shim into the program via
-  `include` so those ambient declarations are visible.
+  `files` (the types live under `node_modules`, which `include` would exclude) so
+  those ambient declarations are visible.
 - **Property-bag constructors.** The type generator exposes the JS
   `constructor(properties?)` (a camelCase property bag) as the only `new`-able
   constructor; GI's positional constructors are emitted as static methods. So the
