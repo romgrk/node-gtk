@@ -1,7 +1,7 @@
 /*
  * cli__create_app.js
  *
- * Smoke-tests the `node-gtk init` scaffolder. Pure filesystem work — no native
+ * Smoke-tests the `node-gtk create` creator. Pure filesystem work — no native
  * addon, no typelibs, no display — so it runs anywhere.
  */
 
@@ -25,12 +25,12 @@ assert.ok(!createApp.isValidAppId('notreverse'))
 assert.ok(!createApp.isValidAppId('1com.example.App'))
 assert.ok(!createApp.isValidAppId('com.example.'))
 
-// ---- scaffolding -----------------------------------------------------------
+// ---- project creation ------------------------------------------------------
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ngtk-create-'))
 const dir = path.join(tmp, 'demo-app')
 
-const written = createApp.scaffold({
+const written = createApp.createProject({
   dir,
   appName: 'Demo App',
   appId: 'com.example.DemoApp',
@@ -40,7 +40,7 @@ const written = createApp.scaffold({
 
 const expected = ['package.json', 'tsconfig.json', '.gitignore', 'README.md', 'style.css', path.join('src', 'main.ts')]
 for (const f of expected) {
-  assert.ok(written.includes(f), `scaffold() should report writing ${f}`)
+  assert.ok(written.includes(f), `createProject() should report writing ${f}`)
   assert.ok(fs.existsSync(path.join(dir, f)), `${f} should exist on disk`)
 }
 
@@ -76,9 +76,9 @@ for (const file of expected) {
 }
 
 // refuses a non-empty target unless forced.
-assert.throws(() => createApp.scaffold({ dir, appName: 'X', appId: 'com.example.X', pkgName: 'x' }),
+assert.throws(() => createApp.createProject({ dir, appName: 'X', appId: 'com.example.X', pkgName: 'x' }),
   /not empty/, 'should refuse a non-empty directory')
-assert.doesNotThrow(() => createApp.scaffold({ dir, appName: 'X', appId: 'com.example.X', pkgName: 'x', force: true }),
+assert.doesNotThrow(() => createApp.createProject({ dir, appName: 'X', appId: 'com.example.X', pkgName: 'x', force: true }),
   'should overwrite a non-empty directory with force')
 
 fs.rmSync(tmp, { recursive: true, force: true })

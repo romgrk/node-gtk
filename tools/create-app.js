@@ -1,7 +1,7 @@
 /*
- * create-app.js — scaffold a new GTK/Adwaita application that uses node-gtk.
+ * create-app.js — create a new GTK/Adwaita application that uses node-gtk.
  *
- * Driven by the CLI: `node-gtk init <directory> [options]` (alias `create`).
+ * Driven by the CLI: `node-gtk create <directory> [options]`.
  * Copies the template tree in tools/templates/app/, substitutes a few tokens
  * (app name, app id, package name, node-gtk version), and — unless --no-install
  * is passed — runs `npm install` in the new directory (which in turn generates
@@ -66,13 +66,13 @@ function isValidAppId(id) {
 
 // The `node-gtk` dependency to write into the generated package.json.
 //
-// The scaffolded app uses the `gi:` import scheme and `node-gtk/register`, which
+// The created app uses the `gi:` import scheme and `node-gtk/register`, which
 // exist only in this node-gtk. When run from a normal install we depend on the
 // matching published version (`^x.y.z`). But when run from a *source checkout*
-// (a contributor testing `node bin/node-gtk.js init`), `^x.y.z` would resolve to
-// the published release — which may predate these features — so we instead point
-// the app at the local checkout via `file:`, so it uses the exact node-gtk it was
-// scaffolded with.
+// (a contributor testing `node bin/node-gtk.js create`), `^x.y.z` would resolve
+// to the published release — which may predate these features — so we instead
+// point the app at the local checkout via `file:`, so it uses the exact node-gtk
+// it was created with.
 function nodeGtkDependency() {
   const repoRoot = path.resolve(__dirname, '..')
   const version = require('../package.json').version
@@ -81,14 +81,14 @@ function nodeGtkDependency() {
 }
 
 // ---------------------------------------------------------------------------
-// scaffolding (pure: writes files, never installs, never exits the process)
+// project creation (pure: writes files, never installs, never exits the process)
 // ---------------------------------------------------------------------------
 
-function scaffold(opts) {
+function createProject(opts) {
   const { dir, appName, appId, pkgName, force = false } = opts
 
   if (fs.existsSync(dir) && fs.readdirSync(dir).length > 0 && !force)
-    throw new Error(`target directory is not empty: ${dir}\nUse --force to scaffold into it anyway.`)
+    throw new Error(`target directory is not empty: ${dir}\nUse --force to write into it anyway.`)
 
   const nodeGtkVersion = opts.nodeGtkVersion || nodeGtkDependency()
   const tokens = {
@@ -115,21 +115,20 @@ function scaffold(opts) {
 // CLI entry
 // ---------------------------------------------------------------------------
 
-const HELP = `node-gtk init — scaffold a GTK/Adwaita app that uses node-gtk
+const HELP = `node-gtk create — create a GTK/Adwaita app that uses node-gtk
 
 Usage:
-  node-gtk init <directory> [options]
   node-gtk create <directory> [options]
 
 Options:
   --name <name>      Human-facing app name (default: derived from <directory>)
   --app-id <id>      Reverse-DNS application id (default: com.example.<Name>)
-  --no-install       Don't run \`npm install\` after scaffolding
-  --force            Scaffold even if <directory> exists and is non-empty
+  --no-install       Don't run \`npm install\` after creating the project
+  --force            Create into <directory> even if it exists and is non-empty
   -h, --help         Show this help
 
 Example:
-  node-gtk init my-app --name "My App" --app-id org.example.MyApp
+  node-gtk create my-app --name "My App" --app-id org.example.MyApp
 `
 
 function parseArgs(argv) {
@@ -167,8 +166,8 @@ function run(argv) {
   const opts = parseArgs(argv)
 
   if (opts.help) { process.stdout.write(HELP); return }
-  if (opts.unknown) { process.stderr.write(`node-gtk init: unknown option '${opts.unknown}'\n\n${HELP}`); process.exit(1) }
-  if (!opts.dir) { process.stderr.write(`node-gtk init: missing <directory>\n\n${HELP}`); process.exit(1) }
+  if (opts.unknown) { process.stderr.write(`node-gtk create: unknown option '${opts.unknown}'\n\n${HELP}`); process.exit(1) }
+  if (!opts.dir) { process.stderr.write(`node-gtk create: missing <directory>\n\n${HELP}`); process.exit(1) }
 
   const dir = path.resolve(opts.dir)
   const base = path.basename(dir)
@@ -177,16 +176,16 @@ function run(argv) {
   const appId = opts.appId || toAppId(appName)
 
   if (!isValidAppId(appId)) {
-    process.stderr.write(`node-gtk init: invalid --app-id '${appId}'.\n` +
+    process.stderr.write(`node-gtk create: invalid --app-id '${appId}'.\n` +
       `It must be reverse-DNS, e.g. com.example.MyApp (2+ segments, each starting with a letter).\n`)
     process.exit(1)
   }
 
   let written
   try {
-    written = scaffold({ dir, appName, appId, pkgName, force: opts.force })
+    written = createProject({ dir, appName, appId, pkgName, force: opts.force })
   } catch (err) {
-    process.stderr.write(`node-gtk init: ${err.message}\n`)
+    process.stderr.write(`node-gtk create: ${err.message}\n`)
     process.exit(1)
   }
 
@@ -196,7 +195,7 @@ function run(argv) {
   const relPath = path.relative(process.cwd(), dir)
   const rel = (!relPath || relPath.startsWith('..')) ? dir : relPath
 
-  process.stdout.write(`\n${green('✓')} ${bold(`Scaffolded ${appName}`)} ${dim(`(${written.length} files) in ${dir}`)}\n`)
+  process.stdout.write(`\n${green('✓')} ${bold(`Created ${appName}`)} ${dim(`(${written.length} files) in ${dir}`)}\n`)
 
   if (opts.install) {
     process.stdout.write(`${dim('…')} ${bold('Installing dependencies')}${dim(' (npm install)')}\n`)
@@ -206,7 +205,7 @@ function run(argv) {
       if (res.stdout) process.stderr.write(res.stdout)
       if (res.stderr) process.stderr.write(res.stderr)
       process.stderr.write(
-        `\nnpm install did not complete cleanly. Your project is scaffolded — ` +
+        `\nnpm install did not complete cleanly. Your project is created — ` +
         `finish setup manually:\n\n  cd ${rel}\n  npm install\n  npm run dev\n\n` +
         `(Type generation needs the GTK 4 / libadwaita typelibs — see the project README.)\n`)
       process.exit(res.status || 1)
@@ -221,4 +220,4 @@ function run(argv) {
   process.stdout.write('\n')
 }
 
-module.exports = { run, scaffold, nodeGtkDependency, toAppName, toPkgName, toAppId, isValidAppId }
+module.exports = { run, createProject, nodeGtkDependency, toAppName, toPkgName, toAppId, isValidAppId }

@@ -4,7 +4,7 @@
  *
  * Subcommands:
  *   generate-types   Generate TypeScript declarations from the installed typelibs.
- *   init / create    Scaffold a new GTK/Adwaita application.
+ *   create           Create a new GTK/Adwaita application.
  */
 
 const cmd = process.argv[2]
@@ -13,7 +13,6 @@ switch (cmd) {
   case 'generate-types':
     require('../tools/generate-types.js').run(process.argv.slice(3))
     break
-  case 'init':
   case 'create':
     require('../tools/create-app.js').run(process.argv.slice(3))
     break
@@ -25,7 +24,7 @@ switch (cmd) {
 Usage: node-gtk <command> [options]
 
 Commands:
-  init <directory>                           Scaffold a new GTK/Adwaita app
+  create <directory>                         Create a new GTK/Adwaita app
   generate-types <Namespace-Version> [...]   Generate TypeScript types (.d.ts)
 
 Run \`node-gtk <command> --help\` for details.`)

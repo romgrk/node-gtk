@@ -106,13 +106,13 @@ type-check with **0 errors even without `skipLibCheck`**. Modelled faithfully:
 
 ---
 
-# `node-gtk init` — scaffold a new app
+# `node-gtk create` — create a new app
 
-`node-gtk init <directory>` (alias `create`) scaffolds a complete, ready-to-run
-GTK/Adwaita application that uses node-gtk, so a new project is one command away.
+`node-gtk create <directory>` creates a complete, ready-to-run GTK/Adwaita
+application that uses node-gtk, so a new project is one command away.
 
 ```sh
-npx node-gtk init my-app
+npx node-gtk create my-app
 cd my-app
 npm run dev
 ```
@@ -125,12 +125,12 @@ npm scripts to run (`dev`/`start`), build (`build`), and regenerate types
 ### Options
 
 ```
-node-gtk init <directory> [options]
+node-gtk create <directory> [options]
 
   --name <name>      Human-facing app name (default: derived from <directory>)
   --app-id <id>      Reverse-DNS application id (default: com.example.<Name>)
-  --no-install       Don't run `npm install` after scaffolding
-  --force            Scaffold even if <directory> exists and is non-empty
+  --no-install       Don't run `npm install` after creating the project
+  --force            Create into <directory> even if it exists and is non-empty
   -h, --help         Show this help
 ```
 
