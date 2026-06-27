@@ -15,7 +15,6 @@
  * Run with:  node --import node-gtk/register examples/system-monitor.mjs
  */
 
-import { startLoop } from 'node-gtk'
 import GLib from 'gi:GLib-2.0'
 import Gtk from 'gi:Gtk-4.0'
 import Adw from 'gi:Adw-1'
@@ -26,7 +25,6 @@ const loop = GLib.MainLoop.new(null, false)
 const app = new Adw.Application('com.github.romgrk.node-gtk.system-monitor', 0)
 
 app.on('activate', onActivate)
-startLoop()
 app.run([])
 
 function onActivate() {

@@ -4,7 +4,6 @@
  * Run with:  node --import node-gtk/register examples/hello-world.mjs
  */
 
-import { startLoop } from 'node-gtk';
 import GLib from 'gi:GLib-2.0';
 import Gtk from 'gi:Gtk-4.0';
 import Adw from 'gi:Adw-1';
@@ -24,7 +23,6 @@ app.on('activate', () => {
   window.on('close-request', () => (loop.quit(), app.quit(), false));
   window.present();
 
-  startLoop();
   loop.run();
 });
 

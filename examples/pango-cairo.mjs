@@ -4,13 +4,11 @@
  * Run with:  node --import node-gtk/register examples/pango-cairo.mjs
  */
 
-import { startLoop } from 'node-gtk'
 import Gtk from 'gi:Gtk-3.0'
 import Cairo from 'gi:cairo'
 import Pango from 'gi:Pango'
 import PangoCairo from 'gi:PangoCairo'
 
-startLoop()
 Gtk.init()
 
 const surface = new Cairo.ImageSurface(Cairo.Format.RGB24, 300, 300)

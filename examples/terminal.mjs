@@ -7,7 +7,6 @@
  * Run with:  node --import node-gtk/register examples/terminal.mjs
  */
 
-import { startLoop } from 'node-gtk';
 import GLib from 'gi:GLib-2.0';
 import Gio from 'gi:Gio-2.0';
 import Gtk from 'gi:Gtk-4.0';
@@ -90,7 +89,6 @@ app.on('activate', () => {
   // Give the terminal keyboard focus so you can start typing immediately.
   terminal.grabFocus();
 
-  startLoop();
   loop.run();
 });
 

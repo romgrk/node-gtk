@@ -50,7 +50,6 @@ node --import node-gtk/register app.mjs
 
 ```javascript
 // app.mjs
-import { startLoop } from 'node-gtk'
 import GLib from 'gi:GLib-2.0'   // `gi:Name-Version` (or `gi:Name` for the latest)
 import Gtk from 'gi:Gtk-4.0'
 import Adw from 'gi:Adw-1'
@@ -70,7 +69,6 @@ app.on('activate', () => {
   window.on('close-request', () => (loop.quit(), app.quit(), false))
   window.present()
 
-  startLoop()
   loop.run()
 })
 
@@ -108,14 +106,18 @@ ES modules are the default (see [Usage](#usage)). A few specifics:
 members off it (`const { Box, Label } = Gtk`). Use `gi:Name-Version`, or `gi:Name`
 for the latest installed version. Static named imports (`import { Box } from
 'gi:Gtk-4.0'`) are **not** supported — destructure from the default export.
-node-gtk's own API is imported from `node-gtk`
-(`import { startLoop, registerClass } from 'node-gtk'`). The hooks are installed
+node-gtk's own API (e.g. `registerClass`) is imported from `node-gtk`
+(`import { registerClass } from 'node-gtk'`). The hooks are installed
 with `node --import node-gtk/register` and need Node ≥ 20.6.
 
-**Blocking main-loop calls return immediately.** Under ESM, `GLib.MainLoop.run`,
-`Gio`/`Gtk.Application.run` and `Gtk.main` **return immediately** instead of
-blocking, and **don't return a value** — so make the run call the last statement
-and do cleanup/exit from your handler:
+**The loop integration starts automatically.** The first time you run a main
+loop (`GLib.MainLoop.run`, `Gio`/`Gtk.Application.run`, `Gtk.main`), node-gtk
+integrates it with Node's event loop for you — you no longer need to call
+`startLoop()` (it still exists and is a harmless no-op once started).
+
+**Blocking main-loop calls return immediately.** Under ESM, those same run calls
+**return immediately** instead of blocking, and **don't return a value** — so make
+the run call the last statement and do cleanup/exit from your handler:
 
 ```javascript
 app.on('activate', () => {
@@ -123,7 +125,6 @@ app.on('activate', () => {
   window.on('close-request', () => (loop.quit(), app.quit(), false))
   window.present()
 
-  startLoop()
   loop.run()       // returns immediately under ESM; do cleanup/exit in the handler
 })
 
@@ -292,7 +293,6 @@ app.on('activate', () => {
   window.on('close-request', () => (loop.quit(), app.quit(), false))
   window.present()
 
-  gi.startLoop()
   loop.run()
 })
 

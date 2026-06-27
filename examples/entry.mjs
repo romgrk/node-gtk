@@ -4,11 +4,9 @@
  * Run with:  node --import node-gtk/register examples/entry.mjs
  */
 
-import { startLoop } from 'node-gtk'
 import Gtk from 'gi:Gtk-3.0'
 import Gdk from 'gi:Gdk'
 
-startLoop()
 Gtk.init()
 
 

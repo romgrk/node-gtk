@@ -1,4 +1,3 @@
-import { startLoop } from 'node-gtk';
 import Gtk from 'gi:Gtk-4.0';
 import Gio from 'gi:Gio-2.0';
 import GLib from 'gi:GLib-2.0';
@@ -19,7 +18,6 @@ class TestApplication extends Gtk.Application {
       process.exit(0);
     });
 
-    startLoop();
     this.loop = GLib.MainLoop.new(null, false);
     this.loop.run();
   }

@@ -1,8 +1,6 @@
-import { startLoop } from 'node-gtk'
 import GLib from 'gi:GLib-2.0'
 import Gst from 'gi:Gst-1.0'
 
-startLoop()
 Gst.init()
 
 const loop = GLib.MainLoop.new(null, false)

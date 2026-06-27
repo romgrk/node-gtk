@@ -13,7 +13,6 @@
  * Run with:  node --import node-gtk/register examples/editor.mjs
  */
 
-import { startLoop } from 'node-gtk';
 import GLib from 'gi:GLib-2.0';
 import Gio from 'gi:Gio-2.0';
 import Gtk from 'gi:Gtk-4.0';
@@ -245,7 +244,6 @@ app.on('activate', () => {
   const arg = process.argv[2];
   loadFile(arg ? Path.resolve(arg) : __filename);
 
-  startLoop();
   loop.run();
 });
 

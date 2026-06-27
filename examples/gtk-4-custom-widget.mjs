@@ -4,7 +4,7 @@
  * Run with:  node --import node-gtk/register examples/gtk-4-custom-widget.mjs
  */
 
-import { registerClass, startLoop } from 'node-gtk'
+import { registerClass } from 'node-gtk'
 import GLib from 'gi:GLib-2.0'
 import Gtk from 'gi:Gtk-4.0'
 import Gdk from 'gi:Gdk-4.0'
@@ -76,7 +76,6 @@ function onActivate() {
   window.setChild(root)
   window.present()
 
-  startLoop()
   loop.run()
 }
 
