@@ -1,27 +1,21 @@
-#!/usr/bin/env node
 /*
  * A basic node-gtk WebKit based browser example, built with libadwaita (GTK 4).
  *
- * Usage:
- *   node examples/browser.js [url] [dark]
- *
- * e.g.  node examples/browser.js github.com dark
+ * Run with:  node --import node-gtk/register examples/browser.mjs [url] [dark]
  */
 
-const gi = require('../lib/')
-
-const GLib   = gi.require('GLib', '2.0')
-const Gtk    = gi.require('Gtk', '4.0')
-const Adw    = gi.require('Adw', '1')
-const WebKit = gi.require('WebKit', '6.0')
+import { startLoop } from 'node-gtk'
+import GLib from 'gi:GLib-2.0'
+import Gtk from 'gi:Gtk-4.0'
+import Adw from 'gi:Adw-1'
+import WebKit from 'gi:WebKit-6.0'
 
 const loop = GLib.MainLoop.new(null, false)
 const app = new Adw.Application('com.github.romgrk.node-gtk.browser', 0)
 
 app.on('activate', onActivate)
-gi.startLoop()
-const status = app.run([])
-console.log('Finished with status:', status)
+startLoop()
+app.run([])
 
 function onActivate() {
   // Optional dark theme (gotta love it!)

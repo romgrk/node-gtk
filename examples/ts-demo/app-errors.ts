@@ -1,9 +1,7 @@
 // PROTOTYPE consumer — this file is EXPECTED TO PRODUCE ERRORS.
-// It proves the generated types actually catch mistakes.
+// It proves the generated types actually catch mistakes (via the `gi:` import form).
 
-import * as gi from 'node-gtk'
-
-const Gtk = gi.require('Gtk', '4.0')
+import Gtk from 'gi:Gtk-4.0'
 
 // ERROR: 'labbel' is not a known constructor property.
 const button = new Gtk.Button({ labbel: 'typo' })

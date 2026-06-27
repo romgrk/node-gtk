@@ -10,18 +10,21 @@
  *   - Keyboard shortcuts: Ctrl+O open, Ctrl+S save, Ctrl+Shift+S save-as,
  *     Ctrl+Q quit
  *
- * Run with:  node examples/editor.js [file]
+ * Run with:  node --import node-gtk/register examples/editor.mjs
  */
 
-const gi = require('../lib/');
-const GLib = gi.require('GLib', '2.0');
-const Gio = gi.require('Gio', '2.0');
-const Gtk = gi.require('Gtk', '4.0');
-const Adw = gi.require('Adw', '1');
-const GtkSource = gi.require('GtkSource', '5');
+import { startLoop } from 'node-gtk';
+import GLib from 'gi:GLib-2.0';
+import Gio from 'gi:Gio-2.0';
+import Gtk from 'gi:Gtk-4.0';
+import Adw from 'gi:Adw-1';
+import GtkSource from 'gi:GtkSource-5';
 
-const Fs = require('fs');
-const Path = require('path');
+import Fs from 'node:fs';
+import Path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
 
 const loop = GLib.MainLoop.new(null, false);
 const app = new Adw.Application('com.github.romgrk.node-gtk.editor', 0);
@@ -242,8 +245,8 @@ app.on('activate', () => {
   const arg = process.argv[2];
   loadFile(arg ? Path.resolve(arg) : __filename);
 
-  gi.startLoop();
+  startLoop();
   loop.run();
 });
 
-process.exit(app.run([]));
+app.run([]);

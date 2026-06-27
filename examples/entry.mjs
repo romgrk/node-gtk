@@ -1,13 +1,14 @@
 /*
- * entry.js
+ * entry.mjs
+ *
+ * Run with:  node --import node-gtk/register examples/entry.mjs
  */
 
+import { startLoop } from 'node-gtk'
+import Gtk from 'gi:Gtk-3.0'
+import Gdk from 'gi:Gdk'
 
-const gi = require('../lib/')
-const Gtk = gi.require('Gtk', '3.0')
-const Gdk = gi.require('Gdk')
-
-gi.startLoop()
+startLoop()
 Gtk.init()
 
 

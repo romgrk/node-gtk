@@ -1,14 +1,16 @@
 /*
- * pango-cairo.js
+ * pango-cairo.mjs
+ *
+ * Run with:  node --import node-gtk/register examples/pango-cairo.mjs
  */
 
-const gi = require('../')
-const Gtk = gi.require('Gtk', '3.0')
-const Cairo = gi.require('cairo')
-const Pango = gi.require('Pango')
-const PangoCairo = gi.require('PangoCairo')
+import { startLoop } from 'node-gtk'
+import Gtk from 'gi:Gtk-3.0'
+import Cairo from 'gi:cairo'
+import Pango from 'gi:Pango'
+import PangoCairo from 'gi:PangoCairo'
 
-gi.startLoop()
+startLoop()
 Gtk.init()
 
 const surface = new Cairo.ImageSurface(Cairo.Format.RGB24, 300, 300)

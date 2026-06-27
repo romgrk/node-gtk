@@ -1,10 +1,11 @@
 /*
- * keybinder.js
+ * keybinder.mjs
+ *
+ * Run with:  node --import node-gtk/register examples/keybinder.mjs
  */
 
-const gi = require('../lib/index.js')
-const Gtk = gi.require('Gtk', '3.0')
-const Keybinder = gi.require('Keybinder', '3.0')
+import Gtk from 'gi:Gtk-3.0'
+import Keybinder from 'gi:Keybinder-3.0'
 
 function callback(keystring) {
   console.log("In callback for", keystring)

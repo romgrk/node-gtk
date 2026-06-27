@@ -1,10 +1,12 @@
 /*
- * test-gtk-4.js
+ * gtk4-vfunc-debug.mjs
+ *
+ * Run with:  node --import node-gtk/register examples/gtk4-vfunc-debug.mjs
  */
 
-const gi = require("../lib");
-const GLib = gi.require("GLib", "2.0");
-const Gtk = gi.require("Gtk", "4.0");
+import { registerClass, startLoop } from "node-gtk";
+import GLib from "gi:GLib-2.0";
+import Gtk from "gi:Gtk-4.0";
 
 Gtk.init();
 
@@ -26,8 +28,8 @@ class CustomFixed extends Gtk.Fixed {
   }
 }
 
-gi.registerClass(CustomFixedLayout);
-gi.registerClass(CustomFixed);
+registerClass(CustomFixedLayout);
+registerClass(CustomFixed);
 
 console.log(Gtk.FixedLayout.prototype.measure)
 console.log(Gtk.FixedLayout.prototype.measure.toString())
@@ -38,7 +40,7 @@ process.exit(0)
 const loop = GLib.MainLoop.new(null, false);
 const app = new Gtk.Application("com.github.romgrk.node-gtk.demo", 0);
 app.on("activate", onActivate);
-const status = app.run();
+app.run();
 
 function onActivate() {
   const window = new Gtk.ApplicationWindow(app);
@@ -61,7 +63,7 @@ function onActivate() {
   window.setChild(customFixed);
   window.present();
 
-  gi.startLoop();
+  startLoop();
   loop.run();
 }
 

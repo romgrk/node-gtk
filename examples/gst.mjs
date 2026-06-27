@@ -1,8 +1,8 @@
-const gi = require('../lib/')
-const GLib = gi.require('GLib', '2.0')
-const Gst = gi.require('Gst', '1.0')
+import { startLoop } from 'node-gtk'
+import GLib from 'gi:GLib-2.0'
+import Gst from 'gi:Gst-1.0'
 
-gi.startLoop()
+startLoop()
 Gst.init()
 
 const loop = GLib.MainLoop.new(null, false)
@@ -44,7 +44,7 @@ console.log("Built pipeline: " + src.getName() + " -> " + sink.getName())
 
 if (pipeline.setState(Gst.State.PLAYING) == Gst.StateChangeReturn.Failure) {
     console.error("Failed to change pipeline state")
-    return
+    process.exit(1)
 }
 
 loop.run()

@@ -1,11 +1,12 @@
 /*
- * cairo-scaled-font.js
+ * cairo-scaled-font.mjs
+ *
+ * Run with:  node --import node-gtk/register examples/cairo-scaled-font.mjs
  */
 
-const fs = require('fs')
-const path = require('path')
-const gi = require('../')
-const Cairo = gi.require('cairo')
+import Cairo from 'gi:cairo'
+import fs from 'node:fs'
+import path from 'node:path'
 
 
 const font = Cairo.FontFace.create('Arial', Cairo.FontSlant.NORMAL, Cairo.FontWeight.BOLD)

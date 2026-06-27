@@ -1,11 +1,13 @@
 /*
- * glib-timeout.js
+ * glib-timeout.mjs
+ *
+ * Run with:  node --import node-gtk/register examples/glib-timeout.mjs
  */
 
-const gi = require('../')
-const GLib = gi.require('GLib', '2.0')
+import { startLoop } from 'node-gtk'
+import GLib from 'gi:GLib-2.0'
 
-gi.startLoop()
+startLoop()
 
 const loop = new GLib.MainLoop(null, false)
 let i = 0
@@ -21,8 +23,7 @@ GLib.timeoutAddSeconds(0, 1, () => {
 
 console.log('Run loop.')
 loop.run()
-console.log('Loop ran.')
 // Note: don't call loop.unref() here. node-gtk's wrapper owns the MainLoop's
 // reference and releases it when the wrapper is garbage-collected; an explicit
 // unref() drops it a second time, which double-frees the loop and crashes at
-// process exit when gi.startLoop() is in use (#429).
+// process exit when startLoop() is in use (#429).
