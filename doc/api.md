@@ -9,7 +9,6 @@ This is the documentation for the API of node-gtk itself. For documentation on t
 - **[prependLibraryPath(path)](#prepend-library-path)**
 - **[listAvailableModules()](#list-available-modules)**
 - **[registerClass(klass)](#register-class-klass)**
-- **[flushRegistrations()](#flush-registrations)**
 
 You can also import a namespace directly under ES modules with the `gi:` scheme —
 see [require](#require).
@@ -67,34 +66,17 @@ Returns a list of available modules
 
 <a id="register-class-klass" />
 
-#### registerClass(klass) ⇒ `Class`
+#### registerClass(klass)
 
 Registers a JS class (which must extend a GObject type) as a new GType, so it can
-be instantiated and used like a native type. Returns the same class, so it can be
-assigned or used as a decorator.
-
-If the parent type isn't registered yet, the call is **deferred and accumulated**:
-it does not throw, and is retried automatically once the parent — or the namespace
-it belongs to — is loaded. This makes registration order-independent (a subclass
-may be registered before its superclass) and safe to call before the runtime is
-fully initialized. Programmer errors (an invalid `GTypeName`, or a base class that
-isn't a GObject type) still throw synchronously.
+be instantiated and used like a native type. The parent type must be registered
+first.
 
 By default the GType name is the class name; override it with a static
 `GTypeName`. Vfunc overrides are matched by the `snake_case` of the method name
 (e.g. `getRequestMode` → `get_request_mode`).
 
-**Returns**: `Class` - the class passed in
-
-| Param | Type     | Description                                  |
-| ----- | -------- | -------------------------------------------- |
-| klass | `Class`  | the class to register (must extend a GObject type) |
-
-<a id="flush-registrations" />
-
-#### flushRegistrations()
-
-Retries any deferred `registerClass` calls (see above). This happens automatically
-whenever a namespace is loaded or a class is registered, so calling it manually is
-rarely needed — it's an escape hatch for unusual initialization ordering.
+| Param | Type     | Description                                          |
+| ----- | -------- | ---------------------------------------------------- |
+| klass | `Class`  | the class to register (must extend a GObject type)   |
 

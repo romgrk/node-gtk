@@ -21,11 +21,6 @@ Changes to be released are kept in the unreleased section.
 - **Automatic main-loop integration.** Running a main loop (`GLib.MainLoop.run`,
   `Gio`/`Gtk.Application.run`, `Gtk.main`) now starts the Node↔GLib loop
   integration automatically; this replaces the former `gi.startLoop()` call.
-- **Deferred `registerClass()`.** `registerClass` may now be called before the
-  runtime is ready: a call whose parent GType isn't registered yet is accumulated
-  and retried once it (or its namespace) loads, making registration
-  order-independent. It now returns the class (usable as a decorator), and
-  `flushRegistrations()` is exposed to retry pending registrations manually.
 - **Typed `gi:` imports.** `node-gtk generate-types` now declares each
   `gi:<Namespace>-<version>` module, so `import Gtk from 'gi:Gtk-4.0'` is fully
   typed; importing a namespace you haven't generated types for is a TypeScript
