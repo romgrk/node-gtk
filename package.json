@@ -4,7 +4,10 @@
   "description": "GNOME Gtk+ bindings for NodeJS",
   "main": "lib/index.js",
   "exports": {
-    ".": "./lib/index.js",
+    ".": {
+      "import": "./lib/index.mjs",
+      "require": "./lib/index.js"
+    },
     "./register": "./lib/esm/register.mjs",
     "./hooks": "./lib/esm/hooks.mjs",
     "./package.json": "./package.json"
