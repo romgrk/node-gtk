@@ -137,6 +137,26 @@ everything else works the same. (Static named imports like
 `import { Box } from 'gi:Gtk-4.0'` are not supported — destructure from the default
 export.) The hooks need Node ≥ 20.6.
 
+#### Skipping the `--import` flag
+
+The flag is only required for a **static** `import … from 'gi:…'` in the file you
+run directly: ESM resolves the whole static graph before any code executes, so the
+hooks must be installed first. You can avoid it in a few ways:
+
+```javascript
+// 1) Register programmatically, then use dynamic import (no flag):
+import 'node-gtk/register'
+const Gtk = (await import('gi:Gtk-4.0')).default
+
+// 2) Tiny bootstrap entry — register, then load the real app, which is free to
+//    use static `import … from 'gi:…'` (it loads after registration):
+import 'node-gtk/register'
+await import('./app.mjs')
+```
+
+Or move the flag into the environment instead of the command line:
+`NODE_OPTIONS="--import node-gtk/register" node app.mjs` (e.g. in an npm script).
+
 ## Documentation
 
 [Read our documentation here](./doc/index.md)
