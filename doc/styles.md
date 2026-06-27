@@ -69,8 +69,10 @@ otherwise — in production nothing is watched). Apps created with `node-gtk
 create` set this for you in their `npm run dev` script. You can opt out with
 `NODE_GTK_STYLE_HOT_RELOAD=0`.
 
-Every file that contributes styles is watched (via Node's `fs.watch`, no extra
-dependency):
+Every file that contributes styles is watched — via GLib's own `GFileMonitor`,
+not Node's `fs.watch`, so it's driven by the GTK main loop the app already runs
+(an `fs.watch` handle is silently never serviced once that loop is the only one
+running, and would keep the process alive after the window closes):
 
 - **A `.css` file** is re-read into its existing provider. GTK re-resolves the
   style cascade live — no flash, no restart. A malformed rule mid-edit is simply

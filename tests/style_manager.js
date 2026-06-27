@@ -80,7 +80,7 @@ function isntNull(value) {
   return value
 }
 
-// The tests above run synchronously. Hot-reload is on by default, so the managers
-// they created started file watchers that keep the event loop alive — exit now
-// that every assertion has run.
+// The tests above run synchronously and every assertion has run; exit now rather
+// than return to the GLib loop (the managers created GFileMonitors, which a real
+// app would drive from its main loop).
 process.exit(0)
