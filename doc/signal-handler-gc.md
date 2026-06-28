@@ -51,8 +51,8 @@ The cycle crosses the C++/JS boundary, so neither V8's collector nor a C++
    extensions implement `tp_traverse`/`tp_clear` and participate in cycle
    detection. **V8 has no equivalent for arbitrary C++ objects** — the only
    mechanism is cppgc (the V8 "unified heap" / Oilpan). This is the route #375
-   originally took; see below for why it doesn't work in a node-gyp addon on all
-   platforms.
+   originally took; see below for why we backed off it (an unexplained crash in
+   node-gtk's integration on arm64 macOS).
 2. **Keep the handler inside the JS heap**, reachable only through the wrapper,
    so V8's ordinary mark-and-sweep collects the wrapper↔handler cycle normally.
    This is the route we took (see "The fix").
@@ -73,7 +73,7 @@ to node-addon-api would only "avoid cppgc" in the trivial sense of never calling
 it — you would still have to break the cycle with approach (2). It is the same
 fix wearing a different API.
 
-## What we tried first: cppgc (and why it was reverted)
+## What we tried first: cppgc (and why we backed off)
 
 #375 followed PyGObject's spirit using cppgc: store the handler in a
 `v8::TracedReference` (which V8 keeps alive only while it is *traced*) and attach
@@ -82,47 +82,37 @@ watched closures. When the wrapper becomes unreachable the tracer is no longer
 traced, the handler is collected, and the cycle breaks. This works on **Linux
 and Windows**.
 
-It **crashes on arm64 macOS**, and after an extensive investigation the cause is
-not fixable from the addon's side:
+In node-gtk it **crashes on arm64 macOS**, at the very first
+`cppgc::MakeGarbageCollected<…>()` call in `AssociateGObject`:
 
-- The crash is `EXC_BAD_ACCESS (address=0x8)` inside node's own
-  `cppgc::internal::MakeGarbageCollectedTraitInternal::Allocate`, i.e. the very
-  first `cppgc::MakeGarbageCollected<…>()` call. lldb backtrace:
+```
+EXC_BAD_ACCESS (address=0x8)
+frame #0  node`cppgc::…::MakeGarbageCollectedTraitInternal::Allocate(AllocationHandle&, size, index) + 52
+frame #1  node_gtk.node`…AllocationDispatcher<ClosureTracer,…>::Invoke(handle, size=88)
+frame #5  node_gtk.node`GNodeJS::AssociateGObject(...)
+```
 
-  ```
-  frame #0  node`cppgc::…::MakeGarbageCollectedTraitInternal::Allocate(AllocationHandle&, size, index) + 52
-  frame #1  node_gtk.node`…AllocationDispatcher<ClosureTracer,…>::Invoke(handle, size=88)
-  frame #5  node_gtk.node`GNodeJS::AssociateGObject(...)
-  ```
+The investigation ruled out the obvious suspects: it is **not** a cppgc
+ABI/define mismatch (`nm` shows node's V8 is built *uncaged* on every platform,
+so the addon already matches; adding `CPPGC_CAGED_HEAP` & friends only made it
+worse), and **not** a missing-symbol problem (the addon imports
+`Isolate::GetCppHeap`, `CppHeap::GetAllocationHandle`, `EnsureGCInfoIndex…`,
+`Allocate`, `SetCppgcReference`, and the macOS node binary exports all of them).
 
-  The `cppgc::AllocationHandle&` obtained from
-  `isolate->GetCppHeap()->GetAllocationHandle()` is null/garbage on arm64 macOS
-  (the fault is a read at offset `0x8` of a ~null pointer). `GetCppHeap()`
-  returns a valid pointer; `GetAllocationHandle()` on it does not.
+**Importantly, this is _not_ a general node/cppgc limitation.** A minimal
+node-gyp addon that does the exact same thing — `isolate->GetCppHeap()
+->GetAllocationHandle()` then `cppgc::MakeGarbageCollected<T>()`, including a
+finalizable `T` (mutex + vector + destructor, same ~88-byte shape as
+`ClosureTracer`) and node-gtk's own macOS `pkg-config` cflags — **builds and runs
+fine on the arm64 macOS GitHub runner.** So cppgc embedder allocation *does* work
+for addons there; the crash is triggered by something specific to node-gtk's much
+larger integration (its many translation units / includes / NAN / the context in
+which `AssociateGObject` runs) that we were not able to isolate.
 
-- It is **not** a cppgc ABI/define mismatch. `nm` confirms node's V8 is built
-  **uncaged** on every platform (`CagedHeap_count == 0` on both Linux x64 and
-  macOS arm64), so the addon (also uncaged) already matches. Defining
-  `CPPGC_CAGED_HEAP` / `CPPGC_YOUNG_GENERATION` / `CPPGC_POINTER_COMPRESSION`
-  (V8's `enabled_external_cppgc_defines`) only *introduces* a mismatch and was
-  reverted.
-
-- It is **not** a missing-symbol problem. The addon imports exactly
-  `Isolate::GetCppHeap`, `CppHeap::GetAllocationHandle`,
-  `EnsureGCInfoIndex…`, `MakeGarbageCollectedTraitInternal::Allocate` and
-  `node::SetCppgcReference`, and the macOS node binary exports all of them
-  (correct overloads).
-
-- node's *own* cppgc addon test uses the identical pattern and passes on macOS,
-  but only because node builds its test addons **in-tree (statically linked)**
-  against V8's object files. A node-gyp addon links against the released node
-  binary, and on arm64 macOS that path yields an unusable allocation handle.
-
-In short: cppgc embedder allocation via `MakeGarbageCollected` is effectively
-unsupported for node-gyp addons on arm64 macOS today, and there is no addon-side
-workaround (allocating our own `cppgc::Heap` would give a valid handle but then
-`node::SetCppgcReference` wouldn't trace it, defeating the mechanism). It needs a
-fix in node/V8.
+Rather than ship a platform-specific heisenbug we could not explain, we chose the
+simpler, cppgc-free design below. It removes the question entirely: no cppgc, no
+`TracedReference`, nothing platform-specific. If cppgc is ever revisited, the
+unexplained arm64-macOS crash in node-gtk's integration must be root-caused first.
 
 ## The fix: keep handlers in the JS heap
 
