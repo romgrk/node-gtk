@@ -2,7 +2,7 @@
     <a>
       <img
         alt="NODE-GTK"
-        width="250"
+        width="200"
         src="https://raw.githubusercontent.com/romgrk/node-gtk/master/img/node-gtk-logo.svg?sanitize=true"
       />
     </a>
@@ -15,18 +15,9 @@
   <img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
 </p>
 
-`node-gtk` is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library 
-for nodejs. It makes it possible to use any introspected C library, such as GTK, 
-usable. It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) 
-or [PyGObject](https://pygobject.readthedocs.io). Please note this project is 
-currently in a _alpha_ state.
-
-Supported Node.js versions: **20**, **22**, **24** (other versions may work but are untested)<br>
-Supported platforms:
-- **Linux** — prebuilt binaries available
-- **macOS** — prebuilt binaries available
-- **Windows** — prebuilt binaries available (but read [Windows](#windows))
-
+`node-gtk` let's you build native GTK apps on **linux**, **macOS** and 
+**windows**. Prebuilt binaries are available for Node.js versions **20**, 
+**22**, **24**.
 
 ### Table of contents
 
@@ -39,48 +30,17 @@ Supported platforms:
 
 ## Usage
 
-Below is a [minimal example](./examples/hello-world.mjs) of how to use node-gtk.
-Namespaces are imported with the `gi:` scheme; run your app with
-`node --import node-gtk/register`:
+The create tool generates a complete, ready-to-run GTK/Adwaita project, so you
+can start building immediately:
 
 ```sh
-node --import node-gtk/register app.mjs
+npx node-gtk create my-app
+cd my-app
+npm run dev
 ```
-
-```javascript
-// app.mjs
-import GLib from 'gi:GLib-2.0'   // `gi:Name-Version` (or `gi:Name` for the latest)
-import Gtk from 'gi:Gtk-4.0'
-import Adw from 'gi:Adw-1'
-
-const loop = GLib.MainLoop.new(null, false)
-const app = new Adw.Application('com.github.romgrk.node-gtk.hello', 0)
-
-app.on('activate', () => {
-  const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
-  content.append(new Adw.HeaderBar())
-  content.append(new Gtk.Label({ label: 'Hello Adwaita!', vexpand: true }))
-
-  const window = new Adw.ApplicationWindow(app)
-  window.setTitle('node-gtk')
-  window.setDefaultSize(300, 120)
-  window.setContent(content)
-  window.on('close-request', () => (loop.quit(), app.quit(), false))
-  window.present()
-
-  loop.run()
-})
-
-// Under ESM the run call returns immediately; the app keeps running and the
-// process exits when the window is closed. See "ES modules" below.
-app.run([])
-```
-
-> Prefer CommonJS? node-gtk supports it too — see the
-> [importing guide](./doc/importing.md#commonjs).
 
 <p align="center">
-  <img src="./img/hello-world.png" style="width: 290px; height: auto;"/>
+  <img src="./img/create-app-example.png" style="width: 290px; height: auto;"/>
 </p>
 
 ### Create a new app
@@ -249,6 +209,11 @@ our [list of prebuilt libraries](./windows/runtime-libraries.txt).
 Building from source, or contributing? See [Building from source](./doc/building.md).
 
 ## Contributing
+
+`node-gtk` is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library 
+for nodejs. It makes it possible to use any introspected C library, such as GTK, 
+usable. It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) 
+or [PyGObject](https://pygobject.readthedocs.io).
 
 If you'd like to help, we'd be more than happy to have support. To setup your development environment, you can
 run `npm run configure`. You can then build the project with `npm run build`. To generate the `compile_commands.json`
