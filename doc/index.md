@@ -15,30 +15,29 @@ Adwaita is a set of widgets and theming that is built on top of GTK.
 For ESM, always run your app with `node --import node-gtk/register` to import a namespace with the `gi:` scheme:
 
 ```javascript
-import Gtk from 'gi:Gtk-4.0'
-             // 'gi:Name-Version'
+import Gtk from 'gi:Gtk-4.0' // 'gi:Name-Version'
 ```
 
-Not sure which libraries (and versions) are installed? Run `node-gtk list` (or
-`node-gtk list gtk` to filter) to print them.
+Not sure which libraries (and versions) are installed? Run `node-gtk list` to print them.
 
 See [importing](./importing.md) for details and CJS support.
 
-, [styles.md](./styles.md) for the CSS helper with
-development hot-reload, and [typescript.md](./typescript.md) for generating
-TypeScript declarations.
-
 ## Using libraries
 
-node-gtk converts each native library into JavaScript at runtime, so the GObject
-type system shows through: classes and inheritance, properties, signals,
-enums/flags, and a few C-isms like out-arguments. The
-**[GObject type system guide](./gobject-introspection.md)** walks through how all
-of it maps to JavaScript — read it once and GTK's C/GI docs become easy to follow.
+The GTK ecosystem uses the GObject type system, which shows through classes, inheritance, 
+properties, signals, enums/flags, and more.
 
-Once you have an overview of the type system, [GTK4](https://docs.gtk.org/gtk4/) and
-[Adwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/) docs are your best
-bet for reference (until `node-gtk` publishes its own generated documentation). In case of
+**[Read the GObject type system guide](./gobject-introspection.md)** to understand how it
+maps to JavaScript — read it once and GTK's C/GI docs become easy to follow. You don't need
+a full understanding to start building, but a quick overview is preferable to start integrating 
+its concepts.
+
+Once you have an overview of the type system, you'll be able to use each library's documentation.
+The most useful are:
+ - [GTK4 documentation](https://docs.gtk.org/gtk4/) and
+ - [Adwaita documentation](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/)
+ 
+node-gtk will eventually publish its own documentation, but in case of
 need, **GJS** and **PyGObject** examples and docs also translate well.
 
 ## Widgets and styling
