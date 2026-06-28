@@ -48,8 +48,16 @@ Changes to be released are kept in the unreleased section.
   work. Because the override carries the `virtual_` prefix, its name is distinct
   from any public invoker method of the same vfunc, so `super` reaches the parent
   implementation without recursing.
+- **Styles & hot-reload.** New `node-gtk/styles` subpath export — a small,
+  dependency-free `StyleManager` wrapping `Gtk.CssProvider`/`Gtk.StyleContext`.
+  It applies inline CSS (`styles.add`) and `.css` files (`styles.addFile`), and
+  in development **hot-reloads** them as you edit, with no restart. Hot-reload
+  is on when `NODE_ENV=development` (opt out with `NODE_GTK_STYLE_HOT_RELOAD=0`).
+  Ships with TypeScript types. See [Styles & hot-reload](./doc/styles.md).
 - **App creator.** `node-gtk create <dir>` creates a ready-to-run TypeScript +
-  ESM Adwaita app. See [Create a new app](./README.md#create-a-new-app).
+  ESM Adwaita app, with `style.css` wired through `node-gtk/styles` so it
+  hot-reloads live under `npm run dev`. See
+  [Create a new app](./README.md#create-a-new-app).
 
 ## v2.2.0
 

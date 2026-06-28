@@ -13,6 +13,9 @@ This is the documentation for the API of node-gtk itself. For documentation on t
 You can also import a namespace directly under ES modules with the `gi:` scheme —
 see [require](#require).
 
+The package also ships a small CSS helper with development hot-reload, imported
+from the `node-gtk/styles` subpath — see [styles.md](./styles.md).
+
 <a id="require" />
 
 #### require(ns, [version]) ⇒ `Object`

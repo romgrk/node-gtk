@@ -11,13 +11,16 @@
  * tear everything down from the window's close handler / quit action.
  * See: https://github.com/romgrk/node-gtk/blob/master/doc/importing.md
  */
-import { fileURLToPath } from 'node:url'
-
 import GLib from 'gi:GLib-2.0'
 import Gio from 'gi:Gio-2.0'
-import Gdk from 'gi:Gdk-4.0'
 import Gtk from 'gi:Gtk-4.0'
 import Adw from 'gi:Adw-1'
+
+import { styles } from 'node-gtk/styles'
+
+// A component in its own module (note the `.js` specifier — TypeScript's NodeNext
+// resolution wants the compiled extension even though the file is welcome.ts).
+import { createWelcome } from './welcome.js'
 
 const APP_ID = '__APP_ID__'
 
@@ -25,7 +28,11 @@ const loop = GLib.MainLoop.new(null, false)
 const app = new Adw.Application({ applicationId: APP_ID, flags: Gio.ApplicationFlags.FLAGS_NONE })
 
 app.on('activate', () => {
-  loadStyles()
+  // Apply style.css, layered on top of Adwaita. Under `npm run dev` the file is
+  // re-read live as you edit it — no restart, no flash. style.css sits at the
+  // project root, one level up from both src/ (dev, via tsx) and dist/ (built,
+  // via node), so this URL resolves in either case.
+  styles.addFile(new URL('../style.css', import.meta.url))
 
   const window = new Adw.ApplicationWindow({ application: app })
   window.setTitle('__APP_NAME__')
@@ -49,23 +56,11 @@ app.on('activate', () => {
   // Adw.ToastOverlay lets us pop transient "toast" notifications.
   const toasts = new Adw.ToastOverlay({ vexpand: true })
 
-  // Adw.StatusPage is the idiomatic "empty state" / welcome widget.
-  const welcome = new Adw.StatusPage({
-    iconName: 'face-smile-symbolic',
-    title: 'Welcome to __APP_NAME__',
-    description: 'Edit src/main.ts to start building your application.',
-  })
-
-  const button = new Gtk.Button({
-    label: 'Say hello',
-    halign: Gtk.Align.CENTER,
-    cssClasses: ['pill', 'suggested-action'],
-  })
-  button.on('clicked', () => {
+  // The welcome screen lives in its own module (src/welcome.ts) so its inline
+  // styles.add() CSS hot-reloads on its own — see that file.
+  toasts.setChild(createWelcome(() => {
     toasts.addToast(new Adw.Toast({ title: 'Hello from __APP_NAME__ 👋' }))
-  })
-  welcome.setChild(button)
-  toasts.setChild(welcome)
+  }))
 
   // Adw.ApplicationWindow has no built-in title bar, so we stack our own
   // header above the content inside a vertical box.
@@ -102,25 +97,14 @@ app.on('activate', () => {
   app.setAccelsForAction('app.quit', ['<Control>q'])
 
   window.on('close-request', () => (loop.quit(), app.quit(), false))
+
+  styles.install() // flush queued styles and start the dev hot-reload watcher
   window.present()
 
   // The loop integration is already running; under ESM this returns immediately.
   // The app keeps running until the close handler (or quit action) stops it.
   loop.run()
 })
-
-function loadStyles() {
-  const provider = new Gtk.CssProvider()
-  // style.css sits at the project root, one level up from both src/ (dev, via
-  // tsx) and dist/ (built, via node), so this resolves in either case.
-  const cssPath = fileURLToPath(new URL('../style.css', import.meta.url))
-  provider.loadFromPath(cssPath)
-  Gtk.StyleContext.addProviderForDisplay(
-    Gdk.Display.getDefault()!,
-    provider,
-    600, // Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-  )
-}
 
 // Must be the last statement — returns immediately under ESM (see top of file).
 app.run([])

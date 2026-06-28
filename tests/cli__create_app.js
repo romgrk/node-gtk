@@ -38,7 +38,7 @@ const written = createApp.createProject({
   nodeGtkVersion: '^9.9.9',
 })
 
-const expected = ['package.json', 'tsconfig.json', '.gitignore', 'README.md', 'style.css', path.join('src', 'main.ts')]
+const expected = ['package.json', 'tsconfig.json', '.gitignore', 'README.md', 'style.css', path.join('src', 'main.ts'), path.join('src', 'welcome.ts')]
 for (const f of expected) {
   assert.ok(written.includes(f), `createProject() should report writing ${f}`)
   assert.ok(fs.existsSync(path.join(dir, f)), `${f} should exist on disk`)
@@ -52,9 +52,17 @@ assert.strictEqual(pkg.dependencies['node-gtk'], '^9.9.9', 'node-gtk version sho
 // nodeGtkDependency() falls back to a file: spec when run from a source checkout.
 assert.ok(/^(\^\d|file:)/.test(createApp.nodeGtkDependency()), 'dependency is a version range or file: path')
 assert.ok(pkg.scripts.dev && pkg.scripts.build && pkg.scripts['generate-types'], 'expected scripts present')
-// run scripts must install the gi: loader hooks.
-assert.ok(pkg.scripts.dev.includes('node-gtk/register'), 'dev should --import node-gtk/register')
-assert.ok(pkg.scripts.start.includes('node-gtk/register'), 'start should --import node-gtk/register')
+// `dev` delegates to the CSS-reload mode; `dev:app-reload` adds node --watch.
+assert.ok(pkg.scripts.dev.includes('dev:css-reload'), 'dev should run the css-reload script')
+assert.ok(pkg.scripts['dev:app-reload'].includes('--watch'), 'dev:app-reload should use node --watch')
+// the scripts that actually launch node must install the gi: loader hooks.
+for (const s of ['dev:css-reload', 'dev:app-reload', 'start'])
+  assert.ok(pkg.scripts[s].includes('node-gtk/register'), `${s} should --import node-gtk/register`)
+// Both dev modes enable node-gtk/styles hot-reload via cross-env (cross-platform
+// NODE_ENV=development — a bare `NODE_ENV=...` prefix would break on Windows).
+for (const s of ['dev:css-reload', 'dev:app-reload'])
+  assert.ok(pkg.scripts[s].includes('cross-env NODE_ENV=development'), `${s} should set NODE_ENV via cross-env`)
+assert.ok(pkg.devDependencies['cross-env'], 'cross-env should be a devDependency')
 
 // tsconfig.json is valid JSON, points at the generated types, and pulls the
 // shim into the program (via `files`, since it lives under node_modules) so the
@@ -65,11 +73,22 @@ assert.ok(tsconfig.files.some((p) => p.includes('.node-gtk-types')), 'tsconfig s
 
 // tokens are fully substituted in the source — no leftover placeholders.
 const main = fs.readFileSync(path.join(dir, 'src', 'main.ts'), 'utf8')
+const welcome = fs.readFileSync(path.join(dir, 'src', 'welcome.ts'), 'utf8')
 assert.ok(main.includes("const APP_ID = 'com.example.DemoApp'"), 'app id substituted')
-assert.ok(main.includes('Welcome to Demo App'), 'app name substituted')
+assert.ok(welcome.includes('Welcome to Demo App'), 'app name substituted (in the welcome component)')
 // uses the `gi:` import scheme, and not the removed startLoop()/gi.require shape.
 assert.ok(main.includes("import Gtk from 'gi:Gtk-4.0'"), 'uses gi: imports')
 assert.ok(!main.includes('startLoop'), 'must not call the removed gi.startLoop()')
+// styles are applied via node-gtk/styles (hot-reloadable), not a hand-rolled
+// CssProvider.
+assert.ok(main.includes("import { styles } from 'node-gtk/styles'"), 'imports node-gtk/styles')
+assert.ok(main.includes('styles.addFile('), 'loads style.css through node-gtk/styles')
+assert.ok(!main.includes('new Gtk.CssProvider'), 'no longer hand-rolls a CssProvider')
+// the welcome screen is split into its own component module with inline,
+// hot-reloadable styles.add(), and main.ts imports it (NodeNext `.js` specifier).
+assert.ok(main.includes("import { createWelcome } from './welcome.js'"), 'main imports the welcome component')
+assert.ok(main.includes('createWelcome('), 'main uses createWelcome()')
+assert.ok(welcome.includes('styles.add(') && welcome.includes('export function createWelcome'), 'welcome.ts registers inline styles and exports createWelcome')
 for (const file of expected) {
   const text = fs.readFileSync(path.join(dir, file), 'utf8')
   assert.ok(!/__[A-Z_]+__/.test(text), `no unsubstituted tokens left in ${file}`)

@@ -1,0 +1,41 @@
+/*
+ * welcome.ts — the welcome screen, in its own component module.
+ *
+ * The inline CSS below is registered with styles.add(). Because this module's
+ * top level only registers styles and defines an export — it builds no widgets
+ * until createWelcome() is called — node-gtk/styles can safely re-execute it on
+ * every edit: tweak the CSS and the running window restyles live, no restart.
+ * (Editing the widget code instead needs a restart — use `npm run dev:app-reload`.)
+ */
+import Gtk from 'gi:Gtk-4.0'
+import Adw from 'gi:Adw-1'
+
+import { styles } from 'node-gtk/styles'
+
+// Inline, hot-reloadable styles for this component. Edit a value and save to
+// see it apply live under `npm run dev`.
+styles.add(`
+  .welcome-button {
+    font-weight: bold;
+  }
+`)
+
+// Build the welcome screen. `onSayHello` runs when the button is clicked.
+export function createWelcome(onSayHello: () => void) {
+  // Adw.StatusPage is the idiomatic "empty state" / welcome widget.
+  const welcome = new Adw.StatusPage({
+    iconName: 'face-smile-symbolic',
+    title: 'Welcome to __APP_NAME__',
+    description: 'Edit src/welcome.ts (its styles hot-reload) or src/main.ts.',
+  })
+
+  const button = new Gtk.Button({
+    label: 'Say hello',
+    halign: Gtk.Align.CENTER,
+    cssClasses: ['pill', 'suggested-action', 'welcome-button'],
+  })
+  button.on('clicked', onSayHello)
+  welcome.setChild(button)
+
+  return welcome
+}
