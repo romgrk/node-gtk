@@ -40,8 +40,9 @@ CommonJS works too — `const Gtk = require('node-gtk').require('Gtk', '4.0')`. 
 process can only load one version of a given namespace, so pick the version up
 front. For the full picture — `gi:` imports, CommonJS, and skipping the `--import`
 flag — see [importing.md](./importing.md). See [api.md](./api.md) for the rest of
-the `node-gtk` API, and [styles.md](./styles.md) for the CSS helper with
-development hot-reload.
+the `node-gtk` API, [styles.md](./styles.md) for the CSS helper with
+development hot-reload, and [typescript.md](./typescript.md) for generating
+TypeScript declarations.
 
 ## 2. Data types
 
