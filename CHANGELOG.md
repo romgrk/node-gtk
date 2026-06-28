@@ -53,7 +53,11 @@ Changes to be released are kept in the unreleased section.
   It applies inline CSS (`styles.add`) and `.css` files (`styles.addFile`), and
   in development **hot-reloads** them as you edit, with no restart. Hot-reload
   is on when `NODE_ENV=development` (opt out with `NODE_GTK_STYLE_HOT_RELOAD=0`).
-  Ships with TypeScript types. See [Styles & hot-reload](./doc/styles.md).
+  `styles.add` also takes a `() => string` **render function** for dynamic CSS
+  built from live state, re-applied on hot-reload and via the handle's
+  `refresh()`; pass `{ watch: false }` to install a programmatic sheet without
+  watching its module. Ships with TypeScript types.
+  See [Styles & hot-reload](./doc/styles.md).
 - **App creator.** `node-gtk create <dir>` creates a ready-to-run TypeScript +
   ESM Adwaita app, with `style.css` wired through `node-gtk/styles` so it
   hot-reloads live under `npm run dev`. See

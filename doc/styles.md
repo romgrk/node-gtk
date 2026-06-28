@@ -41,14 +41,38 @@ app.on('activate', () => {
 | `styles.addFile(path)` | a `.css` stylesheet | re-reads the file into its provider |
 | `styles.add(css)` | inline CSS in a source module | re-imports that module (see the caveat below) |
 
-Both return a **handle** — `{ update(next), remove() }` — so you can replace or
-drop a sheet later from code:
+Both return a **handle** — `{ update(next), refresh(), remove() }` — so you can
+replace, re-apply, or drop a sheet later from code:
 
 ```javascript
 const sheet = styles.add(`label { color: red; }`)
 sheet.update(`label { color: green; }`)   // replace in place
 sheet.remove()                            // remove from the display
 ```
+
+## Dynamic stylesheets
+
+For CSS built from live state — a theme palette, the current fonts — pass a
+**render function** (`() => string`) to `styles.add` instead of a string. It runs
+immediately, again on every hot-reload of its module (so editing the
+CSS-generating code re-applies it), and on demand when you call the handle's
+`refresh()` — which you do whenever the state it reads changes:
+
+```javascript
+const sheet = styles.add(() => `:root { --accent: ${theme.accent}; }`)
+// ...later, when the theme changes:
+theme.onChange(() => sheet.refresh())     // re-runs the render
+```
+
+`refresh()` re-applies a sheet from its current source (re-running the render, or
+re-reading a `.css` file). `update(css)` instead pins the sheet to a fixed string,
+dropping any render function.
+
+A render function still lives in a module that a reload re-imports, so the same
+side-effect-free rule applies (below). When the dynamic CSS is owned by a
+**stateful** module that can't be re-imported safely — its `add` runs inside a
+method, or it owns a singleton with listeners — pass `{ watch: false }` so it
+installs without being watched; you re-apply it yourself via `refresh()`.
 
 ## When styles install
 
@@ -109,9 +133,9 @@ demo of both reload paths.
 
 | Member | Description |
 | --- | --- |
-| `styles.add(css, { priority? })` | Inline CSS; hot-reloads via module re-import. Returns a handle. |
+| `styles.add(css, { priority?, watch? })` | Inline CSS, or a `() => string` render function; hot-reloads via module re-import. `watch: false` opts out of watching. Returns a handle. |
 | `styles.addFile(path, { priority?, watch? })` | A `.css` file (string, `file://` URL, or `URL`); hot-reloads by re-reading. Idempotent per path. Returns a handle. |
 | `styles.install()` | Install queued styles and start the watcher. |
 
-The handle returned by `add` / `addFile` is `{ update(next), remove() }`.
+The handle returned by `add` / `addFile` is `{ update(next), refresh(), remove() }`.
 `StyleManager` (the class) and the shared `styles` instance are the only exports.
