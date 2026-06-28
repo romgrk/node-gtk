@@ -28,13 +28,13 @@ The GTK ecosystem uses the GObject type system, which shows through classes, inh
 properties, signals, enums/flags, and more.
 
 **[Read the GObject type system guide](./gobject-introspection.md)** to understand how it
-maps to JavaScript — read it once and GTK's C/GI docs become easy to follow. You don't need
+maps to JavaScript — read it once and GTK's C docs become easy to follow. You don't need
 a full understanding to start building, but a quick overview is preferable to start integrating 
 its concepts.
 
 Once you have an overview of the type system, you'll be able to use each library's documentation.
 The most useful are:
- - [GTK4 documentation](https://docs.gtk.org/gtk4/) and
+ - [GTK4 documentation](https://docs.gtk.org/gtk4/)
  - [Adwaita documentation](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/)
  
 node-gtk will eventually publish its own documentation, but in case of
@@ -49,7 +49,7 @@ GTK CSS and classes are used for styling. It does not match completely standard 
 but is a close enough. `node-gtk` provides a small CSS helper for developement hot-reload, 
 see [styles.md](./styles.md).
 
-Be sure to read the [style-classes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/style-classes.html)
+Be sure to read the **Adwaita** [style-classes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/style-classes.html)
 and [CSS variablaes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/css-variables.html) docs.
 
 ## Devtools
