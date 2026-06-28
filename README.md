@@ -14,87 +14,87 @@
   <br/>
 </p>
 
+<p align="center">
+  <a href="#usage">Usage</a> · <a href="#installing">Installing</a> · <a href="#documentation">Documentation</a> · <a href="#contributing">Contributing</a>
+</p>
+
+
 `node-gtk` let's you build native GTK apps on **linux**, **macOS** and 
-**windows**. Prebuilt binaries are available for Node.js versions **20**, 
-**22**, **24**.
-
-<img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
-
-### Table of contents
+**windows** with full **ESM** and **TypeScript** support. Prebuilt binaries 
+are available for Node.js versions **20**, **22** and **24**.
 
 <p align="center">
-  <a href="#usage">Usage</a> · <a href="#es-modules">ES modules</a> · <a href="#documentation">Documentation</a> · <a href="#typescript">TypeScript</a> · <a href="#installing">Installing</a> · <a href="#contributing">Contributing</a>
+  <img src="./img/browser.png" style="max-width: 500px; height: auto;" alt="A web browser build with node-gtk" />
 </p>
 
 ## Usage
 
 The create tool generates a complete, ready-to-run GTK/Adwaita project, so you
-can start building immediately:
+can start building immediately after [installing GTK4, if applicable](#installing):
 
 ```sh
 npx node-gtk create <your-app>
 ```
 
-[create-app example](./img/create-app-example.png)
-
-<sub>*`npm run dev` to start it in development mode*</sub>
-
-You can also easily create custom applications:
-
-[A web browser (using WebKit2GTK)](./examples/browser.mjs)
-
 <p align="center">
-  <img src="./img/browser.png" style="max-width: 500px; height: auto;"/>
+  <img src="./img/create-app-example.png" style="width: 400px; height: auto;"/>
+  <em>
+    *`npm run dev` to start it in development mode*
+  </em>
 </p>
 
-[A system monitor](./examples/system-monitor.mjs)
-
-<p align="center">
-  <img src="./img/system-monitor.png" style="width: 400px; height: auto;"/>
-</p>
+See our examples such as [a web browser](./examples/browser.mjs) or 
+[a system monitor](./examples/system-monitor.mjs).
 
 ## Installing
 
-1. Install `node-gtk` itself
+There are two steps:
+
+1. Install `node-gtk` itself (*done by the create tool*)
 2. Install the native libraries you use (see examples per platform below)
-
-```sh
-npm install node-gtk
-
-# This installs a prebuilt binary when one is available for your platform and
-# Node.js version, otherwise it falls back to building from source.
-```
 
 #### Linux
 
 ```sh
 # archlinux
-pacman -S gtk4
+pacman -S gtk4 libadwaita
+
+# fedora
+dnf install gtk4 libadwaita
 
 # ubuntu
-apt install libgtk-4-1
+# Already installed :)
 ```
 
 #### macOS
 
 ```sh
-brew install gtk4
+brew install gtk4 libadwaita adwaita-icon-theme
 ```
 
 #### Windows
 
-Windows doesn't have the dependencies we need in a package manager, therefore 
-`node-gtk` ships prebuilt versions of GTK 4 / Adwaita runtime (DLLs, typelibs, 
-icons), so `npm install node-gtk` is all you need **if** your dependency is in 
-our [list of prebuilt libraries](./windows/runtime-libraries.txt).
+```sh
+# Already installed :)
+```
+
+> [!NOTE]
+> Windows doesn't have the dependencies we need in a package manager, therefore
+> `node-gtk` ships prebuilt versions of GTK 4 / Adwaita, so `npm install node-gtk`
+> is all you need **if** your dependency is in our 
+> [list of prebuilt libraries](./windows/runtime-libraries.txt).
 
 ### build from source
 
 Building from source, or contributing? See [Building from source](./doc/building.md).
 
+## Documentation
+
+[Read our documentation here](./doc/index.md)
+
 ## ES modules
 
-ES modules are the default (see [Usage](#usage)): namespaces are imported with the
+ES modules are the default: namespaces are imported with the
 `gi:` scheme (`import Gtk from 'gi:Gtk-4.0'`) after installing the hooks with
 `node --import node-gtk/register`, and the loop integration starts automatically.
 
@@ -119,10 +119,6 @@ See the **[importing guide](./doc/importing.md)** for the full details: the `gi:
 scheme, importing node-gtk's own API, skipping the `--import` flag, and CommonJS.
 For the why behind the immediate-return behaviour, see
 [#449](https://github.com/romgrk/node-gtk/issues/449).
-
-## Documentation
-
-[Read our documentation here](./doc/index.md)
 
 ## TypeScript
 
