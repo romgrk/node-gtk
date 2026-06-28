@@ -16,20 +16,24 @@ namespace GNodeJS {
 
 struct Closure {
     GClosure base;
-    Nan::Persistent<v8::Function> persistent;
+    /* The handler function is NOT held here. It lives in a JS array on the
+     * wrapper object (reachable only through the wrapper), and we keep just its
+     * index. This breaks the wrapper <-> handler reference loop that a strong
+     * Nan::Persistent used to create and leak (#375); see
+     * doc/signal-handler-gc.md. */
+    guint handlerIndex;
     GICallableInfo* info;
 
     ~Closure() {
-        persistent.Reset();
         if (info) g_base_info_unref (info);
     }
 
-    static GClosure *New(Local<Function> function,
+    static GClosure *New(guint handlerIndex,
                          GICallableInfo* info,
                          guint signalId);
 
     static void Execute(GICallableInfo *info, guint signal_id,
-                        const Nan::Persistent<v8::Function> &persFn,
+                        GObject *instance, guint handlerIndex,
                         GValue *g_return_value, guint n_param_values,
                         const GValue *param_values);
 

@@ -488,6 +488,61 @@ static void DestroyVFuncs(GType gtype) {
     g_type_set_qdata (gtype, GNodeJS::vfuncs_quark(), NULL);
 }
 
+/*
+ * Signal handlers are stored in a JS array held on the wrapper object itself
+ * (via a private symbol), so they are reachable only through the wrapper and
+ * the wrapper <-> handler reference loop can be garbage-collected (#375; see
+ * doc/signal-handler-gc.md). A Closure keeps only its index into that array.
+ */
+static Local<v8::Private> SignalHandlersKey(v8::Isolate *isolate) {
+    return v8::Private::ForApi(isolate, Nan::New("__gnodejs_signal_handlers__").ToLocalChecked());
+}
+
+// Append a handler to the wrapper's handler array, returning its index.
+static guint AddSignalHandler(Local<Object> wrapper, Local<Function> handler) {
+    v8::Isolate *isolate = wrapper->GetIsolate();
+    Local<v8::Context> context = isolate->GetCurrentContext();
+    Local<v8::Private> key = SignalHandlersKey(isolate);
+
+    Local<Value> existing = wrapper->GetPrivate(context, key).ToLocalChecked();
+    Local<Array> handlers;
+    if (existing->IsArray()) {
+        handlers = existing.As<Array>();
+    } else {
+        handlers = Nan::New<Array>();
+        wrapper->SetPrivate(context, key, handlers).Check();
+    }
+
+    guint index = handlers->Length();
+    Nan::Set(handlers, index, handler);
+    return index;
+}
+
+// Look up a handler by the instance it is connected to and its index. Returns
+// an empty handle if the wrapper has been collected or the slot is empty.
+Local<Value> GetSignalHandler(GObject *gobject, guint index) {
+    void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
+    if (data == NULL)
+        return Local<Value>();
+
+    auto *wrapper = (GObjectWrapper *) data;
+    if (wrapper->collected)
+        return Local<Value>();
+
+    Local<Object> object = Nan::New(wrapper->persistent);
+    if (object.IsEmpty())
+        return Local<Value>();
+
+    v8::Isolate *isolate = object->GetIsolate();
+    Local<v8::Context> context = isolate->GetCurrentContext();
+    Local<Value> handlers =
+        object->GetPrivate(context, SignalHandlersKey(isolate)).ToLocalChecked();
+    if (!handlers->IsArray())
+        return Local<Value>();
+
+    return Nan::Get(handlers.As<Array>(), index).ToLocalChecked();
+}
+
 NAN_METHOD(SignalConnect) {
     bool after = false;
 
@@ -520,9 +575,14 @@ NAN_METHOD(SignalConnect) {
     guint signalId;
     GQuark detail;
     GClosure *gclosure;
+    guint handlerIndex;
     gulong handler_id;
 
-    const char *signalName = *Nan::Utf8String (TO_STRING (info[0]));
+    // Hold the Utf8String for the whole function: `*Nan::Utf8String(...)` alone
+    // dangles after the statement, and AddSignalHandler() below allocates in V8,
+    // which would clobber the freed buffer before g_signal_connect_closure.
+    Nan::Utf8String signalNameValue (TO_STRING (info[0]));
+    const char *signalName = *signalNameValue;
     if (!g_signal_parse_name(signalName, gtype, &signalId, &detail, FALSE)) {
         Nan::ThrowTypeError("Signal name is invalid");
         return;
@@ -536,7 +596,8 @@ NAN_METHOD(SignalConnect) {
         }
     }
 
-    gclosure = Closure::New (callback, signal_info, signalId);
+    handlerIndex = AddSignalHandler (TO_OBJECT (info.This ()), callback);
+    gclosure = Closure::New (handlerIndex, signal_info, signalId);
     handler_id = g_signal_connect_closure (gobject, signalName, gclosure, after);
 
     info.GetReturnValue().Set((double)handler_id);

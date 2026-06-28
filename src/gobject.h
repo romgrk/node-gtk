@@ -18,6 +18,7 @@ namespace GNodeJS {
 MaybeLocal<Function>    MakeClass            (GIBaseInfo *info);
 Local<Value>            WrapperFromGObject   (GObject *object);
 GObject *               GObjectFromWrapper   (Local<Value> value);
+Local<Value>            GetSignalHandler     (GObject *gobject, guint index);
 Local<FunctionTemplate> GetBaseClassTemplate ();
 MaybeLocal<Value>       GetGObjectProperty   (GObject * gobject, const char *prop_name);
 MaybeLocal<v8::Boolean> SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);

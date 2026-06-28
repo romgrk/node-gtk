@@ -3,6 +3,7 @@
 
 #include "closure.h"
 #include "error.h"
+#include "gobject.h"
 #include "macros.h"
 #include "loop.h"
 #include "type.h"
@@ -54,9 +55,9 @@ static void LoadGIArgumentFromPointer (GITypeInfo *type_info, GIArgument *arg) {
     }
 }
 
-GClosure *Closure::New (Local<Function> function, GICallableInfo* info, guint signalId) {
+GClosure *Closure::New (guint handlerIndex, GICallableInfo* info, guint signalId) {
     Closure *closure = (Closure *) g_closure_new_simple (sizeof (*closure), GUINT_TO_POINTER(signalId));
-    closure->persistent.Reset(function);
+    closure->handlerIndex = handlerIndex;
     if (info) {
         closure->info = g_base_info_ref(info);
     } else {
@@ -69,11 +70,18 @@ GClosure *Closure::New (Local<Function> function, GICallableInfo* info, guint si
 }
 
 void Closure::Execute(GICallableInfo *info, guint signal_id,
-                      const Nan::Persistent<v8::Function> &persFn,
+                      GObject *instance, guint handlerIndex,
                       GValue *g_return_value, guint n_param_values,
                       const GValue *param_values) {
     Nan::HandleScope scope;
-    auto func = Nan::New<Function>(persFn);
+
+    /* The handler lives in a JS array on the instance's wrapper (#375). If the
+     * wrapper has been collected (the object was dropped from JS) there is
+     * nothing to call. */
+    Local<Value> handlerValue = GetSignalHandler(instance, handlerIndex);
+    if (handlerValue.IsEmpty() || !handlerValue->IsFunction())
+        return;
+    auto func = handlerValue.As<Function>();
 
     GSignalQuery signal_query = { 0, };
 
@@ -242,16 +250,21 @@ void Closure::Marshal(GClosure     *base,
 
     auto closure = (Closure *) base;
     auto signal_id = GPOINTER_TO_UINT(marshal_data);
+    auto handlerIndex = closure->handlerIndex;
+
+    /* param_values[0] is always the instance the signal was emitted on, which
+     * is the object whose wrapper holds this handler (#375). */
+    GObject *instance = (GObject *) g_value_get_object(&param_values[0]);
 
     AsyncCallEnvironment* env = reinterpret_cast<AsyncCallEnvironment *>(AsyncCallEnvironment::asyncHandle.data);
 
     if (env->IsSameThread()) {
         /* Case 1: same thread */
-        Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
+        Closure::Execute(closure->info, signal_id, instance, handlerIndex, g_return_value, n_param_values, param_values);
     } else {
         /* Case 2: different thread */
         env->Call([&]() {
-            Closure::Execute(closure->info, signal_id, closure->persistent, g_return_value, n_param_values, param_values);
+            Closure::Execute(closure->info, signal_id, instance, handlerIndex, g_return_value, n_param_values, param_values);
         });
     }
 }
