@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="#usage">Usage</a> · <a href="#installing">Installing</a> · <a href="#documentation">Documentation</a> · <a href="#contributing">Contributing</a>
+  <a href="#usage">Usage</a> · <a href="#installing">Installing</a> · <a href="./doc/index.md">Documentation</a> · <a href="#contributing">Contributing</a>
 </p>
 
 <br />
@@ -89,41 +89,6 @@ Building from source, or contributing? See [Building from source](./doc/building
 ## Documentation
 
 [Read our documentation here](./doc/index.md)
-
-## ES modules
-
-ES modules are the default: namespaces are imported with the
-`gi:` scheme (`import Gtk from 'gi:Gtk-4.0'`) after installing the hooks with
-`node --import node-gtk/register`, and the loop integration starts automatically.
-
-One thing to know up front: under ESM, blocking main-loop calls (`loop.run()`,
-`app.run()`, `Gtk.main()`) **return immediately** instead of blocking, and don't
-return a value — so make the run call the last statement and do cleanup/exit from
-your handler:
-
-```javascript
-app.on('activate', () => {
-  // ...build the window...
-  window.on('close-request', () => (loop.quit(), app.quit(), false))
-  window.present()
-
-  loop.run()       // returns immediately under ESM; do cleanup/exit in the handler
-})
-
-app.run([])        // not `process.exit(app.run([]))` — the return value is unavailable
-```
-
-See the **[importing guide](./doc/importing.md)** for the full details: the `gi:`
-scheme, importing node-gtk's own API, skipping the `--import` flag, and CommonJS.
-For the why behind the immediate-return behaviour, see
-[#449](https://github.com/romgrk/node-gtk/issues/449).
-
-## TypeScript
-
-node-gtk can generate TypeScript declarations for the libraries you use,
-straight from the GObject-Introspection typelibs installed on your machine — so
-the types always match your actual library versions. See the
-**[TypeScript guide](./doc/typescript.md)**.
 
 ## Contributing
 
