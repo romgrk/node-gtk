@@ -162,6 +162,7 @@ const bold = ansi(1, 22)
 const dim = ansi(2, 22)
 const cyan = ansi(36, 39)
 const green = ansi(32, 39)
+const yellow = ansi(33, 39)
 
 function run(argv) {
   const opts = parseArgs(argv)
@@ -203,12 +204,33 @@ function run(argv) {
     // Capture output and surface it only on failure — keep the happy path quiet.
     const res = child_process.spawnSync('npm', ['install'], { cwd: dir, encoding: 'utf8' })
     if (res.status !== 0) {
+      const output = `${res.stdout || ''}${res.stderr || ''}`
+      // The one expected, recoverable failure: node-gtk itself installed fine, but
+      // the postinstall type generation couldn't find the GTK/GI typelibs because
+      // the native libraries aren't installed yet. generate-types reports this as
+      // "Typelib file for namespace … not found" — treat it as a warning (the
+      // project is created and runnable) and hand back the command to finish up.
+      if (/Typelib file for namespace/i.test(output)) {
+        const finish = `cd ${rel} && npm run generate-types && npm run dev`
+        process.stdout.write(
+          `\n${yellow(bold('⚠ Project created, but TypeScript types could not be generated.'))}\n` +
+          `  The native ${bold('GTK 4 / libadwaita')} libraries don't seem to be installed.\n` +
+          `  ${dim('They power type generation and the app itself.')}\n\n` +
+          `  ${bold('1.')} Install them for your platform:\n` +
+          `     ${cyan('https://github.com/romgrk/node-gtk#installing')}\n\n` +
+          `  ${bold('2.')} Then finish setup:\n` +
+          `     ${cyan(finish)}\n\n`)
+        return
+      }
+      // Any other failure is unexpected: surface the raw output, the manual
+      // recovery steps, and a link to report it.
       if (res.stdout) process.stderr.write(res.stdout)
       if (res.stderr) process.stderr.write(res.stderr)
       process.stderr.write(
         `\nnpm install did not complete cleanly. Your project is created — ` +
         `finish setup manually:\n\n  cd ${rel}\n  npm install\n  npm run dev\n\n` +
-        `(Type generation needs the GTK 4 / libadwaita typelibs — see the project README.)\n`)
+        `If this keeps failing, please report it (include the output above):\n` +
+        `  https://github.com/romgrk/node-gtk/issues\n`)
       process.exit(res.status || 1)
     }
   }

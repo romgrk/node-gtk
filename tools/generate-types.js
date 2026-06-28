@@ -1062,6 +1062,16 @@ const DEFAULT_OUTDIR = ['node_modules', '.node-gtk-types']
 // Doc comments are pulled from .gir XML; toggled off with --no-docs.
 let DOCS_ENABLED = true
 
+const INSTALL_URL = 'https://github.com/romgrk/node-gtk#installing'
+
+// A missing typelib means the native GI libraries (gtk4, libadwaita, …) aren't
+// installed on this machine. g_irepository_require surfaces that as a "Typelib
+// file for namespace … not found" error — recognize it so we can replace the
+// opaque stack trace with actionable install guidance.
+function isMissingTypelibError(err) {
+  return /Typelib file for namespace/i.test((err && err.message) || '')
+}
+
 const USAGE = `Usage: node-gtk generate-types <Namespace-Version> [...] [options]
 
 Generates TypeScript declarations for the given GObject-Introspection
@@ -1091,7 +1101,19 @@ function run(argv) {
     roots.push(argv[i])
   }
   if (roots.length === 0) { console.error(USAGE); process.exit(1) }
-  generate(roots, outdir)
+  try {
+    generate(roots, outdir)
+  } catch (err) {
+    if (isMissingTypelibError(err)) {
+      console.error(
+        `\nnode-gtk generate-types: ${err.message}\n\n` +
+        `The native GTK / GObject-Introspection libraries (e.g. gtk4, libadwaita)\n` +
+        `don't seem to be installed. Install them for your platform, then retry:\n` +
+        `  ${INSTALL_URL}\n`)
+      process.exit(1)
+    }
+    throw err
+  }
 }
 
 module.exports = { generate, run }
