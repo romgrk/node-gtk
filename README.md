@@ -41,8 +41,8 @@ npx node-gtk create <your-app>
   <img src="./img/create-app-example.png" style="width: 500px; height: auto;"/>
 </p>
 
-See our examples such as [a web browser](./examples/browser.mjs) or 
-[a system monitor](./examples/system-monitor.mjs).
+Also see our [hello world](./examples/hello-world.mjs), [web browser](./examples/browser.mjs)
+or [system monitor](./examples/system-monitor.mjs) examples.
 
 ## Installing
 

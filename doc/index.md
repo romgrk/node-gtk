@@ -1,290 +1,77 @@
 # Documentation
 
-node-gtk is a *thin* layer over native GObject-Introspection libraries. Using a
-library therefore comes down to two things: understanding how the library itself
-works, and knowing how to call it from Node. This guide covers the second part —
-the node-gtk conventions you need to translate C (or any GObject) API into
-JavaScript. For what a given function *does*, refer to the library's own
-documentation.
-
-> The examples below use GTK 4. node-gtk also supports GTK 3 (and any other
-> introspected library) — just import the version you want (`gi:Gtk-3.0`).
+**Note**: GTK and Adwaita are companion libraries: GTK is the base layer, and 
+Adwaita is a set of widgets and theming that is built on top of GTK.
 
 #### Table of contents
-  1. [Loading a library](#1-loading-a-library)
-  2. [Data types](#2-data-types)
-  3. [Structs and unions](#3-structs-and-unions)
-  4. [GObjects](#4-gobjects)
-  5. [Naming conventions](#5-naming-conventions)
-  6. [Function calls](#6-function-calls)
-  7. [Common pitfalls](#7-common-pitfalls)
+  1. [Importing libraries](#importing-libraries)
+  1. [Using libraries](#using-libraries)
+  1. [Widgets and styling](#widgets-and-styling)
+  1. [Devtools](#devtools)
+  1. [Typescript](#typescript)
 
-## 1. Loading a library
+## Importing libraries
 
-Under ES modules — the default — run your app with `node --import node-gtk/register`
-and import a namespace with the `gi:` scheme:
+For ESM, always run your app with `node --import node-gtk/register` to import a namespace with the `gi:` scheme:
 
 ```javascript
-import Gtk from 'gi:Gtk-4.0'   // `gi:Name-Version`, or `gi:Name` for the latest
-// use Gtk
+import Gtk from 'gi:Gtk-4.0'
+             // 'gi:Name-Version'
 ```
 
-node-gtk's own API (`registerClass`, `require`, …) is imported by name from the
-`node-gtk` package:
+Not sure which libraries (and versions) are installed? Run `node-gtk list` (or
+`node-gtk list gtk` to filter) to print them.
 
-```javascript
-import gi, { registerClass } from 'node-gtk'
-```
+See [importing](./importing.md) for details and CJS support.
 
-CommonJS works too — `const Gtk = require('node-gtk').require('Gtk', '4.0')`. A
-process can only load one version of a given namespace, so pick the version up
-front. For the full picture — `gi:` imports, CommonJS, and skipping the `--import`
-flag — see [importing.md](./importing.md). See [api.md](./api.md) for the rest of
-the `node-gtk` API, [styles.md](./styles.md) for the CSS helper with
+, [styles.md](./styles.md) for the CSS helper with
 development hot-reload, and [typescript.md](./typescript.md) for generating
 TypeScript declarations.
 
-## 2. Data types
+## Using libraries
 
-The GLib Object System (GObject) is a set of C libraries and conventions that add
-an object-oriented type system to C. Each kind of type maps to JavaScript in its
-own way:
+node-gtk converts each native library into JavaScript at runtime, so the GObject
+type system shows through: classes and inheritance, properties, signals,
+enums/flags, and a few C-isms like out-arguments. The
+**[GObject type system guide](./gobject-introspection.md)** walks through how all
+of it maps to JavaScript — read it once and GTK's C/GI docs become easy to follow.
 
-- **Primitives — integer, float, boolean, string**  
-    Map directly to JavaScript values; no special handling needed. (Strings
-    occasionally need to be passed as a byte array — see the library's docs.)
-- **Enums & flags**  
-    Become plain values grouped in an object. `GTK_ORIENTATION_VERTICAL` is
-    `Gtk.Orientation.VERTICAL`; flags (bitmasks) work the same way.
-- **Structs & unions (boxed types)**  
-    Become JavaScript objects with field access and methods — see
-    [§3](#3-structs-and-unions).
-- **GObjects**  
-    Class instances organized in an inheritance hierarchy — see
-    [§4](#4-gobjects).
+Once you have an overview of the type system, [GTK4](https://docs.gtk.org/gtk4/) and
+[Adwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/) docs are your best
+bet for reference (until `node-gtk` publishes its own generated documentation). In case of
+need, **GJS** and **PyGObject** examples and docs also translate well.
 
-## 3. Structs and unions
+## Widgets and styling
 
-Structs and unions are *boxed* types — simple bags of data that may also carry a
-few methods.
+For a list of available widgets, see [GTK Widgets](https://docs.gtk.org/gtk4/visual_index.html) and
+[Adwaita widgets](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/widget-gallery.html).
 
-Create one with its constructor, if it has one (e.g.
-[`Gdk.RGBA`](https://docs.gtk.org/gdk4/struct.RGBA.html)):
+GTK CSS and classes are used for styling. It does not match completely standard CSS,
+but is a close enough. `node-gtk` provides a small CSS helper for developement hot-reload, 
+see [styles.md](./styles.md).
 
-```javascript
-const color = new Gdk.RGBA({ red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0 })
+Be sure to read the [style-classes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/style-classes.html)
+and [CSS variablaes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/css-variables.html) docs.
+
+## Devtools
+
+For debugging, you can start node with `--inspect` or `--inspect-brk` and use the Chromium devtools via `chrome://inspect`.
+
+The [GTK Inspector](https://developer.gnome.org/documentation/tools/inspector.html) is also available to inspect the widget tree and styles.
+
+![GTK Inspector](https://developer.gnome.org/documentation/_images/inspector-main-dark.png)
+
+## Typescript
+
+For **Typescript** integration, you need to generate typings:
+
+```sh
+npx node-gtk generate-types Gtk-4.0 Pango-1.0 [etc]
 ```
 
-…or with a creation function (e.g.
-[`Gdk.Cursor`](https://docs.gtk.org/gdk4/class.Cursor.html)):
+See  [typescript.md](./typescript.md)
 
-```javascript
-const cursor = Gdk.Cursor.newFromName('pointer', null)
-```
 
-Fields are read and written with dot-notation, in **lowerCamelCase**:
+## node-gtk low-level API
 
-```javascript
-console.log(color.red)
-color.alpha = 0.8
-```
-
-## 4. GObjects
-
-GObjects are the heart of GTK: instances of classes arranged in a hierarchy. Like
-boxed types, they're created with a constructor or a creation function:
-
-```javascript
-// Constructor with initial properties
-const label = new Gtk.Label({ label: "I'm a label!" })
-
-// Creation function
-const button = Gtk.Button.newWithLabel('Click me')
-```
-
-([`Gtk.Label`](https://docs.gtk.org/gtk4/class.Label.html),
-[`Gtk.Button`](https://docs.gtk.org/gtk4/class.Button.html))
-
-An instance exposes every method of its class **and all its parents** — both
-widgets above derive from
-[`Gtk.Widget`](https://docs.gtk.org/gtk4/class.Widget.html), so they share its
-whole API. Methods use **lowerCamelCase** and are called on the instance:
-
-```javascript
-label.setText('Hello')
-console.log(label.getText()) // "Hello"
-```
-
-node-gtk rewrites each C function into an instance method: the leading
-`this` argument is implicit and the name is camelCased. So this C signature:
-
-```c
-void gtk_label_set_text (GtkLabel *self, const char *str);
-```
-
-is called as `label.setText(str)`. Functions with *out-arguments* return them as
-the result instead — see [§6](#6-function-calls).
-
-#### Signals
-
-GObjects emit events called **signals**. In C they're wired with
-[`g_signal_connect`](https://docs.gtk.org/gobject/func.signal_connect.html);
-node-gtk exposes the familiar `.on` / `.once` / `.off` / `.emit` API instead:
-
-```javascript
-const button = Gtk.Button.newWithLabel('Click me')
-
-button.on('clicked', onClicked)            // run on every emission
-button.once('clicked', onClicked)          // run at most once
-button.off('clicked', onClicked)           // disconnect
-button.emit('clicked')                     // emit manually
-
-function onClicked() {
-  console.log('clicked!')
-}
-```
-
-`.on`/`.once` take an optional trailing `after` boolean to run the handler after
-the default handler:
-
-```javascript
-button.on('clicked', onClicked, /* after */ true)
-```
-
-**Note:** the emitting instance is *not* passed to the callback (see
-[#21](https://github.com/romgrk/node-gtk/issues/21)). Some signals use their
-return value to control propagation or the default action (e.g. returning `true`
-to stop a key event) — check the signal's documentation. The low-level
-`.connect(name, callback): number` and `.disconnect(name, handlerId)` are also
-available but rarely needed.
-
-#### Inheritance
-
-You can subclass an existing GObject. Register the subclass with the type system
-so it's fully integrated and can override virtual functions:
-
-```javascript
-class CustomWidget extends Gtk.Widget {
-  static GTypeName = 'NodeGTKCustomWidget'
-  virtual_snapshot(snapshot) {} // overrides the `snapshot` virtual function
-}
-registerClass(CustomWidget)
-```
-
-> **Register before you instantiate.** `new CustomWidget()` only works *after*
-> `registerClass(CustomWidget)`. Instantiating an unregistered subclass falls
-> back to the abstract base type and aborts the process.
-
-##### Virtual functions
-
-To override a virtual function, define a method named **`virtual_`** followed by
-the camelCase form of the vfunc name. node-gtk wires those — and *only* those —
-into the GObject vtable:
-
-| Virtual function (C / GIR) | Method to define |
-| -------------------------- | ---------------- |
-| `get_request_mode`         | `virtual_getRequestMode` |
-| `measure`                  | `virtual_measure` |
-| `size_allocate`            | `virtual_sizeAllocate` |
-| `snapshot`                 | `virtual_snapshot` |
-| `dispose`                  | `virtual_dispose` |
-
-A plain method is **never** treated as an override, so naming a method `dispose`,
-`getProperty` or `sizeAllocate` no longer silently hijacks the matching vfunc.
-The prefix also keeps the override distinct from the public method of the same
-name — `widget.sizeAllocate(rect, baseline)` calls the method, while
-`virtual_sizeAllocate` overrides the vfunc.
-
-Chain up to the implementation you overrode with `super.virtual_<name>()`:
-
-```javascript
-class CustomWidget extends Gtk.Widget {
-  static GTypeName = 'NodeGTKCustomWidget'
-  virtual_snapshot(snapshot) {
-    super.virtual_snapshot(snapshot)   // draw the parent first
-    /* ...then draw on top... */
-  }
-}
-registerClass(CustomWidget)
-```
-
-If a `virtual_*` method matches no vfunc on the parent or its interfaces,
-`registerClass` throws — this catches typos like `virtual_mesure`.
-
-## 5. Naming conventions
-
-node-gtk normalizes names from the C/GIR style to JavaScript conventions:
-
-| Kind | Convention | Example |
-| --- | --- | --- |
-| Functions & methods | `lowerCamelCase` | `GLib.randomIntRange(0, 100)`, `textBuffer.placeCursor(0)` |
-| Virtual function overrides | `virtual_` + `lowerCamelCase` | `virtual_getRequestMode`, `virtual_sizeAllocate` |
-| Fields & properties | `lowerCamelCase` | `textView.showLineNumbers = true`, `rgba.alpha = 0.5` |
-| Structs, unions, GObjects, interfaces | `UpperCamelCase` | `Gtk.Button`, `Gdk.RGBA` |
-| Enums & flags | `UpperCamelCase` | `Gtk.Orientation.VERTICAL`, `Gtk.Align.FILL` |
-| Constants & values | `SNAKE_CASE` (unchanged) | `Gdk.KEY_g !== Gdk.KEY_G`, `Gtk.STYLE_PROVIDER_PRIORITY_USER` |
-| Signals | `dash-case` | `button.on('clicked', …)` |
-
-## 6. Function calls
-
-Translating calls between C and JavaScript has a few gotchas, mostly because some
-C concepts (like pointers) have no JavaScript equivalent.
-
-#### Out-arguments
-
-Out-arguments are parameters a C function fills in through a pointer instead of
-returning. **When you call C from JS**, node-gtk allocates and unpacks them for
-you: you don't pass them, and they come back as return values. If a call produces
-more than one value (a real return plus an out-argument, or several
-out-arguments), node-gtk returns them as an array, with the real return value
-first.
-
-**When C calls into your JS** — e.g. overriding the
-[`measure`](https://docs.gtk.org/gtk4/vfunc.Widget.measure.html) virtual function
-(`virtual_measure`) — the direction inverts: your function must *return* the
-out-arguments, again with the real return value first if there is one.
-
-```c
-void
-gtk_widget_measure (GtkWidget *widget,
-                    GtkOrientation orientation,
-                    int for_size,
-                    int *minimum,
-                    int *natural,
-                    int *minimum_baseline,
-                    int *natural_baseline);
-```
-
-```javascript
-class NewWidget extends Gtk.Widget {
-  static GTypeName = 'NodeGTKNewWidget'
-  virtual_measure(orientation, forSize, ...outs) {
-    // the out-argument slots arrive in `outs` as `null` placeholders
-    // ...calculate dimensions...
-    return [minimum, natural, minimumBaseline, naturalBaseline]
-  }
-}
-```
-
-## 7. Common pitfalls
-
-The bindings give you direct access to C functions, so misusing a library can
-crash the process. A few frequent mistakes:
-
-<details>
-  <summary><b>Forgetting to initialize GTK</b></summary>
-  Call <code>Gtk.init()</code> before using anything from GTK.
-</details>
-
-<details>
-  <summary><b>Instantiating a subclass before registering it</b></summary>
-  Call <code>registerClass(MyClass)</code> before <code>new MyClass()</code>;
-  otherwise construction falls back to the abstract base type and aborts the
-  process. See <a href="#4-gobjects">§4 → Inheritance</a>.
-</details>
-
-<details>
-  <summary><b>Getting a display causes a segfault (X11)</b></summary>
-  Backend-specific APIs live in their own namespace — under X11 you may need
-  <code>import GdkX11 from 'gi:GdkX11-4.0'</code> before reaching for them.
-</details>
+See [api.md](./api.md) for the low-level `node-gtk` API.
