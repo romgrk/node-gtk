@@ -12,21 +12,19 @@
 <p align="center">
   <b>GTK bindings for NodeJS</b>
   <br/>
-  <img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
 </p>
 
 `node-gtk` let's you build native GTK apps on **linux**, **macOS** and 
 **windows**. Prebuilt binaries are available for Node.js versions **20**, 
 **22**, **24**.
 
+<img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
+
 ### Table of contents
 
-- [Usage](#usage)
-- [ES modules](#es-modules)
-- [Documentation](#documentation)
-- [TypeScript](#typescript)
-- [Installing](#installing)
-- [Contributing](#contributing)
+<p align="center">
+  <a href="#usage">Usage</a> · <a href="#es-modules">ES modules</a> · <a href="#documentation">Documentation</a> · <a href="#typescript">TypeScript</a> · <a href="#installing">Installing</a> · <a href="#contributing">Contributing</a>
+</p>
 
 ## Usage
 
@@ -34,33 +32,12 @@ The create tool generates a complete, ready-to-run GTK/Adwaita project, so you
 can start building immediately:
 
 ```sh
-npx node-gtk create my-app
-cd my-app
-npm run dev
+npx node-gtk create <your-app>
 ```
 
-<p align="center">
-  <img src="./img/create-app-example.png" style="width: 290px; height: auto;"/>
-</p>
+[create-app example](./img/create-app-example.png)
 
-### Create a new app
-
-`node-gtk create` generates a complete, ready-to-run GTK/Adwaita project, so you
-can start building immediately:
-
-```sh
-npx node-gtk create my-app
-cd my-app
-npm run dev
-```
-
-You get a **TypeScript + ESM** application — an `Adw.Application` with a header
-bar, a primary menu, an About window, and a welcome screen — fully typed against
-the libraries installed on your machine (via `generate-types`), with live reload
-(`npm run dev`) and a `tsc` build (`npm run build`). Pass `--name` / `--app-id`,
-or run `node-gtk create --help`; see
-[`tools/README.md`](./tools/README.md#node-gtk-create--create-a-new-app) for
-details.
+<sub>*`npm run dev` to start it in development mode*</sub>
 
 You can also easily create custom applications:
 
@@ -75,6 +52,45 @@ You can also easily create custom applications:
 <p align="center">
   <img src="./img/system-monitor.png" style="width: 400px; height: auto;"/>
 </p>
+
+## Installing
+
+1. Install `node-gtk` itself
+2. Install the native libraries you use (see examples per platform below)
+
+```sh
+npm install node-gtk
+
+# This installs a prebuilt binary when one is available for your platform and
+# Node.js version, otherwise it falls back to building from source.
+```
+
+#### Linux
+
+```sh
+# archlinux
+pacman -S gtk4
+
+# ubuntu
+apt install libgtk-4-1
+```
+
+#### macOS
+
+```sh
+brew install gtk4
+```
+
+#### Windows
+
+Windows doesn't have the dependencies we need in a package manager, therefore 
+`node-gtk` ships prebuilt versions of GTK 4 / Adwaita runtime (DLLs, typelibs, 
+icons), so `npm install node-gtk` is all you need **if** your dependency is in 
+our [list of prebuilt libraries](./windows/runtime-libraries.txt).
+
+### build from source
+
+Building from source, or contributing? See [Building from source](./doc/building.md).
 
 ## ES modules
 
@@ -168,45 +184,6 @@ script so it regenerates on install:
 ```
 
 Run `npx node-gtk generate-types --help` for options.
-
-## Installing
-
-1. Install `node-gtk` itself
-2. Install the native libraries you use (see examples per platform below)
-
-```sh
-npm install node-gtk
-
-# This installs a prebuilt binary when one is available for your platform and
-# Node.js version, otherwise it falls back to building from source.
-```
-
-#### Linux
-
-```sh
-# archlinux
-pacman -S gtk4
-
-# ubuntu
-apt install libgtk-4-1
-```
-
-#### macOS
-
-```sh
-brew install gtk4
-```
-
-#### Windows
-
-Windows doesn't have the dependencies we need in a package manager, therefore 
-`node-gtk` ships prebuilt versions of GTK 4 / Adwaita runtime (DLLs, typelibs, 
-icons), so `npm install node-gtk` is all you need **if** your dependency is in 
-our [list of prebuilt libraries](./windows/runtime-libraries.txt).
-
-### build from source
-
-Building from source, or contributing? See [Building from source](./doc/building.md).
 
 ## Contributing
 
