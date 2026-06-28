@@ -49,7 +49,7 @@ GTK CSS and classes are used for styling. It does not match completely standard 
 but is a close enough. `node-gtk` provides a small CSS helper for developement hot-reload, 
 see [styles.md](./styles.md).
 
-Be sure to read the **Adwaita** [style-classes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/style-classes.html)
+Be sure to read the [Adwaita style-classes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/style-classes.html)
 and [CSS variablaes](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1-latest/css-variables.html) docs.
 
 ## Devtools
