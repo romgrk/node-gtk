@@ -2,7 +2,7 @@
     <a>
       <img
         alt="NODE-GTK"
-        width="250"
+        width="200"
         src="https://raw.githubusercontent.com/romgrk/node-gtk/master/img/node-gtk-logo.svg?sanitize=true"
       />
     </a>
@@ -12,113 +12,89 @@
 <p align="center">
   <b>GTK bindings for NodeJS</b>
   <br/>
-  <img src="https://img.shields.io/npm/v/node-gtk" alt="Package Version" />
 </p>
 
-`node-gtk` is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library 
-for nodejs. It makes it possible to use any introspected C library, such as GTK, 
-usable. It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) 
-or [PyGObject](https://pygobject.readthedocs.io). Please note this project is 
-currently in a _alpha_ state.
-
-Supported Node.js versions: **20**, **22**, **24** (other versions may work but are untested)<br>
-Supported platforms:
-- **Linux** — prebuilt binaries available
-- **macOS** — prebuilt binaries available
-- **Windows** — prebuilt binaries available (but read [Windows](#windows))
+<p align="center">
+  <a href="#usage">Usage</a> · <a href="#installing">Installing</a> · <a href="#documentation">Documentation</a> · <a href="#contributing">Contributing</a>
+</p>
 
 
-### Table of contents
+`node-gtk` let's you build native GTK apps on **linux**, **macOS** and 
+**windows** with full **ESM** and **TypeScript** support. Prebuilt binaries 
+are available for Node.js versions **20**, **22** and **24**.
 
-- [Usage](#usage)
-- [ES modules](#es-modules)
-- [Documentation](#documentation)
-- [TypeScript](#typescript)
-- [Installing](#installing)
-- [Contributing](#contributing)
+<p align="center">
+  <img src="./img/browser.png" style="max-width: 500px; height: auto;" alt="A web browser build with node-gtk" />
+</p>
 
 ## Usage
 
-Below is a [minimal example](./examples/hello-world.mjs) of how to use node-gtk.
-Namespaces are imported with the `gi:` scheme; run your app with
-`node --import node-gtk/register`:
+The create tool generates a complete, ready-to-run GTK/Adwaita project, so you
+can start building immediately after [installing GTK4, if applicable](#installing):
 
 ```sh
-node --import node-gtk/register app.mjs
+npx node-gtk create <your-app>
 ```
-
-```javascript
-// app.mjs
-import GLib from 'gi:GLib-2.0'   // `gi:Name-Version` (or `gi:Name` for the latest)
-import Gtk from 'gi:Gtk-4.0'
-import Adw from 'gi:Adw-1'
-
-const loop = GLib.MainLoop.new(null, false)
-const app = new Adw.Application('com.github.romgrk.node-gtk.hello', 0)
-
-app.on('activate', () => {
-  const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL })
-  content.append(new Adw.HeaderBar())
-  content.append(new Gtk.Label({ label: 'Hello Adwaita!', vexpand: true }))
-
-  const window = new Adw.ApplicationWindow(app)
-  window.setTitle('node-gtk')
-  window.setDefaultSize(300, 120)
-  window.setContent(content)
-  window.on('close-request', () => (loop.quit(), app.quit(), false))
-  window.present()
-
-  loop.run()
-})
-
-// Under ESM the run call returns immediately; the app keeps running and the
-// process exits when the window is closed. See "ES modules" below.
-app.run([])
-```
-
-> Prefer CommonJS? node-gtk supports it too — see the
-> [importing guide](./doc/importing.md#commonjs).
 
 <p align="center">
-  <img src="./img/hello-world.png" style="width: 290px; height: auto;"/>
+  <img src="./img/create-app-example.png" style="width: 400px; height: auto;"/>
+  <em>
+    *`npm run dev` to start it in development mode*
+  </em>
 </p>
 
-### Create a new app
+See our examples such as [a web browser](./examples/browser.mjs) or 
+[a system monitor](./examples/system-monitor.mjs).
 
-`node-gtk create` generates a complete, ready-to-run GTK/Adwaita project, so you
-can start building immediately:
+## Installing
+
+There are two steps:
+
+1. Install `node-gtk` itself (*done by the create tool*)
+2. Install the native libraries you use (see examples per platform below)
+
+#### Linux
 
 ```sh
-npx node-gtk create my-app
-cd my-app
-npm run dev
+# archlinux
+pacman -S gtk4 libadwaita
+
+# fedora
+dnf install gtk4 libadwaita
+
+# ubuntu
+# Already installed :)
 ```
 
-You get a **TypeScript + ESM** application — an `Adw.Application` with a header
-bar, a primary menu, an About window, and a welcome screen — fully typed against
-the libraries installed on your machine (via `generate-types`), with live reload
-(`npm run dev`) and a `tsc` build (`npm run build`). Pass `--name` / `--app-id`,
-or run `node-gtk create --help`; see
-[`tools/README.md`](./tools/README.md#node-gtk-create--create-a-new-app) for
-details.
+#### macOS
 
-You can also easily create custom applications:
+```sh
+brew install gtk4 libadwaita adwaita-icon-theme
+```
 
-[A web browser (using WebKit2GTK)](./examples/browser.mjs)
+#### Windows
 
-<p align="center">
-  <img src="./img/browser.png" style="max-width: 500px; height: auto;"/>
-</p>
+```sh
+# Already installed :)
+```
 
-[A system monitor](./examples/system-monitor.mjs)
+> [!NOTE]
+> Windows doesn't have the dependencies we need in a package manager, therefore
+> `node-gtk` ships prebuilt versions of GTK 4 / Adwaita, so `npm install node-gtk`
+> is all you need **if** your dependency is in our 
+> [list of prebuilt libraries](./windows/runtime-libraries.txt).
 
-<p align="center">
-  <img src="./img/system-monitor.png" style="width: 400px; height: auto;"/>
-</p>
+### build from source
+
+Building from source, or contributing? See [Building from source](./doc/building.md).
+
+## Documentation
+
+[Read our documentation here](./doc/index.md)
 
 ## ES modules
 
-ES modules are the default (see [Usage](#usage)): namespaces are imported with the
+ES modules are the default: namespaces are imported with the
 `gi:` scheme (`import Gtk from 'gi:Gtk-4.0'`) after installing the hooks with
 `node --import node-gtk/register`, and the loop integration starts automatically.
 
@@ -143,10 +119,6 @@ See the **[importing guide](./doc/importing.md)** for the full details: the `gi:
 scheme, importing node-gtk's own API, skipping the `--import` flag, and CommonJS.
 For the why behind the immediate-return behaviour, see
 [#449](https://github.com/romgrk/node-gtk/issues/449).
-
-## Documentation
-
-[Read our documentation here](./doc/index.md)
 
 ## TypeScript
 
@@ -209,46 +181,12 @@ script so it regenerates on install:
 
 Run `npx node-gtk generate-types --help` for options.
 
-## Installing
-
-1. Install `node-gtk` itself
-2. Install the native libraries you use (see examples per platform below)
-
-```sh
-npm install node-gtk
-
-# This installs a prebuilt binary when one is available for your platform and
-# Node.js version, otherwise it falls back to building from source.
-```
-
-#### Linux
-
-```sh
-# archlinux
-pacman -S gtk4
-
-# ubuntu
-apt install libgtk-4-1
-```
-
-#### macOS
-
-```sh
-brew install gtk4
-```
-
-#### Windows
-
-Windows doesn't have the dependencies we need in a package manager, therefore 
-`node-gtk` ships prebuilt versions of GTK 4 / Adwaita runtime (DLLs, typelibs, 
-icons), so `npm install node-gtk` is all you need **if** your dependency is in 
-our [list of prebuilt libraries](./windows/runtime-libraries.txt).
-
-### build from source
-
-Building from source, or contributing? See [Building from source](./doc/building.md).
-
 ## Contributing
+
+`node-gtk` is a [gobject-introspection](https://gi.readthedocs.io/en/latest) library 
+for nodejs. It makes it possible to use any introspected C library, such as GTK, 
+usable. It is similar in essence to [GJS](https://wiki.gnome.org/action/show/Projects/Gjs) 
+or [PyGObject](https://pygobject.readthedocs.io).
 
 If you'd like to help, we'd be more than happy to have support. To setup your development environment, you can
 run `npm run configure`. You can then build the project with `npm run build`. To generate the `compile_commands.json`
