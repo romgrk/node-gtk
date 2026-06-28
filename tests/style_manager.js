@@ -73,6 +73,33 @@ describe('StyleManager', () => {
     file.update(tmpCss)
     file.remove()
   })
+
+  it('add(renderFn) runs the render at install and again on refresh()', () => {
+    const styles = new StyleManager()
+    let calls = 0
+    const sheet = styles.add(() => `.r { color: red; } /* ${++calls} */`)
+    expect(calls, 1) // rendered once at install
+    sheet.refresh()
+    expect(calls, 2) // refresh re-runs the render
+  })
+
+  it('update() with a string drops the render fn (literal wins)', () => {
+    const styles = new StyleManager()
+    let calls = 0
+    const sheet = styles.add(() => { calls++; return '.a { color: red; }' })
+    expect(calls, 1)
+    sheet.update('.b { color: green; }') // now fixed CSS
+    sheet.refresh()
+    expect(calls, 1) // render no longer invoked
+  })
+
+  it('watch:false installs without watching the caller', () => {
+    const styles = new StyleManager()
+    styles.add('.q { color: red; }', { watch: false })
+    expect(styles.watchedFiles.size, 0)
+    styles.add('.w { color: red; }') // default: watched
+    expect(styles.watchedFiles.size, 1)
+  })
 })
 
 function isntNull(value) {
