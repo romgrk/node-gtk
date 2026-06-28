@@ -8,108 +8,55 @@ documentation and translate it to node-gtk on your own. For what a given functio
 call it, never *what* it does.
 
 #### Table of contents
-  1. [How node-gtk bridges C and JavaScript](#1-how-node-gtk-bridges-c-and-javascript)
-  2. [Data types](#2-data-types)
+  1. [Introduction](#1-introduction)
+  2. [GObjects](#2-gobjects)
   3. [Structs and unions](#3-structs-and-unions)
-  4. [GObjects](#4-gobjects)
-  5. [Naming conventions](#5-naming-conventions)
-  6. [Function calls](#6-function-calls)
-  7. [Common pitfalls](#7-common-pitfalls)
+  4. [Primitives](#4-primitives)
+  5. [Function calls](#5-function-calls)
+  6. [Common pitfalls](#6-common-pitfalls)
 
-## 1. How node-gtk bridges C and JavaScript
+## 1. Introduction
 
-node-gtk doesn't reimplement GTK — it loads the real C libraries and exposes them
-to JavaScript at runtime. The bridge is **GObject-Introspection (GI)**: every
-GObject-based library ships a machine-readable description of its API (a
+node-gtk expose GTK via auto-generated wrappers. The bridge is **GObject-Introspection**: 
+every GObject library ships a machine-readable description of its API (a
 `.typelib` file). node-gtk reads that description and builds the matching
-JavaScript classes, methods, and constants on the fly. That's why there's no
-hand-written wrapper per function, and why the types you'll meet below map so
-directly onto C.
+JavaScript classes, methods, and constants on the fly. That's why the types 
+you'll meet below map so directly onto C.
 
 Two things are worth keeping in mind as a Node developer:
 
 - **You're calling real C code.** node-gtk converts values across the boundary (a
-  JS string ↔ a C `char *`, a JS object ↔ a C struct), but the function that runs
-  is the library's own. A few C concepts therefore surface in the API — most
-  visibly *out-arguments* (see [§6](#6-function-calls)) — and calling a function
-  the wrong way can **crash the process** instead of throwing a catchable error
-  (see [§7](#7-common-pitfalls)).
-- **Memory is managed for you.** GObject reference-counts its objects; node-gtk
-  ties that to V8's garbage collector. You create things with `new` (or a
-  creation function) and simply stop referencing them — there is nothing to free.
+  JS string ↔ a C `char *`), but the function that runs is the library's own. A 
+  few C concepts therefore surface in the API and calling a function the wrong 
+  way can **crash the process**.
+- **Memory is managed for you.** Besides the power to crash the process, you don't
+  need to worry about C concepts like memory management.
 
 Everything lives under a **namespace** — the object you import (`Gtk`, `Gio`,
-`GLib`, `Adw`). Within one you'll meet four kinds of types, covered next.
+`GLib`, `Adw`). Within one you'll meet several kinds of types — GObjects, structs,
+enums, and primitives — each covered in its own section below. They all share one
+set of naming rules, worth learning up front.
 
-## 2. Data types
+#### Naming conventions
 
-The GLib Object System maps each kind of type to JavaScript in its own way:
+node-gtk normalizes names from the C style to JavaScript conventions. The
+guiding rule: a C name like `gtk_widget_set_visible` drops the namespace prefix
+and is camelCased into a method, `widget.setVisible(true)`.
 
-- **Primitives — integer, float, boolean, string**  
-    Map directly to JavaScript values; no special handling needed. (Strings
-    occasionally need to be passed as a byte array — see the library's docs.)
-- **Enums & flags**  
-    Become plain values grouped in an object. `GTK_ORIENTATION_VERTICAL` is
-    `Gtk.Orientation.VERTICAL`; flags (bitmasks) work the same way.
-- **Structs & unions (boxed types)**  
-    Become JavaScript objects with field access and methods — see
-    [§3](#3-structs-and-unions).
-- **GObjects**  
-    Class instances organized in an inheritance hierarchy — see
-    [§4](#4-gobjects).
+| Kind | Convention | Example |
+| --- | --- | --- |
+| Functions & methods | `lowerCamelCase` | `GLib.randomIntRange(0, 100)`, `textBuffer.placeCursor(0)` |
+| Virtual function overrides | `virtual_` + `lowerCamelCase` | `virtual_getRequestMode`, `virtual_sizeAllocate` |
+| Fields & properties | `lowerCamelCase` | `textView.showLineNumbers = true`, `rgba.alpha = 0.5` |
+| Structs, unions, GObjects, interfaces | `UpperCamelCase` | `Gtk.Button`, `Gdk.RGBA` |
+| Enums & flags | `UpperCamelCase` | `Gtk.Orientation.VERTICAL`, `Gtk.Align.FILL` |
+| Constants & values | `SNAKE_CASE` (unchanged) | `Gdk.KEY_g !== Gdk.KEY_G`, `Gtk.STYLE_PROVIDER_PRIORITY_USER` |
+| Signals | `dash-case` | `button.on('clicked', …)` |
 
-#### Numbers and BigInt
+## 2. GObjects
 
-Most integers and all floats are plain JavaScript `number`s. The exception is
-**64-bit** integers (`gint64`/`guint64`): to preserve full precision they cross
-the boundary as **`BigInt`**, so some APIs hand you `10n` rather than `10`. On the
-way *in*, a parameter that expects a 64-bit integer accepts either form.
-
-#### Enums and flags
-
-An *enum* is a fixed set of named values; a *flags* type is an enum whose values
-are powers of two, meant to be combined into a bitmask. Combine and test them
-with JavaScript's bitwise operators, exactly as you would in C:
-
-```javascript
-// combine with `|`
-const flags = Gio.ApplicationFlags.HANDLES_OPEN | Gio.ApplicationFlags.HANDLES_COMMAND_LINE
-
-// test with `&`
-if (flags & Gio.ApplicationFlags.HANDLES_OPEN) { /* … */ }
-```
-
-## 3. Structs and unions
-
-Structs and unions are *boxed* types — simple bags of data that may also carry a
-few methods. Unlike GObjects they have no inheritance; think of them as plain
-records.
-
-Create one with its constructor, if it has one (e.g.
-[`Gdk.RGBA`](https://docs.gtk.org/gdk4/struct.RGBA.html)):
-
-```javascript
-const color = new Gdk.RGBA({ red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0 })
-```
-
-…or with a creation function (e.g.
-[`Gdk.Cursor`](https://docs.gtk.org/gdk4/class.Cursor.html)):
-
-```javascript
-const cursor = Gdk.Cursor.newFromName('pointer', null)
-```
-
-Fields are read and written with dot-notation, in **lowerCamelCase**:
-
-```javascript
-console.log(color.red)
-color.alpha = 0.8
-```
-
-## 4. GObjects
-
-GObjects are the heart of GTK: instances of classes arranged in a hierarchy. Like
-boxed types, they're created with a constructor or a creation function:
+GObjects are the heart of GTK: instances of classes arranged in a hierarchy.
+They're created with a constructor or a creation function:
 
 ```javascript
 // Constructor with initial properties
@@ -140,7 +87,7 @@ void gtk_label_set_text (GtkLabel *self, const char *str);
 ```
 
 is called as `label.setText(str)`. Functions with *out-arguments* return them as
-the result instead — see [§6](#6-function-calls).
+the result instead — see [§5](#5-function-calls).
 
 #### Properties
 
@@ -248,23 +195,62 @@ node-gtk registers new GObject subclasses with the type system automatically,
 but you can also use `import { registerClass } from 'node-gtk'` to register your
 class immediately.
 
-## 5. Naming conventions
+## 3. Structs and unions
 
-node-gtk normalizes names from the C/GIR style to JavaScript conventions. The
-guiding rule: a C name like `gtk_widget_set_visible` drops the namespace prefix
-and is camelCased into a method, `widget.setVisible(true)`.
+Structs and unions are *boxed* types — simple bags of data that may also carry a
+few methods. Unlike GObjects they have no inheritance; think of them as plain
+records.
 
-| Kind | Convention | Example |
-| --- | --- | --- |
-| Functions & methods | `lowerCamelCase` | `GLib.randomIntRange(0, 100)`, `textBuffer.placeCursor(0)` |
-| Virtual function overrides | `virtual_` + `lowerCamelCase` | `virtual_getRequestMode`, `virtual_sizeAllocate` |
-| Fields & properties | `lowerCamelCase` | `textView.showLineNumbers = true`, `rgba.alpha = 0.5` |
-| Structs, unions, GObjects, interfaces | `UpperCamelCase` | `Gtk.Button`, `Gdk.RGBA` |
-| Enums & flags | `UpperCamelCase` | `Gtk.Orientation.VERTICAL`, `Gtk.Align.FILL` |
-| Constants & values | `SNAKE_CASE` (unchanged) | `Gdk.KEY_g !== Gdk.KEY_G`, `Gtk.STYLE_PROVIDER_PRIORITY_USER` |
-| Signals | `dash-case` | `button.on('clicked', …)` |
+Create one with its constructor, if it has one (e.g.
+[`Gdk.RGBA`](https://docs.gtk.org/gdk4/struct.RGBA.html)):
 
-## 6. Function calls
+```javascript
+const color = new Gdk.RGBA({ red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0 })
+```
+
+…or with a creation function (e.g.
+[`Gdk.Cursor`](https://docs.gtk.org/gdk4/class.Cursor.html)):
+
+```javascript
+const cursor = Gdk.Cursor.newFromName('pointer', null)
+```
+
+Fields are read and written with dot-notation, in **lowerCamelCase**:
+
+```javascript
+console.log(color.red)
+color.alpha = 0.8
+```
+
+## 4. Primitives
+
+Primitive values — integers, floats, booleans, and strings — map directly to
+JavaScript, with no special handling. (Strings occasionally need to be passed as
+a byte array — see the library's docs.) Enums and flags, covered below, also
+reduce to plain values.
+
+#### Numbers and BigInt
+
+Most integers and all floats are plain JavaScript `number`s. The exception is
+**64-bit** integers (`gint64`/`guint64`): to preserve full precision they cross
+the boundary as **`BigInt`**, so some APIs hand you `10n` rather than `10`. On the
+way *in*, a parameter that expects a 64-bit integer accepts either form.
+
+#### Enums and flags
+
+An *enum* is a fixed set of named values; a *flags* type is an enum whose values
+are powers of two, meant to be combined into a bitmask. Combine and test them
+with JavaScript's bitwise operators, exactly as you would in C:
+
+```javascript
+// combine with `|`
+const flags = Gio.ApplicationFlags.HANDLES_OPEN | Gio.ApplicationFlags.HANDLES_COMMAND_LINE
+
+// test with `&`
+if (flags & Gio.ApplicationFlags.HANDLES_OPEN) { /* … */ }
+```
+
+## 5. Function calls
 
 Translating calls between C and JavaScript has a few gotchas, mostly because some
 C concepts (like pointers) have no JavaScript equivalent.
@@ -330,7 +316,7 @@ try {
 }
 ```
 
-## 7. Common pitfalls
+## 6. Common pitfalls
 
 Because the bindings give you direct access to C functions, misusing a library
 can crash the process rather than raise a catchable error. A few frequent
@@ -345,17 +331,10 @@ mistakes:
 </details>
 
 <details>
-  <summary><b>Instantiating a subclass before registering it</b></summary>
-  Call <code>registerClass(MyClass)</code> before <code>new MyClass()</code>;
-  otherwise construction falls back to the abstract base type and aborts the
-  process. See <a href="#4-gobjects">§4 → Inheritance</a>.
-</details>
-
-<details>
   <summary><b>Omitting a required argument</b></summary>
   C functions have no optional parameters. Pass every argument the signature
   lists — including a literal <code>null</code> for things like a cancellable or
-  a fallback value. See <a href="#6-function-calls">§6 → Nullable arguments</a>.
+  a fallback value. See <a href="#5-function-calls">§5 → Nullable arguments</a>.
 </details>
 
 <details>
