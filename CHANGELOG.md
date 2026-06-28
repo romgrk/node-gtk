@@ -63,6 +63,16 @@ Changes to be released are kept in the unreleased section.
   hot-reloads live under `npm run dev`. See
   [Create a new app](./README.md#create-a-new-app).
 
+### Fixes
+
+- A signal handler that closes over the object it is connected to no longer
+  leaks it. Handlers are now kept in a JS array on the wrapper (reachable only
+  through the wrapper) instead of a strong C++ reference, so the wrapper↔handler
+  reference loop is garbage-collected; this also covers handlers on
+  `Gtk.EventController`s and `Gtk.Gesture`s. See
+  [Signal handlers and GC](./doc/signal-handler-gc.md) (#463, based on #375 by
+  @peat-psuwit).
+
 ## v2.2.0
 
 ### Features
