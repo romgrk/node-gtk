@@ -4,6 +4,8 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v3.0.0
+
 ### Breaking changes
 
 - Removed `gi.startLoop()`. The GLib main-loop integration now starts
