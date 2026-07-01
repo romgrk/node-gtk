@@ -4,7 +4,6 @@
 
 const chalk = require('chalk')
 const isEqual = require('lodash.isequal')
-const deasync = require('deasync')
 
 module.exports = {
   assert,
@@ -51,25 +50,29 @@ function describe(message, fn) {
   const isAsync = fn.toString().startsWith('async')
 
   if (isAsync) {
-    let done = false
-
-    fn()
-    .then(() => { done = true })
+    // No synchronous event-loop pump (deasync) is needed: return the promise
+    // and let the process's own event loop drain it. Each test file runs in its
+    // own process (see __run__.js), so pending async work keeps the process
+    // alive until it settles, and the exit code reports success/failure.
+    return fn()
+    .then(() => {
+      if (!calledIt)
+        _success()
+      currentTest = undefined
+    })
     .catch(e => {
       _failed()
       console.error(e)
       process.exit(1)
     })
-    deasync.loopWhile(function(){ return !done })
   }
-  else {
-    try {
-      fn()
-    } catch(e) {
-      _failed()
-      console.error(e)
-      process.exit(1)
-    }
+
+  try {
+    fn()
+  } catch(e) {
+    _failed()
+    console.error(e)
+    process.exit(1)
   }
 
   if (!calledIt)
