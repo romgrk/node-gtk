@@ -38,18 +38,33 @@ struct FundamentalInstance {
 bool IsFundamentalObjectInfo (GIObjectInfo *info) {
     if (g_base_info_get_type (info) != GI_INFO_TYPE_OBJECT)
         return false;
-    if (!g_object_info_get_fundamental (info))
-        return false;
+
+    GType gtype = g_registered_type_info_get_g_type (info);
 
     /* GParamSpec is also a fundamental (non-GObject) type, but it has its own
      * dedicated wrapper (param_spec.cc) that predates this one and is used by
      * the value.cc / V8ToGIArgumentInterface param paths; keep it on that
      * path rather than diverting it here. */
-    GType gtype = g_registered_type_info_get_g_type (info);
-    if (g_type_is_a (gtype, G_TYPE_PARAM))
+    if (gtype != G_TYPE_INVALID && g_type_is_a (gtype, G_TYPE_PARAM))
         return false;
 
-    return true;
+    /* Primary signal: the typelib's glib:fundamental flag. */
+    if (g_object_info_get_fundamental (info))
+        return true;
+
+    /* Fallback: a GIObjectInfo whose GType exists but is NOT a GObject
+     * descendant can only be a fundamental type (e.g. GskRenderNode, which
+     * registers its own GType hierarchy via g_type_register_fundamental).
+     * Some platforms' typelibs don't carry the glib:fundamental attribute
+     * reliably — the Windows/MSYS2 GTK4 build reports it FALSE for
+     * GskRenderNode, so it fell back to the GObject wrapper and fired an
+     * `invalid cast ... to GObject` critical (#468). Trust the GType hierarchy
+     * as well; on GObject subclasses G_TYPE_IS_OBJECT is true, so they keep the
+     * GObject path. */
+    if (gtype != G_TYPE_INVALID && gtype != G_TYPE_NONE && !G_TYPE_IS_OBJECT (gtype))
+        return true;
+
+    return false;
 }
 
 /*
