@@ -4,6 +4,16 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+### Fixes
+
+- Methods from a `GInterface` are now available directly on instances of
+  private/non-introspectable concrete types. For example a `Gio.File` returned by
+  `Gio.File.newForPath()` is a `GLocalFile` (a private type), and previously
+  `file.getPath()`, `file.enumerateChildren()`, … lived only on
+  `Gio.File.prototype`. The interface methods are now mixed into the instance's
+  prototype at wrap time, so they can be called directly. This also removes the
+  need for the manual `getFile()` prototype fixups in the Gtk 4 overrides (#441).
+
 ## v3.0.0
 
 ### Breaking changes

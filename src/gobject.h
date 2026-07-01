@@ -23,6 +23,8 @@ Local<FunctionTemplate> GetBaseClassTemplate ();
 MaybeLocal<Value>       GetGObjectProperty   (GObject * gobject, const char *prop_name);
 MaybeLocal<v8::Boolean> SetGObjectProperty   (GObject * gobject, const char *prop_name, Local<Value> value);
 
+NAN_METHOD(SetInterfaceMethodsApplier);
+
 namespace ObjectClass {
 
 NAN_METHOD(SetLazyClassRegister);
