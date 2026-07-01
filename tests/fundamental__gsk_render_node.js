@@ -75,6 +75,7 @@ describe('Gsk.RenderNode fundamental-type wrapping (#468)', () => {
         env: Object.assign({}, process.env, {
           NODE_GTK_468_CHILD: '1',
           G_DEBUG: 'fatal-criticals',
+          NODE_GTK_FUND_DEBUG: '1',
         }),
       }
     )
