@@ -22,7 +22,7 @@
 
 `node-gtk` lets you build native GTK apps on **linux**, **macOS** and  **windows**
 with full **ESM**, **TypeScript** and **CSS hot-reload** support. Prebuilt binaries 
-are available for Node.js versions **20**, **22** and **24**.
+are available for Node.js versions **22**, **24** and **26**.
 
 <p align="center">
   <img src="./img/browser.png" style="max-width: 500px; height: auto;" alt="A web browser build with node-gtk" />

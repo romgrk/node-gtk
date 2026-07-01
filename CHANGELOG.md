@@ -4,6 +4,18 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v4.0.0
+
+### Breaking changes
+
+- **Dropped support for Node.js 20.** Prebuilt binaries are now published for
+  Node.js **22**, **24** and **26**.
+
+### Features
+
+- **Node.js 26 support** (V8 14 / ABI 147). The native binding was ported to the
+  V8 APIs shipped in Node 26, preferring Nan wrappers over raw V8 version guards.
+
 ### Fixes
 
 - Methods from a `GInterface` are now available directly on instances of
@@ -13,6 +25,30 @@ Changes to be released are kept in the unreleased section.
   `Gio.File.prototype`. The interface methods are now mixed into the instance's
   prototype at wrap time, so they can be called directly. This also removes the
   need for the manual `getFile()` prototype fixups in the Gtk 4 overrides (#441).
+- **Fundamental (non-`GObject`) reference-counted types are now wrapped
+  correctly.** Types such as `Gsk.RenderNode` were previously wrapped as though
+  they were `GObject`s, which produced `G_IS_OBJECT` criticals on wrap, use and
+  teardown. They are now handled by a dedicated fundamental-type subsystem that
+  ref/unrefs them through their own type's vtable rather than toggle-referencing
+  them (#468).
+- **`GLib.Variant` passed into a signal handler is no longer NULL or corrupt.**
+  `GVariant` is now wrapped as a ref-counted fundamental type, so a variant handed
+  to a signal callback (e.g. `Gio.SimpleAction`'s `::change-state`) is readable
+  inside the handler and keeps its own reference for the lifetime of the wrapper
+  (#465).
+- Nullable `char *` / array return values now return `null` instead of `""` / `[]`
+  at end-of-stream (for example `Gio.DataInputStream.readLineFinish()` at EOF)
+  (#467).
+
+### Internal
+
+- Dropped the `deasync` dependency — the last native `devDependency`. Async
+  `describe()` blocks in the test suite now let each test process's own event loop
+  drain the promise instead of blocking on `deasync`, whose pinned
+  `node-addon-api` no longer builds on Node 26.
+- The MSVC (Windows) build strips Node 26's ClangCL/ThinLTO linker flags, which
+  are emitted for the MinGW toolchain but break the MSVC toolchain node-gtk uses
+  on Windows.
 
 ## v3.0.0
 
