@@ -40,6 +40,11 @@ static Nan::Persistent<FunctionTemplate> baseTemplate;
 // this makes registerClass() optional. Empty until JS installs it.
 static Nan::Persistent<Function> lazyClassRegister;
 
+// JS callback invoked the first time a private/non-introspectable concrete type
+// (eg GLocalFile) is wrapped, to mix its implemented interfaces' methods into
+// the class prototype. Installed via SetInterfaceMethodsApplier. See issue #441.
+static Nan::Persistent<Function> interfaceMethodsApplier;
+
 
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
 static MaybeLocal<Function>         GetClass(GType gtype);
@@ -782,6 +787,60 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     return MaybeLocal<FunctionTemplate> (tpl);
 }
 
+/*
+ * Mix the methods of a type's implemented interfaces into its class prototype.
+ *
+ * Introspectable object types get this for free: makeObject() in JS iterates
+ * their interfaces and installs the methods. Private/non-introspectable concrete
+ * types (eg GLocalFile, which implements the public GFile interface) are never
+ * seen by makeObject(), so their instances would only expose the base GObject
+ * methods. Here we enumerate the type's introspectable interfaces and hand them
+ * to the JS `interfaceMethodsApplier`, which reuses makeInterface()/define() to
+ * install the methods (and property accessors) on the class prototype.
+ *
+ * See issue #441.
+ */
+static void ApplyInterfaceMethods(Local<Function> constructor, GType gtype) {
+    if (interfaceMethodsApplier.IsEmpty())
+        return;
+
+    guint n_interfaces = 0;
+    GType *interfaces = g_type_interfaces(gtype, &n_interfaces);
+
+    Local<Array> refs = New<Array>();
+    uint32_t count = 0;
+    for (guint i = 0; i < n_interfaces; i++) {
+        GIBaseInfo *iface_info = g_irepository_find_by_gtype(NULL, interfaces[i]);
+        if (iface_info == NULL)
+            continue;
+        if (g_base_info_get_type(iface_info) == GI_INFO_TYPE_INTERFACE) {
+            Local<Object> ref = New<Object>();
+            Nan::Set(ref, UTF8("namespace"), UTF8(g_base_info_get_namespace(iface_info)));
+            Nan::Set(ref, UTF8("name"),      UTF8(g_base_info_get_name(iface_info)));
+            Nan::Set(refs, count++, ref);
+        }
+        g_base_info_unref(iface_info);
+    }
+    g_free(interfaces);
+
+    if (count == 0)
+        return;
+
+    Local<Function> applier = New<Function>(interfaceMethodsApplier);
+    Local<Value> argv[] = { constructor, refs };
+    Nan::TryCatch tryCatch;
+    Nan::Call(applier, Nan::GetCurrentContext()->Global(), 2, argv);
+    if (tryCatch.HasCaught()) {
+        Nan::Utf8String message(tryCatch.Exception());
+        g_warning("node-gtk: could not apply interface methods for %s: %s",
+                  g_type_name(gtype), *message);
+    }
+}
+
+NAN_METHOD(SetInterfaceMethodsApplier) {
+    interfaceMethodsApplier.Reset(info[0].As<Function>());
+}
+
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
 
@@ -808,6 +867,15 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
 
     g_type_set_qdata(gtype, GNodeJS::template_quark(), persistentTpl);
     g_type_set_qdata(gtype, GNodeJS::function_quark(), persistentFn);
+
+    // Introspectable object types have their interface methods installed by
+    // makeObject() in JS. Private concrete types are never seen there, so mix
+    // in their interface methods now (issue #441).
+    GIBaseInfo *own_info = g_irepository_find_by_gtype(NULL, gtype);
+    if (own_info == NULL)
+        ApplyInterfaceMethods(fn, gtype);
+    else
+        g_base_info_unref(own_info);
 
     return MaybeLocal<FunctionTemplate> (tpl);
 }
