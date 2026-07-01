@@ -161,7 +161,7 @@ static void FundamentalConstructor (const Nan::FunctionCallbackInfo<Value> &info
     instance->persistent = new Persistent<Object> (self);
     instance->persistent->SetWeak (instance, FundamentalDestroyed, WeakCallbackType::kParameter);
 
-    self->SetAlignedPointerInInternalField (0, ptr);
+    Nan::SetInternalFieldPointer (self, 0, ptr);
     SET_OBJECT_GTYPE (self, gtype);
 }
 
@@ -174,7 +174,7 @@ static void FundamentalToString (const Nan::FunctionCallbackInfo<Value> &info) {
     }
 
     GType gtype = GET_OBJECT_GTYPE (self);
-    void *address = self->GetAlignedPointerFromInternalField (0);
+    void *address = Nan::GetInternalFieldPointer (self, 0);
     char *str = g_strdup_printf ("[%s %#zx]", g_type_name (gtype), (size_t) address);
     info.GetReturnValue ().Set (UTF8 (str));
     g_free (str);
@@ -377,7 +377,7 @@ static void VariantConstructor (const Nan::FunctionCallbackInfo<Value> &info) {
     instance->persistent = new Persistent<Object> (self);
     instance->persistent->SetWeak (instance, FundamentalDestroyed, WeakCallbackType::kParameter);
 
-    self->SetAlignedPointerInInternalField (0, ptr);
+    Nan::SetInternalFieldPointer (self, 0, ptr);
     SET_OBJECT_GTYPE (self, G_TYPE_VARIANT);
 }
 
