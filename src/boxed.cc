@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "error.h"
 #include "function.h"
+#include "fundamental.h"
 #include "gi.h"
 #include "gobject.h"
 #include "macros.h"
@@ -413,6 +414,13 @@ Local<Function> GetBoxedFunction(GIBaseInfo *info, GType gtype) {
 
 Local<Function> MakeBoxedClass(GIBaseInfo *info) {
     GType gtype = g_registered_type_info_get_g_type ((GIRegisteredTypeInfo *) info);
+
+    // GVariant is a StructInfo but a refcounted fundamental (G_TYPE_VARIANT),
+    // not a boxed value: give it the fundamental ref/unref wrapper instead of
+    // the boxed copy/free one. JS still attaches its struct methods to this
+    // class via makeBoxed() (#465).
+    if (gtype == G_TYPE_VARIANT)
+        return MakeVariantClass (info);
 
     if (gtype == G_TYPE_NONE) {
         auto moduleCache = GNodeJS::GetModuleCache();

@@ -41,4 +41,31 @@ Local<Value> WrapperFromFundamental (GIObjectInfo *info, void *ptr, ResourceOwne
  * Fundamental counterpart of RefObjectForTransferFullIn / CopyBoxedForTransferFullIn. */
 void RefFundamentalForTransferFullIn (GITypeInfo *type_info, GIArgument *arg);
 
+
+/*
+ * GVariant is also a fundamental (non-GObject) ref-counted type, but GObject-
+ * Introspection reports it as a GI_INFO_TYPE_STRUCT (a GIStructInfo) with
+ * g_type == G_TYPE_VARIANT, not as a fundamental GIObjectInfo. It is refcounted
+ * with g_variant_ref/unref (and has floating references), so it gets the same
+ * single-owned-reference wrapper as the object fundamentals above rather than
+ * the boxed copy/free path. Its JS class is still built from the struct info
+ * (so its introspected methods attach), just with this ref/unref lifetime.
+ */
+
+/* True when `info` is a registered type whose g_type is G_TYPE_VARIANT. */
+bool IsVariantInfo (GIBaseInfo *info);
+
+/* True when `type_info` is an interface referring to G_TYPE_VARIANT. */
+bool IsVariantTypeInfo (GITypeInfo *type_info);
+
+/* Build (or fetch the cached) constructor for GLib.Variant. */
+Local<Function> MakeVariantClass (GIBaseInfo *info);
+
+/* Wrap a GVariant for return to JS, taking a reference according to `ownership`
+ * (kTransfer: adopt the incoming reference; otherwise add our own). */
+Local<Value> WrapperFromVariant (void *ptr, ResourceOwnership ownership);
+
+/* Transfer-full IN counterpart for GVariant (adds the callee's reference). */
+void RefVariantForTransferFullIn (GITypeInfo *type_info, GIArgument *arg);
+
 };

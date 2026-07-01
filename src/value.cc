@@ -147,7 +147,12 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
             case GI_INFO_TYPE_UNION:
-                value = WrapperFromBoxed (interface_info, arg->v_pointer, ownership);
+                // GVariant is a struct-classed fundamental: refcount it via the
+                // fundamental wrapper rather than g_boxed_copy (#465).
+                if (IsVariantInfo (interface_info))
+                    value = WrapperFromVariant (arg->v_pointer, ownership);
+                else
+                    value = WrapperFromBoxed (interface_info, arg->v_pointer, ownership);
                 break;
             case GI_INFO_TYPE_ENUM:
                 value = New<Number>(arg->v_int);
@@ -1729,7 +1734,7 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
         return false;
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        return false;
+        return value->IsNullOrUndefined() || ValueIsInstanceOfGType(value, G_TYPE_VARIANT);
     }
 
     ERROR("Unhandled GValue type: %s (please report this)",
@@ -1822,7 +1827,13 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership)
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
         ERROR("Unsupported type: pointer");
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        ERROR("Unsupported type: variant");
+        // GVariant is nullable. g_value_set_variant refs a non-NULL variant
+        // (and sinks a floating one), so the GValue holds its own reference
+        // independent of the JS wrapper (#465).
+        g_value_set_variant (gvalue,
+                value->IsNullOrUndefined()
+                    ? NULL
+                    : (GVariant *) PointerFromWrapper (value));
     } else {
         ERROR("Unhandled GValue type: %s (please report this)",
                 g_type_name(G_VALUE_TYPE(gvalue)));
@@ -1899,7 +1910,9 @@ Local<Value> GValueToV8(const GValue *gvalue, ResourceOwnership ownership) {
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
         ERROR("Unsuported type: pointer");
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        ERROR("Unsuported type: variant");
+        // GVariant is a struct-classed fundamental; the fundamental wrapper
+        // takes its own reference according to `ownership` (#465).
+        return WrapperFromVariant (g_value_get_variant (gvalue), ownership);
     } else {
         // Don't abort the whole process on a GValue type we can't convert
         // (e.g. GStreamer's GstValueArray / GstValueList, #389). Warn and

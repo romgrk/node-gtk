@@ -530,6 +530,7 @@ Local<Value> FunctionCall (
                     CopyBoxedForTransferFullIn(&type_info, &callable_arg_values[i], param.length);
                     RefObjectForTransferFullIn(&type_info, &callable_arg_values[i]);
                     RefFundamentalForTransferFullIn(&type_info, &callable_arg_values[i]);
+                    RefVariantForTransferFullIn(&type_info, &callable_arg_values[i]);
                 }
             }
 

@@ -112,7 +112,10 @@ static void FundamentalDestroyed (const Nan::WeakCallbackInfo<FundamentalInstanc
     if (self->data != NULL && self->unref != NULL)
         self->unref (self->data);
 
-    self->persistent->Reset ();
+    /* Nan's kParameter weak callback already Reset()s the handle in its first
+     * pass (nan_weak.h); calling Reset() again here would double-destroy the
+     * global handle (V8 "IsInUse" fatal). Just free our bookkeeping, matching
+     * BoxedDestroyed. */
     delete self->persistent;
     delete self;
 }
@@ -301,6 +304,148 @@ Local<Value> WrapperFromFundamental (GIObjectInfo *info, void *ptr, ResourceOwne
         return Nan::Null ();
 
     return instance.ToLocalChecked ();
+}
+
+
+/*
+ * GVariant
+ *
+ * GVariant is a fundamental ref-counted type, but GI classes it as a
+ * GIStructInfo (g_type == G_TYPE_VARIANT), so the object-info machinery above
+ * (G_TYPE_FROM_INSTANCE, introspected ref/unref functions) does not apply. It
+ * uses the shared FundamentalInstance lifetime with hardcoded g_variant_ref/
+ * unref and floating-reference handling (g_variant_ref_sink / take_ref).
+ */
+
+/* Matches GIObjectInfoUnrefFunction's signature so FundamentalInstance can call
+ * it uniformly; avoids a function-pointer cast. */
+static void VariantUnref (void *data) {
+    g_variant_unref ((GVariant *) data);
+}
+
+bool IsVariantInfo (GIBaseInfo *info) {
+    GIInfoType type = g_base_info_get_type (info);
+    if (type != GI_INFO_TYPE_STRUCT
+            && type != GI_INFO_TYPE_BOXED
+            && type != GI_INFO_TYPE_UNION
+            && type != GI_INFO_TYPE_OBJECT)
+        return false;
+    return g_registered_type_info_get_g_type (info) == G_TYPE_VARIANT;
+}
+
+bool IsVariantTypeInfo (GITypeInfo *type_info) {
+    if (g_type_info_get_tag (type_info) != GI_TYPE_TAG_INTERFACE)
+        return false;
+    GIBaseInfo *iface = g_type_info_get_interface (type_info);
+    bool result = IsVariantInfo (iface);
+    g_base_info_unref (iface);
+    return result;
+}
+
+static void VariantConstructor (const Nan::FunctionCallbackInfo<Value> &info) {
+    if (!info.IsConstructCall ()) {
+        Nan::ThrowTypeError ("Not a construct call");
+        return;
+    }
+
+    Local<Object> self = info.This ();
+
+    if (!info[0]->IsExternal ()) {
+        /* Like the object fundamentals, variants are obtained from function
+         * returns or their static constructors (e.g. GLib.Variant.newString),
+         * not built with `new`. */
+        Nan::ThrowError (
+            "Cannot construct GLib.Variant directly; use a static constructor (e.g. GLib.Variant.newString())");
+        return;
+    }
+
+    void *ptr = External::Cast (*info[0])->Value ();
+    auto ownership = (ResourceOwnership) Nan::To<int32_t> (info[1]).ToChecked ();
+
+    /* Own exactly one full (non-floating) reference for the wrapper's lifetime.
+     * A transfer-full return already handed us a reference to adopt (take_ref
+     * sinks it if it was floating); otherwise add our own (ref_sink sinks a
+     * fresh floating variant, or refs a shared one). */
+    if (ownership == kTransfer)
+        ptr = g_variant_take_ref ((GVariant *) ptr);
+    else
+        ptr = g_variant_ref_sink ((GVariant *) ptr);
+
+    FundamentalInstance *instance = new FundamentalInstance ();
+    instance->data = ptr;
+    instance->unref = VariantUnref;
+    instance->persistent = new Persistent<Object> (self);
+    instance->persistent->SetWeak (instance, FundamentalDestroyed, WeakCallbackType::kParameter);
+
+    self->SetAlignedPointerInInternalField (0, ptr);
+    SET_OBJECT_GTYPE (self, G_TYPE_VARIANT);
+}
+
+static Local<FunctionTemplate> GetVariantTemplate () {
+    GType gtype = G_TYPE_VARIANT;
+    void *data = g_type_get_qdata (gtype, GNodeJS::template_quark ());
+
+    if (data) {
+        auto *persistent = (Persistent<FunctionTemplate> *) data;
+        return New<FunctionTemplate> (*persistent);
+    }
+
+    auto tpl = New<FunctionTemplate> (VariantConstructor);
+    tpl->SetClassName (UTF8 (g_type_name (gtype)));
+    tpl->InstanceTemplate ()->SetInternalFieldCount (1);
+    Nan::SetPrototypeTemplate (
+        tpl, "__gtype__", v8::BigInt::NewFromUnsigned (Isolate::GetCurrent (), gtype));
+    tpl->Inherit (GetFundamentalBaseTemplate ());
+
+    /* G_TYPE_VARIANT is a static built-in fundamental that never unloads, so
+     * (unlike the per-namespace fundamental object templates) there is no
+     * class-destroyed weak callback to tear the cache down. */
+    auto *persistentTpl = new Persistent<FunctionTemplate> (tpl);
+    auto *persistentFn  = new Persistent<Function> (Nan::GetFunction (tpl).ToLocalChecked ());
+    g_type_set_qdata (gtype, GNodeJS::template_quark (), persistentTpl);
+    g_type_set_qdata (gtype, GNodeJS::function_quark (), persistentFn);
+
+    return tpl;
+}
+
+Local<Function> MakeVariantClass (GIBaseInfo *info) {
+    void *data = g_type_get_qdata (G_TYPE_VARIANT, GNodeJS::function_quark ());
+    if (data == NULL) {
+        GetVariantTemplate ();
+        data = g_type_get_qdata (G_TYPE_VARIANT, GNodeJS::function_quark ());
+    }
+
+    auto *persistent = (Persistent<Function> *) data;
+    return New<Function> (*persistent);
+}
+
+Local<Value> WrapperFromVariant (void *ptr, ResourceOwnership ownership) {
+    if (ptr == NULL)
+        return Nan::Null ();
+
+    Local<Function> constructor = MakeVariantClass (NULL);
+
+    Local<Value> args[] = {
+        New<External> (ptr),
+        New<v8::Int32> ((int32_t) ownership),
+    };
+
+    auto instance = Nan::NewInstance (constructor, 2, args);
+    if (instance.IsEmpty ())
+        return Nan::Null ();
+
+    return instance.ToLocalChecked ();
+}
+
+void RefVariantForTransferFullIn (GITypeInfo *type_info, GIArgument *arg) {
+    if (arg->v_pointer == NULL)
+        return;
+
+    /* The callee takes ownership of one reference; keep our own so the JS
+     * wrapper isn't unref'd out from under it (counterpart of the boxed/object
+     * transfer-full helpers). */
+    if (IsVariantTypeInfo (type_info))
+        arg->v_pointer = g_variant_ref ((GVariant *) arg->v_pointer);
 }
 
 };
