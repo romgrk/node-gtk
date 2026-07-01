@@ -1616,6 +1616,19 @@ static GType BoxedGTypeOf (GITypeInfo *type_info) {
     return gtype;
 }
 
+// Returns TRUE if `type_info` is the GVariant fundamental type. GVariant is a
+// GI struct whose registered GType is G_TYPE_VARIANT, but it is refcounted
+// rather than boxed, so it needs g_variant_ref/unref instead of g_boxed_*.
+static bool IsVariantTypeInfo (GITypeInfo *type_info) {
+    if (g_type_info_get_tag(type_info) != GI_TYPE_TAG_INTERFACE)
+        return false;
+
+    GIBaseInfo *interface_info = g_type_info_get_interface(type_info);
+    GType gtype = g_registered_type_info_get_g_type(interface_info);
+    g_base_info_unref(interface_info);
+    return gtype == G_TYPE_VARIANT;
+}
+
 void CopyBoxedForTransferFullIn (GITypeInfo *type_info, GIArgument *arg, long length) {
     if (arg->v_pointer == NULL)
         return;
@@ -1627,6 +1640,10 @@ void CopyBoxedForTransferFullIn (GITypeInfo *type_info, GIArgument *arg, long le
         GType gtype = BoxedGTypeOf(type_info);
         if (gtype != G_TYPE_INVALID)
             arg->v_pointer = g_boxed_copy(gtype, arg->v_pointer);
+        else if (IsVariantTypeInfo(type_info))
+            // GVariant is refcounted, not boxed: give the callee its own
+            // reference so the JS wrapper isn't unref'd out from under it (#465).
+            arg->v_pointer = g_variant_ref((GVariant *) arg->v_pointer);
         return;
     }
 
@@ -1726,7 +1743,7 @@ bool CanConvertV8ToGValue(GValue *gvalue, Local<Value> value) {
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
         return false;
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        return false;
+        return value->IsNullOrUndefined() || ValueIsInstanceOfGType(value, G_TYPE_VARIANT);
     }
 
     ERROR("Unhandled GValue type: %s (please report this)",
@@ -1819,7 +1836,9 @@ bool V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership)
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
         ERROR("Unsupported type: pointer");
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        ERROR("Unsupported type: variant");
+        // g_value_set_variant refs the variant (and sinks a floating one), so
+        // the GValue holds its own reference independent of the JS wrapper (#465).
+        g_value_set_variant (gvalue, (GVariant *) PointerFromWrapper (value));
     } else {
         ERROR("Unhandled GValue type: %s (please report this)",
                 g_type_name(G_VALUE_TYPE(gvalue)));
@@ -1896,7 +1915,15 @@ Local<Value> GValueToV8(const GValue *gvalue, ResourceOwnership ownership) {
     } else if (G_VALUE_HOLDS_POINTER (gvalue)) {
         ERROR("Unsuported type: pointer");
     } else if (G_VALUE_HOLDS_VARIANT (gvalue)) {
-        ERROR("Unsuported type: variant");
+        GVariant *variant = g_value_get_variant (gvalue);
+        if (variant == NULL)
+            return Nan::Null();
+        // GVariant is refcounted, not boxed; WrapperFromBoxed with kCopy takes
+        // its own reference via g_variant_ref (see BoxedConstructor, #465).
+        GIBaseInfo *info = g_irepository_find_by_gtype (NULL, G_TYPE_VARIANT);
+        Local<Value> obj = WrapperFromBoxed (info, variant, ownership);
+        g_base_info_unref (info);
+        return obj;
     } else {
         // Don't abort the whole process on a GValue type we can't convert
         // (e.g. GStreamer's GstValueArray / GstValueList, #389). Warn and

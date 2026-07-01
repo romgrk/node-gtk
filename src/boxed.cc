@@ -190,7 +190,14 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
         boxed = External::Cast(*info[0])->Value();
 
         if (ownership == kCopy) {
-            if (gtype != G_TYPE_NONE) {
+            if (gtype == G_TYPE_VARIANT) {
+                // GVariant is a refcounted fundamental type, not a boxed type:
+                // g_boxed_copy would fail its G_TYPE_IS_BOXED assertion and
+                // return NULL, leaving the wrapper pointing at garbage (#465).
+                // Take our own reference instead.
+                boxed = g_variant_ref ((GVariant *) boxed);
+            }
+            else if (gtype != G_TYPE_NONE) {
                 boxed = g_boxed_copy (gtype, boxed);
             }
             else if ((size = Boxed::GetSize(gi_info)) != 0) {
@@ -247,6 +254,12 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
             Nan::ThrowError("Boxed allocation failed");
             return;
         }
+
+        // A freshly constructed GVariant is typically floating; take a full,
+        // non-floating reference so the wrapper owns it and can g_variant_unref
+        // it on finalize without stealing anyone else's reference (#465).
+        if (gtype == G_TYPE_VARIANT)
+            boxed = g_variant_take_ref ((GVariant *) boxed);
     }
 
     Boxed *box = new Boxed();
@@ -275,7 +288,12 @@ static void BoxedDestroyed(const Nan::WeakCallbackInfo<Boxed> &info) {
      * such as Typelib and BaseInfo.
      */
     if (box->owns_memory) {
-        if (G_TYPE_IS_BOXED(box->gtype)) {
+        if (box->gtype == G_TYPE_VARIANT) {
+            // Refcounted fundamental type, not boxed: release our reference (#465).
+            if (box->data != NULL)
+                g_variant_unref ((GVariant *) box->data);
+        }
+        else if (G_TYPE_IS_BOXED(box->gtype)) {
             g_boxed_free(box->gtype, box->data);
         }
         else if (box->size != 0) {
