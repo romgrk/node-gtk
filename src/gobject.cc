@@ -175,7 +175,7 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
 }
 
 static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype) {
-    object->SetAlignedPointerInInternalField (0, gobject);
+    Nan::SetInternalFieldPointer(object, 0, gobject);
 
     SET_OBJECT_GTYPE(object, gtype);
 
@@ -231,7 +231,13 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
 
     /* User code calling `new Gtk.Widget({ ... })` */
 
+    // Nan provides Nan::SetPrototype but no GetPrototype wrapper, and V8 14
+    // renamed Object::GetPrototype() to GetPrototypeV2().
+#if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >= 14
+    Local<Object> proto = Nan::To<Object>(self->GetPrototypeV2()).ToLocalChecked();
+#else
     Local<Object> proto = Nan::To<Object>(self->GetPrototype()).ToLocalChecked();
+#endif
 
     /* A JS subclass (`class Foo extends Gtk.Widget {}`) that was never passed to
      * registerClass() owns no GType: `__gtype__` is only *inherited* from its
@@ -365,15 +371,23 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
     (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
 #define PROPERTY_CALLBACK_RETURN_TYPE v8::Intercepted
 #define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<void>
+#define PROPERTY_CALLBACK_INFO_VALUE_TYPE void
+#define PROPERTY_CALLBACK_IS_INTERCEPTED 1
 #else
 #define PROPERTY_CALLBACK_RETURN_TYPE void
 #define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<Value>
+#define PROPERTY_CALLBACK_INFO_VALUE_TYPE Value
+#define PROPERTY_CALLBACK_IS_INTERCEPTED 0
 #endif
 
 static PROPERTY_CALLBACK_RETURN_TYPE
 GObjectFallbackPropertyGetter(Local<v8::Name> property,
                               const v8::PropertyCallbackInfo<Value>& info) {
-    auto self = info.Holder();
+    // V8 14 removed PropertyCallbackInfo::Holder(); the Nan wrapper's Holder()
+    // aliases HolderV2() on new V8 and Holder() on older V8. The handler is
+    // installed on InstanceTemplate, so the holder is the instance.
+    Nan::PropertyCallbackInfo<Value> nanInfo(info, info.Data());
+    auto self = nanInfo.Holder();
     GObject *gobject = GObjectFromWrapper (self);
 
     g_assert(gobject != NULL);
@@ -403,7 +417,8 @@ GObjectFallbackPropertyGetter(Local<v8::Name> property,
 static PROPERTY_CALLBACK_RETURN_TYPE
 GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
                               const PROPERTY_CALLBACK_INFO_TYPE& info) {
-    auto self = info.Holder();
+    Nan::PropertyCallbackInfo<PROPERTY_CALLBACK_INFO_VALUE_TYPE> nanInfo(info, info.Data());
+    auto self = nanInfo.Holder();
     GObject *gobject = GNodeJS::GObjectFromWrapper (self);
 
     Nan::Utf8String prop_name_v (TO_STRING (property));
@@ -430,8 +445,16 @@ GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
         return Nan::Intercepted::No();
     } else {
         // Property exists. Whether we can convert the value and set the
-        // property or not, consider the set intercepted.
+        // property or not, consider the set handled.
+#if !PROPERTY_CALLBACK_IS_INTERCEPTED
+        // Non-intercepted API (V8 <= 12.4): signal "handled" by setting the
+        // return value. Without it V8 falls through and defines a shadowing
+        // own-property on the wrapper, masking the interceptor getter (e.g. a
+        // 64-bit property would then read back as a Number, not a BigInt).
         RETURN(value);
+#endif
+        // Intercepted API (V8 > 12.4): the info is <void>, so signal via the
+        // Intercepted return value rather than by setting a return value.
         g_free(prop_name);
         return Nan::Intercepted::Yes();
     }
@@ -505,7 +528,8 @@ static Local<v8::Private> SignalHandlersKey(v8::Isolate *isolate) {
 
 // Append a handler to the wrapper's handler array, returning its index.
 static guint AddSignalHandler(Local<Object> wrapper, Local<Function> handler) {
-    v8::Isolate *isolate = wrapper->GetIsolate();
+    // Object::GetIsolate() was removed in V8 14; use the current isolate.
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
     Local<v8::Context> context = isolate->GetCurrentContext();
     Local<v8::Private> key = SignalHandlersKey(isolate);
 
@@ -538,7 +562,7 @@ Local<Value> GetSignalHandler(GObject *gobject, guint index) {
     if (object.IsEmpty())
         return Local<Value>();
 
-    v8::Isolate *isolate = object->GetIsolate();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
     Local<v8::Context> context = isolate->GetCurrentContext();
     Local<Value> handlers =
         object->GetPrivate(context, SignalHandlersKey(isolate)).ToLocalChecked();
@@ -724,7 +748,7 @@ NAN_METHOD(GObjectToString) {
 
     const char* typeName = g_type_name(type);
     char *className = *Nan::Utf8String(self->GetConstructorName());
-    void *address = self->GetAlignedPointerFromInternalField(0);
+    void *address = Nan::GetInternalFieldPointer(self, 0);
 
     char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (size_t)address);
 
@@ -957,7 +981,7 @@ GObject * GObjectFromWrapper(Local<Value> value) {
 
     Local<Object> object = TO_OBJECT (value);
 
-    void    *ptr     = object->GetAlignedPointerFromInternalField (0);
+    void    *ptr     = Nan::GetInternalFieldPointer(object, 0);
     GObject *gobject = G_OBJECT (ptr);
     return gobject;
 }
