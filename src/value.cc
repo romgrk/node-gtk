@@ -841,6 +841,15 @@ bool V8ToGIArgumentInterface(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> 
             arg->v_pointer = ParamSpec::FromWrapper(value);
             break;
         }
+
+        if (IsFundamentalObjectInfo(gi_info)) {
+            // A fundamental (non-GObject) instance such as GskRenderNode: take
+            // the raw wrapped pointer. GObjectFromWrapper would G_OBJECT()-cast
+            // it — silently on Linux (cast checks compiled out) but a fatal
+            // `invalid cast ... to GObject` under G_DEBUG on Windows (#468).
+            arg->v_pointer = PointerFromWrapper(value);
+            break;
+        }
         // fallthrough
     }
     case GI_INFO_TYPE_INTERFACE:
