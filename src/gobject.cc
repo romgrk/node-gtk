@@ -40,6 +40,11 @@ static Nan::Persistent<FunctionTemplate> baseTemplate;
 // this makes registerClass() optional. Empty until JS installs it.
 static Nan::Persistent<Function> lazyClassRegister;
 
+// JS callback invoked the first time a private/non-introspectable concrete type
+// (eg GLocalFile) is wrapped, to mix its implemented interfaces' methods into
+// the class prototype. Installed via SetInterfaceMethodsApplier. See issue #441.
+static Nan::Persistent<Function> interfaceMethodsApplier;
+
 
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype);
 static MaybeLocal<Function>         GetClass(GType gtype);
@@ -170,7 +175,7 @@ static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_d
 }
 
 static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype) {
-    object->SetAlignedPointerInInternalField (0, gobject);
+    Nan::SetInternalFieldPointer(object, 0, gobject);
 
     SET_OBJECT_GTYPE(object, gtype);
 
@@ -226,7 +231,13 @@ static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
 
     /* User code calling `new Gtk.Widget({ ... })` */
 
+    // Nan provides Nan::SetPrototype but no GetPrototype wrapper, and V8 14
+    // renamed Object::GetPrototype() to GetPrototypeV2().
+#if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >= 14
+    Local<Object> proto = Nan::To<Object>(self->GetPrototypeV2()).ToLocalChecked();
+#else
     Local<Object> proto = Nan::To<Object>(self->GetPrototype()).ToLocalChecked();
+#endif
 
     /* A JS subclass (`class Foo extends Gtk.Widget {}`) that was never passed to
      * registerClass() owns no GType: `__gtype__` is only *inherited* from its
@@ -360,15 +371,23 @@ static void GObjectClassDestroyed(const Nan::WeakCallbackInfo<GType> &info) {
     (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
 #define PROPERTY_CALLBACK_RETURN_TYPE v8::Intercepted
 #define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<void>
+#define PROPERTY_CALLBACK_INFO_VALUE_TYPE void
+#define PROPERTY_CALLBACK_IS_INTERCEPTED 1
 #else
 #define PROPERTY_CALLBACK_RETURN_TYPE void
 #define PROPERTY_CALLBACK_INFO_TYPE v8::PropertyCallbackInfo<Value>
+#define PROPERTY_CALLBACK_INFO_VALUE_TYPE Value
+#define PROPERTY_CALLBACK_IS_INTERCEPTED 0
 #endif
 
 static PROPERTY_CALLBACK_RETURN_TYPE
 GObjectFallbackPropertyGetter(Local<v8::Name> property,
                               const v8::PropertyCallbackInfo<Value>& info) {
-    auto self = info.Holder();
+    // V8 14 removed PropertyCallbackInfo::Holder(); the Nan wrapper's Holder()
+    // aliases HolderV2() on new V8 and Holder() on older V8. The handler is
+    // installed on InstanceTemplate, so the holder is the instance.
+    Nan::PropertyCallbackInfo<Value> nanInfo(info, info.Data());
+    auto self = nanInfo.Holder();
     GObject *gobject = GObjectFromWrapper (self);
 
     g_assert(gobject != NULL);
@@ -398,7 +417,8 @@ GObjectFallbackPropertyGetter(Local<v8::Name> property,
 static PROPERTY_CALLBACK_RETURN_TYPE
 GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
                               const PROPERTY_CALLBACK_INFO_TYPE& info) {
-    auto self = info.Holder();
+    Nan::PropertyCallbackInfo<PROPERTY_CALLBACK_INFO_VALUE_TYPE> nanInfo(info, info.Data());
+    auto self = nanInfo.Holder();
     GObject *gobject = GNodeJS::GObjectFromWrapper (self);
 
     Nan::Utf8String prop_name_v (TO_STRING (property));
@@ -425,8 +445,16 @@ GObjectFallbackPropertySetter(Local<v8::Name> property, Local<Value> value,
         return Nan::Intercepted::No();
     } else {
         // Property exists. Whether we can convert the value and set the
-        // property or not, consider the set intercepted.
+        // property or not, consider the set handled.
+#if !PROPERTY_CALLBACK_IS_INTERCEPTED
+        // Non-intercepted API (V8 <= 12.4): signal "handled" by setting the
+        // return value. Without it V8 falls through and defines a shadowing
+        // own-property on the wrapper, masking the interceptor getter (e.g. a
+        // 64-bit property would then read back as a Number, not a BigInt).
         RETURN(value);
+#endif
+        // Intercepted API (V8 > 12.4): the info is <void>, so signal via the
+        // Intercepted return value rather than by setting a return value.
         g_free(prop_name);
         return Nan::Intercepted::Yes();
     }
@@ -500,7 +528,8 @@ static Local<v8::Private> SignalHandlersKey(v8::Isolate *isolate) {
 
 // Append a handler to the wrapper's handler array, returning its index.
 static guint AddSignalHandler(Local<Object> wrapper, Local<Function> handler) {
-    v8::Isolate *isolate = wrapper->GetIsolate();
+    // Object::GetIsolate() was removed in V8 14; use the current isolate.
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
     Local<v8::Context> context = isolate->GetCurrentContext();
     Local<v8::Private> key = SignalHandlersKey(isolate);
 
@@ -533,7 +562,7 @@ Local<Value> GetSignalHandler(GObject *gobject, guint index) {
     if (object.IsEmpty())
         return Local<Value>();
 
-    v8::Isolate *isolate = object->GetIsolate();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
     Local<v8::Context> context = isolate->GetCurrentContext();
     Local<Value> handlers =
         object->GetPrivate(context, SignalHandlersKey(isolate)).ToLocalChecked();
@@ -719,7 +748,7 @@ NAN_METHOD(GObjectToString) {
 
     const char* typeName = g_type_name(type);
     char *className = *Nan::Utf8String(self->GetConstructorName());
-    void *address = self->GetAlignedPointerFromInternalField(0);
+    void *address = Nan::GetInternalFieldPointer(self, 0);
 
     char *str = g_strdup_printf("[%s:%s %#zx]", typeName, className, (size_t)address);
 
@@ -782,6 +811,60 @@ static MaybeLocal<FunctionTemplate> NewClassTemplate (GType gtype) {
     return MaybeLocal<FunctionTemplate> (tpl);
 }
 
+/*
+ * Mix the methods of a type's implemented interfaces into its class prototype.
+ *
+ * Introspectable object types get this for free: makeObject() in JS iterates
+ * their interfaces and installs the methods. Private/non-introspectable concrete
+ * types (eg GLocalFile, which implements the public GFile interface) are never
+ * seen by makeObject(), so their instances would only expose the base GObject
+ * methods. Here we enumerate the type's introspectable interfaces and hand them
+ * to the JS `interfaceMethodsApplier`, which reuses makeInterface()/define() to
+ * install the methods (and property accessors) on the class prototype.
+ *
+ * See issue #441.
+ */
+static void ApplyInterfaceMethods(Local<Function> constructor, GType gtype) {
+    if (interfaceMethodsApplier.IsEmpty())
+        return;
+
+    guint n_interfaces = 0;
+    GType *interfaces = g_type_interfaces(gtype, &n_interfaces);
+
+    Local<Array> refs = New<Array>();
+    uint32_t count = 0;
+    for (guint i = 0; i < n_interfaces; i++) {
+        GIBaseInfo *iface_info = g_irepository_find_by_gtype(NULL, interfaces[i]);
+        if (iface_info == NULL)
+            continue;
+        if (g_base_info_get_type(iface_info) == GI_INFO_TYPE_INTERFACE) {
+            Local<Object> ref = New<Object>();
+            Nan::Set(ref, UTF8("namespace"), UTF8(g_base_info_get_namespace(iface_info)));
+            Nan::Set(ref, UTF8("name"),      UTF8(g_base_info_get_name(iface_info)));
+            Nan::Set(refs, count++, ref);
+        }
+        g_base_info_unref(iface_info);
+    }
+    g_free(interfaces);
+
+    if (count == 0)
+        return;
+
+    Local<Function> applier = New<Function>(interfaceMethodsApplier);
+    Local<Value> argv[] = { constructor, refs };
+    Nan::TryCatch tryCatch;
+    Nan::Call(applier, Nan::GetCurrentContext()->Global(), 2, argv);
+    if (tryCatch.HasCaught()) {
+        Nan::Utf8String message(tryCatch.Exception());
+        g_warning("node-gtk: could not apply interface methods for %s: %s",
+                  g_type_name(gtype), *message);
+    }
+}
+
+NAN_METHOD(SetInterfaceMethodsApplier) {
+    interfaceMethodsApplier.Reset(info[0].As<Function>());
+}
+
 static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     void *data = g_type_get_qdata (gtype, GNodeJS::template_quark());
 
@@ -808,6 +891,15 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
 
     g_type_set_qdata(gtype, GNodeJS::template_quark(), persistentTpl);
     g_type_set_qdata(gtype, GNodeJS::function_quark(), persistentFn);
+
+    // Introspectable object types have their interface methods installed by
+    // makeObject() in JS. Private concrete types are never seen there, so mix
+    // in their interface methods now (issue #441).
+    GIBaseInfo *own_info = g_irepository_find_by_gtype(NULL, gtype);
+    if (own_info == NULL)
+        ApplyInterfaceMethods(fn, gtype);
+    else
+        g_base_info_unref(own_info);
 
     return MaybeLocal<FunctionTemplate> (tpl);
 }
@@ -889,7 +981,7 @@ GObject * GObjectFromWrapper(Local<Value> value) {
 
     Local<Object> object = TO_OBJECT (value);
 
-    void    *ptr     = object->GetAlignedPointerFromInternalField (0);
+    void    *ptr     = Nan::GetInternalFieldPointer(object, 0);
     GObject *gobject = G_OBJECT (ptr);
     return gobject;
 }

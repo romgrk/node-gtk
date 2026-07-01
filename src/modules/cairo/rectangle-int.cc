@@ -28,8 +28,12 @@ void RectangleInt::Initialize(Nan::ADDON_REGISTER_FUNCTION_ARGS_TYPE target) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(Nan::New("CairoRectangleInt").ToLocalChecked());
 
-  // Prototype
-  Local<ObjectTemplate> proto = tpl->PrototypeTemplate();
+  // Accessors and indexed handlers must be installed on the instance
+  // template, not the prototype: in V8 14 property callbacks expose only
+  // HolderV2() (the holder). An accessor on the prototype would hand the
+  // callback the prototype object, which has no internal field, and
+  // Nan::ObjectWrap::Unwrap would abort. The instance carries the field.
+  Local<ObjectTemplate> proto = tpl->InstanceTemplate();
   SetProtoAccessor(proto, UTF8("x"),      GetX,      SetX,      tpl);
   SetProtoAccessor(proto, UTF8("y"),      GetY,      SetY,      tpl);
   SetProtoAccessor(proto, UTF8("width"),  GetWidth,  SetWidth,  tpl);

@@ -712,7 +712,8 @@ Local<Value> FunctionInfo::JsReturnValue (
         ADD_RETURN (isReturningSelf ? self :
             GIArgumentToV8 (
                 return_type, return_value, length,
-                return_transfer == GI_TRANSFER_EVERYTHING ? kTransfer : kNone))
+                return_transfer == GI_TRANSFER_EVERYTHING ? kTransfer : kNone,
+                g_callable_info_may_return_null (info)))
     }
 
     for (int i = 0; i < n_callable_args; i++) {
@@ -746,20 +747,22 @@ Local<Value> FunctionInfo::JsReturnValue (
                         &callable_arg_values[length_i],
                         IsDirectionOut(length_direction));
 
-                Local<Value> result = ArrayToV8(&arg_type, *(void**)arg_value.v_pointer, param.length);
+                bool may_be_null = g_arg_info_may_be_null(&arg_info);
+                Local<Value> result = ArrayToV8(&arg_type, *(void**)arg_value.v_pointer, param.length, may_be_null);
 
                 ADD_RETURN (result)
 
             } else if (param.type == ParameterType::kNORMAL) {
                 GITransfer transfer = g_arg_info_get_ownership_transfer(&arg_info);
                 ResourceOwnership ownership = transfer == GI_TRANSFER_EVERYTHING ? kTransfer : kNone;
+                bool may_be_null = g_arg_info_may_be_null(&arg_info);
 
                 if (IsPointerType(&arg_type) && g_arg_info_is_caller_allocates(&arg_info)) {
                     void *pointer = &arg_value.v_pointer;
-                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) pointer, -1, ownership))
+                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) pointer, -1, ownership, may_be_null))
                 }
                 else {
-                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer, -1, ownership))
+                    ADD_RETURN (GIArgumentToV8(&arg_type, (GIArgument*) arg_value.v_pointer, -1, ownership, may_be_null))
                 }
             }
         }

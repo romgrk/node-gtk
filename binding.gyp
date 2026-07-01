@@ -1,4 +1,24 @@
 {
+    # Node 26's official Windows binary is built with ClangCL + ThinLTO, so its
+    # common.gypi injects `-flto=thin` and `/opt:lldltojobs=N` into the MSVC
+    # AdditionalOptions of every target. MSVC's link.exe rejects those
+    # Clang/lld-only options (LNK1117), which breaks the build on Windows +
+    # Node 26. Strip them with gyp's list-exclusion filter. This lives under
+    # msvs_settings, so it is inert on the make/xcode generators (Linux/macOS).
+    "target_defaults": {
+        "configurations": {
+            "Release": {
+                "msvs_settings": {
+                    "VCCLCompilerTool": {
+                        "AdditionalOptions/": [ ["exclude", "flto"] ]
+                    },
+                    "VCLinkerTool": {
+                        "AdditionalOptions/": [ ["exclude", "flto"], ["exclude", "lldltojobs"] ]
+                    }
+                }
+            }
+        }
+    },
     "targets": [
         {
             "target_name": "node_gtk",

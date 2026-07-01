@@ -259,8 +259,8 @@ static void BoxedConstructor(const Nan::FunctionCallbackInfo<Value> &info) {
     box->persistent = new Nan::Persistent<Object>(self);
     box->persistent->SetWeak(box, BoxedDestroyed, Nan::WeakCallbackType::kParameter);
 
-    self->SetAlignedPointerInInternalField (0, boxed);
-    self->SetAlignedPointerInInternalField (1, box);
+    Nan::SetInternalFieldPointer(self, 0, boxed);
+    Nan::SetInternalFieldPointer(self, 1, box);
 
     SET_OBJECT_GTYPE (self, gtype);
 
@@ -462,7 +462,7 @@ Local<Value> WrapperFromBoxed(GIBaseInfo *info, void *data, ResourceOwnership ow
 void* PointerFromWrapper(Local<Value> value) {
     Local<Object> object = TO_OBJECT (value);
     g_assert(object->InternalFieldCount() > 0);
-    void *boxed = object->GetAlignedPointerFromInternalField(0);
+    void *boxed = Nan::GetInternalFieldPointer(object, 0);
     return boxed;
 }
 
@@ -475,12 +475,12 @@ void DisownBoxed(Local<Value> value) {
     if (object->InternalFieldCount() < 2)
         return;
 
-    Boxed *box = static_cast<Boxed *>(object->GetAlignedPointerFromInternalField(1));
+    Boxed *box = static_cast<Boxed *>(Nan::GetInternalFieldPointer(object, 1));
     if (box != NULL) {
         box->owns_memory = false;
         box->data = NULL;
     }
-    object->SetAlignedPointerInInternalField(0, NULL);
+    Nan::SetInternalFieldPointer(object, 0, NULL);
 }
 
 };

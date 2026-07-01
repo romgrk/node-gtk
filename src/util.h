@@ -48,14 +48,14 @@ inline void SetProtoAccessor(
         Nan::SetterCallback setter,
         v8::Local<v8::FunctionTemplate> ctor
         ) {
+    // Trailing settings/attribute args are omitted so Nan supplies the right
+    // AccessControl default per V8 version (v8::DEFAULT was removed in V8 14).
     Nan::SetAccessor(
             tpl,
             name,
             getter,
             setter,
-            v8::Local<v8::Value>(),
-            v8::DEFAULT,
-            v8::None);
+            v8::Local<v8::Value>());
 }
 
 namespace Util
