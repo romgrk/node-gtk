@@ -22,8 +22,15 @@ describe('GInterface methods on private-type instances (#441)', () => {
   })
 
   it('interface methods return the correct values when called', () => {
-    expect(file.getPath(), '/tmp/node-gtk-example.txt')
+    // getBasename() is separator-agnostic; getPath() round-trips the path GIO
+    // stored, which uses the platform separator (`\` on Windows), so compare
+    // structurally rather than against a hard-coded POSIX string.
     expect(file.getBasename(), 'node-gtk-example.txt')
+    const path = file.getPath()
+    assert(typeof path === 'string' && path.length > 0,
+      `getPath() returns a non-empty string, got "${path}"`)
+    assert(path.endsWith('node-gtk-example.txt'),
+      `getPath() ends with the basename, got "${path}"`)
   })
 
   it('keeps the base GObject methods (mixing in must not clobber them)', () => {
