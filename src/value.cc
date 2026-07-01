@@ -51,7 +51,7 @@ static guint64 V8ToUint64 (Local<Value> value) {
 }
 
 
-Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length, ResourceOwnership ownership) {
+Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length, ResourceOwnership ownership, bool nullable) {
     GITypeTag type_tag = g_type_info_get_tag (type_info);
 
     switch (type_tag) {
@@ -120,6 +120,11 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
     case GI_TYPE_TAG_UTF8: {
         if (arg->v_string)
             return New<String>(arg->v_string).ToLocalChecked();
+        else if (nullable)
+            // A nullable string (e.g. g_data_input_stream_read_line_utf8_finish
+            // at EOF) returns NULL: surface it as `null` so it is
+            // distinguishable from a legitimately empty string. (#467)
+            return Nan::Null();
         else
             return Nan::EmptyString();
     }
@@ -166,7 +171,7 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
         }
 
     case GI_TYPE_TAG_ARRAY:
-        return ArrayToV8(type_info, arg->v_pointer, length);
+        return ArrayToV8(type_info, arg->v_pointer, length, nullable);
 
     case GI_TYPE_TAG_GLIST:
         return GListToV8(type_info, (GList *)arg->v_pointer);
@@ -323,7 +328,13 @@ static bool IsZeroMemory (const void *ptr, gsize size) {
     return true;
 }
 
-Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length) {
+Local<Value> ArrayToV8 (GITypeInfo *type_info, void* data, long length, bool nullable) {
+
+    // A nullable array return (e.g. g_data_input_stream_read_line_finish at
+    // EOF) yields a NULL pointer: surface it as `null` so it is
+    // distinguishable from a legitimately empty array. (#467)
+    if (data == nullptr && nullable)
+        return Nan::Null();
 
     auto array = New<Array>();
 
