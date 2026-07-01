@@ -5,6 +5,7 @@
 #include "callback.h"
 #include "debug.h"
 #include "error.h"
+#include "fundamental.h"
 #include "function.h"
 #include "gobject.h"
 #include "macros.h"
@@ -522,11 +523,13 @@ Local<Value> FunctionCall (
                 // Boxed: hand it a copy so the JS wrapper's own memory isn't
                 // double-freed when finalized (#409). GObject: add the reference
                 // the callee will own, so it isn't finalized out from under the
-                // callee once the wrapper is GC'd (#439).
+                // callee once the wrapper is GC'd (#439). Fundamental (e.g.
+                // GskRenderNode): add the reference the callee will own (#468).
                 else if (direction == GI_DIRECTION_IN
                         && g_arg_info_get_ownership_transfer(&arg_info) == GI_TRANSFER_EVERYTHING) {
                     CopyBoxedForTransferFullIn(&type_info, &callable_arg_values[i], param.length);
                     RefObjectForTransferFullIn(&type_info, &callable_arg_values[i]);
+                    RefFundamentalForTransferFullIn(&type_info, &callable_arg_values[i]);
                 }
             }
 

@@ -5,6 +5,7 @@
 #include "async_call_environment.h"
 #include "boxed.h"
 #include "debug.h"
+#include "fundamental.h"
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
@@ -170,7 +171,11 @@ NAN_METHOD(MakeFunction) {
 
 NAN_METHOD(MakeObjectClass) {
     BaseInfo gi_info(info[0]);
-    auto klass = GNodeJS::MakeClass(*gi_info);
+    // Fundamental (non-GObject) types such as GskRenderNode need their own
+    // ref/unref-based wrapper rather than the GObject machinery (#468).
+    auto klass = GNodeJS::IsFundamentalObjectInfo(*gi_info)
+        ? GNodeJS::MakeFundamentalClass(*gi_info)
+        : GNodeJS::MakeClass(*gi_info);
     if (!klass.IsEmpty())
         info.GetReturnValue().Set(klass.ToLocalChecked());
 }

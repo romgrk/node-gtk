@@ -6,6 +6,7 @@
 
 #include "error.h"
 #include "boxed.h"
+#include "fundamental.h"
 #include "function.h"
 #include "gi.h"
 #include "gobject.h"
@@ -136,7 +137,9 @@ Local<Value> GIArgumentToV8(GITypeInfo *type_info, GIArgument *arg, long length,
              * of a GObject, instead this represent the object type (eg class).  A GObject
              * has methods, fields, properties, signals, interfaces, constants and virtual functions. */
             case GI_INFO_TYPE_OBJECT:
-                if (G_IS_PARAM_SPEC(arg->v_pointer))
+                if (IsFundamentalObjectInfo(interface_info))
+                    value = WrapperFromFundamental(interface_info, arg->v_pointer, ownership);
+                else if (G_IS_PARAM_SPEC(arg->v_pointer))
                     value = ParamSpec::FromGParamSpec((GParamSpec *)arg->v_pointer);
                 else
                     value = WrapperFromGObject((GObject *)arg->v_pointer);

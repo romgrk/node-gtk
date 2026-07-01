@@ -11,6 +11,7 @@
                 "src/debug.cc",
                 "src/error.cc",
                 "src/function.cc",
+                "src/fundamental.cc",
                 "src/gi.cc",
                 "src/gobject.cc",
                 "src/loop.cc",
