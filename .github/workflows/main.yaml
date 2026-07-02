@@ -67,9 +67,7 @@ jobs:
 
       - name: Run tests
         run: |
-          npx mocha                                 \
-                    --skip=callback                 \
-                    tests/__run__.js
+          NODE_GTK_TEST_SKIP=callback npx mocha tests/__run__.js
 
       # Make the freshly-built addon a self-contained prebuilt: bundle the GTK4
       # runtime (DLLs + GI typelibs + data) next to the .node so Windows users

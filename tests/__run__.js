@@ -21,10 +21,12 @@ const watchdog = setTimeout(() => {
 }, 10 * 60 * 1000)
 watchdog.unref()
 
-// usage: npx mocha [--skip=pat1[,pat2...]] [--skip=...] tests/__run__.js
-const skipPatterns = process.argv
-  .filter(a => a.startsWith('--skip='))
-  .flatMap(a => a.replace('--skip=', '').split(','))
+// usage: [NODE_GTK_TEST_SKIP=pat1[,pat2...]] npx mocha tests/__run__.js
+// (mocha >= 8 rejects unknown CLI flags, so skip patterns come from the
+// environment rather than a --skip= argument)
+const skipPatterns = (process.env.NODE_GTK_TEST_SKIP || '')
+  .split(',')
+  .filter(Boolean)
   .map(a => new RegExp(a))
 
 files.forEach(file => {
