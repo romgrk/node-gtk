@@ -878,6 +878,17 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     if (maybeTpl.IsEmpty())
         return MaybeLocal<FunctionTemplate> ();
 
+    /* NewClassTemplate() runs JS while building the parent chain (each
+     * ancestor's template fires the type materializer below), so JS may have
+     * re-entered here and created this very template already. Keep that one:
+     * its function is the one JS has started decorating. */
+    data = g_type_get_qdata (gtype, GNodeJS::template_quark());
+    if (data) {
+        auto *persistent = (Nan::Persistent<FunctionTemplate> *) data;
+        auto existingTpl = New<FunctionTemplate> (*persistent);
+        return existingTpl;
+    }
+
     auto tpl = maybeTpl.ToLocalChecked();
     auto fn = Nan::GetFunction (tpl).ToLocalChecked();
     auto persistentTpl = new Nan::Persistent<FunctionTemplate>(tpl);
@@ -892,14 +903,19 @@ static MaybeLocal<FunctionTemplate> GetClassTemplate(GType gtype) {
     g_type_set_qdata(gtype, GNodeJS::template_quark(), persistentTpl);
     g_type_set_qdata(gtype, GNodeJS::function_quark(), persistentFn);
 
-    // Introspectable object types have their interface methods installed by
-    // makeObject() in JS. Private concrete types are never seen there, so mix
-    // in their interface methods now (issue #441).
+    // Introspectable object types have their methods/properties installed by
+    // makeObject() in JS. Modules hold lazy accessors, so a type reached from
+    // C first (method return value, signal argument) must be materialized here
+    // or its wrappers would expose a bare prototype. Private concrete types
+    // are invisible to makeObject(), so mix in their interface methods
+    // instead (issue #441).
     GIBaseInfo *own_info = g_irepository_find_by_gtype(NULL, gtype);
-    if (own_info == NULL)
+    if (own_info == NULL) {
         ApplyInterfaceMethods(fn, gtype);
-    else
+    } else {
+        GNodeJS::MaterializeType(own_info);
         g_base_info_unref(own_info);
+    }
 
     return MaybeLocal<FunctionTemplate> (tpl);
 }

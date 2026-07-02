@@ -26,6 +26,21 @@ extern Nan::Persistent<Object> moduleCache;
 
 Local<Object> GetModuleCache();
 
+/*
+ * Lazy type materialization: modules are populated with lazy accessors
+ * (lib/module.js), and prototypes only get their methods/properties when a
+ * class is first touched. Types can also be reached from C first (a method
+ * return value, a signal argument): the template-creation paths in
+ * gobject.cc/boxed.cc/fundamental.cc call MaterializeType so the JS side
+ * decorates the prototype before any wrapper is handed out. The callback is
+ * installed from bootstrap.js via SetTypeMaterializer and is idempotent and
+ * re-entrancy-safe on the JS side.
+ */
+
+void MaterializeType(GIBaseInfo *info);
+
+void SetTypeMaterializerInternal(Local<v8::Function> fn);
+
 
 
 /*

@@ -239,6 +239,16 @@ static Local<FunctionTemplate> GetFundamentalTemplate (GIObjectInfo *info, GType
         }
     }
 
+    /* The parent recursion above runs JS (each ancestor's template fires the
+     * type materializer below), so JS may have re-entered here and created
+     * this very template already. Keep that one: its function is the one JS
+     * has started decorating. */
+    data = g_type_get_qdata (gtype, GNodeJS::template_quark ());
+    if (data) {
+        auto *persistent = (Persistent<FunctionTemplate> *) data;
+        return New<FunctionTemplate> (*persistent);
+    }
+
     auto *persistentTpl = new Persistent<FunctionTemplate> (tpl);
     auto *persistentFn  = new Persistent<Function> (Nan::GetFunction (tpl).ToLocalChecked ());
     persistentTpl->SetWeak (
@@ -246,6 +256,11 @@ static Local<FunctionTemplate> GetFundamentalTemplate (GIObjectInfo *info, GType
 
     g_type_set_qdata (gtype, GNodeJS::template_quark (), persistentTpl);
     g_type_set_qdata (gtype, GNodeJS::function_quark (), persistentFn);
+
+    /* Modules hold lazy accessors: a fundamental type reached from C first
+     * must be materialized so makeObject() in JS attaches its methods before
+     * a wrapper is handed out (see gi.h). */
+    GNodeJS::MaterializeType (info);
 
     return tpl;
 }
@@ -404,6 +419,17 @@ static Local<FunctionTemplate> GetVariantTemplate () {
     auto *persistentFn  = new Persistent<Function> (Nan::GetFunction (tpl).ToLocalChecked ());
     g_type_set_qdata (gtype, GNodeJS::template_quark (), persistentTpl);
     g_type_set_qdata (gtype, GNodeJS::function_quark (), persistentFn);
+
+    /* Modules hold lazy accessors: a variant reached from C first (e.g. a
+     * signal argument, #465) must have GLib.Variant materialized so
+     * makeBoxed() in JS attaches its methods before a wrapper is handed out. */
+    if (g_irepository_is_registered (NULL, "GLib", NULL)) {
+        GIBaseInfo *variant_info = g_irepository_find_by_name (NULL, "GLib", "Variant");
+        if (variant_info) {
+            GNodeJS::MaterializeType (variant_info);
+            g_base_info_unref (variant_info);
+        }
+    }
 
     return tpl;
 }
