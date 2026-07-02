@@ -62,6 +62,16 @@ common.describe('lazy type materialization', () => {
     common.expect(file.getPath(), '/')
   })
 
+  common.it('registers GTypes for by-name lookups without JS access', () => {
+    // The eager loop used to call get_g_type() on every class as a side
+    // effect; by-name lookups depend on that registration having happened.
+    // Gio.MemoryOutputStream is never touched as a JS object here.
+    const GObject = gi.require('GObject')
+    const gtype = GObject.typeFromName('GMemoryOutputStream')
+    common.assert(gtype !== 0 && gtype !== 0n && gtype !== null,
+      'GType not registered for un-materialized class')
+  })
+
   common.it('supports plain assignment over lazy accessors', () => {
     // Overrides and getInterface() write straight into the module.
     const before = Object.getOwnPropertyDescriptor(GLib, 'PRIORITY_LOW')

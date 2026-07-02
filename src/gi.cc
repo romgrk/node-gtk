@@ -185,6 +185,25 @@ NAN_METHOD(GetInfoEntries) {
             continue;
         }
 
+        /* Register the GType with the GObject runtime NOW, even though the JS
+         * class stays lazy. The eager loop did this as a side effect
+         * (MakeObjectClass/MakeBoxedClass call get_g_type() for every class)
+         * and code depends on it: by-name lookups such as
+         * GObject.typeFromName('GFileInfo') or type names in GtkBuilder XML
+         * must resolve without JS ever touching the class. Registration is a
+         * few µs per type; class initialization stays lazy either way. */
+        switch (type) {
+        case GI_INFO_TYPE_STRUCT:
+        case GI_INFO_TYPE_BOXED:
+        case GI_INFO_TYPE_UNION:
+        case GI_INFO_TYPE_OBJECT:
+        case GI_INFO_TYPE_INTERFACE:
+            g_registered_type_info_get_g_type((GIRegisteredTypeInfo *) baseInfo.info());
+            break;
+        default:
+            break;
+        }
+
         Nan::Set(result, position++, UTF8(baseInfo.name()));
         Nan::Set(result, position++, Nan::New<v8::Int32>(type));
         Nan::Set(result, position++, Nan::New<v8::Int32>(i));
