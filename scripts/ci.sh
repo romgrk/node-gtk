@@ -46,12 +46,9 @@ function npm_test() {
         # fixture build does not run automatically; do it here. Best-effort:
         # marshalling tests skip if fixtures cannot be produced on macOS.
         npm run build:test-fixtures || true;
-        npx mocha                                 \
-                  --skip=callback                 \
-                  tests/__run__.js
+        NODE_GTK_TEST_SKIP=callback npx mocha tests/__run__.js
     else
-        xvfb-run -a npm test --                   \
-                  --skip=callback;
+        NODE_GTK_TEST_SKIP=callback xvfb-run -a npm test;
     fi;
 }
 
