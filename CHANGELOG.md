@@ -4,6 +4,21 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v4.0.1
+
+### Fixes
+
+- **A running `GApplication` no longer busy-spins at 100% CPU under ES modules**
+  (most visible on Node.js 26 / libuv 1.52). Under ESM the blocking `run()` is
+  deferred to a macrotask so pending Promise/async continuations keep draining
+  (#442); that deferral used `setImmediate`, whose callback runs inside Node's
+  immediate-processing machinery. Because `run()` never returns (it blocks in
+  the GLib main loop), Node never got the chance to stop its private immediate
+  `uv_idle` handle, which pinned `uv_backend_timeout()` at `0` and made the
+  nested uv-in-GLib loop spin, starving the app. The deferral now uses a
+  `setTimeout(…, 0)` macrotask, which leaves no libuv state active while it
+  blocks (#477).
+
 ## v4.0.0
 
 ### Breaking changes
