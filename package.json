@@ -74,7 +74,9 @@
     "/src",
     "/scripts",
     "/tools",
-    "binding.gyp"
+    "binding.gyp",
+    "!lib/binding",
+    "!**/*.node"
   ],
   "binary": {
     "module_name": "node_gtk",
