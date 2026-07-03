@@ -527,10 +527,7 @@ Local<Value> FunctionCall (
                 // GskRenderNode): add the reference the callee will own (#468).
                 else if (direction == GI_DIRECTION_IN
                         && g_arg_info_get_ownership_transfer(&arg_info) == GI_TRANSFER_EVERYTHING) {
-                    CopyBoxedForTransferFullIn(&type_info, &callable_arg_values[i], param.length);
-                    RefObjectForTransferFullIn(&type_info, &callable_arg_values[i]);
-                    RefFundamentalForTransferFullIn(&type_info, &callable_arg_values[i]);
-                    RefVariantForTransferFullIn(&type_info, &callable_arg_values[i]);
+                    TakeOwnershipForTransferFull(&type_info, &callable_arg_values[i], param.length);
                 }
             }
 

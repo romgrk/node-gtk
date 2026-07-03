@@ -1702,6 +1702,14 @@ void RefObjectForTransferFullIn (GITypeInfo *type_info, GIArgument *arg) {
     g_base_info_unref(iface);
 }
 
+// Documented on the declaration in value.h.
+void TakeOwnershipForTransferFull (GITypeInfo *type_info, GIArgument *arg, long length) {
+    CopyBoxedForTransferFullIn(type_info, arg, length);
+    RefObjectForTransferFullIn(type_info, arg);
+    RefFundamentalForTransferFullIn(type_info, arg);
+    RefVariantForTransferFullIn(type_info, arg);
+}
+
 
 /*
  * GValue conversion functions

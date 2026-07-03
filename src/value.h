@@ -52,6 +52,16 @@ void         CopyBoxedForTransferFullIn (GITypeInfo *type_info, GIArgument *arg,
 // under the callee once the wrapper is GC'd. See #439.
 void         RefObjectForTransferFullIn (GITypeInfo *type_info, GIArgument *arg);
 
+// Hand a transfer-full value its own reference for its new owner. A value whose
+// ownership transfers full — a transfer-full IN argument, or a transfer-full
+// callable return — is exactly one of boxed / GObject / fundamental / GVariant,
+// and the four per-kind helpers (CopyBoxedForTransferFullIn / RefObjectFor... /
+// RefFundamentalFor... / RefVariantFor...) each no-op for the other kinds. Runs
+// them all so the single call covers every kind. `length` is the element count
+// for a transfer-full C array of boxed pointers (-1 when not such an array).
+// See #439/#409/#468.
+void         TakeOwnershipForTransferFull (GITypeInfo *type_info, GIArgument *arg, long length);
+
 bool         CanConvertV8ToGIArgument (GITypeInfo *type_info, Local<Value> value, bool may_be_null);
 
 bool         V8ToGValue(GValue *gvalue, Local<Value> value, ResourceOwnership ownership = kNone);
