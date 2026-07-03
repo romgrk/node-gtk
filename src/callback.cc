@@ -220,6 +220,18 @@ void Callback::Execute (GIArgument *result, GIArgument **args, Callback *callbac
             Throw::InvalidReturnValue (&return_type_info, jsReturnValue);
             goto out;
         }
+
+        // When the callback's return value is transfer-full, the C caller takes
+        // ownership of it (e.g. GtkTreeListModelCreateModelFunc → GListModel).
+        // V8ToGIArgument only unwrapped the pointer, leaving node-gtk holding
+        // just its toggle ref; without the owning reference the caller "owns"
+        // that toggle ref, so no toggle-up fires, the wrapper stays weak, and
+        // once GC collects it the object is finalized while the caller still
+        // uses it — a use-after-free (e.g. gtk_tree_list_model_finalize
+        // disconnecting its items-changed handler from a freed child model).
+        // This is the return counterpart of the transfer-full IN argument.
+        if (g_callable_info_get_caller_owns(callback->info) == GI_TRANSFER_EVERYTHING)
+            TakeOwnershipForTransferFull(&return_type_info, result, -1);
     }
 
     // TODO: assess transferness of arguments & check if we need to free them
