@@ -4,6 +4,39 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v4.1.0
+
+### Performance
+
+- **~4× faster startup: GIR types are now initialized lazily** (#480).
+  `require('node-gtk')` went from 75ms to 18ms and `gi.require('Gtk', '4.0')`
+  from 177ms to 38ms (hello-world total: 252ms → 60ms). Namespace entries are
+  materialized on first access instead of eagerly for the whole dependency
+  closure; types first reached from C (method returns, signal arguments) are
+  materialized through a native hook before any wrapper is handed out, and
+  every GType is still registered up front so by-name lookups
+  (`GObject.typeFromName()`, GtkBuilder XML) keep working. The
+  fully-materialized API surface is unchanged. Visible differences: untouched
+  namespace entries print as `[Getter]` in `console.log`, and "class failed to
+  load" warnings fire on first access rather than at require time.
+
+### Fixes
+
+- **Transfer-full return values from JS callbacks now transfer a reference to
+  the caller** (#482). When C takes ownership of a callback's return value
+  (e.g. a `GtkTreeListModelCreateModelFunc` returning a fresh `Gio.ListModel`),
+  node-gtk did not add the reference the caller owns, so the object could be
+  finalized while still in use — an intermittent SIGSEGV, observed in
+  `GtkTreeListModel` teardown. GObject, boxed, fundamental and `GVariant`
+  returns are now ref'd/copied on the callback return path, mirroring the
+  existing transfer-full IN-argument handling.
+
+### Build
+
+- Updated `@mapbox/node-pre-gyp` to v2 and mocha to v11, clearing the open
+  dependabot alerts (#481).
+- Compiled binaries are no longer accidentally included in the npm tarball.
+
 ## v4.0.1
 
 ### Fixes
