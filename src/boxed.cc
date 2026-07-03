@@ -409,6 +409,14 @@ Local<Function> GetBoxedFunction(GIBaseInfo *info, GType gtype) {
 
     g_type_set_qdata(gtype, GNodeJS::function_quark(), persistent);
 
+    /* Modules hold lazy accessors: a registered boxed type reached from C
+     * first (method return value, signal argument) must be materialized so
+     * makeBoxed() in JS attaches its methods/fields before a wrapper is
+     * handed out. Fired after the qdata above so the re-entrant
+     * MakeBoxedClass() from JS finds this same function. Idempotent and
+     * re-entrancy-safe on the JS side. */
+    GNodeJS::MaterializeType(info);
+
     return fn;
 }
 
@@ -430,10 +438,12 @@ Local<Function> MakeBoxedClass(GIBaseInfo *info) {
         if (Nan::HasOwnProperty(moduleCache, ns).FromMaybe(false)) {
             auto module = TO_OBJECT (Nan::Get(moduleCache, ns).ToLocalChecked());
 
-            if (Nan::HasOwnProperty(module, name).FromMaybe(false)) {
-                auto constructor = TO_OBJECT (Nan::Get(module, name).ToLocalChecked());
+            /* The Get can run a lazy accessor. It returns the materialized
+             * class, or undefined when re-entered from the accessor's own
+             * makeBoxed() call — fall through and build the class then. */
+            auto constructor = Nan::Get(module, name).ToLocalChecked();
+            if (constructor->IsFunction())
                 return Local<Function>::Cast (constructor);
-            }
         }
     }
 

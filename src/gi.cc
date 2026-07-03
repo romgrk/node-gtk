@@ -35,6 +35,32 @@ namespace GNodeJS {
     Local<Object> GetModuleCache() {
         return Nan::New<Object>(GNodeJS::moduleCache);
     }
+
+    static Nan::Persistent<v8::Function> typeMaterializer;
+
+    void SetTypeMaterializerInternal(Local<v8::Function> fn) {
+        typeMaterializer.Reset(fn);
+    }
+
+    void MaterializeType(GIBaseInfo *info) {
+        if (typeMaterializer.IsEmpty() || info == NULL)
+            return;
+
+        Local<v8::Function> fn = Nan::New<v8::Function>(typeMaterializer);
+        Local<Value> argv[] = {
+            UTF8(g_base_info_get_namespace(info)),
+            UTF8(g_base_info_get_name(info)),
+        };
+        Nan::TryCatch tryCatch;
+        Nan::Call(fn, Nan::GetCurrentContext()->Global(), 2, argv);
+        if (tryCatch.HasCaught()) {
+            Nan::Utf8String message(tryCatch.Exception());
+            g_warning("node-gtk: could not materialize type %s.%s: %s",
+                      g_base_info_get_namespace(info),
+                      g_base_info_get_name(info),
+                      *message);
+        }
+    }
 }
 
 
@@ -119,6 +145,71 @@ NAN_METHOD(Bootstrap) {
     }
 
     info.GetReturnValue().Set(module_obj);
+}
+
+/*
+ * Enumerate a loaded namespace's top-level infos in one native call, so that
+ * lib/module.js can define lazy accessors without paying ~3 FFI round-trips
+ * per info (48ms for Gtk-4.0 + dependencies, vs ~1ms here). Returns a flat
+ * array of [name, infoType, index, ...] triplets. Infos that makeInfo() cannot
+ * handle (callbacks, gtype structs, etc.) are filtered out here, mirroring the
+ * `item !== undefined` check the eager loop used to do.
+ */
+NAN_METHOD(GetInfoEntries) {
+    Nan::Utf8String ns(info[0]);
+    GIRepository *repo = g_irepository_get_default();
+
+    int n = g_irepository_get_n_infos(repo, *ns);
+    Local<Array> result = Nan::New<Array>();
+    uint32_t position = 0;
+
+    for (int i = 0; i < n; i++) {
+        BaseInfo baseInfo(g_irepository_get_info(repo, *ns, i));
+        GIInfoType type = baseInfo.type();
+
+        switch (type) {
+        case GI_INFO_TYPE_FUNCTION:
+        case GI_INFO_TYPE_BOXED:
+        case GI_INFO_TYPE_ENUM:
+        case GI_INFO_TYPE_FLAGS:
+        case GI_INFO_TYPE_OBJECT:
+        case GI_INFO_TYPE_INTERFACE:
+        case GI_INFO_TYPE_CONSTANT:
+        case GI_INFO_TYPE_UNION:
+            break;
+        case GI_INFO_TYPE_STRUCT:
+            if (g_struct_info_is_gtype_struct(baseInfo.info()))
+                continue;
+            break;
+        default:
+            continue;
+        }
+
+        /* Register the GType with the GObject runtime NOW, even though the JS
+         * class stays lazy. The eager loop did this as a side effect
+         * (MakeObjectClass/MakeBoxedClass call get_g_type() for every class)
+         * and code depends on it: by-name lookups such as
+         * GObject.typeFromName('GFileInfo') or type names in GtkBuilder XML
+         * must resolve without JS ever touching the class. Registration is a
+         * few µs per type; class initialization stays lazy either way. */
+        switch (type) {
+        case GI_INFO_TYPE_STRUCT:
+        case GI_INFO_TYPE_BOXED:
+        case GI_INFO_TYPE_UNION:
+        case GI_INFO_TYPE_OBJECT:
+        case GI_INFO_TYPE_INTERFACE:
+            g_registered_type_info_get_g_type((GIRegisteredTypeInfo *) baseInfo.info());
+            break;
+        default:
+            break;
+        }
+
+        Nan::Set(result, position++, UTF8(baseInfo.name()));
+        Nan::Set(result, position++, Nan::New<v8::Int32>(type));
+        Nan::Set(result, position++, Nan::New<v8::Int32>(i));
+    }
+
+    info.GetReturnValue().Set(result);
 }
 
 NAN_METHOD(GetConstantValue) {
@@ -418,6 +509,10 @@ NAN_METHOD(SetInterfaceMethodsApplier) {
     GNodeJS::SetInterfaceMethodsApplier(info);
 }
 
+NAN_METHOD(SetTypeMaterializer) {
+    GNodeJS::SetTypeMaterializerInternal(info[0].As<v8::Function>());
+}
+
 NAN_METHOD(RegisterClass) {
     GNodeJS::ObjectClass::RegisterClass(info);
 }
@@ -438,6 +533,8 @@ void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
     Nan::Export(exports, "GetBaseClass",         GetBaseClass);
     Nan::Export(exports, "GetTypeSize",          GetTypeSize);
     Nan::Export(exports, "GetConstantValue",     GetConstantValue);
+    Nan::Export(exports, "GetInfoEntries",       GetInfoEntries);
+    Nan::Export(exports, "SetTypeMaterializer",  SetTypeMaterializer);
     Nan::Export(exports, "MakeBoxedClass",       MakeBoxedClass);
     Nan::Export(exports, "MakeObjectClass",      MakeObjectClass);
     Nan::Export(exports, "MakeFunction",         MakeFunction);
