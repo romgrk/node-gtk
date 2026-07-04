@@ -1,0 +1,16 @@
+# pnpm settings (https://pnpm.io/settings)
+# This is a single-package repo; this file only carries settings, not workspaces.
+
+# aws-sdk is only require()d by node-pre-gyp when publishing prebuilts;
+# its postinstall script is not needed.
+allowBuilds:
+  aws-sdk: false
+
+# Security pins for transitive dependencies (kept from the npm `overrides` field).
+overrides:
+  nid-parser>js-yaml: ^3.15.0
+  nid-parser>extend: ^3.0.2
+  optimist>minimist: ^1.2.8
+  aws-sdk>uuid: ^11.1.1
+  mocha>diff: ^8.0.3
+  mocha>serialize-javascript: ^7.0.5

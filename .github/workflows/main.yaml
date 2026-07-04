@@ -63,7 +63,9 @@ jobs:
           ./windows/mingw_include_extra.sh
           export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
           export PATH="/mingw64/bin:/usr/bin:$PATH"
-          npm install --build-from-source
+          npm install -g pnpm@11
+          pnpm install --ignore-scripts
+          pnpm run build:full
 
       - name: Run tests
         run: |
@@ -129,8 +131,13 @@ jobs:
       # Install & cache packages
       - run: .github/workflows/install.sh
 
-      # Install & Build
-      - run: npm install --build-from-source
+      # Install & Build. The source build is explicit (the install lifecycle
+      # script is skipped): pnpm does not forward --build-from-source or
+      # inherited npm_config_* env vars to lifecycle scripts, so a plain
+      # `pnpm install` would silently fetch a stale S3 prebuilt instead.
+      - run: npm install -g pnpm@11
+      - run: pnpm install --ignore-scripts
+      - run: pnpm run build:full
 
       # Run the CI script (tests & publishing)
       - run: ./scripts/ci.sh

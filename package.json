@@ -64,22 +64,7 @@
     "nid-parser": "0.0.5",
     "remove-trailing-spaces": "^1.0.7"
   },
-  "overrides": {
-    "nid-parser": {
-      "js-yaml": "^3.15.0",
-      "extend": "^3.0.2"
-    },
-    "optimist": {
-      "minimist": "^1.2.8"
-    },
-    "aws-sdk": {
-      "uuid": "^11.1.1"
-    },
-    "mocha": {
-      "diff": "^8.0.3",
-      "serialize-javascript": "^7.0.5"
-    }
-  },
+  "packageManager": "pnpm@11.3.0",
   "files": [
     "/bin",
     "/lib",

@@ -20,7 +20,7 @@ fi;
 
 
 # The Linux Release build embeds full DWARF debug info (binding.gyp passes -g so
-# a local `npm run build` stays debuggable), which balloons the addon from
+# a local `pnpm run build` stays debuggable), which balloons the addon from
 # ~0.5MB to ~5MB. Strip the packaged copy — and only that copy, right before
 # `node-pre-gyp package` archives it — so every user's download shrinks ~90%
 # while local builds keep their symbols.
@@ -72,13 +72,13 @@ function npm_test() {
 
     if [[ $(uname -s) == 'Darwin' ]]; then
         export GST_PLUGIN_SYSTEM_PATH=$(brew --prefix gstreamer)/lib/gstreamer-1.0;
-        # This branch calls mocha directly (not `npm test`), so the pretest
+        # This branch calls mocha directly (not `pnpm test`), so the pretest
         # fixture build does not run automatically; do it here. Best-effort:
         # marshalling tests skip if fixtures cannot be produced on macOS.
-        npm run build:test-fixtures || true;
+        pnpm run build:test-fixtures || true;
         NODE_GTK_TEST_SKIP=callback npx mocha tests/__run__.js
     else
-        NODE_GTK_TEST_SKIP=callback xvfb-run -a npm test;
+        NODE_GTK_TEST_SKIP=callback xvfb-run -a pnpm test;
     fi;
 }
 
