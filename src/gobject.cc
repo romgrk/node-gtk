@@ -11,6 +11,7 @@
 #include "gi.h"
 #include "gobject.h"
 #include "macros.h"
+#include "toggle_queue.h"
 #include "util.h"
 #include "value.h"
 
@@ -133,61 +134,34 @@ struct GObjectWrapper {
     bool collected = false;
 };
 
-/*
- * Deferred processing for toggle notifications that fire off the JS thread.
+/* Reconcile the wrapper's persistent with the state the object's current
+ * refcount calls for. Main thread only — called inline by ToggleNotify on the
+ * JS thread, and by toggleQueue's drain for deferred off-thread notifications.
  *
- * A toggle notification runs synchronously on whatever thread crosses the
- * 1<->2 refcount boundary — e.g. GLib's worker thread dropping the ref it
- * held on a GSubprocess while waiting for the child to exit. V8 global
- * handles may only be touched from the JS thread: a SetWeak/ClearWeak from a
- * worker raced the scavenger's weak-handle processing and corrupted the
- * global-handle list (fatal "Check failed: Heap::InFromPage(heap_object)" in
- * a later scavenge, or random SIGSEGV). Off-thread notifications are queued
- * here and drained by an idle on the main context.
+ * Weak when the toggle ref is the only reference left: we are the last
+ * holder, so the wrapper may be collected. The two-pass weak callback's first
+ * pass runs *during* GC (before any JS/GTK code resumes) and only flips a
+ * flag, so WrapperFromGObject can tell a reclaimed wrapper from a live one
+ * and never marshals a dead handle to JS. All GObject teardown happens in the
+ * second pass — a first-pass callback may not call into GObject.
  *
- * The drain does not replay the queued direction — by then it is stale (the
- * refcount may have crossed the boundary again, in either order). It
- * re-derives the wanted handle state from the current refcount, which makes
- * the deferral idempotent and ordering-insensitive.
- *
- * Queue entries hold no reference (taking one from inside a toggle handler
- * would recursively fire the opposite toggle). A live wrapper's toggle ref
- * keeps the object's refcount >= 1, so a queued object cannot be finalized
- * under normal operation; as a safety net the GObjectFinalized weak callback
- * and the wrapper teardown cancel any pending entry.
- */
-static struct {
-    GMutex  lock;
-    GSList *objects;
-    guint   source;
-} toggle_queue;
-
-static gboolean DrainToggleQueue(gpointer user_data);
-
-static void QueueToggleSync(GObject *gobject) {
-    g_mutex_lock (&toggle_queue.lock);
-    if (g_slist_find (toggle_queue.objects, gobject) == NULL)
-        toggle_queue.objects = g_slist_prepend (toggle_queue.objects, gobject);
-    if (toggle_queue.source == 0)
-        toggle_queue.source = g_idle_add (DrainToggleQueue, NULL);
-    g_mutex_unlock (&toggle_queue.lock);
-}
-
-static void CancelToggleSync(GObject *gobject) {
-    g_mutex_lock (&toggle_queue.lock);
-    toggle_queue.objects = g_slist_remove (toggle_queue.objects, gobject);
-    g_mutex_unlock (&toggle_queue.lock);
-}
-
-/* Main thread only. Put the persistent in the state the current refcount
- * calls for: weak when the toggle ref is the only reference left, strong
- * otherwise. Mirrors the two branches of ToggleNotify. */
-static void SyncToggleState(GObject *gobject) {
+ * Strong otherwise: something other than us holds the object, so the wrapper
+ * must stay alive until that ref is dropped again. Reviving is essential —
+ * without it a wrapper that went weak once (e.g. a freshly constructed object
+ * at refcount 1) would never become strong again when GTK takes ownership,
+ * and GC could then collect a wrapper whose GObject is still in use (notably
+ * a subclassed widget owned by GTK, losing its overridden vfuncs and instance
+ * state). */
+void SynchronizeToggleState(GObject *gobject) {
     void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
     if (data == NULL)
         return;
 
     auto *wrapper = (GObjectWrapper *) data;
+
+    /* The V8 handle has already been reclaimed by GC (collected) — it is dead
+     * and can be made neither weak nor strong. If the object is marshalled
+     * again, WrapperFromGObject builds a fresh wrapper. */
     if (wrapper->collected)
         return;
 
@@ -204,67 +178,22 @@ static void SyncToggleState(GObject *gobject) {
     }
 }
 
-/* The lock is held across the drain so a (buggy, over-unreffed) off-thread
- * finalize cancelling its entry cannot race the entry being processed.
- * Nothing in SyncToggleState re-enters the queue, so this cannot deadlock. */
-static gboolean DrainToggleQueue(gpointer user_data) {
-    g_mutex_lock (&toggle_queue.lock);
-    GSList *objects = toggle_queue.objects;
-    toggle_queue.objects = NULL;
-    toggle_queue.source = 0;
-
-    for (GSList *l = objects; l != NULL; l = l->next)
-        SyncToggleState ((GObject *) l->data);
-
-    g_slist_free (objects);
-    g_mutex_unlock (&toggle_queue.lock);
-    return G_SOURCE_REMOVE;
-}
-
+/* Fires synchronously on whatever thread crosses the 1<->2 refcount boundary
+ * — e.g. GLib's worker thread dropping the ref it held on a GSubprocess while
+ * waiting for the child to exit. V8 global handles may only be touched from
+ * the JS thread: a SetWeak/ClearWeak from a worker raced the scavenger's
+ * weak-handle processing and corrupted the global-handle list (fatal "Check
+ * failed: Heap::InFromPage(heap_object)" in a later scavenge, or random
+ * SIGSEGV). Off-thread notifications are deferred to the main context; the
+ * notified direction is not forwarded because the deferred reconciliation
+ * re-derives it from the refcount (see toggle_queue.h). */
 static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down) {
     if (G_UNLIKELY (g_thread_self () != GNodeJS::js_thread)) {
-        QueueToggleSync (gobject);
+        toggleQueue.Synchronize (gobject);
         return;
     }
 
-    void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
-
-    g_assert (data != NULL);
-
-    auto *wrapper = (GObjectWrapper *) data;
-
-    /* The V8 handle has already been reclaimed by GC (collected) — it is dead
-     * and can be made neither weak nor strong. If the object is marshalled
-     * again, WrapperFromGObject builds a fresh wrapper. */
-    if (wrapper->collected)
-        return;
-
-    if (toggle_down) {
-        /* We're dropping from 2 refs to 1 ref: we are the last holder, so the
-         * wrapper may be collected. Install the weak ref (unless it already is). */
-        if (wrapper->dying)
-            return;
-        wrapper->dying = true;
-        /* Two-pass weak callback: the first pass runs *during* GC (before any
-         * JS/GTK code resumes) and only flips a flag, so WrapperFromGObject can
-         * tell a reclaimed wrapper from a live one and never marshals a dead
-         * handle to JS. All GObject teardown happens in the second pass — a
-         * first-pass callback may not call into GObject. */
-        wrapper->persistent.v8::PersistentBase<Object>::SetWeak (
-            wrapper, GObjectDestroyedFirstPass, v8::WeakCallbackType::kParameter);
-    } else {
-        /* We're going from 1 ref to 2 refs: something other than us now holds
-         * the object, so the wrapper must stay alive (strong) until that ref is
-         * dropped again. Reviving here is essential — without it a wrapper that
-         * went weak once (e.g. a freshly constructed object at refcount 1) would
-         * never become strong again when GTK takes ownership, and GC could then
-         * collect a wrapper whose GObject is still in use (notably a subclassed
-         * widget owned by GTK, losing its overridden vfuncs and instance state). */
-        if (!wrapper->dying)
-            return;
-        wrapper->dying = false;
-        wrapper->persistent.ClearWeak ();
-    }
+    SynchronizeToggleState (gobject);
 }
 
 static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype) {
@@ -297,7 +226,7 @@ static void GObjectFinalized(gpointer data, GObject *where_the_object_was) {
     wrapper->gobject = NULL;
     /* A deferred off-thread toggle may still be queued for this object; the
      * drain must not touch freed memory. */
-    CancelToggleSync (where_the_object_was);
+    toggleQueue.Cancel (where_the_object_was);
 }
 
 static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
@@ -407,7 +336,7 @@ static gboolean GObjectTeardownIdle(gpointer data) {
         /* The weak ref that would cancel a queued off-thread toggle on
          * finalize is removed below, so cancel any pending entry now — the
          * toggle ref drop at the end may be the object's last reference. */
-        CancelToggleSync (gobject);
+        toggleQueue.Cancel (gobject);
 
         /* Drop the weak ref first so removing the toggle ref (which may finalize
          * the object) doesn't re-enter GObjectFinalized. */

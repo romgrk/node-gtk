@@ -18,6 +18,11 @@ namespace GNodeJS {
 MaybeLocal<Function>    MakeClass            (GIBaseInfo *info);
 Local<Value>            WrapperFromGObject   (GObject *object);
 GObject *               GObjectFromWrapper   (Local<Value> value);
+
+/* Reconcile the wrapper's V8 persistent (weak or strong) with the GObject's
+ * current refcount. Main thread only; called inline by ToggleNotify on the JS
+ * thread and by toggleQueue's drain for deferred off-thread notifications. */
+void                    SynchronizeToggleState (GObject *gobject);
 Local<Value>            GetSignalHandler     (GObject *gobject, guint index);
 Local<FunctionTemplate> GetBaseClassTemplate ();
 MaybeLocal<Value>       GetGObjectProperty   (GObject * gobject, const char *prop_name);
