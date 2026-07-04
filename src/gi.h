@@ -24,6 +24,12 @@ namespace GNodeJS {
 
 extern Nan::Persistent<Object> moduleCache;
 
+/*
+ * The thread running V8/libuv (recorded at module init). V8 objects — global
+ * handles in particular — may only be touched from this thread.
+ */
+extern GThread *js_thread;
+
 Local<Object> GetModuleCache();
 
 /*
