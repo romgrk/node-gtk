@@ -19,7 +19,7 @@
  * tests/gi-fixtures/.src/; the compiled output goes to tests/gi-fixtures/
  * ({NAME}-1.0.typelib + lib{name}.so). Both are git-ignored.
  *
- * Run directly (`node scripts/build-test-fixtures.js`) or via `npm test`
+ * Run directly (`node scripts/build-test-fixtures.js`) or via `pnpm test`
  * (it runs as a pretest step). Idempotent: existing fixtures are reused unless
  * --force is passed. To bump the upstream revision, change SOURCE_REF.
  */

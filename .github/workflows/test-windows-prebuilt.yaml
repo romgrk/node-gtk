@@ -64,7 +64,8 @@ jobs:
           ./windows/mingw_include_extra.sh
           export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
           export PATH="/mingw64/bin:/usr/bin:$PATH"
-          npm install --build-from-source
+          npm install -g pnpm@11
+          npm_config_build_from_source=true pnpm install
 
       - name: Bundle GTK4 runtime (DLLs + typelibs + data)
         run: |
@@ -111,7 +112,9 @@ jobs:
       # This is what a user gets when a prebuilt is available: no compiler runs.
       - name: Install JS deps (no build)
         shell: bash
-        run: npm install --ignore-scripts
+        run: |
+          npm install -g pnpm@11
+          pnpm install --ignore-scripts
 
       - name: Download prebuilt
         uses: actions/download-artifact@v4

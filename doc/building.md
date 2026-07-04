@@ -116,8 +116,11 @@ cd node-gtk
 # if MSYS2 is NOT installed in C:/msys64 run:
 export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
 
+# node-gtk uses pnpm for development
+npm install -g pnpm
+
 # first run might take a while
-GYP_MSVS_VERSION=2017 npm install
+GYP_MSVS_VERSION=2017 pnpm install
 ```
 
 The `GYP_MSVS_VERSION` could be 2017 or above.
@@ -141,7 +144,7 @@ If not found, you need to export the platform related binary path:
 ```sh
 # example for the 32bit version
 export PATH="/mingw32/bin:$PATH"
-npm run install
+pnpm run install
 ```
 
 This should do the trick. You can also check if there is any python at all via `pacman -Qs python`.
@@ -165,7 +168,7 @@ Try <kbd>Cmd</kbd> + <kbd>Tab</kbd> if you don't see it.
 Run the test suite with:
 
 ```sh
-npm test
+pnpm test
 ```
 
 The suite includes `marshalling__*.js` and `regress__*.js` tests that exercise
@@ -174,7 +177,7 @@ the GObject-introspection test libraries — **GIMarshallingTests**, **Regress**
 and **Utility**.
 
 Those libraries are provided by `scripts/build-test-fixtures.js`, which runs
-automatically before `npm test`. To keep the API identical on every machine, it
+automatically before `pnpm test`. To keep the API identical on every machine, it
 always compiles them from a single pinned revision of the upstream
 [`gobject-introspection-tests`](https://gitlab.gnome.org/GNOME/gobject-introspection-tests)
 repo (downloaded once and cached), rather than relying on whatever version a
@@ -185,7 +188,7 @@ skip rather than fail. The generated fixtures live in `tests/gi-fixtures/`
 To (re)build manually:
 
 ```sh
-npm run build:test-fixtures                            # build if missing
+pnpm run build:test-fixtures                           # build if missing
 node scripts/build-test-fixtures.js --force --verbose  # force a fresh rebuild
 ```
 

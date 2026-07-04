@@ -63,7 +63,8 @@ jobs:
           ./windows/mingw_include_extra.sh
           export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
           export PATH="/mingw64/bin:/usr/bin:$PATH"
-          npm install --build-from-source
+          npm install -g pnpm@11
+          npm_config_build_from_source=true pnpm install
 
       - name: Run tests
         run: |
@@ -130,7 +131,10 @@ jobs:
       - run: .github/workflows/install.sh
 
       # Install & Build
-      - run: npm install --build-from-source
+      # (pnpm rejects unknown CLI flags, so --build-from-source is passed as the
+      # npm_config_* env var that node-pre-gyp reads instead)
+      - run: npm install -g pnpm@11
+      - run: npm_config_build_from_source=true pnpm install
 
       # Run the CI script (tests & publishing)
       - run: ./scripts/ci.sh
