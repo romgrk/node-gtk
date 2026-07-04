@@ -145,7 +145,7 @@ gsize GetTypeSize (GITypeInfo *type_info) {
                 case GI_INFO_TYPE_OBJECT:
                 case GI_INFO_TYPE_INTERFACE:
                 case GI_INFO_TYPE_CALLBACK:
-                    DEBUG("size for %s", g_info_type_to_string(info_type));
+                    // Always passed by reference: pointer size is correct.
                     break;
                 case GI_INFO_TYPE_VFUNC:
                 case GI_INFO_TYPE_FUNCTION:
@@ -197,7 +197,7 @@ gsize GetComplexTypeSize (GIBaseInfo *info) {
         case GI_INFO_TYPE_OBJECT:
         case GI_INFO_TYPE_INTERFACE:
         case GI_INFO_TYPE_CALLBACK:
-            DEBUG("size for %s", g_info_type_to_string(info_type));
+            // Always passed by reference: pointer size is correct.
             return sizeof(gpointer);
         case GI_INFO_TYPE_VFUNC:
         case GI_INFO_TYPE_FUNCTION:

@@ -8,6 +8,10 @@
     "target_defaults": {
         "configurations": {
             "Release": {
+                # Compile out the DEBUG()/LOG() tracing macros (src/macros.h).
+                # Neither node-gyp nor Node's common.gypi defines NDEBUG, so
+                # without this, debug tracing ends up in published prebuilts.
+                "defines": [ "NDEBUG" ],
                 "msvs_settings": {
                     "VCCLCompilerTool": {
                         "AdditionalOptions/": [ ["exclude", "flto"] ]
