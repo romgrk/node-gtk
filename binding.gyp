@@ -36,6 +36,7 @@
                 "src/gobject.cc",
                 "src/loop.cc",
                 "src/param_spec.cc",
+                "src/toggle_queue.cc",
                 "src/type.cc",
                 "src/util.cc",
                 "src/value.cc",
