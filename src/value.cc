@@ -1293,15 +1293,24 @@ void FreeGIArgument(GITypeInfo *type_info, GIArgument *arg, GITransfer transfer,
         if (free_elements) {
             GITypeInfo *element_info = g_type_info_get_param_type(type_info, 0);
 
-            GITransfer  element_transfer  = GI_TRANSFER_EVERYTHING;
-            GIDirection element_direction = GI_DIRECTION_OUT;
+            /* Free elements in the direction they were allocated: an
+             * OUT/EVERYTHING list transferred us one reference per element,
+             * released here (the wrappers hold their own). An IN list was
+             * built by V8ToGIArgument, which allocates strings but borrows
+             * GObject/boxed pointers straight from their wrappers — freeing
+             * with IN/NOTHING releases the strings and leaves the borrowed
+             * pointers alone (mirrors FreeGIArgumentArray). Unreffing IN
+             * elements stole a reference per element from their real owners
+             * (e.g. Gdk.FileList.newFromList: the GFiles were finalized while
+             * the GdkFileList's deep copy still pointed at them). */
+            GITransfer  element_transfer  = is_in ? GI_TRANSFER_NOTHING : GI_TRANSFER_EVERYTHING;
             GIArgument  element_arg;
 
             GSList* list = (GSList *)arg->v_pointer;
 
             for (; list != NULL; list = list->next) {
                 element_arg.v_pointer = list->data;
-                FreeGIArgument(element_info, &element_arg, element_transfer, element_direction);
+                FreeGIArgument(element_info, &element_arg, element_transfer, direction);
             }
 
             g_base_info_unref(element_info);
