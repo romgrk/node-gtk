@@ -133,7 +133,100 @@ struct GObjectWrapper {
     bool collected = false;
 };
 
+/*
+ * Deferred processing for toggle notifications that fire off the JS thread.
+ *
+ * A toggle notification runs synchronously on whatever thread crosses the
+ * 1<->2 refcount boundary — e.g. GLib's worker thread dropping the ref it
+ * held on a GSubprocess while waiting for the child to exit. V8 global
+ * handles may only be touched from the JS thread: a SetWeak/ClearWeak from a
+ * worker raced the scavenger's weak-handle processing and corrupted the
+ * global-handle list (fatal "Check failed: Heap::InFromPage(heap_object)" in
+ * a later scavenge, or random SIGSEGV). Off-thread notifications are queued
+ * here and drained by an idle on the main context.
+ *
+ * The drain does not replay the queued direction — by then it is stale (the
+ * refcount may have crossed the boundary again, in either order). It
+ * re-derives the wanted handle state from the current refcount, which makes
+ * the deferral idempotent and ordering-insensitive.
+ *
+ * Queue entries hold no reference (taking one from inside a toggle handler
+ * would recursively fire the opposite toggle). A live wrapper's toggle ref
+ * keeps the object's refcount >= 1, so a queued object cannot be finalized
+ * under normal operation; as a safety net the GObjectFinalized weak callback
+ * and the wrapper teardown cancel any pending entry.
+ */
+static struct {
+    GMutex  lock;
+    GSList *objects;
+    guint   source;
+} toggle_queue;
+
+static gboolean DrainToggleQueue(gpointer user_data);
+
+static void QueueToggleSync(GObject *gobject) {
+    g_mutex_lock (&toggle_queue.lock);
+    if (g_slist_find (toggle_queue.objects, gobject) == NULL)
+        toggle_queue.objects = g_slist_prepend (toggle_queue.objects, gobject);
+    if (toggle_queue.source == 0)
+        toggle_queue.source = g_idle_add (DrainToggleQueue, NULL);
+    g_mutex_unlock (&toggle_queue.lock);
+}
+
+static void CancelToggleSync(GObject *gobject) {
+    g_mutex_lock (&toggle_queue.lock);
+    toggle_queue.objects = g_slist_remove (toggle_queue.objects, gobject);
+    g_mutex_unlock (&toggle_queue.lock);
+}
+
+/* Main thread only. Put the persistent in the state the current refcount
+ * calls for: weak when the toggle ref is the only reference left, strong
+ * otherwise. Mirrors the two branches of ToggleNotify. */
+static void SyncToggleState(GObject *gobject) {
+    void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
+    if (data == NULL)
+        return;
+
+    auto *wrapper = (GObjectWrapper *) data;
+    if (wrapper->collected)
+        return;
+
+    bool only_toggle_ref =
+        g_atomic_int_get ((const gint *) &gobject->ref_count) <= 1;
+
+    if (only_toggle_ref && !wrapper->dying) {
+        wrapper->dying = true;
+        wrapper->persistent.v8::PersistentBase<Object>::SetWeak (
+            wrapper, GObjectDestroyedFirstPass, v8::WeakCallbackType::kParameter);
+    } else if (!only_toggle_ref && wrapper->dying) {
+        wrapper->dying = false;
+        wrapper->persistent.ClearWeak ();
+    }
+}
+
+/* The lock is held across the drain so a (buggy, over-unreffed) off-thread
+ * finalize cancelling its entry cannot race the entry being processed.
+ * Nothing in SyncToggleState re-enters the queue, so this cannot deadlock. */
+static gboolean DrainToggleQueue(gpointer user_data) {
+    g_mutex_lock (&toggle_queue.lock);
+    GSList *objects = toggle_queue.objects;
+    toggle_queue.objects = NULL;
+    toggle_queue.source = 0;
+
+    for (GSList *l = objects; l != NULL; l = l->next)
+        SyncToggleState ((GObject *) l->data);
+
+    g_slist_free (objects);
+    g_mutex_unlock (&toggle_queue.lock);
+    return G_SOURCE_REMOVE;
+}
+
 static void ToggleNotify(gpointer user_data, GObject *gobject, gboolean toggle_down) {
+    if (G_UNLIKELY (g_thread_self () != GNodeJS::js_thread)) {
+        QueueToggleSync (gobject);
+        return;
+    }
+
     void *data = g_object_get_qdata (gobject, GNodeJS::object_quark());
 
     g_assert (data != NULL);
@@ -202,6 +295,9 @@ static void AssociateGObject(Local<Object> object, GObject *gobject, GType gtype
 static void GObjectFinalized(gpointer data, GObject *where_the_object_was) {
     auto *wrapper = (GObjectWrapper *) data;
     wrapper->gobject = NULL;
+    /* A deferred off-thread toggle may still be queued for this object; the
+     * drain must not touch freed memory. */
+    CancelToggleSync (where_the_object_was);
 }
 
 static void GObjectConstructor(const FunctionCallbackInfo<Value> &info) {
@@ -308,6 +404,11 @@ static gboolean GObjectTeardownIdle(gpointer data) {
     /* If the GObject was already finalized out from under us, GObjectFinalized
      * cleared the pointer; there is nothing left to detach or unref. */
     if (gobject != NULL) {
+        /* The weak ref that would cancel a queued off-thread toggle on
+         * finalize is removed below, so cancel any pending entry now — the
+         * toggle ref drop at the end may be the object's last reference. */
+        CancelToggleSync (gobject);
+
         /* Drop the weak ref first so removing the toggle ref (which may finalize
          * the object) doesn't re-enter GObjectFinalized. */
         g_object_weak_unref (gobject, GObjectFinalized, wrapper);

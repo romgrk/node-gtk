@@ -23,6 +23,9 @@ namespace GNodeJS {
 
 static guint callbackLevel = 0;
 static GSList* notifiedCallbacks = NULL;
+/* DestroyNotify can fire on any thread (e.g. a GTask freeing its callback
+ * data on a pool thread); the list must not race the JS thread's AsyncFree. */
+static GMutex notifiedCallbacksLock;
 
 static Local<Object> GetSelfInstance(GIArgument **args) {
     return WrapperFromGObject((GObject *)args[0]->v_pointer).As<Object>();
@@ -66,26 +69,27 @@ Callback::~Callback() {
  * we can't free the resources here. They'll be freed in Callback::AsyncFree.
  */
 void Callback::DestroyNotify (void* user_data) {
+    g_mutex_lock (&notifiedCallbacksLock);
     notifiedCallbacks = g_slist_prepend (notifiedCallbacks, user_data);
+    g_mutex_unlock (&notifiedCallbacksLock);
 }
 
 /**
  * Frees the callbacks that have been destroy-notified
  */
 void Callback::AsyncFree () {
-    if (notifiedCallbacks == NULL || callbackLevel > 0)
+    if (callbackLevel > 0)
         return;
 
-    GSList* current = notifiedCallbacks;
-
-    while (current != NULL) {
-        Callback* callback = static_cast<Callback*>(current->data);
-        delete callback;
-
-        current = current->next;
-    }
-
+    g_mutex_lock (&notifiedCallbacksLock);
+    GSList* list = notifiedCallbacks;
     notifiedCallbacks = NULL;
+    g_mutex_unlock (&notifiedCallbacksLock);
+
+    for (GSList* current = list; current != NULL; current = current->next)
+        delete static_cast<Callback*>(current->data);
+
+    g_slist_free (list);
 }
 
 /**

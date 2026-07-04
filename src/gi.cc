@@ -32,6 +32,8 @@ namespace GNodeJS {
 
     Nan::Persistent<Object> moduleCache(Nan::New<Object>());
 
+    GThread *js_thread = NULL;
+
     Local<Object> GetModuleCache() {
         return Nan::New<Object>(GNodeJS::moduleCache);
     }
@@ -526,6 +528,8 @@ NAN_METHOD(CallVFunc) {
 }
 
 void InitModule(Local<Object> exports, Local<Value> module, void *priv) {
+    GNodeJS::js_thread = g_thread_self();
+
     GNodeJS::AsyncCallEnvironment::Initialize();
 
     Nan::Export(exports, "Bootstrap",            Bootstrap);
