@@ -38,7 +38,7 @@ package by name:
 import gi, { registerClass } from 'node-gtk'
 ```
 
-The `gi:` hooks require **Node ≥ 20.6** (for `module.register`).
+The `gi:` hooks require **Node ≥ 22.15** (for `module.registerHooks`).
 
 ### The loop integration starts automatically
 
