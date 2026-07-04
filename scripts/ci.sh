@@ -19,8 +19,38 @@ if [[ ${COMMIT_MESSAGE} =~ "[skip tests]" ]]; then
 fi;
 
 
+# The Linux Release build embeds full DWARF debug info (binding.gyp passes -g so
+# a local `npm run build` stays debuggable), which balloons the addon from
+# ~0.5MB to ~5MB. Strip the packaged copy — and only that copy, right before
+# `node-pre-gyp package` archives it — so every user's download shrinks ~90%
+# while local builds keep their symbols.
+function strip_binaries() {
+    echo "### Stripping prebuilt ###"
+    local os
+    os=$(uname -s)
+    for f in lib/binding/*/node_gtk.node; do
+        [[ -e "$f" ]] || continue
+        local before after
+        before=$(wc -c < "$f")
+        if [[ $os == 'Darwin' ]]; then
+            strip -x "$f";
+        else
+            strip --strip-unneeded "$f";
+        fi
+        after=$(wc -c < "$f")
+        echo "  $f: ${before} -> ${after} bytes"
+    done
+
+    # Stripping runs after the test job, so a strip that produced an unloadable
+    # addon would otherwise ship unnoticed. Smoke-test the stripped binary here;
+    # `set -e` aborts the publish if it can no longer be loaded.
+    node -e "require('./lib/index.js').require('GLib', '2.0')"
+    echo "  stripped addon loads OK"
+}
+
 function publish() {
     echo "### Publish ###"
+    strip_binaries
     if [[ $PUBLISH_BINARIES == true ]]; then
         npx node-pre-gyp package testpackage;
         npx node-pre-gyp publish;
