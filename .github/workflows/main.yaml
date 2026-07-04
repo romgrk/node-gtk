@@ -64,7 +64,8 @@ jobs:
           export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
           export PATH="/mingw64/bin:/usr/bin:$PATH"
           npm install -g pnpm@11
-          npm_config_build_from_source=true pnpm install
+          pnpm install --ignore-scripts
+          pnpm run build:full
 
       - name: Run tests
         run: |
@@ -130,11 +131,13 @@ jobs:
       # Install & cache packages
       - run: .github/workflows/install.sh
 
-      # Install & Build
-      # (pnpm rejects unknown CLI flags, so --build-from-source is passed as the
-      # npm_config_* env var that node-pre-gyp reads instead)
+      # Install & Build. The source build is explicit (the install lifecycle
+      # script is skipped): pnpm does not forward --build-from-source or
+      # inherited npm_config_* env vars to lifecycle scripts, so a plain
+      # `pnpm install` would silently fetch a stale S3 prebuilt instead.
       - run: npm install -g pnpm@11
-      - run: npm_config_build_from_source=true pnpm install
+      - run: pnpm install --ignore-scripts
+      - run: pnpm run build:full
 
       # Run the CI script (tests & publishing)
       - run: ./scripts/ci.sh

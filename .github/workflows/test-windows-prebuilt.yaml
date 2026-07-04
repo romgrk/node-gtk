@@ -65,7 +65,8 @@ jobs:
           export MINGW_WINDOWS_PATH=$(./windows/mingw_windows_path.sh)
           export PATH="/mingw64/bin:/usr/bin:$PATH"
           npm install -g pnpm@11
-          npm_config_build_from_source=true pnpm install
+          pnpm install --ignore-scripts
+          pnpm run build:full
 
       - name: Bundle GTK4 runtime (DLLs + typelibs + data)
         run: |
