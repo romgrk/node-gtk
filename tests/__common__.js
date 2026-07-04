@@ -3,7 +3,7 @@
  */
 
 const chalk = require('chalk')
-const isEqual = require('lodash.isequal')
+const { isDeepStrictEqual } = require('node:util')
 
 module.exports = {
   assert,
@@ -38,7 +38,7 @@ function isntUndefined(value, message) {
 }
 
 function expect(value, expected) {
-  assert(isEqual(value, expected),
+  assert(isDeepStrictEqual(value, expected),
     `Expected: "${expected}", got: "${value}"`)
   return value
 }

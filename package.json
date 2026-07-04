@@ -53,19 +53,17 @@
   "dependencies": {
     "@mapbox/node-pre-gyp": "^2.0.3",
     "lodash.camelcase": "4.3.0",
-    "lodash.isequal": "4.5.0",
     "lodash.snakecase": "^4.1.1",
     "nan": "^2.27.0",
-    "node-gyp": "^11.2.0",
-    "remove-trailing-spaces": "^1.0.7",
-    "unindent": "^2.0.0"
+    "node-gyp": "^11.2.0"
   },
   "devDependencies": {
     "assert": "^1.5.0",
     "aws-sdk": "^2.1692.0",
     "chalk": "^2.4.2",
     "mocha": "^11.7.0",
-    "nid-parser": "0.0.5"
+    "nid-parser": "0.0.5",
+    "remove-trailing-spaces": "^1.0.7"
   },
   "overrides": {
     "nid-parser": {
