@@ -827,6 +827,71 @@ item_error:
     return hash_table;
 }
 
+/* Guesses the GType a raw JS value should be boxed into when it is passed for
+ * a GValue-typed parameter, mirroring GJS's guessing (#469). Returns
+ * G_TYPE_INVALID when there is no sensible choice. */
+static GType GuessGValueType(Local<Value> value) {
+    if (value->IsBoolean())
+        return G_TYPE_BOOLEAN;
+    if (value->IsInt32())
+        return G_TYPE_INT;
+    if (value->IsNumber())
+        return G_TYPE_DOUBLE;
+    if (value->IsBigInt())
+        return G_TYPE_INT64;
+    if (value->IsString())
+        return G_TYPE_STRING;
+    if (ValueHasInternalField(value)) {
+        GType gtype = GET_OBJECT_GTYPE (TO_OBJECT (value));
+        // Restrict to what V8ToGValue can hold: other wrapped types
+        // (fundamentals, unregistered structs) have no GValue representation.
+        if (gtype != NOT_A_GTYPE
+                && (g_type_is_a (gtype, G_TYPE_OBJECT)
+                 || g_type_is_a (gtype, G_TYPE_BOXED)
+                 || g_type_is_a (gtype, G_TYPE_VARIANT)
+                 || g_type_is_a (gtype, G_TYPE_PARAM)))
+            return gtype;
+    }
+    return G_TYPE_INVALID;
+}
+
+/* A GValue-typed parameter given something other than a GObject.Value: box
+ * the raw JS value into a temporary GValue, as GJS does (#469). A callee that
+ * keeps the value past the call must copy it (a GValue parameter is
+ * transfer-none), so the temporary only needs to outlive the call: a
+ * throwaway owning wrapper keeps it alive through the surrounding HandleScope
+ * and g_boxed_free's it on GC. */
+static bool AutoBoxGValue(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
+    GType guessed_type = GuessGValueType (value);
+
+    if (guessed_type == G_TYPE_INVALID) {
+        auto maybeDetailString = Nan::ToDetailString(value);
+        Nan::Utf8String utf8String(
+            !maybeDetailString.IsEmpty() ?
+                maybeDetailString.ToLocalChecked() :
+                UTF8("[invalid value]")
+        );
+        Throw::TypeError("Cannot auto-box value \"%s\" into a GObject.Value: "
+                "no GValue type for it", *utf8String);
+        return false;
+    }
+
+    GValue gvalue = G_VALUE_INIT;
+    g_value_init (&gvalue, guessed_type);
+
+    if (!V8ToGValue (&gvalue, value, kNone)) {
+        g_value_unset (&gvalue);
+        return false;
+    }
+
+    GValue *boxed = (GValue *) g_boxed_copy (G_TYPE_VALUE, &gvalue);
+    g_value_unset (&gvalue);
+
+    arg->v_pointer = boxed;
+    WrapperFromBoxed (gi_info, boxed, kTransfer);
+    return true;
+}
+
 bool V8ToGIArgumentInterface(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> value) {
     GIInfoType type = g_base_info_get_type (gi_info);
 
@@ -836,6 +901,10 @@ bool V8ToGIArgumentInterface(GIBaseInfo *gi_info, GIArgument *arg, Local<Value> 
     case GI_INFO_TYPE_BOXED:
     case GI_INFO_TYPE_STRUCT:
     case GI_INFO_TYPE_UNION:
+        // A GValue-typed parameter also accepts a raw JS value (#469).
+        if (g_registered_type_info_get_g_type (gi_info) == G_TYPE_VALUE
+                && !ValueIsInstanceOfGType (value, G_TYPE_VALUE))
+            return AutoBoxGValue (gi_info, arg, value);
         arg->v_pointer = PointerFromWrapper(value);
         break;
 
@@ -1172,9 +1241,15 @@ bool CanConvertV8ToGIArgument(GITypeInfo *type_info, Local<Value> value, bool ma
             case GI_INFO_TYPE_INTERFACE:
             case GI_INFO_TYPE_BOXED:
             case GI_INFO_TYPE_STRUCT:
-            case GI_INFO_TYPE_UNION:
-                result = ValueIsInstanceOfGType (value, g_registered_type_info_get_g_type (interface_info));
+            case GI_INFO_TYPE_UNION: {
+                GType gtype = g_registered_type_info_get_g_type (interface_info);
+                result = ValueIsInstanceOfGType (value, gtype);
+                // A GValue-typed parameter also accepts any raw JS value that
+                // can be auto-boxed into a GValue (GJS parity, #469).
+                if (!result && gtype == G_TYPE_VALUE)
+                    result = GuessGValueType (value) != G_TYPE_INVALID;
                 break;
+            }
             case GI_INFO_TYPE_FLAGS:
             case GI_INFO_TYPE_ENUM:
                 result = value->IsNumber();
