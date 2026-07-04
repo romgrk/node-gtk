@@ -4,6 +4,31 @@ Changes to be released are kept in the unreleased section.
 
 ## Unreleased
 
+## v4.1.1
+
+### Fixes
+
+- **Toggle notifications from non-JS threads no longer corrupt V8 global
+  handles** (#484). A toggle notification runs synchronously on whatever
+  thread crosses the 1↔2 refcount boundary — e.g. GLib's worker thread
+  dropping the ref it held on a `Gio.Subprocess` while waiting for the child
+  to exit — and node-gtk made the wrapper's persistent weak/strong right
+  there, racing the garbage collector on the JS thread. This crashed
+  intermittently with `Fatal error: Check failed: Heap::InFromPage(heap_object)`
+  during a scavenge, or a random SIGSEGV. Off-thread notifications are now
+  queued and reconciled from an idle on the main context. The
+  destroy-notified callback list, which the same threads can touch, is now
+  mutex-protected (and no longer leaks its list nodes).
+
+- **Transfer-none `GList`/`GSList` IN arguments no longer unref their
+  elements** (#484). Freeing the temporary list after the call used
+  OUT/transfer-everything semantics, stealing one reference per GObject
+  element from its real owner. In the wild: every
+  `Gdk.FileList.newFromList(files)` call (each drag-and-drop) left the
+  `GFile`s one unref from premature finalization, and tearing down the drag's
+  content provider later crashed on the freed objects (SIGSEGV in
+  `g_type_check_instance_is_fundamentally_a`).
+
 ## v4.1.0
 
 ### Performance
