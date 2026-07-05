@@ -183,7 +183,8 @@ The shared `"bundle"` key, plus a `"flatpak"` sub-key:
   "license": "MIT",                // SPDX, defaults to package.json "license"
   "categories": ["GTK", "Utility"],
   "flatpak": {
-    "runtimeVersion": "49",        // org.gnome.Platform version
+    "runtimeVersion": "49",        // org.gnome.Platform version (50 is also current;
+                                   // pick one and test against it)
     "node": 26,                    // SDK extension major (20/22/24/26)
     "finishArgs": [                // sandbox permissions beyond the GUI defaults
       "--share=network",
@@ -192,6 +193,11 @@ The shared `"bundle"` key, plus a `"flatpak"` sub-key:
   }
 }
 ```
+
+Flags: `--install` (install user-level), `--run` (install + run), `--no-build`
+(generate only), `--release` / `--release-url` (Flathub submission sources,
+below), `--lint` (run `flatpak-builder-lint` on the manifest + metainfo — do
+this before submitting anywhere).
 
 Defaults grant only GUI access (`wayland`, `fallback-x11`, `ipc`, `dri`) —
 network and filesystem are deliberately opt-in; request the minimum, Flathub
@@ -215,14 +221,33 @@ Three things that bite:
 
 ## Shipping on Flathub
 
-Flathub is a manifest repository: you submit the generated
-`<id>.yml` (plus your app source — for a node app, typically a release
-tarball of the staged `app/` tree) via PR to
-[flathub/flathub](https://github.com/flathub/flathub). Before submitting,
-fill in the metainfo TODOs (`description`, screenshots, releases,
-`content_rating`) and provide a real icon; `flatpak run org.flatpak.Builder
---command=flatpak-builder-lint` checks compliance. After acceptance, users
-find the app in GNOME Software and updates ship automatically.
+Flathub builds on its own infrastructure from *fetchable* sources — the
+locally staged tree can't be submitted directly. `--release` produces exactly
+what a submission needs:
+
+```sh
+npx node-gtk flatpak --release --lint
+```
+
+- `<Name>-<version>-flatpak-src.tar.gz` — the staged sources (app +
+  production node_modules + desktop files) as one tarball
+- `<id>.flathub.yml` — the manifest referencing that tarball by URL + sha256
+  (URL derived from package.json `"repository"`:
+  `https://github.com/<you>/<app>/releases/download/v<version>/<tarball>`;
+  override with `--release-url`)
+
+The flow: **1.** fix everything `--lint` reports (the metainfo TODOs —
+description, screenshots, releases, content rating — and a real icon);
+**2.** create the GitHub release `v<version>` and upload the tarball;
+**3.** submit `<id>.flathub.yml` via PR to
+[flathub/flathub](https://github.com/flathub/flathub). After acceptance,
+users find the app in GNOME Software and every update ships automatically —
+new releases are a version bump + new tarball + manifest update in your
+Flathub repo.
+
+Alternative without Flathub: host your own flatpak repository (an ostree
+repo is static files — GitHub Pages works) and point users at a `.flatpakref`;
+you keep update delivery, minus the store discoverability.
 
 # Roadmap
 

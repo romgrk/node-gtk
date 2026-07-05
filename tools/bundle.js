@@ -78,6 +78,11 @@ function bundle(flags, platform) {
 
   prepareOutput(outBase)
 
+  // Early marker so a FAILED run leaves a directory prepareOutput still
+  // recognizes as ours (overwriteable on retry); rewritten with the full
+  // record once the bundle exists.
+  writeMarker(outBase, { name: config.name, id: config.id })
+
   const ctx = {
     config, appDir, outBase, log,
     bindingName: `node-v${process.versions.modules}-${process.platform}-${process.arch}`,
@@ -114,7 +119,7 @@ function bundle(flags, platform) {
 
   const launcherPath = platform.writeLauncher(ctx)
 
-  fs.writeFileSync(path.join(outBase, 'bundle.json'), JSON.stringify({
+  writeMarker(outBase, {
     name: config.name,
     id: config.id,
     version: config.version,
@@ -124,7 +129,7 @@ function bundle(flags, platform) {
     node: process.version,
     nodeGtk: require('../package.json').version,
     created: new Date().toISOString(),
-  }, null, 2) + '\n')
+  })
 
   reportSizes(ctx)
 
@@ -157,6 +162,7 @@ function loadConfig(appDir, flags) {
     name,
     id: raw.id || `com.example.${name}`,
     version: pkg.version || '0.0.0',
+    repository: typeof pkg.repository === 'string' ? pkg.repository : (pkg.repository || {}).url,
     summary: raw.summary || `The ${name} application`,
     license: raw.license || pkg.license,
     icon: raw.icon,
@@ -202,6 +208,10 @@ function pascalCase(base) {
     .filter(Boolean)
     .map(w => w[0].toUpperCase() + w.slice(1))
     .join('') || 'App'
+}
+
+function writeMarker(outBase, record) {
+  fs.writeFileSync(path.join(outBase, 'bundle.json'), JSON.stringify(record, null, 2) + '\n')
 }
 
 // Refuse to delete a directory we did not create: a previous output is

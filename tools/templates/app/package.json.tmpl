@@ -4,6 +4,13 @@
   "description": "An Adwaita application built with node-gtk.",
   "type": "module",
   "private": true,
+  "main": "src/main.ts",
+  "bundle": {
+    "id": "__APP_ID__",
+    "summary": "An Adwaita application built with node-gtk",
+    "icon": "data/icon.svg",
+    "gtk": 4
+  },
   "scripts": {
     "dev": "npm run dev:css-reload",
     "dev:css-reload": "cross-env NODE_ENV=development node --import tsx --import node-gtk/register src/main.ts",
@@ -12,6 +19,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "generate-types": "node-gtk generate-types Gtk-4.0 Adw-1",
+    "flatpak": "node-gtk flatpak --install",
+    "bundle": "node-gtk bundle --archive",
     "postinstall": "npm run generate-types"
   },
   "dependencies": {

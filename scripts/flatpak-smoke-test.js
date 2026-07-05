@@ -1,16 +1,22 @@
 /*
  * flatpak-smoke-test.js
  *
- * Checks `node-gtk flatpak --no-build`: stages a minimal app and asserts the
- * generated flatpak sources are complete and buildable — manifest, launcher,
- * desktop file, metainfo, and an app tree carrying the node-gtk COMPILE
- * inputs (src/ + binding.gyp + nan) instead of a host-compiled binding.
+ * Checks `node-gtk flatpak`. Two modes:
  *
- * The actual sandbox build is exercised locally / at release time, not on
- * every CI run: it downloads the ~1 GB GNOME SDK. This test needs no GTK, no
+ * Default (generation only — what main.yaml runs on every CI push): stages a
+ * minimal app and asserts the generated flatpak sources are complete and
+ * buildable — manifest, launcher, desktop file, metainfo, release artifacts
+ * (--release), and an app tree carrying the node-gtk COMPILE inputs (src/ +
+ * binding.gyp + nan) instead of a host-compiled binding. Needs no GTK, no
  * display and no flatpak.
  *
- * Usage: node scripts/flatpak-smoke-test.js
+ * --full (the flatpak-build.yaml workflow_dispatch job, and local release
+ * checks): additionally builds the flatpak for real (downloads the GNOME SDK
+ * on first run), installs it user-level, and runs the installed app under
+ * a private D-Bus session + Xvfb, asserting the GTK code executed inside the
+ * sandbox.
+ *
+ * Usage: node scripts/flatpak-smoke-test.js [--full]
  */
 
 const fs = require('fs')
@@ -23,6 +29,7 @@ if (process.platform !== 'linux') {
   process.exit(0)
 }
 
+const full = process.argv.includes('--full')
 const repoRoot = path.resolve(__dirname, '..')
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'node-gtk-flatpak-smoke-'))
 const appDir = path.join(tmp, 'app')
@@ -34,22 +41,38 @@ fs.writeFileSync(path.join(appDir, 'package.json'), JSON.stringify({
   version: '1.0.0',
   main: 'main.js',
   license: 'MIT',
+  repository: 'https://github.com/romgrk/node-gtk.git',
   dependencies: { 'node-gtk': '*' },
   bundle: { name: 'FlatpakSmoke', id, summary: 'Flatpak generation smoke test' },
 }, null, 2))
-fs.writeFileSync(path.join(appDir, 'main.js'), `require('node-gtk')\n`)
+// A real GTK4 app: org.gnome.Platform guarantees Gtk 4.0 in --full mode; the
+// generation-only mode never executes it.
+fs.writeFileSync(path.join(appDir, 'main.js'), `
+const gi = require('node-gtk')
+const Gtk = gi.require('Gtk', '4.0')
+Gtk.init()
+const label = new Gtk.Label({ label: 'flatpak-smoke' })
+console.log('FLATPAK_SMOKE_OK', label.getLabel(), 'exec=' + process.execPath)
+process.exit(0)
+`)
 fs.mkdirSync(path.join(appDir, 'node_modules'))
 fs.symlinkSync(repoRoot, path.join(appDir, 'node_modules', 'node-gtk'), 'dir')
 
 const outDir = path.join(tmp, 'out')
-const result = child_process.spawnSync(
-  process.execPath,
-  [path.join(repoRoot, 'bin', 'node-gtk.js'), 'flatpak', appDir, '--out', outDir, '--no-build'],
+const args = [path.join(repoRoot, 'bin', 'node-gtk.js'), 'flatpak', appDir, '--out', outDir, '--release']
+if (!full)
+  args.push('--no-build')
+else
+  args.push('--install')
+
+const result = child_process.spawnSync(process.execPath, args,
   { stdio: 'inherit', env: { ...process.env, NODE_GTK_BUNDLE_DEBUG: '1' } })
 if (result.status !== 0) {
-  console.error(`smoke: FAIL — generation exited with ${result.status} (kept: ${tmp})`)
+  console.error(`smoke: FAIL — node-gtk flatpak exited with ${result.status} (kept: ${tmp})`)
   process.exit(1)
 }
+
+// --- generated sources ------------------------------------------------------
 
 const checks = [
   // generated integration files
@@ -58,10 +81,13 @@ const checks = [
   ['launcher.sh', content => content.includes('exec /app/bin/node --import node-gtk/register')],
   [`${id}.desktop`, content => content.includes('Exec=' + id)],
   [`${id}.metainfo.xml`, content => content.includes(`<id>${id}</id>`)],
+  // --release: Flathub manifest referencing the tarball by url + sha256
+  [`${id}.flathub.yml`, content => /type: archive/.test(content) && /sha256: [0-9a-f]{64}/.test(content)],
+  ['FlatpakSmoke-1.0.0-flatpak-src.tar.gz', undefined],
   // the staged tree must be COMPILABLE in the sandbox
-  ['app/node_modules/node-gtk/binding.gyp', () => true],
-  ['app/node_modules/node-gtk/src', () => true],
-  ['app/node_modules/nan', () => true],
+  ['app/node_modules/node-gtk/binding.gyp', undefined],
+  ['app/node_modules/node-gtk/src', undefined],
+  ['app/node_modules/nan', undefined],
 ]
 for (const [rel, check] of checks) {
   const p = path.join(outDir, rel)
@@ -69,7 +95,7 @@ for (const [rel, check] of checks) {
     console.error(`smoke: FAIL — missing ${rel} (kept: ${tmp})`)
     process.exit(1)
   }
-  if (fs.statSync(p).isFile() && !check(fs.readFileSync(p, 'utf8'))) {
+  if (check !== undefined && !check(fs.readFileSync(p, 'utf8'))) {
     console.error(`smoke: FAIL — unexpected content in ${rel} (kept: ${tmp})`)
     process.exit(1)
   }
@@ -79,6 +105,25 @@ for (const [rel, check] of checks) {
 if (fs.existsSync(path.join(outDir, 'app/node_modules/node-gtk/lib/binding'))) {
   console.error(`smoke: FAIL — host lib/binding leaked into flatpak sources (kept: ${tmp})`)
   process.exit(1)
+}
+
+// --- full mode: run the installed flatpak ------------------------------------
+
+if (full) {
+  console.log(`smoke: running installed ${id} under dbus-run-session + xvfb`)
+  const runResult = child_process.spawnSync(
+    'dbus-run-session', ['--', 'xvfb-run', '-a', 'flatpak', 'run', id], { encoding: 'utf8' })
+  process.stdout.write(runResult.stdout || '')
+  process.stderr.write(runResult.stderr || '')
+  if (runResult.status !== 0 || !(runResult.stdout || '').includes('FLATPAK_SMOKE_OK')) {
+    console.error(`smoke: FAIL — flatpak run exited with ${runResult.status} (kept: ${tmp})`)
+    process.exit(1)
+  }
+  if (!runResult.stdout.includes('exec=/app/bin/node')) {
+    console.error(`smoke: FAIL — app ran under the wrong node (kept: ${tmp})`)
+    process.exit(1)
+  }
+  child_process.spawnSync('flatpak', ['uninstall', '--user', '-y', id])
 }
 
 console.log('smoke: PASS')

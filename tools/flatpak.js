@@ -26,12 +26,20 @@
  * a local build and a single-file <Name>.flatpak bundle that users can
  * double-click to install — GNOME Software fetches the Platform from Flathub
  * automatically (--runtime-repo).
+ *
+ * --release additionally produces what a Flathub submission needs: Flathub
+ * builds on its own infrastructure from FETCHABLE sources, so the staged
+ * tree is tarballed and a second manifest (<id>.flathub.yml) references that
+ * tarball by url + sha256. Upload the tarball to a release, submit the
+ * manifest.
  */
 
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
+const child_process = require('child_process')
 
-const { exists, mkdirp, copyFile, formatSize, dirSize, exec, tryExec } = require('./bundle/util.js')
+const { exists, mkdirp, copyFile, formatSize, exec, tryExec } = require('./bundle/util.js')
 const { loadConfig, prepareOutput } = require('./bundle.js')
 const appTree = require('./bundle/app-tree.js')
 
@@ -45,10 +53,16 @@ flatpak-builder or org.flatpak.Builder is available) builds it and produces a
 single-file .flatpak bundle users can double-click to install.
 
 Options:
-  --out <dir>      output directory (default: <app>/dist/flatpak)
-  --no-build       only generate the manifest + staged sources
-  --install        install the result into the user's flatpak installation
-  -h, --help       show this help
+  --out <dir>            output directory (default: <app>/dist/flatpak)
+  --no-build             only generate the manifest + staged sources
+  --install              install the result into the user's flatpak installation
+  --run                  install, then run the app (implies --install)
+  --release              also produce Flathub submission sources: a tarball of
+                         the staged app + <id>.flathub.yml referencing it
+  --release-url <url>    download URL the release tarball will live at
+                         (default: derived from package.json "repository")
+  --lint                 run flatpak-builder-lint on the manifest + metainfo
+  -h, --help             show this help
 
 Configuration (package.json "bundle" key): everything \`node-gtk bundle\` uses,
 plus: summary, icon, license, categories, and
@@ -86,24 +100,8 @@ function flatpak(flags) {
 
   prepareOutput(outBase)
 
-  const ctx = {
-    config, appDir, outBase, log,
-    appOutDir: path.join(outBase, 'app'),
-    rebuildAddon: true,
-  }
-  mkdirp(ctx.appOutDir)
-
-  console.log('## Staging application (offline sources for flatpak-builder)')
-  appTree.copyApp(ctx)
-
-  console.log('## Generating manifest')
-  stageIcon(ctx) // before the manifest: it references the staged icon file
-  const manifestPath = writeManifest(ctx)
-  writeLauncher(ctx)
-  writeDesktopFile(ctx)
-  writeMetainfo(ctx)
-
-  // Marker for prepareOutput, and a record of what produced this.
+  // Marker for prepareOutput (so a failed run stays overwriteable), and a
+  // record of what produced this. Written first on purpose.
   fs.writeFileSync(path.join(outBase, 'bundle.json'), JSON.stringify({
     name: config.name,
     id: config.id,
@@ -115,7 +113,39 @@ function flatpak(flags) {
     created: new Date().toISOString(),
   }, null, 2) + '\n')
 
+  const ctx = {
+    config, appDir, outBase, log,
+    appOutDir: path.join(outBase, 'app'),
+    rebuildAddon: true,
+  }
+  mkdirp(ctx.appOutDir)
+
+  console.log('## Staging application (offline sources for flatpak-builder)')
+  appTree.copyApp(ctx)
+  checkApplicationId(ctx)
+
+  console.log('## Generating manifest')
+  stageIcon(ctx) // before the manifest: it references the staged icon file
+  const manifestPath = writeManifest(ctx)
+  writeLauncher(ctx)
+  writeDesktopFile(ctx)
+  writeMetainfo(ctx)
+
   log(`manifest: ${path.relative(process.cwd(), manifestPath)}`)
+
+  const lintTargets = [['manifest', manifestPath], ['appstream', path.join(outBase, `${config.id}.metainfo.xml`)]]
+
+  if (flags.release) {
+    console.log('## Producing Flathub submission sources (--release)')
+    const flathubManifest = writeReleaseArtifacts(ctx, flags)
+    lintTargets[0] = ['manifest', flathubManifest]
+  }
+
+  if (flags.lint) {
+    console.log('## Linting (flatpak-builder-lint)')
+    if (!runLint(ctx, lintTargets))
+      process.exitCode = 1
+  }
 
   if (flags.noBuild) {
     console.log(`## Done (generation only). Build with:`)
@@ -127,7 +157,6 @@ function flatpak(flags) {
   if (builder === undefined) {
     console.log('## flatpak-builder not found — skipping build. Install it with:')
     console.log('   flatpak install flathub org.flatpak.Builder')
-    console.log(`   then: ${HELP.split('\n')[0]}`)
     return
   }
 
@@ -145,7 +174,7 @@ function flatpak(flags) {
        `${JSON.stringify(repoDir)} ${JSON.stringify(bundleFile)} ${config.id}`)
   log(`${path.relative(process.cwd(), bundleFile)} (${formatSize(fs.statSync(bundleFile).size)})`)
 
-  if (flags.install) {
+  if (flags.install || flags.run) {
     console.log('## Installing (user)')
     exec(`flatpak install --user -y --reinstall ${JSON.stringify(bundleFile)}`,
          { stdio: ['ignore', 'inherit', 'inherit'] })
@@ -153,6 +182,12 @@ function flatpak(flags) {
   }
 
   console.log(`## Done: ${path.relative(process.cwd(), bundleFile)}`)
+
+  if (flags.run) {
+    console.log(`## Running ${config.id}`)
+    const result = child_process.spawnSync('flatpak', ['run', config.id], { stdio: 'inherit' })
+    process.exitCode = result.status === null ? 1 : result.status
+  }
 }
 
 // Native flatpak-builder if present, else the org.flatpak.Builder flatpak
@@ -172,6 +207,123 @@ function findBuilder() {
 }
 
 // ---------------------------------------------------------------------------
+// application-id check
+// ---------------------------------------------------------------------------
+
+// The sandbox only lets the app own the D-Bus name matching its flatpak id:
+// a GApplication with a different applicationId fails to register
+// (GDBus.Error ServiceUnknown) and typically exits without a window. Scan the
+// staged sources for applicationId literals and warn on a mismatch.
+function checkApplicationId(ctx) {
+  const { config, appOutDir, log } = ctx
+  const found = new Set()
+  const re = /application_?[iI]d\s*[:=]\s*['"]([A-Za-z0-9._-]+)['"]/g
+
+  const visit = dir => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name.startsWith('.'))
+        continue
+      const p = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        visit(p)
+      } else if (/\.(js|mjs|cjs|ts|mts|jsx|tsx)$/.test(entry.name) && fs.statSync(p).size < 512 * 1024) {
+        for (const m of fs.readFileSync(p, 'utf8').matchAll(re))
+          found.add(m[1])
+      }
+    }
+  }
+  visit(appOutDir)
+
+  if (found.size > 0 && !found.has(config.id)) {
+    log(`WARNING: the app sets applicationId ${[...found].join(', ')} but the flatpak id is ${config.id}.`)
+    log(`         The sandbox only allows owning the flatpak id on D-Bus, so GApplication`)
+    log(`         registration WILL fail. Make bundle.id and applicationId identical.`)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Flathub release sources
+// ---------------------------------------------------------------------------
+
+// Flathub builds from fetchable sources on its own infrastructure. Tarball
+// the staged sources (with a top-level directory, matching the default
+// strip-components of archive sources) and emit a manifest referencing it.
+function writeReleaseArtifacts(ctx, flags) {
+  const { config, outBase, log } = ctx
+  const top = `${config.name}-${config.version}`
+  const tarName = `${top}-flatpak-src.tar.gz`
+  const tarPath = path.join(outBase, tarName)
+
+  const members = ['app', 'launcher.sh', `${config.id}.desktop`, `${config.id}.metainfo.xml`]
+  if (ctx.iconFile !== undefined)
+    members.push(ctx.iconFile)
+  exec(`tar -czf ${JSON.stringify(tarPath)} --transform ${JSON.stringify(`s,^,${top}/,`)} ` +
+       `-C ${JSON.stringify(outBase)} ${members.map(m => JSON.stringify(m)).join(' ')}`)
+
+  const sha256 = crypto.createHash('sha256').update(fs.readFileSync(tarPath)).digest('hex')
+  const url = releaseUrl(ctx, tarName, flags)
+
+  const sources = `      - type: archive
+        url: ${url}
+        sha256: ${sha256}`
+  const flathubManifestPath = path.join(outBase, `${config.id}.flathub.yml`)
+  fs.writeFileSync(flathubManifestPath, manifestContent(ctx, sources,
+    `# Flathub submission manifest: sources are fetched from the release tarball.`))
+
+  log(`${tarName} (${formatSize(fs.statSync(tarPath).size)}) sha256=${sha256.slice(0, 12)}…`)
+  log(`${config.id}.flathub.yml (sources: ${url})`)
+  console.log(`   Next: upload ${tarName} to a release at that URL, fill the metainfo`)
+  console.log(`   TODOs, then submit the .flathub.yml manifest to github.com/flathub/flathub`)
+  return flathubManifestPath
+}
+
+function releaseUrl(ctx, tarName, flags) {
+  if (flags.releaseUrl !== undefined)
+    return flags.releaseUrl.endsWith('.tar.gz') ? flags.releaseUrl
+      : `${flags.releaseUrl.replace(/\/$/, '')}/${tarName}`
+  const { config } = ctx
+  const m = /github\.com[:/]([^/]+)\/([^/.]+)/.exec(config.repository || '')
+  if (m !== null)
+    return `https://github.com/${m[1]}/${m[2]}/releases/download/v${config.version}/${tarName}`
+  ctx.log(`(no --release-url and no github "repository" in package.json — using a placeholder URL)`)
+  return `https://example.com/TODO/${tarName}`
+}
+
+// ---------------------------------------------------------------------------
+// lint
+// ---------------------------------------------------------------------------
+
+function runLint(ctx, targets) {
+  const { outBase, log } = ctx
+  let command, args
+  if (tryExec('flatpak-builder-lint --version') !== undefined) {
+    command = 'flatpak-builder-lint'
+    args = []
+  } else if (tryExec('flatpak info org.flatpak.Builder') !== undefined) {
+    command = 'flatpak'
+    args = ['run', `--filesystem=${outBase}`, '--command=flatpak-builder-lint', 'org.flatpak.Builder']
+  } else {
+    log('flatpak-builder-lint not available — install with: flatpak install flathub org.flatpak.Builder')
+    return true
+  }
+
+  let ok = true
+  for (const [kind, file] of targets) {
+    const result = child_process.spawnSync(command, [...args, kind, file], { encoding: 'utf8' })
+    const output = ((result.stdout || '') + (result.stderr || '')).trim()
+    if (result.status === 0) {
+      log(`lint ${kind}: OK`)
+    } else {
+      ok = false
+      log(`lint ${kind}: FAILED`)
+      if (output !== '')
+        console.log(output.split('\n').map(l => `    ${l}`).join('\n'))
+    }
+  }
+  return ok
+}
+
+// ---------------------------------------------------------------------------
 // generated files
 // ---------------------------------------------------------------------------
 
@@ -180,8 +332,12 @@ function yq(value) {
   return `'${String(value).replace(/'/g, "''")}'`
 }
 
-function writeManifest(ctx) {
-  const { config, outBase } = ctx
+// The manifest body, parameterized over the sources block: local builds use
+// dir+file sources pointing at the generated tree; the Flathub variant uses
+// a single release-tarball archive source (extracted with the default
+// strip-components=1, hence the tarball's top-level directory).
+function manifestContent(ctx, sourcesYaml, note) {
+  const { config } = ctx
   const { runtimeVersion, node } = config.flatpak
   const sdk = `/usr/lib/sdk/node${node}`
 
@@ -208,7 +364,8 @@ function writeManifest(ctx) {
 
   const icon = iconInstallCommand(ctx)
 
-  const manifest = `# Flatpak manifest for ${config.name} — generated by \`node-gtk flatpak\`.
+  return `# Flatpak manifest for ${config.name} — generated by \`node-gtk flatpak\`.
+${note}
 # Reference: doc/bundling.md. Regenerate rather than editing where possible;
 # persistent settings (finish-args etc.) belong in package.json "bundle".
 app-id: ${config.id}
@@ -238,19 +395,23 @@ modules:
       - install -Dm644 ${config.id}.desktop /app/share/applications/${config.id}.desktop
       - install -Dm644 ${config.id}.metainfo.xml /app/share/metainfo/${config.id}.metainfo.xml
 ${icon !== undefined ? `      - ${icon}\n` : ''}    sources:
-      - type: dir
-        path: app
-        dest: app
-      - type: file
-        path: launcher.sh
-      - type: file
-        path: ${config.id}.desktop
-      - type: file
-        path: ${config.id}.metainfo.xml
-${ctx.iconFile !== undefined ? `      - type: file\n        path: ${ctx.iconFile}\n` : ''}`
+${sourcesYaml}
+`
+}
+
+function writeManifest(ctx) {
+  const { config, outBase } = ctx
+  const sources = [
+    '      - type: dir\n        path: app\n        dest: app',
+    '      - type: file\n        path: launcher.sh',
+    `      - type: file\n        path: ${config.id}.desktop`,
+    `      - type: file\n        path: ${config.id}.metainfo.xml`,
+    ...(ctx.iconFile !== undefined ? [`      - type: file\n        path: ${ctx.iconFile}`] : []),
+  ].join('\n')
 
   const manifestPath = path.join(outBase, `${config.id}.yml`)
-  fs.writeFileSync(manifestPath, manifest)
+  fs.writeFileSync(manifestPath, manifestContent(ctx, sources,
+    `# Local-build manifest: sources point at the generated tree next to it.`))
   return manifestPath
 }
 
@@ -282,8 +443,10 @@ Categories=${[...config.categories, ''].join(';')}
 function writeMetainfo(ctx) {
   const { config, outBase } = ctx
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  // Enough for local installs; Flathub review needs real content — the
-  // generated TODOs mark what to fill in.
+  const gh = /github\.com[:/]([^/]+)\/([^/.]+)/.exec(config.repository || '')
+  const homepage = gh !== null ? `https://github.com/${gh[1]}/${gh[2]}` : undefined
+  // Enough for local installs; Flathub review needs real content — run with
+  // --lint for the full checklist, the TODOs mark what to fill in.
   fs.writeFileSync(path.join(outBase, `${config.id}.metainfo.xml`), `<?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
   <id>${esc(config.id)}</id>
@@ -296,7 +459,7 @@ function writeMetainfo(ctx) {
     <!-- TODO for Flathub: real description, screenshots, releases, developer, content_rating -->
   </description>
   <launchable type="desktop-id">${esc(config.id)}.desktop</launchable>
-</component>
+${homepage !== undefined ? `  <url type="homepage">${esc(homepage)}</url>\n` : ''}</component>
 `)
 }
 
@@ -336,6 +499,10 @@ function parseArgs(argv) {
       case '-h': case '--help': flags.help = true; break
       case '--no-build': flags.noBuild = true; break
       case '--install': flags.install = true; break
+      case '--run': flags.run = true; break
+      case '--release': flags.release = true; break
+      case '--release-url': flags.release = true; flags.releaseUrl = argv[++i]; break
+      case '--lint': flags.lint = true; break
       case '--out': flags.out = argv[++i]; break
       default:
         if (arg.startsWith('-'))
