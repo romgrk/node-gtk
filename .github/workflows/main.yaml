@@ -80,6 +80,16 @@ jobs:
           ABI=$(node -p "process.versions.modules")
           ./scripts/windows-bundle-runtime.sh "lib/binding/node-v${ABI}-win32-x64"
 
+      # `node-gtk bundle` end-to-end: bundle a smoke app against this checkout
+      # (inside the MINGW64 environment), then run the produced .cmd launcher.
+      # Deliberately after the prebuilt step: the binding dir then carries the
+      # self-contained runtime, exercising the bundler's trim of it. One node
+      # version suffices (the bundler is ABI-generic JS). The runner session
+      # has a desktop, so no virtual display is needed.
+      - name: Bundle smoke test
+        if: matrix.node == 24
+        run: node scripts/bundle-smoke-test.js
+
       # Publish the prebuilt to S3 on a `[publish binary]` commit, like the
       # Linux/macOS jobs do via scripts/ci.sh.
       - name: Publish prebuilt
@@ -147,12 +157,16 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       # `node-gtk bundle` end-to-end: bundle a smoke app against this checkout,
-      # then run the produced launcher. Linux-only for now; one node version
-      # suffices (the bundler is ABI-generic JS, tested against the matrix's
-      # addon build anyway).
+      # then run the produced launcher. One node version suffices (the bundler
+      # is ABI-generic JS, tested against the matrix's addon build anyway).
+      # Linux needs a virtual display; the macOS runner has a window server.
       - name: Bundle smoke test
         if: matrix.os == 'ubuntu-latest' && matrix.node == 24
         run: xvfb-run -a node scripts/bundle-smoke-test.js
+
+      - name: Bundle smoke test (macOS)
+        if: matrix.os == 'macos-latest' && matrix.node == 24
+        run: node scripts/bundle-smoke-test.js
 
       # `node-gtk flatpak` generation: manifest + offline sources must be
       # complete and buildable. The full sandbox build is not run per-CI-run
