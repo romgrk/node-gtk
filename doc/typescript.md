@@ -33,7 +33,7 @@ const win = new Gtk.ApplicationWindow({ title: 'Hello', defaultWidth: 400 })
 win.on('close-request', () => false)   // signal name + callback are typed
 ```
 
-The [direct `gi:` import form](./importing.md#es-modules) is typed too — the generated
+The [direct `gi:` import form](./importing.md) is typed too — the generated
 shim declares each `gi:<Namespace>-<version>` module, so its default export is the
 namespace:
 

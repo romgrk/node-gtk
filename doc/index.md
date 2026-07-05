@@ -4,21 +4,23 @@
 Adwaita is a set of widgets and theming that is built on top of GTK.
 
 #### Table of contents
-  1. [Importing libraries](#importing-libraries)
+  1. [Importing](#importing)
   1. [Using libraries](#using-libraries)
   1. [Widgets and styling](#widgets-and-styling)
   1. [Devtools](#devtools)
   1. [Typescript](#typescript)
 
-## Importing libraries
+## Importing
 
-For ESM, always run your app with `node --import node-gtk/register` to import a namespace with the `gi:` scheme:
+To import the native libraries, always run your app with `node --import node-gtk/register`.
+It lets you import a namespace with the `gi:` scheme:
 
 ```javascript
-import Gtk from 'gi:Gtk-4.0' // 'gi:Name-Version'
+import Gtk from 'gi:Gtk-4.0'
+import Adw from 'gi:Adw-1'
 ```
 
-Not sure which libraries (and versions) are installed? Run `node-gtk list` to print them.
+To see your installed libraries and versions, run `node-gtk list`.
 
 See [importing](./importing.md) for details and CJS support.
 
