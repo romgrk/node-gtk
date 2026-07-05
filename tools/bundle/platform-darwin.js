@@ -83,14 +83,14 @@ function assembleRuntime(ctx) {
     closure.set(path.basename(p), p)
 
   for (const [name, src] of [...closure].sort())
-    copyFile(src, path.join(libDir, name))
+    copyLibrary(src, path.join(libDir, name))
   log(`libraries: ${closure.size} dylibs bundled (system libraries stay on the host)`)
 
   // --- gdk-pixbuf loaders ---------------------------------------------------
   const loadersDst = path.join(libDir, 'gdk-pixbuf-2.0', '2.10.0', 'loaders')
   if (loaders.files.length > 0) {
     for (const file of loaders.files)
-      copyFile(file, path.join(loadersDst, path.basename(file)))
+      copyLibrary(file, path.join(loadersDst, path.basename(file)))
     // Same trick as Linux: the cache format only supports absolute paths, so
     // ship a template the launcher materializes for the install location.
     if (loaders.cache !== undefined) {
@@ -107,6 +107,14 @@ function assembleRuntime(ctx) {
   // --- GSettings schemas + icon themes --------------------------------------
   copyRuntimeData(ctx, path.join(brew, 'share'))
   ensureCompiledSchemas(ctx, brew)
+}
+
+// Homebrew installs Cellar files read-only (0444), a mode copyFile would
+// preserve; the copies must stay writable — install_name_tool and codesign
+// rewrite them in place (and re-copying over a read-only file is EACCES).
+function copyLibrary(src, dest) {
+  copyFile(src, dest)
+  fs.chmodSync(dest, 0o755)
 }
 
 // Union of the transitive dependency closures of `files`: basename ->
@@ -234,9 +242,11 @@ function pixbufLoaders(brew) {
   const moduleDir = path.join(brew, 'lib', 'gdk-pixbuf-2.0', '2.10.0', 'loaders')
   if (!exists(moduleDir))
     return { files: [] }
-  const files = fs.readdirSync(moduleDir)
+  // Dedupe after realpath: Homebrew's loaders dir can hold several directory
+  // entries (symlinks) for one Cellar file.
+  const files = [...new Set(fs.readdirSync(moduleDir)
     .filter(f => f.endsWith('.so') || f.endsWith('.dylib'))
-    .map(f => fs.realpathSync(path.join(moduleDir, f)))
+    .map(f => fs.realpathSync(path.join(moduleDir, f))))]
   const cache = path.join(moduleDir, '..', 'loaders.cache')
   return { files, cache: exists(cache) ? cache : undefined }
 }
