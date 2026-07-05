@@ -197,13 +197,21 @@ Defaults grant only GUI access (`wayland`, `fallback-x11`, `ipc`, `dri`) —
 network and filesystem are deliberately opt-in; request the minimum, Flathub
 reviews it.
 
-Two things that bite:
+Three things that bite:
 
 - **The flatpak id must equal your `Gtk.Application` `applicationId`** —
   otherwise GNOME Shell can't associate windows with the app (generic icon,
   wrong dock entry).
 - The sandbox has no host filesystem by default: `fs` reads outside the
   sandbox need `--filesystem=` permissions, or better, the XDG portals.
+- **The API surface follows the runtime's libraries, not your dev
+  machine's.** A rolling-release host can expose introspected names a
+  slightly older GNOME runtime doesn't (e.g. glib ≥2.88 introspects
+  `g_unix_signal_add_full` as `GLibUnix.signalAdd`; the GNOME 49 runtime's
+  glib 2.86 calls it `signalAddFull`). Write version-tolerant lookups
+  (`GLibUnix.signalAdd ?? GLibUnix.signalAddFull`) and test inside the
+  sandbox — a node REPL against the runtime is one command:
+  `flatpak run --command=/app/bin/node <your.app.Id>`.
 
 ## Shipping on Flathub
 
