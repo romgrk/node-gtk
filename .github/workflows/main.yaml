@@ -153,3 +153,10 @@ jobs:
       - name: Bundle smoke test
         if: matrix.os == 'ubuntu-latest' && matrix.node == 24
         run: xvfb-run -a node scripts/bundle-smoke-test.js
+
+      # `node-gtk flatpak` generation: manifest + offline sources must be
+      # complete and buildable. The full sandbox build is not run per-CI-run
+      # (it downloads the ~1GB GNOME SDK); this check needs no flatpak at all.
+      - name: Flatpak generation smoke test
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: node scripts/flatpak-smoke-test.js

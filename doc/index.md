@@ -75,9 +75,10 @@ See  [typescript.md](./typescript.md)
 
 ## Shipping your app
 
-`node-gtk bundle` packages your app, node, node-gtk and the GTK runtime into a
-self-contained directory (and `.tar.gz`) that runs on machines with nothing
-installed. See [bundling.md](./bundling.md).
+`node-gtk flatpak` packages your app as a Flatpak — the format real users
+install through GNOME Software, Flathub-ready. `node-gtk bundle` produces a
+self-contained portable directory (and `.tar.gz`) that runs on machines with
+nothing installed. See [bundling.md](./bundling.md).
 
 ## node-gtk low-level API
 

@@ -12,6 +12,11 @@
  * its build-time dependencies (node-pre-gyp, node-gyp, nan) are omitted —
  * lib/native.js only requires node-pre-gyp when the direct binding path is
  * missing, which the bundler guarantees never happens.
+ *
+ * Flatpak mode (ctx.rebuildAddon) inverts the node-gtk special case: the
+ * addon must be COMPILED inside the flatpak sandbox against the GNOME
+ * runtime's GTK, so src/ + binding.gyp + the nan headers ship instead of the
+ * host's compiled lib/binding.
  */
 
 const fs = require('fs')
@@ -20,7 +25,9 @@ const path = require('path')
 const { exists, mkdirp, copyFile, copyTree } = require('./util.js')
 
 // Packages never copied into a bundle. Config `omitPackages` adds to this.
-const DEFAULT_OMIT = ['@mapbox/node-pre-gyp', 'node-gyp', 'nan']
+// In rebuild mode, nan (a header-only compile dependency of node-gtk) ships.
+const DEFAULT_OMIT = ['@mapbox/node-pre-gyp', 'node-gyp']
+const COMPILED_OMIT = ['nan']
 
 // Directory names never copied from the app or from packages.
 const ALWAYS_EXCLUDED_DIRS = new Set(['node_modules', '.git'])
@@ -69,7 +76,11 @@ function copyApp(ctx) {
   log(`app: ${fileCount} files (include: ${config.include.join(', ')})`)
 
   // --- 2. production dependencies -----------------------------------------
-  const omit = new Set([...DEFAULT_OMIT, ...config.omitPackages])
+  const omit = new Set([
+    ...DEFAULT_OMIT,
+    ...(ctx.rebuildAddon ? [] : COMPILED_OMIT),
+    ...config.omitPackages,
+  ])
   const packages = collectPackages(appDir, omit)
 
   for (const [name, dir] of packages) {
@@ -81,6 +92,9 @@ function copyApp(ctx) {
   }
 
   log(`app: ${packages.size} packages (${[...packages.keys()].join(', ')})`)
+
+  if (ctx.rebuildAddon)
+    return { bindingPath: undefined }
 
   const bindingPath = findBinding(ctx, appOutDir)
   return { bindingPath }
@@ -127,21 +141,25 @@ function resolvePackageDir(name, fromDir) {
 
 // node-gtk trimmed to its runtime files: package.json + lib/, and within
 // lib/binding only the ABI directory matching the bundled node binary.
+// In rebuild mode the compile inputs (src/, binding.gyp) ship INSTEAD of any
+// host-compiled lib/binding.
 function copyNodeGtk(ctx, srcDir, destDir) {
   const bindingName = ctx.bindingName
+  const topLevel = ctx.rebuildAddon
+    ? new Set(['package.json', 'binding.gyp', 'lib', 'src'])
+    : new Set(['package.json', 'lib'])
   copyTree(srcDir, destDir, {
     filter: src => {
       const rel = path.relative(srcDir, src)
       if (rel === '')
         return true
       const parts = rel.split(path.sep)
-      if (parts[0] === 'package.json')
-        return true
-      if (parts[0] !== 'lib')
+      if (!topLevel.has(parts[0]))
         return false
       if (ALWAYS_EXCLUDED_DIRS.has(parts[parts.length - 1]))
         return false
-      if (parts[1] === 'binding' && parts.length >= 3 && parts[2] !== bindingName)
+      if (parts[0] === 'lib' && parts[1] === 'binding'
+          && (ctx.rebuildAddon || (parts.length >= 3 && parts[2] !== bindingName)))
         return false
       return true
     },

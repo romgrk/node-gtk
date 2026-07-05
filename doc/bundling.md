@@ -1,17 +1,25 @@
 # Bundling — ship your app to users
 
-`node-gtk bundle` creates a **self-contained, double-clickable bundle** of a
-node-gtk application: your code, a node runtime, the compiled node-gtk addon,
-and the entire GTK runtime it needs. The result runs on machines with no
-node, no GTK, and no compiler installed.
+Two commands cover shipping, for different audiences:
+
+- **[`node-gtk flatpak`](#flatpak)** — the way **real users install apps**:
+  a Flatpak, one-click installable via GNOME Software, distributable on
+  Flathub (updates, sandboxing, shared GTK runtime). Start here for desktop
+  distribution.
+- **[`node-gtk bundle`](#portable-bundles)** — a **self-contained portable
+  directory** (plus `.tar.gz`): your code, a node runtime, the compiled
+  addon, and the entire GTK runtime. Runs on machines with nothing
+  installed; right for GitHub release artifacts, kiosks, fleets, and
+  "try my app" links.
+
+Both read the same `"bundle"` configuration from your package.json.
 
 > **Platform support: Linux today.** macOS and Windows are planned; the
 > platform-specific work is isolated behind one module interface
 > (`tools/bundle/platform-*.js`), and the Windows DLL-closure logic is already
 > proven by the self-contained npm prebuilt (`scripts/windows-bundle-runtime.sh`).
-> For distribution-grade Linux packaging (Flatpak, AppImage), see
-> [Roadmap](#roadmap) — the portable tree this command produces is exactly what
-> those formats wrap.
+
+# Portable bundles
 
 ## Usage
 
@@ -125,20 +133,97 @@ libraries resolve from on your machine:
 LD_DEBUG=libs ./dist/MyApp-linux-x64/MyApp 2>&1 | grep 'trying file.*libgtk'
 ```
 
-## Roadmap
+# Flatpak
 
-- **Windows**: same architecture; DLL closure via `ntldd` (already CI-proven
-  for the npm prebuilt), `.cmd` launcher, `.zip` archive. Needs an MSYS2
-  MINGW64 environment at bundle time.
+```sh
+cd my-app
+npx node-gtk flatpak             # generate + build + MyApp.flatpak
+npx node-gtk flatpak --install   # …and install it (user), then:
+flatpak run com.example.MyApp
+```
+
+The output `dist/flatpak/MyApp.flatpak` is a **single file users double-click
+to install** through GNOME Software on any distro — the file embeds the
+Flathub repo reference, so the GNOME runtime is fetched automatically. For
+real distribution, [submit the generated manifest to Flathub](#shipping-on-flathub).
+
+Requirements: `flatpak` plus a builder (`flatpak install flathub
+org.flatpak.Builder`, or your distro's `flatpak-builder` package). The first
+build downloads the GNOME SDK (~1 GB, cached). `--no-build` generates
+everything without building.
+
+## How it works
+
+Unlike `node-gtk bundle`, **nothing GTK-related is bundled**: the app runs on
+`org.gnome.Platform`, shared across all Flatpak apps and updated
+independently. What's inside `/app` is only your code, node (from the
+`org.freedesktop.Sdk.Extension.node<N>` SDK extension) and the node-gtk
+addon.
+
+`flatpak-builder` builds offline, which is normally painful for Node apps
+(lockfile→sources generators). We sidestep it: the same app-tree step
+`node-gtk bundle` uses stages your files + production node_modules
+(pnpm-safe, symlinks dereferenced) as a plain `dir` source. The only thing
+compiled in the sandbox is the node-gtk addon, against the runtime's GTK,
+using the SDK extension's bundled node headers (`--nodedir`) — still no
+network.
+
+## Flatpak configuration
+
+The shared `"bundle"` key, plus a `"flatpak"` sub-key:
+
+```jsonc
+"bundle": {
+  "name": "MyApp",
+  "id": "com.example.MyApp",       // MUST be your GApplication application-id
+  "summary": "Does the thing",     // .desktop comment + AppStream summary
+  "icon": "assets/icon.svg",       // svg or png; required by Flathub
+  "license": "MIT",                // SPDX, defaults to package.json "license"
+  "categories": ["GTK", "Utility"],
+  "flatpak": {
+    "runtimeVersion": "49",        // org.gnome.Platform version
+    "node": 26,                    // SDK extension major (20/22/24/26)
+    "finishArgs": [                // sandbox permissions beyond the GUI defaults
+      "--share=network",
+      "--filesystem=home"
+    ]
+  }
+}
+```
+
+Defaults grant only GUI access (`wayland`, `fallback-x11`, `ipc`, `dri`) —
+network and filesystem are deliberately opt-in; request the minimum, Flathub
+reviews it.
+
+Two things that bite:
+
+- **The flatpak id must equal your `Gtk.Application` `applicationId`** —
+  otherwise GNOME Shell can't associate windows with the app (generic icon,
+  wrong dock entry).
+- The sandbox has no host filesystem by default: `fs` reads outside the
+  sandbox need `--filesystem=` permissions, or better, the XDG portals.
+
+## Shipping on Flathub
+
+Flathub is a manifest repository: you submit the generated
+`<id>.yml` (plus your app source — for a node app, typically a release
+tarball of the staged `app/` tree) via PR to
+[flathub/flathub](https://github.com/flathub/flathub). Before submitting,
+fill in the metainfo TODOs (`description`, screenshots, releases,
+`content_rating`) and provide a real icon; `flatpak run org.flatpak.Builder
+--command=flatpak-builder-lint` checks compliance. After acceptance, users
+find the app in GNOME Software and updates ship automatically.
+
+# Roadmap
+
+- **Windows**: same `bundle` architecture; DLL closure via `ntldd` (already
+  CI-proven for the npm prebuilt), `.cmd` launcher, `.zip` archive. Needs an
+  MSYS2 MINGW64 environment at bundle time.
 - **macOS**: dylib closure via `otool -L` from Homebrew,
   `install_name_tool` relocation + ad-hoc re-signing, `.app`/`.dmg` output,
   `DYLD_FALLBACK_LIBRARY_PATH` launcher. Distribution additionally requires
   codesigning + notarization (Apple developer account).
-- **Flatpak**: the best Linux end-state — apps on `org.gnome.Platform` share
-  one GTK runtime and get Flathub distribution; the per-app payload shrinks
-  to `app/` + the addon. A manifest generator can build on the same app-tree
-  step this command uses.
-- **AppImage**: single-file wrapper around exactly this portable tree.
-- **Shared runtime**: install `runtime/` once per machine
+- **AppImage**: single-file wrapper around exactly the portable tree.
+- **Shared runtime** (portable bundles): install `runtime/` once per machine
   (`~/.local/share/node-gtk/runtime/<version>`), apps resolve it
   relative-first — the layout already supports this.

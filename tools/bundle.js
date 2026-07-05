@@ -152,10 +152,15 @@ function loadConfig(appDir, flags) {
   if (!exists(path.join(appDir, entry)))
     throw new Error(`entry point not found: ${entry}`)
 
+  const flatpakRaw = raw.flatpak || {}
   const config = {
     name,
     id: raw.id || `com.example.${name}`,
     version: pkg.version || '0.0.0',
+    summary: raw.summary || `The ${name} application`,
+    license: raw.license || pkg.license,
+    icon: raw.icon,
+    categories: raw.categories || ['GTK'],
     gtk: raw.gtk,
     entry: path.normalize(entry),
     include: raw.include || ['**/*'],
@@ -166,11 +171,23 @@ function loadConfig(appDir, flags) {
     node: raw.node,
     out: path.resolve(appDir, flags.out || raw.out
       || path.join('dist', `${name}-${process.platform}-${process.arch}`)),
+    flatpak: {
+      runtimeVersion: String(flatpakRaw.runtimeVersion || '49'),
+      node: Number(flatpakRaw.node || defaultFlatpakNode()),
+      finishArgs: flatpakRaw.finishArgs || [],
+    },
   }
 
   if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(config.name))
     throw new Error(`invalid bundle name '${config.name}' (it becomes a file name)`)
   return config
+}
+
+// The org.freedesktop.Sdk.Extension.node<N> major to build/run with: the
+// running node's major when an extension exists for it.
+function defaultFlatpakNode() {
+  const major = Number(process.versions.node.split('.')[0])
+  return [20, 22, 24, 26].includes(major) ? major : 24
 }
 
 function pascalCase(base) {
@@ -232,4 +249,4 @@ function parseArgs(argv) {
   return flags
 }
 
-module.exports = { run }
+module.exports = { run, loadConfig, prepareOutput }
