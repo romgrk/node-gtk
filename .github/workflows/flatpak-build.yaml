@@ -30,7 +30,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.local/share/flatpak
-          key: flatpak-org.gnome.Sdk-49-node24-v1
+          key: flatpak-org.gnome.Sdk-50-node24-v1
 
       # Staging only needs the JS dependency tree (node-gtk ships its compile
       # inputs; the addon builds inside the flatpak sandbox), so no host GTK

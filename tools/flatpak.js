@@ -39,7 +39,7 @@ const path = require('path')
 const crypto = require('crypto')
 const child_process = require('child_process')
 
-const { exists, mkdirp, copyFile, formatSize, exec, tryExec } = require('./bundle/util.js')
+const { exists, mkdirp, copyFile, copyTree, formatSize, exec, tryExec } = require('./bundle/util.js')
 const { loadConfig, prepareOutput } = require('./bundle.js')
 const appTree = require('./bundle/app-tree.js')
 
@@ -65,8 +65,14 @@ Options:
   -h, --help             show this help
 
 Configuration (package.json "bundle" key): everything \`node-gtk bundle\` uses,
-plus: summary, icon, license, categories, and
-  "flatpak": { "runtimeVersion": "49", "node": 26, "finishArgs": [...] }
+plus: summary, icon, license, categories, desktopFile, metainfo, iconsDir, and
+  "flatpak": { "runtimeVersion": "50", "node": 26, "finishArgs": [...],
+               "lintExceptions": { "<check>": "<justification>" } }
+
+Desktop integration: an app that ships its own files at the conventional
+locations — data/<id>.desktop, data/<id>.metainfo.xml, data/icons/hicolor/ —
+gets them used as-is (Exec rewritten for the sandbox); otherwise minimal
+stubs are generated. Flathub review needs the real thing.
 
 See doc/bundling.md for the full reference, sandbox permissions, and the
 Flathub submission path.`
@@ -120,16 +126,18 @@ function flatpak(flags) {
   }
   mkdirp(ctx.appOutDir)
 
+  checkFlathubConventions(ctx, flags)
+
   console.log('## Staging application (offline sources for flatpak-builder)')
   appTree.copyApp(ctx)
   checkApplicationId(ctx)
 
   console.log('## Generating manifest')
-  stageIcon(ctx) // before the manifest: it references the staged icon file
+  stageIcons(ctx) // before the manifest: it references the staged files
   const manifestPath = writeManifest(ctx)
   writeLauncher(ctx)
-  writeDesktopFile(ctx)
-  writeMetainfo(ctx)
+  stageDesktopFile(ctx)
+  stageMetainfo(ctx)
 
   log(`manifest: ${path.relative(process.cwd(), manifestPath)}`)
 
@@ -207,6 +215,26 @@ function findBuilder() {
 }
 
 // ---------------------------------------------------------------------------
+// Flathub conventions check
+// ---------------------------------------------------------------------------
+
+// Flathub gates submissions on conventions a local build never trips over;
+// surface them up front — they are expensive to discover at review time.
+function checkFlathubConventions(ctx, flags) {
+  const { config, log } = ctx
+  if (/^(com|org)\.(github|gitlab)\./.test(config.id))
+    log(`WARNING: Flathub rejects '${config.id}' — ids based on code hosting must use ` +
+        `io.github.* / io.gitlab.* (and the GApplication applicationId must follow)`)
+  if (flags.release && /^com\.example\./.test(config.id))
+    log(`WARNING: '${config.id}' is a placeholder id — Flathub requires an id under a domain you control`)
+  const broad = config.flatpak.finishArgs.filter(a => /^--filesystem=(host|home)\b/.test(a))
+  const acknowledged = Object.keys(config.flatpak.lintExceptions).some(k => k.includes('filesystem'))
+  if (broad.length > 0 && !acknowledged)
+    log(`note: ${broad.join(', ')} is a Flathub linter error — prefer portals, or declare the ` +
+        `justification in bundle.flatpak.lintExceptions and request an exception in the submission PR`)
+}
+
+// ---------------------------------------------------------------------------
 // application-id check
 // ---------------------------------------------------------------------------
 
@@ -248,6 +276,9 @@ function checkApplicationId(ctx) {
 // Flathub builds from fetchable sources on its own infrastructure. Tarball
 // the staged sources (with a top-level directory, matching the default
 // strip-components of archive sources) and emit a manifest referencing it.
+// The manifest lands in flathub/<id>.yml: the linter requires the file to be
+// named exactly after the app id, and the flathub/ directory is what the
+// submission PR (and later the app's Flathub repo) contains.
 function writeReleaseArtifacts(ctx, flags) {
   const { config, outBase, log } = ctx
   const top = `${config.name}-${config.version}`
@@ -255,6 +286,8 @@ function writeReleaseArtifacts(ctx, flags) {
   const tarPath = path.join(outBase, tarName)
 
   const members = ['app', 'launcher.sh', `${config.id}.desktop`, `${config.id}.metainfo.xml`]
+  if (ctx.iconsStaged)
+    members.push('icons')
   if (ctx.iconFile !== undefined)
     members.push(ctx.iconFile)
   exec(`tar -czf ${JSON.stringify(tarPath)} --transform ${JSON.stringify(`s,^,${top}/,`)} ` +
@@ -266,14 +299,16 @@ function writeReleaseArtifacts(ctx, flags) {
   const sources = `      - type: archive
         url: ${url}
         sha256: ${sha256}`
-  const flathubManifestPath = path.join(outBase, `${config.id}.flathub.yml`)
+  const flathubDir = path.join(outBase, 'flathub')
+  mkdirp(flathubDir)
+  const flathubManifestPath = path.join(flathubDir, `${config.id}.yml`)
   fs.writeFileSync(flathubManifestPath, manifestContent(ctx, sources,
     `# Flathub submission manifest: sources are fetched from the release tarball.`))
 
   log(`${tarName} (${formatSize(fs.statSync(tarPath).size)}) sha256=${sha256.slice(0, 12)}…`)
-  log(`${config.id}.flathub.yml (sources: ${url})`)
-  console.log(`   Next: upload ${tarName} to a release at that URL, fill the metainfo`)
-  console.log(`   TODOs, then submit the .flathub.yml manifest to github.com/flathub/flathub`)
+  log(`flathub/${config.id}.yml (sources: ${url})`)
+  console.log(`   Next: upload ${tarName} to a release at that URL, then submit the`)
+  console.log(`   flathub/ manifest via PR to github.com/flathub/flathub (see doc/bundling.md)`)
   return flathubManifestPath
 }
 
@@ -294,7 +329,7 @@ function releaseUrl(ctx, tarName, flags) {
 // ---------------------------------------------------------------------------
 
 function runLint(ctx, targets) {
-  const { outBase, log } = ctx
+  const { config, outBase, log } = ctx
   let command, args
   if (tryExec('flatpak-builder-lint --version') !== undefined) {
     command = 'flatpak-builder-lint'
@@ -305,6 +340,18 @@ function runLint(ctx, targets) {
   } else {
     log('flatpak-builder-lint not available — install with: flatpak install flathub org.flatpak.Builder')
     return true
+  }
+
+  // Permissions the app stands by, declared with their justification in
+  // bundle.flatpak.lintExceptions — same JSON shape as Flathub's exceptions
+  // store, so the file documents exactly what the submission PR must request.
+  const exceptions = config.flatpak.lintExceptions
+  if (Object.keys(exceptions).length > 0) {
+    const exceptionsFile = path.join(outBase, 'lint-exceptions.json')
+    fs.writeFileSync(exceptionsFile, JSON.stringify({ [config.id]: exceptions }, null, 2) + '\n')
+    // --user-exceptions only supplies the store; --exceptions enables it.
+    args.push('--exceptions', '--user-exceptions', exceptionsFile)
+    log(`lint: tolerating ${Object.keys(exceptions).join(', ')} — request these as exceptions in the Flathub submission PR`)
   }
 
   let ok = true
@@ -394,7 +441,7 @@ modules:
       - install -Dm755 launcher.sh /app/bin/${config.id}
       - install -Dm644 ${config.id}.desktop /app/share/applications/${config.id}.desktop
       - install -Dm644 ${config.id}.metainfo.xml /app/share/metainfo/${config.id}.metainfo.xml
-${icon !== undefined ? `      - ${icon}\n` : ''}    sources:
+${icon !== undefined ? `      - ${yq(icon)}\n` : ''}    sources:
 ${sourcesYaml}
 `
 }
@@ -406,6 +453,7 @@ function writeManifest(ctx) {
     '      - type: file\n        path: launcher.sh',
     `      - type: file\n        path: ${config.id}.desktop`,
     `      - type: file\n        path: ${config.id}.metainfo.xml`,
+    ...(ctx.iconsStaged ? ['      - type: dir\n        path: icons\n        dest: icons'] : []),
     ...(ctx.iconFile !== undefined ? [`      - type: file\n        path: ${ctx.iconFile}`] : []),
   ].join('\n')
 
@@ -427,9 +475,38 @@ exec /app/bin/node ${nodeArgs}./${entry} "$@"
 `)
 }
 
-function writeDesktopFile(ctx) {
-  const { config, outBase } = ctx
-  fs.writeFileSync(path.join(outBase, `${config.id}.desktop`), `[Desktop Entry]
+// An app-provided desktop-integration file: the explicit config path (an
+// error when missing — it was asked for), else the first conventional
+// location that exists, else undefined (a stub is generated).
+function findAppFile(ctx, configured, candidates) {
+  if (configured !== undefined) {
+    const p = path.resolve(ctx.appDir, configured)
+    if (!exists(p))
+      throw new Error(`configured file not found: ${configured}`)
+    return p
+  }
+  for (const candidate of candidates) {
+    const p = path.join(ctx.appDir, candidate)
+    if (exists(p))
+      return p
+  }
+  return undefined
+}
+
+// The .desktop file: the app's own ("bundle.desktopFile", or the
+// conventional data/<id>.desktop) ships nearly verbatim — only Exec is
+// rewritten, because inside the sandbox the launch command is the flatpak id
+// installed at /app/bin/<id>, whatever the file says for host installs.
+function stageDesktopFile(ctx) {
+  const { config, appDir, outBase, log } = ctx
+  const dest = path.join(outBase, `${config.id}.desktop`)
+  const src = findAppFile(ctx, config.desktopFile, [
+    path.join('data', `${config.id}.desktop`),
+    `${config.id}.desktop`,
+  ])
+
+  if (src === undefined) {
+    fs.writeFileSync(dest, `[Desktop Entry]
 Type=Application
 Name=${config.name}
 Comment=${config.summary}
@@ -438,16 +515,56 @@ Icon=${config.id}
 Terminal=false
 Categories=${[...config.categories, ''].join(';')}
 `)
+    return
+  }
+
+  let content = fs.readFileSync(src, 'utf8')
+  content = content.replace(/^Exec=(\S+)( .*)?$/m, (_, __, rest) => `Exec=${config.id}${rest || ''}`)
+  const icon = /^Icon=(.*)$/m.exec(content)
+  if (icon !== null && icon[1].trim() !== config.id)
+    log(`WARNING: ${path.relative(appDir, src)} sets Icon=${icon[1].trim()} — flatpak only exports icons named after the app id (${config.id})`)
+  if (/^DBusActivatable=true/m.test(content))
+    log(`WARNING: ${path.relative(appDir, src)} sets DBusActivatable=true but no D-Bus service file is installed — launches from GNOME Shell will fail`)
+  fs.writeFileSync(dest, content)
+  log(`desktop: ${path.relative(appDir, src)} (Exec rewritten for the sandbox)`)
 }
 
-function writeMetainfo(ctx) {
-  const { config, outBase } = ctx
+// The AppStream metainfo: the app's own ("bundle.metainfo", or the
+// conventional data/<id>.metainfo.xml) ships verbatim; the generated stub is
+// enough for appstreamcli but Flathub review wants real content —
+// description, screenshots — which only the app author can write.
+function stageMetainfo(ctx) {
+  const { config, appDir, outBase, log } = ctx
+  const dest = path.join(outBase, `${config.id}.metainfo.xml`)
+  const src = findAppFile(ctx, config.metainfo, [
+    path.join('data', `${config.id}.metainfo.xml`),
+    path.join('data', `${config.id}.appdata.xml`),
+    `${config.id}.metainfo.xml`,
+  ])
+
+  if (src === undefined) {
+    writeGeneratedMetainfo(ctx, dest)
+    return
+  }
+
+  const content = fs.readFileSync(src, 'utf8')
+  const id = /<id>([^<]+)<\/id>/.exec(content)
+  if (id === null || id[1] !== config.id)
+    log(`WARNING: ${path.relative(appDir, src)} declares <id>${id !== null ? id[1] : '(none)'}</id> but the flatpak id is ${config.id} — AppStream requires them to match`)
+  fs.writeFileSync(dest, content)
+  log(`metainfo: ${path.relative(appDir, src)}`)
+}
+
+function writeGeneratedMetainfo(ctx, dest) {
+  const { config } = ctx
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   const gh = /github\.com[:/]([^/]+)\/([^/.]+)/.exec(config.repository || '')
   const homepage = gh !== null ? `https://github.com/${gh[1]}/${gh[2]}` : undefined
-  // Enough for local installs; Flathub review needs real content — run with
-  // --lint for the full checklist, the TODOs mark what to fill in.
-  fs.writeFileSync(path.join(outBase, `${config.id}.metainfo.xml`), `<?xml version="1.0" encoding="UTF-8"?>
+  const developer = authorName(config.author)
+  // The generated stub carries everything derivable (it passes appstreamcli
+  // validate); description and screenshots are the author's — Flathub review
+  // rejects placeholders, run with --lint for the full checklist.
+  fs.writeFileSync(dest, `<?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
   <id>${esc(config.id)}</id>
   <metadata_license>CC0-1.0</metadata_license>
@@ -456,19 +573,50 @@ function writeMetainfo(ctx) {
   <summary>${esc(config.summary)}</summary>
   <description>
     <p>${esc(config.summary)}</p>
-    <!-- TODO for Flathub: real description, screenshots, releases, developer, content_rating -->
+    <!-- TODO for Flathub: real description and screenshots (ship your own
+         data/<id>.metainfo.xml — it will be used instead of this stub) -->
   </description>
   <launchable type="desktop-id">${esc(config.id)}.desktop</launchable>
-${homepage !== undefined ? `  <url type="homepage">${esc(homepage)}</url>\n` : ''}</component>
+  <content_rating type="oars-1.1"/>
+${developer !== undefined ? `  <developer id="${esc(config.id.split('.').slice(0, -1).join('.'))}">
+    <name>${esc(developer)}</name>
+  </developer>
+` : ''}${homepage !== undefined ? `  <url type="homepage">${esc(homepage)}</url>\n` : ''}  <releases>
+    <release version="${esc(config.version)}" date="${new Date().toISOString().slice(0, 10)}"/>
+  </releases>
+</component>
 `)
 }
 
-// Copy the configured icon next to the manifest and return the in-sandbox
-// install command for it. SVG installs as scalable; PNG as 256x256.
-function stageIcon(ctx) {
+// package.json "author": "Name <email> (url)" or { "name": ... }.
+function authorName(author) {
+  const raw = typeof author === 'object' && author !== null ? author.name : author
+  if (typeof raw !== 'string')
+    return undefined
+  const name = raw.replace(/<[^>]*>|\([^)]*\)/g, '').trim()
+  return name === '' ? undefined : name
+}
+
+// Icons: an app-provided theme tree ("bundle.iconsDir", or the conventional
+// data/icons/hicolor/) ships whole — sized, scalable and symbolic variants;
+// else the single "bundle.icon" file; else a warning, Flathub requires one.
+function stageIcons(ctx) {
   const { config, appDir, outBase, log } = ctx
+
+  const themeDir = findAppFile(ctx, config.iconsDir, [path.join('data', 'icons')])
+  if (themeDir !== undefined && exists(path.join(themeDir, 'hicolor'))) {
+    copyTree(themeDir, path.join(outBase, 'icons'))
+    ctx.iconsStaged = true
+    const named = fs.globSync(
+      [`hicolor/*/apps/${config.id}.svg`, `hicolor/*/apps/${config.id}.png`], { cwd: themeDir })
+    if (named.length === 0)
+      log(`WARNING: no ${config.id}.svg/.png under ${path.relative(appDir, themeDir)}/hicolor/*/apps/ — the app will show a generic icon`)
+    log(`icons: ${path.relative(appDir, themeDir)} (${named.length > 0 ? named.join(', ') : 'theme tree'})`)
+    return
+  }
+
   if (config.icon === undefined) {
-    log('no "bundle.icon" configured — the app will show a generic icon (Flathub requires one)')
+    log('no icon found (data/icons/hicolor/ or "bundle.icon") — the app will show a generic icon (Flathub requires one)')
     return
   }
   const src = path.resolve(appDir, config.icon)
@@ -481,10 +629,15 @@ function stageIcon(ctx) {
   copyFile(src, path.join(outBase, ctx.iconFile))
 }
 
+// The in-sandbox install command for whatever stageIcons staged. A theme
+// tree merges into /app/share/icons; a single SVG installs as scalable, a
+// PNG as 256x256.
 function iconInstallCommand(ctx) {
+  const { config } = ctx
+  if (ctx.iconsStaged)
+    return `mkdir -p /app/share/icons && cp -a icons/. /app/share/icons/`
   if (ctx.iconFile === undefined)
     return undefined
-  const { config } = ctx
   const dir = ctx.iconFile.endsWith('.svg') ? 'scalable' : '256x256'
   return `install -Dm644 ${ctx.iconFile} /app/share/icons/hicolor/${dir}/apps/${config.id}${path.extname(ctx.iconFile)}`
 }

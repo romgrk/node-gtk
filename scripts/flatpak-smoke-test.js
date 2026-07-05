@@ -58,6 +58,24 @@ process.exit(0)
 fs.mkdirSync(path.join(appDir, 'node_modules'))
 fs.symlinkSync(repoRoot, path.join(appDir, 'node_modules', 'node-gtk'), 'dir')
 
+// App-provided desktop-integration files at the conventional data/ locations:
+// the metainfo and icon theme must be discovered and used instead of stubs
+// (the missing .desktop still exercises the generated-stub path).
+fs.mkdirSync(path.join(appDir, 'data', 'icons', 'hicolor', 'scalable', 'apps'), { recursive: true })
+fs.writeFileSync(path.join(appDir, 'data', `${id}.metainfo.xml`), `<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>${id}</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>FlatpakSmoke</name>
+  <summary>Flatpak generation smoke test</summary>
+  <description><p>SMOKE_MARKER_APP_PROVIDED_METAINFO</p></description>
+  <launchable type="desktop-id">${id}.desktop</launchable>
+</component>
+`)
+fs.writeFileSync(path.join(appDir, 'data', 'icons', 'hicolor', 'scalable', 'apps', `${id}.svg`),
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16"/></svg>\n')
+
 const outDir = path.join(tmp, 'out')
 const args = [path.join(repoRoot, 'bin', 'node-gtk.js'), 'flatpak', appDir, '--out', outDir, '--release']
 if (!full)
@@ -80,9 +98,12 @@ const checks = [
   // the gi: import scheme must work out of the box → loader registered
   ['launcher.sh', content => content.includes('exec /app/bin/node --import node-gtk/register')],
   [`${id}.desktop`, content => content.includes('Exec=' + id)],
-  [`${id}.metainfo.xml`, content => content.includes(`<id>${id}</id>`)],
-  // --release: Flathub manifest referencing the tarball by url + sha256
-  [`${id}.flathub.yml`, content => /type: archive/.test(content) && /sha256: [0-9a-f]{64}/.test(content)],
+  // app-provided data/ files must be used instead of generated stubs
+  [`${id}.metainfo.xml`, content => content.includes('SMOKE_MARKER_APP_PROVIDED_METAINFO')],
+  [`icons/hicolor/scalable/apps/${id}.svg`, undefined],
+  // --release: Flathub manifest (named <id>.yml for the linter) referencing
+  // the tarball by url + sha256
+  [`flathub/${id}.yml`, content => /type: archive/.test(content) && /sha256: [0-9a-f]{64}/.test(content)],
   ['FlatpakSmoke-1.0.0-flatpak-src.tar.gz', undefined],
   // the staged tree must be COMPILABLE in the sandbox
   ['app/node_modules/node-gtk/binding.gyp', undefined],

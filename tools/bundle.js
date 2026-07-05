@@ -165,7 +165,13 @@ function loadConfig(appDir, flags) {
     repository: typeof pkg.repository === 'string' ? pkg.repository : (pkg.repository || {}).url,
     summary: raw.summary || `The ${name} application`,
     license: raw.license || pkg.license,
+    author: pkg.author,
     icon: raw.icon,
+    // App-provided desktop-integration files (flatpak): explicit paths here,
+    // else discovered at the conventional data/ locations.
+    desktopFile: raw.desktopFile,
+    metainfo: raw.metainfo,
+    iconsDir: raw.iconsDir,
     categories: raw.categories || ['GTK'],
     gtk: raw.gtk,
     entry: path.normalize(entry),
@@ -183,9 +189,14 @@ function loadConfig(appDir, flags) {
     out: path.resolve(appDir, flags.out || raw.out
       || path.join('dist', `${name}-${process.platform}-${process.arch}`)),
     flatpak: {
-      runtimeVersion: String(flatpakRaw.runtimeVersion || '49'),
+      runtimeVersion: String(flatpakRaw.runtimeVersion || '50'),
       node: Number(flatpakRaw.node || defaultFlatpakNode()),
       finishArgs: flatpakRaw.finishArgs || [],
+      // { "<linter-check>": "<justification>" } — permissions the app stands
+      // by (a file manager needs --filesystem=host). Tolerated by --lint via
+      // --user-exceptions; each needs the justification restated in the
+      // Flathub submission PR.
+      lintExceptions: flatpakRaw.lintExceptions || {},
     },
   }
 
