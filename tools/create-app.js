@@ -25,6 +25,7 @@ const FILES = [
   ['style.css.tmpl', 'style.css'],
   ['src/main.ts.tmpl', path.join('src', 'main.ts')],
   ['src/welcome.ts.tmpl', path.join('src', 'welcome.ts')],
+  ['data/icon.svg.tmpl', path.join('data', 'icon.svg')],
 ]
 
 // ---------------------------------------------------------------------------

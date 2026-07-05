@@ -44,6 +44,13 @@ npx node-gtk create <your-app>
 Also see our [hello world](./examples/hello-world.mjs), [web browser](./examples/browser.mjs)
 or [system monitor](./examples/system-monitor.mjs) examples.
 
+When it's time to ship (Linux for now — see [doc/bundling.md](./doc/bundling.md)):
+
+```sh
+npx node-gtk flatpak    # a Flatpak users install with one click (Flathub-ready)
+npx node-gtk bundle     # a self-contained portable directory / tar.gz
+```
+
 ## Installing
 
 There are two steps:

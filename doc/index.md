@@ -9,6 +9,7 @@ Adwaita is a set of widgets and theming that is built on top of GTK.
   1. [Widgets and styling](#widgets-and-styling)
   1. [Devtools](#devtools)
   1. [Typescript](#typescript)
+  1. [Shipping your app](#shipping-your-app)
 
 ## Importing
 
@@ -72,6 +73,12 @@ npx node-gtk generate-types Gtk-4.0 Pango-1.0 [etc]
 
 See  [typescript.md](./typescript.md)
 
+## Shipping your app
+
+`node-gtk flatpak` packages your app as a Flatpak — the format real users
+install through GNOME Software, Flathub-ready. `node-gtk bundle` produces a
+self-contained portable directory (and `.tar.gz`) that runs on machines with
+nothing installed. See [bundling.md](./bundling.md).
 
 ## node-gtk low-level API
 

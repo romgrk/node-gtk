@@ -1,0 +1,42 @@
+name: flatpak-build
+#
+# Full `node-gtk flatpak` verification: build a smoke app's flatpak for real
+# (addon compiled in the sandbox against org.gnome.Platform), install it, and
+# run it headless. This downloads the ~1GB GNOME SDK (cached between runs),
+# so it is not part of the per-push matrix — main.yaml runs the cheap
+# generation-only smoke test instead.
+#
+on:
+  workflow_dispatch:
+
+jobs:
+  full-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder dbus xvfb
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+      # The GNOME SDK + node extension the build pulls via
+      # --install-deps-from=flathub. Keyed on the runtime/extension pair the
+      # smoke app resolves to (node 24 -> node24 extension).
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/flatpak
+          key: flatpak-org.gnome.Sdk-49-node24-v1
+
+      # Staging only needs the JS dependency tree (node-gtk ships its compile
+      # inputs; the addon builds inside the flatpak sandbox), so no host GTK
+      # and no host addon build.
+      - run: npm install -g pnpm@11
+      - run: pnpm install --ignore-scripts
+
+      - name: Full flatpak smoke test (build + install + run)
+        run: node scripts/flatpak-smoke-test.js --full

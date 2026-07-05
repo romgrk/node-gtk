@@ -76,6 +76,19 @@ re-run it:
 npm run generate-types
 ```
 
+## Shipping
+
+The project is born Flathub-ready — the `bundle` block in package.json matches
+the app id in `src/main.ts`, and `data/icon.svg` is a placeholder to replace:
+
+```sh
+npm run flatpak     # build + install a Flatpak (the format users install)
+npm run bundle      # a self-contained portable directory + tar.gz
+```
+
+See [bundling.md](https://github.com/romgrk/node-gtk/blob/master/doc/bundling.md)
+for the Flathub submission path (`node-gtk flatpak --release --lint`).
+
 ## Project structure
 
 ```
@@ -83,6 +96,7 @@ npm run generate-types
 ├── src/
 │   ├── main.ts        # the application entry point
 │   └── welcome.ts     # a component with its own inline, hot-reloadable styles
+├── data/icon.svg      # placeholder app icon (used by flatpak/bundle)
 ├── style.css          # custom CSS (hot-reloads live under `npm run dev`)
 ├── tsconfig.json
 └── package.json

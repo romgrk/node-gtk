@@ -145,3 +145,18 @@ jobs:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # `node-gtk bundle` end-to-end: bundle a smoke app against this checkout,
+      # then run the produced launcher. Linux-only for now; one node version
+      # suffices (the bundler is ABI-generic JS, tested against the matrix's
+      # addon build anyway).
+      - name: Bundle smoke test
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: xvfb-run -a node scripts/bundle-smoke-test.js
+
+      # `node-gtk flatpak` generation: manifest + offline sources must be
+      # complete and buildable. The full sandbox build is not run per-CI-run
+      # (it downloads the ~1GB GNOME SDK); this check needs no flatpak at all.
+      - name: Flatpak generation smoke test
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        run: node scripts/flatpak-smoke-test.js
