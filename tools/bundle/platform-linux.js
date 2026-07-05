@@ -175,7 +175,8 @@ function pkgConfigVar(pkg, variable) {
 
 function writeLauncher(ctx) {
   const { config, outBase } = ctx
-  const nodeArgs = config.nodeArgs.length > 0 ? config.nodeArgs.join(' ') + ' ' : ''
+  const args = [...(config.register ? ['--import', 'node-gtk/register'] : []), ...config.nodeArgs]
+  const nodeArgs = args.length > 0 ? args.join(' ') + ' ' : ''
   const launcherPath = path.join(outBase, config.name)
   const entry = config.entry.split(path.sep).join('/')
 

@@ -54,7 +54,8 @@ if (result.status !== 0) {
 const checks = [
   // generated integration files
   [`${id}.yml`, content => content.includes(`app-id: ${id}`) && content.includes('org.freedesktop.Sdk.Extension.node')],
-  ['launcher.sh', content => content.includes('exec /app/bin/node')],
+  // the gi: import scheme must work out of the box → loader registered
+  ['launcher.sh', content => content.includes('exec /app/bin/node --import node-gtk/register')],
   [`${id}.desktop`, content => content.includes('Exec=' + id)],
   [`${id}.metainfo.xml`, content => content.includes(`<id>${id}</id>`)],
   // the staged tree must be COMPILABLE in the sandbox

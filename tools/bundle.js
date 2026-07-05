@@ -164,6 +164,11 @@ function loadConfig(appDir, flags) {
     gtk: raw.gtk,
     entry: path.normalize(entry),
     include: raw.include || ['**/*'],
+    // The `gi:` import scheme (the default in `node-gtk create` apps) only
+    // works with the loader hooks registered, so launchers pass
+    // `--import node-gtk/register` unless explicitly disabled. Harmless for
+    // CJS apps: register.mjs only installs hooks.
+    register: raw.register !== false,
     nodeArgs: raw.nodeArgs || [],
     libraries: raw.libraries || [],
     omitPackages: raw.omitPackages || [],

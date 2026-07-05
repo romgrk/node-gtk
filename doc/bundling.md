@@ -80,7 +80,9 @@ is optional:
     "gtk": 4,                        // bundle only this GTK major (default: all installed)
     "include": ["src/**", "assets/**"],  // app files; default: "**/*" minus
                                      // node_modules/.git/dist/out/build
-    "nodeArgs": ["--import", "node-gtk/register"],  // e.g. for TS entries
+    "nodeArgs": ["--max-old-space-size=512"], // extra node flags, if any
+    "register": true,                // default: launchers pass --import node-gtk/register
+                                     // so `gi:` imports work; set false to opt out
     "libraries": ["libgstreamer-1.0.so.0"],  // extra closure seeds (GStreamer, libsoup, …)
     "omitPackages": ["some-dev-helper"],     // npm packages to leave out
     "icons": false,                  // skip Adwaita/hicolor themes (default: true)
