@@ -6,6 +6,7 @@
  *   generate-types   Generate TypeScript declarations from the installed typelibs.
  *   create           Create a new GTK/Adwaita application.
  *   list             List the GObject-Introspection libraries available locally.
+ *   bundle           Create a self-contained bundle of a node-gtk application.
  */
 
 const cmd = process.argv[2]
@@ -21,6 +22,9 @@ switch (cmd) {
   case 'list-libraries':
     require('../tools/list-libraries.js').run(process.argv.slice(3))
     break
+  case 'bundle':
+    require('../tools/bundle.js').run(process.argv.slice(3))
+    break
   case undefined:
   case '-h':
   case '--help':
@@ -32,6 +36,7 @@ Commands:
   create <directory>                         Create a new GTK/Adwaita app
   generate-types <Namespace-Version> [...]   Generate TypeScript types (.d.ts)
   list [filter]                              List available libraries & versions
+  bundle [directory]                         Create a self-contained app bundle
 
 Run \`node-gtk <command> --help\` for details.`)
     process.exit(cmd ? 0 : 1)

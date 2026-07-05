@@ -44,6 +44,14 @@ npx node-gtk create <your-app>
 Also see our [hello world](./examples/hello-world.mjs), [web browser](./examples/browser.mjs)
 or [system monitor](./examples/system-monitor.mjs) examples.
 
+When it's time to ship, the **bundle** tool packages your app, node, node-gtk and
+the whole GTK runtime into a self-contained directory that runs on machines with
+nothing installed (Linux for now — see [doc/bundling.md](./doc/bundling.md)):
+
+```sh
+npx node-gtk bundle --archive
+```
+
 ## Installing
 
 There are two steps:
