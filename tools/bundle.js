@@ -172,7 +172,10 @@ function loadConfig(appDir, flags) {
     desktopFile: raw.desktopFile,
     metainfo: raw.metainfo,
     iconsDir: raw.iconsDir,
-    categories: raw.categories || ['GTK'],
+    // The default needs a valid MAIN category (Utility): appstreamcli
+    // compose, which flatpak-builder runs, rejects the app with
+    // no-valid-category otherwise — GTK alone is additional-only.
+    categories: raw.categories || ['Utility', 'GTK'],
     gtk: raw.gtk,
     entry: path.normalize(entry),
     include: raw.include || ['**/*'],
