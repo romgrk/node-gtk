@@ -227,13 +227,18 @@ anything missing gets a minimal generated stub:
 Override the discovery with `"bundle": { "desktopFile": …, "metainfo": …,
 "iconsDir": … }` when your layout differs.
 
-Three things that bite:
+Four things that bite:
 
 - **The flatpak id must equal your `Gtk.Application` `applicationId`** —
   otherwise GNOME Shell can't associate windows with the app (generic icon,
   wrong dock entry).
 - The sandbox has no host filesystem by default: `fs` reads outside the
   sandbox need `--filesystem=` permissions, or better, the XDG portals.
+- **GVfs URIs (`trash:///`, `recent:///`, `mtp://`, `smb://`, …) fail with
+  "Operation not supported" even under `--filesystem=host`**: GIO reaches
+  them through the host's gvfs daemons, which needs
+  `"--talk-name=org.gtk.vfs.*"` + `"--filesystem=xdg-run/gvfsd"` in
+  `finishArgs`.
 - **The API surface follows the runtime's libraries, not your dev
   machine's.** A rolling-release host can expose introspected names a
   slightly older GNOME runtime doesn't (e.g. glib ≥2.88 introspects
