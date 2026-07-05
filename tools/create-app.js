@@ -17,6 +17,9 @@ const TEMPLATE_DIR = path.join(__dirname, 'templates', 'app')
 // template file -> destination path (relative to the new project root).
 // Templates carry a `.tmpl` suffix so npm never rewrites `.gitignore` to
 // `.npmignore` and never treats a nested `package.json` as a real manifest.
+// Destinations get token substitution too: the icon lands at the hicolor
+// location `node-gtk flatpak` discovers (and freedesktop tooling expects),
+// named after the app id.
 const FILES = [
   ['package.json.tmpl', 'package.json'],
   ['tsconfig.json.tmpl', 'tsconfig.json'],
@@ -25,7 +28,7 @@ const FILES = [
   ['style.css.tmpl', 'style.css'],
   ['src/main.ts.tmpl', path.join('src', 'main.ts')],
   ['src/welcome.ts.tmpl', path.join('src', 'welcome.ts')],
-  ['data/icon.svg.tmpl', path.join('data', 'icon.svg')],
+  ['data/icon.svg.tmpl', path.join('data', 'icons', 'hicolor', 'scalable', 'apps', '__APP_ID__.svg')],
 ]
 
 // ---------------------------------------------------------------------------
@@ -105,10 +108,10 @@ function createProject(opts) {
   const written = []
   for (const [src, dest] of FILES) {
     const content = substitute(fs.readFileSync(path.join(TEMPLATE_DIR, src), 'utf8'))
-    const destPath = path.join(dir, dest)
+    const destPath = path.join(dir, substitute(dest))
     fs.mkdirSync(path.dirname(destPath), { recursive: true })
     fs.writeFileSync(destPath, content)
-    written.push(dest)
+    written.push(path.relative(dir, destPath))
   }
   return written
 }

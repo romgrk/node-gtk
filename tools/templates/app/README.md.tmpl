@@ -79,7 +79,8 @@ npm run generate-types
 ## Shipping
 
 The project is born Flathub-ready — the `bundle` block in package.json matches
-the app id in `src/main.ts`, and `data/icon.svg` is a placeholder to replace:
+the app id in `src/main.ts`, and the icon under `data/icons/hicolor/` is a
+placeholder to replace (anything you add there — sizes, symbolic — ships too):
 
 ```sh
 npm run flatpak     # build + install a Flatpak (the format users install)
@@ -96,7 +97,7 @@ for the Flathub submission path (`node-gtk flatpak --release --lint`).
 ├── src/
 │   ├── main.ts        # the application entry point
 │   └── welcome.ts     # a component with its own inline, hot-reloadable styles
-├── data/icon.svg      # placeholder app icon (used by flatpak/bundle)
+├── data/icons/        # app icon(s), named after the app id (used by flatpak)
 ├── style.css          # custom CSS (hot-reloads live under `npm run dev`)
 ├── tsconfig.json
 └── package.json

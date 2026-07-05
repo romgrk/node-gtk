@@ -177,19 +177,25 @@ The shared `"bundle"` key, plus a `"flatpak"` sub-key:
 ```jsonc
 "bundle": {
   "name": "MyApp",
-  "id": "com.example.MyApp",       // MUST be your GApplication application-id
+  "id": "io.github.you.myapp",     // MUST be your GApplication application-id;
+                                   // Flathub requires io.github.*/io.gitlab.*
+                                   // for code-hosting-based ids
   "summary": "Does the thing",     // .desktop comment + AppStream summary
-  "icon": "assets/icon.svg",       // svg or png; required by Flathub
   "license": "MIT",                // SPDX, defaults to package.json "license"
   "categories": ["GTK", "Utility"],
   "flatpak": {
-    "runtimeVersion": "49",        // org.gnome.Platform version (50 is also current;
-                                   // pick one and test against it)
+    "runtimeVersion": "50",        // org.gnome.Platform version — pin the one
+                                   // you tested against
     "node": 26,                    // SDK extension major (20/22/24/26)
     "finishArgs": [                // sandbox permissions beyond the GUI defaults
       "--share=network",
       "--filesystem=home"
-    ]
+    ],
+    "lintExceptions": {            // linter errors your app stands by; each one
+                                   // must be requested (with this justification)
+                                   // in the Flathub submission PR
+      "finish-args-host-filesystem-access": "MyApp is a file manager; …"
+    }
   }
 }
 ```
@@ -202,6 +208,24 @@ this before submitting anywhere).
 Defaults grant only GUI access (`wayland`, `fallback-x11`, `ipc`, `dri`) —
 network and filesystem are deliberately opt-in; request the minimum, Flathub
 reviews it.
+
+## Desktop integration files
+
+Ship your own files at the conventional locations and they are used as-is;
+anything missing gets a minimal generated stub:
+
+- `data/<id>.desktop` — copied with only `Exec=` rewritten to the sandbox
+  command, so one file serves host installs and the flatpak. Keep
+  `Icon=<id>`: flatpak only exports icons named after the app id.
+- `data/<id>.metainfo.xml` — copied verbatim. The generated stub passes
+  validation, but Flathub review wants a real description, screenshots and
+  release notes only you can write — start from the stub in `dist/flatpak/`.
+- `data/icons/hicolor/<size>/apps/<id>.(svg|png)` — the whole theme tree
+  ships (sized, scalable and symbolic variants). Single-file alternative:
+  `"bundle": { "icon": "assets/icon.svg" }`.
+
+Override the discovery with `"bundle": { "desktopFile": …, "metainfo": …,
+"iconsDir": … }` when your layout differs.
 
 Three things that bite:
 
@@ -231,19 +255,37 @@ npx node-gtk flatpak --release --lint
 
 - `<Name>-<version>-flatpak-src.tar.gz` — the staged sources (app +
   production node_modules + desktop files) as one tarball
-- `<id>.flathub.yml` — the manifest referencing that tarball by URL + sha256
+- `flathub/<id>.yml` — the manifest referencing that tarball by URL + sha256
   (URL derived from package.json `"repository"`:
   `https://github.com/<you>/<app>/releases/download/v<version>/<tarball>`;
-  override with `--release-url`)
+  override with `--release-url`). The `flathub/` directory is exactly what
+  the submission PR contains, and the manifest is named `<id>.yml` because
+  the linter requires it.
 
-The flow: **1.** fix everything `--lint` reports (the metainfo TODOs —
-description, screenshots, releases, content rating — and a real icon);
-**2.** create the GitHub release `v<version>` and upload the tarball;
-**3.** submit `<id>.flathub.yml` via PR to
-[flathub/flathub](https://github.com/flathub/flathub). After acceptance,
-users find the app in GNOME Software and every update ships automatically —
-new releases are a version bump + new tarball + manifest update in your
-Flathub repo.
+The flow:
+
+1. Fix everything `--lint` reports. Common gates: the app id — Flathub
+   rejects `com.github.*`; a GitHub-hosted app must use `io.github.<you>.<app>`
+   (and `applicationId` must match) — and broad permissions like
+   `--filesystem=host`, which are declared in `"lintExceptions"` with a
+   justification and granted per-app during review.
+2. Create the GitHub release `v<version>` and upload the tarball:
+   `gh release create v<version> dist/flatpak/<tarball>`.
+3. Fork [flathub/flathub](https://github.com/flathub/flathub), branch off
+   `new-pr` (not master), add the contents of `dist/flatpak/flathub/`, and
+   open a PR against `new-pr`. Request any `lintExceptions` in the PR
+   description with their justifications.
+
+After acceptance, users find the app in GNOME Software and every update
+ships automatically — new releases are a version bump + new tarball +
+manifest update in your Flathub repo.
+
+One caveat if you run the deepest check locally
+(`flatpak-builder-lint repo dist/flatpak/repo`): it reports
+`appstream-screenshots-not-mirrored-in-ostree` /
+`appstream-external-screenshot-url`. Both are expected outside Flathub's
+infrastructure — their pipeline mirrors screenshots into
+`dl.flathub.org/media` automatically.
 
 Alternative without Flathub: host your own flatpak repository (an ostree
 repo is static files — GitHub Pages works) and point users at a `.flatpakref`;

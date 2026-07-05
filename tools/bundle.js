@@ -165,8 +165,17 @@ function loadConfig(appDir, flags) {
     repository: typeof pkg.repository === 'string' ? pkg.repository : (pkg.repository || {}).url,
     summary: raw.summary || `The ${name} application`,
     license: raw.license || pkg.license,
+    author: pkg.author,
     icon: raw.icon,
-    categories: raw.categories || ['GTK'],
+    // App-provided desktop-integration files (flatpak): explicit paths here,
+    // else discovered at the conventional data/ locations.
+    desktopFile: raw.desktopFile,
+    metainfo: raw.metainfo,
+    iconsDir: raw.iconsDir,
+    // The default needs a valid MAIN category (Utility): appstreamcli
+    // compose, which flatpak-builder runs, rejects the app with
+    // no-valid-category otherwise — GTK alone is additional-only.
+    categories: raw.categories || ['Utility', 'GTK'],
     gtk: raw.gtk,
     entry: path.normalize(entry),
     include: raw.include || ['**/*'],
@@ -183,9 +192,14 @@ function loadConfig(appDir, flags) {
     out: path.resolve(appDir, flags.out || raw.out
       || path.join('dist', `${name}-${process.platform}-${process.arch}`)),
     flatpak: {
-      runtimeVersion: String(flatpakRaw.runtimeVersion || '49'),
+      runtimeVersion: String(flatpakRaw.runtimeVersion || '50'),
       node: Number(flatpakRaw.node || defaultFlatpakNode()),
       finishArgs: flatpakRaw.finishArgs || [],
+      // { "<linter-check>": "<justification>" } — permissions the app stands
+      // by (a file manager needs --filesystem=host). Tolerated by --lint via
+      // --user-exceptions; each needs the justification restated in the
+      // Flathub submission PR.
+      lintExceptions: flatpakRaw.lintExceptions || {},
     },
   }
 
