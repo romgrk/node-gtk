@@ -14,10 +14,10 @@ Two commands cover shipping, for different audiences:
 
 Both read the same `"bundle"` configuration from your package.json.
 
-> **Platform support: Linux today.** macOS and Windows are planned; the
-> platform-specific work is isolated behind one module interface
-> (`tools/bundle/platform-*.js`), and the Windows DLL-closure logic is already
-> proven by the self-contained npm prebuilt (`scripts/windows-bundle-runtime.sh`).
+> **Platform support:** `node-gtk bundle` produces Linux, macOS and Windows
+> bundles — always for the platform/architecture it runs on (no
+> cross-bundling). `node-gtk flatpak` is Linux. See the
+> [per-platform notes](#platform-notes) for what each bundler machine needs.
 
 # Portable bundles
 
@@ -25,20 +25,21 @@ Both read the same `"bundle"` configuration from your package.json.
 
 ```sh
 cd my-app
-npx node-gtk bundle            # → dist/MyApp-linux-x64/
-npx node-gtk bundle --archive  # → dist/MyApp-linux-x64.tar.gz too
+npx node-gtk bundle            # → dist/MyApp-linux-x64/  (or -darwin-arm64, -win32-x64…)
+npx node-gtk bundle --archive  # → …plus .tar.gz / .dmg / .zip
 ```
 
 Requirements at bundle time: the app is installed (`node_modules` present,
 any package manager — pnpm symlink layouts are handled), node-gtk has a
 compiled addon for the running node, and the GTK stack you target is
-installed. **The node that runs the bundler is the node that ships.**
+installed ([per-platform notes](#platform-notes)). **The node that runs the
+bundler is the node that ships.**
 
 Users run the launcher — no installation:
 
 ```sh
 tar xzf MyApp-linux-x64.tar.gz
-./MyApp-linux-x64/MyApp
+./MyApp-linux-x64/MyApp        # macOS: open MyApp.app   Windows: MyApp.cmd
 ```
 
 ## Output layout
@@ -54,6 +55,10 @@ MyApp-linux-x64/
 │   └── share/      compiled GSettings schemas, Adwaita/hicolor icon themes
 └── app/            ← yours: files from `include` + production node_modules
 ```
+
+The same shape everywhere: Windows swaps the launcher for `MyApp.cmd` and the
+node binary for `runtime/node.exe`; macOS wraps it into
+`MyApp.app/Contents/{MacOS/MyApp, Info.plist, Resources/{runtime,app}}`.
 
 The `runtime/` vs `app/` split is deliberate: `runtime/` is content-identical
 for every app built with the same node-gtk/GTK/node versions, so a future
@@ -96,27 +101,18 @@ CLI flags `--out`, `--name`, `--entry`, `--archive` override the config.
 
 ### What gets bundled, what stays on the host
 
-The shared-library closure is walked with `ldd`, seeded from the addon, the
-GI namespace libraries (GTK, Adwaita, Pango, GdkPixbuf, …— see
-`tools/bundle/seeds.js`; missing ones are skipped, `libraries` adds more) and
-the gdk-pixbuf loaders. Host-tied libraries are **excluded**, following the
-[AppImage community excludelist](https://github.com/AppImageCommunity/pkg2appimage/blob/master/excludelist):
-glibc, the GPU/OpenGL stack, X11/Wayland client libraries, and the font stack
-(fontconfig/freetype/harfbuzz), which every desktop provides.
+The shared-library closure is walked with the platform's dependency walker
+(`ldd` / `otool -L` / `ntldd`), seeded from the addon, the GI namespace
+libraries (GTK, Adwaita, Pango, GdkPixbuf, …— see `tools/bundle/seeds.js`;
+missing ones are skipped, `libraries` adds more) and the gdk-pixbuf loaders.
+OS-tied libraries are **excluded** and resolve against the host — see the
+[per-platform notes](#platform-notes).
 
 Node packages: the production dependency closure of your app, symlinks
 dereferenced. node-gtk itself is trimmed to `package.json` + `lib/` with only
-the target ABI's compiled addon; its build-time deps (node-pre-gyp, node-gyp,
-nan) never ship.
-
-### Compatibility baseline
-
-A bundle runs on distros whose **glibc is at least as new** as the build
-machine's (the classic portable-Linux constraint — the excluded libraries
-resolve against the host). Build on the oldest distribution you want to
-support; a GitHub Actions `ubuntu-latest` runner is a reasonable baseline.
-`bundle.node` exists so you can ship a node built against an older glibc than
-your machine's.
+the target ABI's compiled addon (without the self-contained prebuilt's own
+GTK runtime, on Windows); its build-time deps (node-pre-gyp, node-gyp, nan)
+never ship.
 
 ### Size expectations
 
@@ -125,15 +121,65 @@ GTK4 + Adwaita + typelibs + icons ≈ 135 MB, node ≈ 110 MB, ~100 MB as a
 machine that has both; `"icons": false` saves ~15 MB if you rely on host
 themes.
 
+## Platform notes
+
+### Linux
+
+Excluded (host-provided) libraries follow the
+[AppImage community excludelist](https://github.com/AppImageCommunity/pkg2appimage/blob/master/excludelist):
+glibc, the GPU/OpenGL stack, X11/Wayland client libraries, and the font stack
+(fontconfig/freetype/harfbuzz), which every desktop provides. Consequently a
+bundle runs on distros whose **glibc is at least as new** as the build
+machine's — build on the oldest distribution you want to support (a GitHub
+Actions `ubuntu-latest` runner is a reasonable baseline). `bundle.node`
+exists so you can ship a node built against an older glibc than your
+machine's. Launcher wiring is `LD_LIBRARY_PATH` + `GI_TYPELIB_PATH` +
+`XDG_DATA_DIRS`; `--archive` makes a `.tar.gz`.
+
+### Windows
+
+Bundle from an **MSYS2 MINGW64 shell** (GTK installed, node-gtk built there),
+running the *Windows* node — the same environment that builds node-gtk. The
+produced bundle has no such requirement: only `C:\Windows\System32` DLLs stay
+on the host, everything MinGW ships in `runtime/lib`. The `MyApp.cmd`
+launcher puts `runtime\lib` (and the pixbuf loaders dir) on `PATH` — the
+Windows DLL search path — and runs `runtime\node.exe`. The MSVC node and
+MinGW GTK DLLs interop fine (plain C ABI; the self-contained npm prebuilt has
+proven this in CI for a while). `--archive` makes a `.zip`.
+
+### macOS
+
+Bundle on a machine with the **Homebrew** GTK stack (`brew install gtk4
+gobject-introspection` — or gtk3). Output is a per-architecture
+`MyApp.app` (build arm64 and x86_64 separately; no universal binaries).
+Relocation is two-layered: every bundled Mach-O is rewritten with
+`install_name_tool` to `@loader_path`-relative names and ad-hoc re-signed,
+and the launcher additionally exports
+`DYLD_FALLBACK_LIBRARY_PATH=…/runtime/lib` — the net that also resolves the
+absolute Homebrew paths baked into typelibs on machines without Homebrew.
+`--archive` makes a compressed `.dmg`.
+
+**Distribution reality:** the `.app` is ad-hoc signed only. It runs locally
+and on machines that clear the quarantine attribute
+(`xattr -dr com.apple.quarantine MyApp.app`), but Gatekeeper-friendly
+distribution needs Developer ID signing + notarization on top — out of scope
+for the bundler.
+
 ## Verifying a bundle
 
-CI runs `scripts/bundle-smoke-test.js` (bundle a minimal app, run its
-launcher, assert the app executed under the bundled node). To check where
-libraries resolve from on your machine:
+CI runs `scripts/bundle-smoke-test.js` on all three platforms (bundle a
+minimal app, run its launcher, assert the app executed under the bundled
+node). To check where libraries resolve from on your machine:
 
 ```sh
+# Linux
 LD_DEBUG=libs ./dist/MyApp-linux-x64/MyApp 2>&1 | grep 'trying file.*libgtk'
+# macOS
+DYLD_PRINT_LIBRARIES=1 ./dist/MyApp-darwin-arm64/MyApp.app/Contents/MacOS/MyApp 2>&1 | grep libgtk
 ```
+
+(On Windows, use Process Monitor or `listdlls` to confirm DLLs load from
+`runtime\lib`.)
 
 # Flatpak
 
@@ -298,14 +344,14 @@ you keep update delivery, minus the store discoverability.
 
 # Roadmap
 
-- **Windows**: same `bundle` architecture; DLL closure via `ntldd` (already
-  CI-proven for the npm prebuilt), `.cmd` launcher, `.zip` archive. Needs an
-  MSYS2 MINGW64 environment at bundle time.
-- **macOS**: dylib closure via `otool -L` from Homebrew,
-  `install_name_tool` relocation + ad-hoc re-signing, `.app`/`.dmg` output,
-  `DYLD_FALLBACK_LIBRARY_PATH` launcher. Distribution additionally requires
-  codesigning + notarization (Apple developer account).
 - **AppImage**: single-file wrapper around exactly the portable tree.
 - **Shared runtime** (portable bundles): install `runtime/` once per machine
   (`~/.local/share/node-gtk/runtime/<version>`), apps resolve it
   relative-first — the layout already supports this.
+- **macOS clean-machine CI**: the macOS smoke test runs on a runner that
+  *has* Homebrew, so the `DYLD_FALLBACK_LIBRARY_PATH` relocation path isn't
+  truly exercised there; an honest consume-side job (brew prefix renamed, or
+  a brew-less runner) would mirror `test-windows-prebuilt.yaml`'s two-job
+  pattern.
+- **macOS signing helper**: optional Developer ID codesign + notarization
+  pass over the produced `.app`.

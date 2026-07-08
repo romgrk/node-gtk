@@ -6,8 +6,9 @@
  * checks that the app's GTK code actually executed inside the bundle.
  *
  * The app tries Gtk 4.0 and falls back to Gtk 3.0, so the test runs
- * regardless of which GTK is installed. It needs a display: run under
- * `xvfb-run -a` in headless environments.
+ * regardless of which GTK is installed. Runs on all bundling platforms:
+ * Linux (needs a display — use `xvfb-run -a` headless), macOS (Homebrew GTK)
+ * and Windows (run from an MSYS2 MINGW64 shell, under the Windows node).
  *
  * Usage: node scripts/bundle-smoke-test.js
  */
@@ -16,11 +17,6 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const child_process = require('child_process')
-
-if (process.platform !== 'linux') {
-  console.log(`bundle-smoke-test: \`node-gtk bundle\` only supports linux for now, skipping on ${process.platform}`)
-  process.exit(0)
-}
 
 const repoRoot = path.resolve(__dirname, '..')
 const bindingName = `node-v${process.versions.modules}-${process.platform}-${process.arch}`

@@ -158,9 +158,16 @@ function copyNodeGtk(ctx, srcDir, destDir) {
         return false
       if (ALWAYS_EXCLUDED_DIRS.has(parts[parts.length - 1]))
         return false
-      if (parts[0] === 'lib' && parts[1] === 'binding'
-          && (ctx.rebuildAddon || (parts.length >= 3 && parts[2] !== bindingName)))
-        return false
+      if (parts[0] === 'lib' && parts[1] === 'binding') {
+        if (ctx.rebuildAddon || (parts.length >= 3 && parts[2] !== bindingName))
+          return false
+        // The binding dir may carry a whole GTK runtime beside the addon (the
+        // self-contained Windows prebuilt: DLLs, typelibs, icons — see
+        // windows-bundle-runtime.sh). Only the addon ships; the bundle's
+        // runtime/ tree replaces the rest.
+        if (parts.length >= 4 && parts[3] !== 'node_gtk.node')
+          return false
+      }
       return true
     },
   })

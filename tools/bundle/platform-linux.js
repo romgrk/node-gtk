@@ -21,10 +21,17 @@
 const fs = require('fs')
 const path = require('path')
 
-const { exec, tryExec, exists, mkdirp, copyFile, copyTree, formatSize } = require('./util.js')
+const { exec, tryExec, exists, mkdirp, copyFile, formatSize } = require('./util.js')
 const { seedNames, isExcludedLinux } = require('./seeds.js')
+const { copyTypelibs, copyRuntimeData, pkgConfigVar } = require('./runtime-data.js')
 
 const NODE_BINARY = 'node'
+
+// Distro node binaries carry debug symbols (Arch's is ~140MB, ~110MB of it
+// symbols); strip the shipped copy, like ci.sh strips the prebuilt addon.
+function stripNode(nodeDest) {
+  tryExec(`strip --strip-unneeded ${JSON.stringify(nodeDest)}`)
+}
 
 function assembleRuntime(ctx) {
   const { config, runtimeDir, log } = ctx
@@ -87,37 +94,6 @@ function assembleRuntime(ctx) {
   copyRuntimeData(ctx, '/usr/share')
 }
 
-function copyTypelibs(src, dst, log) {
-  if (!exists(src))
-    throw new Error(`typelib directory not found: ${src} — is gobject-introspection installed?`)
-  mkdirp(dst)
-  const typelibs = fs.readdirSync(src).filter(f => f.endsWith('.typelib'))
-  for (const f of typelibs)
-    copyFile(path.join(src, f), path.join(dst, f))
-  log(`typelibs: ${typelibs.length} from ${src}`)
-}
-
-// Shared runtime data (identical logic for all prefixes): compiled GSettings
-// schemas and the Adwaita/hicolor icon themes.
-function copyRuntimeData(ctx, sharePrefix) {
-  const { config, runtimeDir, log } = ctx
-  const shareDst = path.join(runtimeDir, 'share')
-
-  const schemas = path.join(sharePrefix, 'glib-2.0', 'schemas', 'gschemas.compiled')
-  if (exists(schemas))
-    copyFile(schemas, path.join(shareDst, 'glib-2.0', 'schemas', 'gschemas.compiled'))
-  else
-    log(`  (no compiled GSettings schemas at ${schemas})`)
-
-  if (config.icons) {
-    for (const theme of ['Adwaita', 'hicolor']) {
-      const src = path.join(sharePrefix, 'icons', theme)
-      if (exists(src))
-        copyTree(src, path.join(shareDst, 'icons', theme))
-    }
-  }
-}
-
 // name -> path for every library in the loader cache, matching the current
 // architecture when ldconfig tags one.
 function ldconfigCache() {
@@ -167,12 +143,6 @@ function pixbufLoaders() {
   return { files, cache: exists(cache) ? cache : undefined }
 }
 
-function pkgConfigVar(pkg, variable) {
-  const out = tryExec(`pkg-config --variable=${variable} ${pkg}`)
-  const value = out !== undefined ? out.trim() : ''
-  return value !== '' ? value : undefined
-}
-
 function writeLauncher(ctx) {
   const { config, outBase } = ctx
   const args = [...(config.register ? ['--import', 'node-gtk/register'] : []), ...config.nodeArgs]
@@ -218,4 +188,4 @@ function archive(ctx) {
   return archivePath
 }
 
-module.exports = { NODE_BINARY, assembleRuntime, writeLauncher, archive }
+module.exports = { NODE_BINARY, stripNode, assembleRuntime, writeLauncher, archive }

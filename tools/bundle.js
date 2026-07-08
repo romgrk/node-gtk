@@ -22,14 +22,15 @@
 const fs = require('fs')
 const path = require('path')
 
-const { exists, mkdirp, formatSize, dirSize, tryExec } = require('./bundle/util.js')
+const { exists, mkdirp, formatSize, dirSize } = require('./bundle/util.js')
 const appTree = require('./bundle/app-tree.js')
 
-// macOS and Windows are planned; the per-platform work is isolated here (a
-// module provides NODE_BINARY, assembleRuntime, writeLauncher, archive).
-// Windows closure logic to port already exists in scripts/windows-bundle-runtime.sh.
+// The per-platform work is isolated here: a module provides NODE_BINARY,
+// assembleRuntime, writeLauncher, archive, and optionally stripNode.
 const PLATFORMS = {
   linux: () => require('./bundle/platform-linux.js'),
+  darwin: () => require('./bundle/platform-darwin.js'),
+  win32: () => require('./bundle/platform-win32.js'),
 }
 
 const HELP = `Usage: node-gtk bundle [app-directory] [options]
@@ -58,7 +59,7 @@ function run(argv) {
     }
     const platformModule = PLATFORMS[process.platform]
     if (platformModule === undefined)
-      throw new Error(`only Linux is supported for now (macOS and Windows are planned) — cannot bundle on '${process.platform}'`)
+      throw new Error(`cannot bundle on '${process.platform}' — supported platforms: linux, darwin, win32`)
     bundle(flags, platformModule())
   } catch (e) {
     console.error(`node-gtk bundle: ${e.message}`)
@@ -112,9 +113,8 @@ function bundle(flags, platform) {
   const nodeDest = path.join(ctx.runtimeDir, platform.NODE_BINARY)
   fs.copyFileSync(nodeSrc, nodeDest)
   fs.chmodSync(nodeDest, 0o755)
-  // Distro node binaries carry debug symbols (Arch's is ~140MB, ~110MB of it
-  // symbols); strip the shipped copy, like ci.sh strips the prebuilt addon.
-  tryExec(`strip --strip-unneeded ${JSON.stringify(nodeDest)}`)
+  if (platform.stripNode !== undefined)
+    platform.stripNode(nodeDest)
   log(`node: ${process.version} (${formatSize(fs.statSync(nodeDest).size)})`)
 
   const launcherPath = platform.writeLauncher(ctx)
