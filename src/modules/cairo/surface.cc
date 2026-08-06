@@ -142,6 +142,7 @@ void ImageSurface::SetupTemplate(Local<FunctionTemplate> parentTpl) {
   auto ctor = Nan::GetFunction (tpl).ToLocalChecked();
 
   SET_METHOD(ctor, createFromPng);
+  SET_METHOD(ctor, createForData);
 
   constructorTemplate.Reset(tpl);
   constructor.Reset(ctor);
@@ -634,6 +635,24 @@ NAN_METHOD(ImageSurface::createFromPng) {
 
   // function call
   cairo_surface_t * result = cairo_image_surface_create_from_png (filename);
+
+  // return
+  Local<Value> args[] = { Nan::New<External> (result) };
+  Local<Function> constructor = Nan::New<Function> (Surface::constructor);
+  Local<Value> returnValue = Nan::NewInstance(constructor, 1, args).ToLocalChecked();
+  info.GetReturnValue().Set(returnValue);
+}
+
+NAN_METHOD(ImageSurface::createForData) {
+  // in-arguments
+  if (!node::Buffer::HasInstance(info[0])) return Nan::ThrowTypeError("buffer expected"); auto data = (unsigned char *) node::Buffer::Data(info[0]);
+  auto format = (cairo_format_t) Nan::To<int64_t>(info[1].As<Number>()).ToChecked();
+  auto width = Nan::To<int64_t>(info[2].As<Number>()).ToChecked();
+  auto height = Nan::To<int64_t>(info[3].As<Number>()).ToChecked();
+  auto stride = Nan::To<int64_t>(info[4].As<Number>()).ToChecked();
+
+  // function call
+  cairo_surface_t * result = cairo_image_surface_create_for_data (data, format, width, height, stride);
 
   // return
   Local<Value> args[] = { Nan::New<External> (result) };

@@ -70,6 +70,7 @@ class ImageSurface: public Surface {
     static NAN_METHOD(New);
 
     static NAN_METHOD(createFromPng);
+    static NAN_METHOD(createForData);
     static NAN_METHOD(getData);
     static NAN_METHOD(getFormat);
     static NAN_METHOD(getWidth);
